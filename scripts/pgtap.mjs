@@ -1,5 +1,6 @@
 // Chạy test pgTAP trong supabase/tests/*.sql trên DB của SUPABASE_DB_URL (không cần Docker).
 // Mỗi file tự begin/rollback nên không để lại dữ liệu.
+import { readFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import pg from "pg";
 
@@ -8,9 +9,15 @@ const only = process.argv.slice(2);
 const files = (await readdir(dir)).filter((f) => f.endsWith(".sql") && (!only.length || only.includes(f))).sort();
 if (!process.env.SUPABASE_DB_URL) throw new Error("Thiếu SUPABASE_DB_URL trong .env");
 
+// Luôn kiểm tra chứng chỉ TLS. Pooler của Supabase ký bằng "Supabase Root 2021 CA" (supabase/certs).
+function sslConfig() {
+  const ca = process.env.SUPABASE_DB_CA ?? new URL("../supabase/certs/prod-ca-2021.crt", import.meta.url);
+  return { rejectUnauthorized: true, ca: readFileSync(ca, "utf8") };
+}
+
 let failedFiles = 0;
 for (const file of files) {
-  const client = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL, ssl: { rejectUnauthorized: false } });
+  const client = new pg.Client({ connectionString: process.env.SUPABASE_DB_URL, ssl: sslConfig() });
   await client.connect();
   const lines = [];
   try {
