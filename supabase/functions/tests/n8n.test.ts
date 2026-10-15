@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { createN8n } from "../_shared/n8n.ts";
+import { createN8n, DEFAULT_REFRESH_TIMEOUT_MS } from "../_shared/n8n.ts";
 
 type Call = { url: string; init: RequestInit };
 
@@ -64,4 +64,8 @@ Deno.test("postNote 200 with empty body (n8n workflow errored) -> false", async 
   const { f } = recorder(() => Promise.resolve(new Response("", { status: 200 })));
   const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
   assertEquals(await n8n.postNote("ws1", "session_1", "x"), false);
+});
+
+Deno.test("default refresh timeout is 5s (n8n refresh takes ~3s in production)", () => {
+  assertEquals(DEFAULT_REFRESH_TIMEOUT_MS, 5000);
 });

@@ -4,6 +4,8 @@ export interface N8n {
 }
 
 const BOT_MARK = "🤖";
+// Refresh qua n8n (Crisp API + RPC) mất ~3s trên production.
+export const DEFAULT_REFRESH_TIMEOUT_MS = 5000;
 
 /** n8n trả 200 body rỗng khi workflow lỗi trước node Respond, nên chỉ tin body {"ok": true}. */
 async function confirmed(res: Response): Promise<boolean> {
@@ -25,7 +27,7 @@ export function createN8n(opts: {
   refreshTimeoutMs?: number;
 }): N8n {
   const doFetch = opts.fetch ?? fetch;
-  const timeoutMs = opts.refreshTimeoutMs ?? 3000;
+  const timeoutMs = opts.refreshTimeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS;
 
   function post(path: string, body: unknown, signal?: AbortSignal): Promise<Response> {
     return doFetch(`${opts.baseUrl}/${path}`, {

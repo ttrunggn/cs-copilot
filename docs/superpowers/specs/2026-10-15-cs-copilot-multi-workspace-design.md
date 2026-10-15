@@ -134,7 +134,7 @@ RPC `ingest_event` trong Postgres lo: upsert operator/conversation/message, ch�
 ### 5.2 Edge Function `copilot`
 Input: header `x-copilot-token`; body `website_id`, `session_id`, `action` (`check`|`handoff`|`generate`), `force`.
 
-Bước chung: hash token → tìm operator → kiểm tra operator thuộc workspace → gọi n8n `refresh-conversation` (timeout 3s, quá thì dùng DB và gắn `stale: true`) → dựng context từ DB.
+Bước chung: hash token → tìm operator → kiểm tra operator thuộc workspace → gọi n8n `refresh-conversation` (timeout 5s — đo thực tế ~3s, quá thì dùng DB và gắn `stale: true`) → dựng context từ DB.
 
 - **`check`** (không AI): ticket đang link, status, comment tech mới kể từ `last_human_operator_at`, status có đổi kể từ mốc đó không, số tin khách chưa trả lời, topic hiện tại, profile sẽ dùng.
 - **`handoff`**: hội thoại đã bỏ tin bot + Jira context → Gemini (`handoff`) → note có cấu trúc:
@@ -223,7 +223,7 @@ Trang widget chỉ chấp nhận message có `origin` khớp. Content script ch�
 | Sai token / operator không thuộc workspace | 401/403, widget hiện ô nhập lại token |
 | Không chèn được vào ô Reply (`composer_not_found`, Crisp đổi giao diện) | Widget hiện nút Copy, báo CS dán bằng Ctrl+V |
 | Ô Reply đang có chữ CS gõ dở | Widget hỏi Thay thế / Chèn cuối / Huỷ (6.4) |
-| Refresh n8n > 3s | Dùng DB, `stale: true` |
+| Refresh n8n > 5s | Dùng DB, `stale: true` |
 | `AI_UNAVAILABLE` | Widget báo hết quota hoặc AI lỗi. `check` vẫn chạy |
 | Verify lỗi | Trả draft, gắn nhãn "chưa đối chiếu helpdesk" |
 | Post note (handoff) lỗi | Widget vẫn hiện nội dung để copy |
