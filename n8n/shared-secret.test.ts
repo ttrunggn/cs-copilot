@@ -17,6 +17,11 @@ function run(code: string, headers: Record<string, string>): Promise<unknown[]> 
 }
 
 for (const file of ["copilot-refresh.json", "copilot-post-note.json"]) {
+  Deno.test(`${file}: Verify Secret does not use require (n8n blocks the crypto module)`, async () => {
+    const code = await verifyCode(file);
+    assertEquals(code.includes("require("), false);
+  });
+
   Deno.test(`${file}: unreplaced placeholder secret fails closed`, async () => {
     const code = await verifyCode(file);
     await assertRejects(() => run(code, { "x-copilot-secret": "REPLACE_N8N_SHARED_SECRET" }), Error, "chưa được cấu hình");
