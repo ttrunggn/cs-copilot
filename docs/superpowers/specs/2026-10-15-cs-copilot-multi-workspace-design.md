@@ -73,7 +73,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 Mọi bảng nghiệp vụ đều có `website_id`.
 
 ### 4.1 Cấu hình
-- **`workspaces`**: `website_id` PK, `name`, `jira_project`, `widget_secret`, `helpdesk_locale`, `topics jsonb` (`[{key, label, segments: []}]`), `bot_identifiers jsonb` (`{nicknames: ["Mary","Zoey"], user_ids: []}`), `cs_jira_authors text[]`, `default_profile jsonb`, `min_conversations_per_topic int default 5`, `jira_auto_note bool default true`.
+- **`workspaces`**: `website_id` PK, `name`, `jira_project`, `widget_secret`, `helpdesk_locale`, `topics jsonb` (`[{key, label, segments: []}]`), `bot_identifiers jsonb` (`{nicknames: ["Mary","Zoey"], learned: {"mary": "<user_id>"}}`: lần đầu gặp nickname bot thì ghi `user_id` vào `learned`; từ đó nickname trùng nhưng khác `user_id` là người thật, còn `user_id` đã học luôn là bot dù đổi nickname), `cs_jira_authors text[]`, `default_profile jsonb`, `min_conversations_per_topic int default 5`, `jira_auto_note bool default true`.
 - **`operators`**: `crisp_user_id` PK, `email`, `display_name`, `jira_display_name`.
 - **`operator_workspaces`**: `(crisp_user_id, website_id)` PK, `active`.
 - **`ai_config`**: `task` PK (`draft`, `verify`, `handoff`, `classify`, `learn`, `case_summary`, `embed`), `models text[]` theo thứ tự fallback. Mặc định: `['gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-2.5-flash']`, embed `['gemini-embedding-2']`.
