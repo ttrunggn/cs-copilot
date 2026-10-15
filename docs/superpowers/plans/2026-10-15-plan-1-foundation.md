@@ -18,7 +18,7 @@
 | 2 | Gemini module + fallback, helpdesk sync/embed, `cases`, action `generate` (draft + verify) và `handoff` | 1 |
 | 3 | Jira: `jira_links`/`jira_issues`/`jira_comments`, link-indexer, jira-sync, `jira-diff` auto-note, Jira trong `check`/`generate` | 1 |
 | 4 | Job nền: `classify-topics`, `index-cases`, `learn-profiles`, `cleanup` (pg_cron) | 1, 2 |
-| 5 | Chrome extension (thanh công cụ trên ô Reply, điền draft) + tắt v4 | 1–3 |
+| 5 | Crisp Plugin Widget (UI, gọi API) + extension chỉ chèn chữ vào ô Reply (giao thức `copilot:*`, chốt chống bất đồng bộ) + tắt v4 | 1–3 |
 
 Vòng phản hồi draft → tin gửi (`outputs.final_text`, `edit_ratio`, `prompt_variants`) nằm ở Plan 2.
 
@@ -33,7 +33,7 @@ Vòng phản hồi draft → tin gửi (`outputs.final_text`, `edit_ratio`, `pro
 - Import pin version: `jsr:@std/assert@1`, `npm:@supabase/supabase-js@2`.
 - Text hiển thị cho CS viết bằng tiếng Việt.
 - Xác thực: token riêng cho từng CS, gửi qua header `x-copilot-token`. DB chỉ lưu sha256 hex (`operators.copilot_token_hash`). Không có secret dùng chung theo workspace.
-- Giao diện cuối cùng là Chrome extension (Plan 5). Plan 1 kiểm tra bằng curl.
+- Giao diện cuối cùng là Crisp Plugin Widget + extension chèn chữ (Plan 5). Plan 1 kiểm tra bằng curl.
 - Dùng **project Supabase mới** cho v5 (project v4 đã có bảng `agent_profiles` khác schema).
 
 ## Review Focus
