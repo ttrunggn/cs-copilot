@@ -2239,7 +2239,9 @@ npx supabase functions deploy copilot --no-verify-jwt
 
 - [ ] **Step 5: Import 4 workflow vào n8n**
 
-Với từng file trong `n8n/`: Import from File → chọn lại credential Supabase (Custom Auth) và Crisp (Basic Auth) → thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET`, đổi `crisp-ingest-REPLACE-WITH-RANDOM` thành chuỗi ngẫu nhiên → Activate.
+Bật `NODE_FUNCTION_ALLOW_BUILTIN=crypto` cho instance n8n (Code node cần `crypto` để kiểm tra chữ ký và secret).
+
+Với từng file trong `n8n/`: Import from File → chọn lại credential Supabase (Custom Auth) và Crisp (Basic Auth) → thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET` (≥ 32 ký tự, giống `N8N_SHARED_SECRET` của Supabase), `REPLACE_CRISP_HOOK_SECRET` (signing secret của web hook Crisp), đổi `crisp-ingest-REPLACE-WITH-RANDOM` thành chuỗi ngẫu nhiên → Activate. Placeholder chưa thay thì workflow từ chối mọi request.
 
 - [ ] **Step 6: Đăng ký web hook Crisp cho cả 2 website**
 

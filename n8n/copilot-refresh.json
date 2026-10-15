@@ -2,23 +2,34 @@
   "name": "Copilot v5 — Refresh Conversation",
   "nodes": [
     {
-      "parameters": { "httpMethod": "POST", "path": "copilot-refresh", "responseMode": "responseNode", "options": {} },
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "copilot-refresh",
+        "responseMode": "responseNode",
+        "options": {}
+      },
       "id": "b2a00000-0000-4000-8000-000000000001",
       "name": "Refresh Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 0],
+      "position": [
+        0,
+        0
+      ],
       "webhookId": "b2a00000-0000-4000-8000-0000000000a1"
     },
     {
       "parameters": {
-        "jsCode": "const SECRET = 'REPLACE_N8N_SHARED_SECRET';\nconst req = $input.first().json;\nif ((req.headers || {})['x-copilot-secret'] !== SECRET) throw new Error('unauthorized');\nconst { website_id, session_id } = req.body || {};\nif (!/^[\\w-]+$/.test(website_id || '') || !/^session_[\\w-]+$/.test(session_id || '')) throw new Error('bad input');\nreturn [{ json: { website_id, session_id } }];"
+        "jsCode": "// Secret dùng chung với Edge Function. Chưa cấu hình thì từ chối mọi request. n8n cần NODE_FUNCTION_ALLOW_BUILTIN=crypto.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_N8N_SHARED_SECRET';\nif (SECRET.startsWith('REPLACE_') || SECRET.length < 32) throw new Error('N8N shared secret chưa được cấu hình');\nconst req = $input.first().json;\nconst got = Buffer.from(String((req.headers || {})['x-copilot-secret'] || ''));\nconst want = Buffer.from(SECRET);\nif (got.length !== want.length || !crypto.timingSafeEqual(got, want)) throw new Error('unauthorized');\nconst { website_id, session_id } = req.body || {};\nif (!/^[\\w-]+$/.test(website_id || '') || !/^session_[\\w-]+$/.test(session_id || '')) throw new Error('bad input');\nreturn [{ json: { website_id, session_id } }];"
       },
       "id": "b2a00000-0000-4000-8000-000000000002",
       "name": "Verify Secret",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 0]
+      "position": [
+        220,
+        0
+      ]
     },
     {
       "parameters": {
@@ -27,15 +38,32 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
-        "options": { "timeout": 8000 }
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 8000
+        }
       },
       "id": "b2a00000-0000-4000-8000-000000000003",
       "name": "Get Conversation",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 0],
-      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } }
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -44,15 +72,32 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
-        "options": { "timeout": 8000 }
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 8000
+        }
       },
       "id": "b2a00000-0000-4000-8000-000000000004",
       "name": "Get Messages",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 0],
-      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } }
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -62,7 +107,10 @@
       "name": "Build Events",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 0]
+      "position": [
+        880,
+        0
+      ]
     },
     {
       "parameters": {
@@ -73,32 +121,111 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ p_events: $json.p_events }) }}",
-        "options": { "timeout": 8000 }
+        "options": {
+          "timeout": 8000
+        }
       },
       "id": "b2a00000-0000-4000-8000-000000000006",
       "name": "Ingest Events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 0],
-      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } }
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase Service Key"
+        }
+      }
     },
     {
-      "parameters": { "respondWith": "json", "responseBody": "{\"ok\": true}", "options": {} },
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": true}",
+        "options": {}
+      },
       "id": "b2a00000-0000-4000-8000-000000000007",
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1320, 0]
+      "position": [
+        1320,
+        0
+      ]
     }
   ],
   "connections": {
-    "Refresh Webhook": { "main": [[{ "node": "Verify Secret", "type": "main", "index": 0 }]] },
-    "Verify Secret": { "main": [[{ "node": "Get Conversation", "type": "main", "index": 0 }]] },
-    "Get Conversation": { "main": [[{ "node": "Get Messages", "type": "main", "index": 0 }]] },
-    "Get Messages": { "main": [[{ "node": "Build Events", "type": "main", "index": 0 }]] },
-    "Build Events": { "main": [[{ "node": "Ingest Events", "type": "main", "index": 0 }]] },
-    "Ingest Events": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+    "Refresh Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Secret": {
+      "main": [
+        [
+          {
+            "node": "Get Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Conversation": {
+      "main": [
+        [
+          {
+            "node": "Get Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Messages": {
+      "main": [
+        [
+          {
+            "node": "Build Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Events": {
+      "main": [
+        [
+          {
+            "node": "Ingest Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ingest Events": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

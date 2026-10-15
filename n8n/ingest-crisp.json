@@ -2,23 +2,36 @@
   "name": "Copilot v5 — Ingest Crisp",
   "nodes": [
     {
-      "parameters": { "httpMethod": "POST", "path": "crisp-ingest-REPLACE-WITH-RANDOM", "responseMode": "onReceived", "options": {} },
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crisp-ingest-REPLACE-WITH-RANDOM",
+        "responseMode": "onReceived",
+        "options": {
+          "rawBody": true
+        }
+      },
       "id": "b1a00000-0000-4000-8000-000000000001",
       "name": "Crisp Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 0],
+      "position": [
+        0,
+        0
+      ],
       "webhookId": "b1a00000-0000-4000-8000-0000000000a1"
     },
     {
       "parameters": {
-        "jsCode": "// Chỉ chuyển tiếp event cần thiết. Mọi chuẩn hoá nằm trong RPC ingest_event.\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst b = $input.first().json.body || {};\nif (!ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
+        "jsCode": "// Xác thực chữ ký Crisp: HMAC-SHA256(\"[timestamp;raw_body]\", hook secret). Sai/thiếu/cũ thì bỏ.\n// n8n cần NODE_FUNCTION_ALLOW_BUILTIN=crypto.\nconst crypto = require('crypto');\nconst SECRET = 'REPLACE_CRISP_HOOK_SECRET';\nconst MAX_SKEW_S = 300;\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nif (SECRET.startsWith('REPLACE_') || SECRET.length < 16) throw new Error('Crisp hook secret chưa được cấu hình');\nconst h = $input.first().json.headers || {};\nconst ts = String(h['x-crisp-request-timestamp'] || '');\nconst sig = String(h['x-crisp-signature'] || '');\nif (!/^\\d+$/.test(ts) || !/^[0-9a-f]{64}$/.test(sig)) return [];\nconst tsSeconds = ts.length > 11 ? Number(ts) / 1000 : Number(ts);\nif (Math.abs(Date.now() / 1000 - tsSeconds) > MAX_SKEW_S) return [];\nconst raw = (await this.helpers.getBinaryDataBuffer(0, 'data')).toString('utf8');\nconst expected = crypto.createHmac('sha256', SECRET).update('[' + ts + ';' + raw + ']').digest('hex');\nif (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return [];\nconst b = JSON.parse(raw);\nif (!ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
       },
       "id": "b1a00000-0000-4000-8000-000000000002",
       "name": "Filter Events",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 0]
+      "position": [
+        220,
+        0
+      ]
     },
     {
       "parameters": {
@@ -29,23 +42,55 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ p_event: $json.p_event }) }}",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "b1a00000-0000-4000-8000-000000000003",
       "name": "Ingest Event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 0],
-      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } },
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase Service Key"
+        }
+      },
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000
     }
   ],
   "connections": {
-    "Crisp Webhook": { "main": [[{ "node": "Filter Events", "type": "main", "index": 0 }]] },
-    "Filter Events": { "main": [[{ "node": "Ingest Event", "type": "main", "index": 0 }]] }
+    "Crisp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Events": {
+      "main": [
+        [
+          {
+            "node": "Ingest Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }
