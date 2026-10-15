@@ -5,6 +5,19 @@ export interface N8n {
 
 const BOT_MARK = "🤖";
 
+/** n8n trả 200 body rỗng khi workflow lỗi trước node Respond, nên chỉ tin body {"ok": true}. */
+async function confirmed(res: Response): Promise<boolean> {
+  if (!res.ok) {
+    await res.body?.cancel();
+    return false;
+  }
+  try {
+    return (await res.json())?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
 export function createN8n(opts: {
   baseUrl: string;
   secret: string;
@@ -29,8 +42,7 @@ export function createN8n(opts: {
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
         const res = await post("copilot-refresh", { website_id: websiteId, session_id: sessionId }, ctrl.signal);
-        await res.body?.cancel();
-        return { stale: !res.ok };
+        return { stale: !(await confirmed(res)) };
       } catch {
         return { stale: true };
       } finally {
@@ -42,8 +54,7 @@ export function createN8n(opts: {
       const text = content.startsWith(BOT_MARK) ? content : `${BOT_MARK} ${content}`;
       try {
         const res = await post("copilot-post-note", { website_id: websiteId, session_id: sessionId, content: text });
-        await res.body?.cancel();
-        return res.ok;
+        return await confirmed(res);
       } catch {
         return false;
       }

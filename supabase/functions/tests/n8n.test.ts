@@ -53,3 +53,15 @@ Deno.test("postNote network error -> false", async () => {
   const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
   assertEquals(await n8n.postNote("ws1", "session_1", "x"), false);
 });
+
+Deno.test("refresh 200 with empty body (n8n workflow errored) -> stale true", async () => {
+  const { f } = recorder(() => Promise.resolve(new Response("", { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.refreshConversation("ws1", "session_1"), { stale: true });
+});
+
+Deno.test("postNote 200 with empty body (n8n workflow errored) -> false", async () => {
+  const { f } = recorder(() => Promise.resolve(new Response("", { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.postNote("ws1", "session_1", "x"), false);
+});
