@@ -184,7 +184,7 @@ app.crisp.chat (1 tab)
 ```
 
 ### 6.1 Crisp Plugin Widget (sidebar)
-- Plugin Crisp riêng (tái sử dụng plugin của v4, đổi URL iframe), cài trên cả 2 website. Trang widget host tĩnh trên Cloudflare Pages hoặc GitHub Pages (Supabase Storage/Edge Function không phục vụ `text/html` trên domain mặc định).
+- Plugin Crisp riêng (tái sử dụng plugin của v4, đổi URL iframe), cài trên cả 2 website. Trang widget host tĩnh trên **Netlify** (Supabase Storage/Edge Function không phục vụ `text/html` trên domain mặc định). File `_headers` của Netlify đặt `Content-Security-Policy: frame-ancestors https://app.crisp.chat` để chỉ Crisp nhúng được widget; extension match đúng domain Netlify này cho content script trong iframe.
 - Lấy `website_id`, `session_id` bằng `$crisp.acquireData("conversation")`, operator bằng `$crisp.acquireData("operator")`.
 - Token CS nhập một lần, lưu trong `localStorage` của widget (đọc/ghi trong try/catch, mất thì hỏi lại).
 - Khi mở: chạy `check`, hiện Jira (badge **MỚI**), số tin chưa trả lời, topic + profile.
@@ -264,7 +264,7 @@ supabase/
     index-cases/
     embed-helpdesk/
 n8n/                  (workflow JSON export)
-widget/               (trang widget sidebar, host tĩnh)
+widget/               (trang widget sidebar, deploy Netlify)
 extension/            (Chrome extension MV3, chỉ chèn chữ)
 legacy/               (4 workflow v4 hiện tại)
 docs/superpowers/specs/
