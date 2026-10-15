@@ -116,8 +116,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/ingest_events",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ p_events: $json.p_events }) }}",
@@ -134,9 +134,9 @@
         0
       ],
       "credentials": {
-        "httpCustomAuth": {
+        "supabaseApi": {
           "id": "REPLACE_SUPABASE",
-          "name": "Supabase Service Key"
+          "name": "Supabase API"
         }
       }
     },

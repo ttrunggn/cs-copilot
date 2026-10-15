@@ -2,12 +2,24 @@
   "name": "Copilot v5 — Crisp Sync (operators + reconcile/backfill)",
   "nodes": [
     {
-      "parameters": { "rule": { "interval": [{ "field": "days", "triggerAtHour": 2 }] } },
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
       "id": "b4a00000-0000-4000-8000-000000000001",
       "name": "Nightly",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {},
@@ -15,7 +27,10 @@
       "name": "Run Manually",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 200]
+      "position": [
+        0,
+        200
+      ]
     },
     {
       "parameters": {
@@ -25,24 +40,44 @@
       "name": "Settings",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 100]
+      "position": [
+        220,
+        100
+      ]
     },
     {
       "parameters": {
         "method": "GET",
         "url": "https://YOUR-PROJECT.supabase.co/rest/v1/workspaces",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendQuery": true,
-        "queryParameters": { "parameters": [{ "name": "select", "value": "website_id" }] },
-        "options": { "timeout": 15000 }
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "website_id"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "b4a00000-0000-4000-8000-000000000004",
       "name": "Get Workspaces",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 100],
-      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } }
+      "position": [
+        440,
+        100
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
     },
     {
       "parameters": {
@@ -51,33 +86,60 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
-        "options": { "timeout": 15000 }
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "b4a00000-0000-4000-8000-000000000005",
       "name": "Get Operators",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 0],
-      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } }
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/ingest_event",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ p_event: { website_id: $('Get Workspaces').item.json.website_id, event: 'operators:list', data: { operators: $json.data || [] } } }) }}",
-        "options": { "timeout": 15000 }
+        "options": {
+          "timeout": 15000
+        }
       },
       "id": "b4a00000-0000-4000-8000-000000000006",
       "name": "Ingest Operators",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 0],
-      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } }
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
     },
     {
       "parameters": {
@@ -88,13 +150,29 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "per_page", "value": "50" },
-            { "name": "filter_date_start", "value": "={{ $('Settings').first().json.filter_date_start }}" },
-            { "name": "filter_date_end", "value": "={{ $('Settings').first().json.filter_date_end }}" }
+            {
+              "name": "per_page",
+              "value": "50"
+            },
+            {
+              "name": "filter_date_start",
+              "value": "={{ $('Settings').first().json.filter_date_start }}"
+            },
+            {
+              "name": "filter_date_end",
+              "value": "={{ $('Settings').first().json.filter_date_end }}"
+            }
           ]
         },
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
         "options": {
           "timeout": 30000,
           "pagination": {
@@ -113,8 +191,16 @@
       "name": "List Conversations",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 200],
-      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } }
+      "position": [
+        660,
+        200
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      }
     },
     {
       "parameters": {
@@ -124,7 +210,10 @@
       "name": "Split Conversations",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 200]
+      "position": [
+        880,
+        200
+      ]
     },
     {
       "parameters": {
@@ -133,15 +222,38 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpBasicAuth",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
-        "options": { "timeout": 15000, "batching": { "batch": { "batchSize": 5, "batchInterval": 1000 } } }
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "id": "b4a00000-0000-4000-8000-000000000009",
       "name": "Get Messages",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 200],
-      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } },
+      "position": [
+        1100,
+        200
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
       "onError": "continueRegularOutput"
     },
     {
@@ -152,42 +264,155 @@
       "name": "Build Events",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1320, 200]
+      "position": [
+        1320,
+        200
+      ]
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/ingest_events",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpCustomAuth",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ p_events: $json.p_events }) }}",
-        "options": { "timeout": 30000, "batching": { "batch": { "batchSize": 5, "batchInterval": 200 } } }
+        "options": {
+          "timeout": 30000,
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 200
+            }
+          }
+        }
       },
       "id": "b4a00000-0000-4000-8000-00000000000b",
       "name": "Ingest Events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 200],
-      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } },
+      "position": [
+        1540,
+        200
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      },
       "onError": "continueRegularOutput"
     }
   ],
   "connections": {
-    "Nightly": { "main": [[{ "node": "Settings", "type": "main", "index": 0 }]] },
-    "Run Manually": { "main": [[{ "node": "Settings", "type": "main", "index": 0 }]] },
-    "Settings": { "main": [[{ "node": "Get Workspaces", "type": "main", "index": 0 }]] },
-    "Get Workspaces": { "main": [[
-      { "node": "Get Operators", "type": "main", "index": 0 },
-      { "node": "List Conversations", "type": "main", "index": 0 }
-    ]] },
-    "Get Operators": { "main": [[{ "node": "Ingest Operators", "type": "main", "index": 0 }]] },
-    "List Conversations": { "main": [[{ "node": "Split Conversations", "type": "main", "index": 0 }]] },
-    "Split Conversations": { "main": [[{ "node": "Get Messages", "type": "main", "index": 0 }]] },
-    "Get Messages": { "main": [[{ "node": "Build Events", "type": "main", "index": 0 }]] },
-    "Build Events": { "main": [[{ "node": "Ingest Events", "type": "main", "index": 0 }]] }
+    "Nightly": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Manually": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Get Workspaces",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Workspaces": {
+      "main": [
+        [
+          {
+            "node": "Get Operators",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "List Conversations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Operators": {
+      "main": [
+        [
+          {
+            "node": "Ingest Operators",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Conversations": {
+      "main": [
+        [
+          {
+            "node": "Split Conversations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Conversations": {
+      "main": [
+        [
+          {
+            "node": "Get Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Messages": {
+      "main": [
+        [
+          {
+            "node": "Build Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Events": {
+      "main": [
+        [
+          {
+            "node": "Ingest Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "active": false,
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

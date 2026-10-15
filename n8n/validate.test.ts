@@ -23,3 +23,15 @@ for (const file of FILES) {
     if (needsResponder) assert(wf.nodes.some((n) => n.type === "n8n-nodes-base.respondToWebhook"), "missing Respond to Webhook");
   });
 }
+
+Deno.test("Supabase calls use n8n's built-in Supabase API credential", async () => {
+  for (const file of FILES) {
+    const wf: Wf = JSON.parse(await Deno.readTextFile(new URL(file, dir)));
+    for (const n of wf.nodes) {
+      if (!String(n.parameters.url ?? "").includes("supabase.co")) continue;
+      assertEquals(n.parameters.authentication, "predefinedCredentialType", `${file}: ${n.name}`);
+      assertEquals(n.parameters.nodeCredentialType, "supabaseApi", `${file}: ${n.name}`);
+      assert(n.credentials?.supabaseApi, `${file}: ${n.name} missing supabaseApi credential`);
+    }
+  }
+});

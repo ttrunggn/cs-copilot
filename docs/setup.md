@@ -27,7 +27,7 @@ npx supabase functions deploy copilot --no-verify-jwt
 
 ## 4. n8n
 1. Bật `NODE_FUNCTION_ALLOW_BUILTIN=crypto` cho instance n8n.
-2. Import 4 file trong `n8n/`. Chọn credential Supabase (Custom Auth `{"headers":{"apikey":"<secret>","Authorization":"Bearer <secret>"}}`) và Crisp (Basic Auth plugin token).
+2. Import `n8n/copilot-gateway.json` (gộp 4 luồng; sinh lại bằng `node n8n/build-gateway.mjs`). Chọn credential **Supabase API** có sẵn của n8n (Host = `SUPABASE_URL`, Service Role Secret = `SUPABASE_SERVICE_ROLE_KEY`) và Crisp (Basic Auth plugin token).
 3. Thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET`, `REPLACE_CRISP_HOOK_SECRET`, đổi `crisp-ingest-REPLACE-WITH-RANDOM`. Placeholder chưa thay thì workflow từ chối mọi request.
 4. Activate.
 
