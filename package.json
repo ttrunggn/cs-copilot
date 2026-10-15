@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "sb": "supabase",
-    "db:test": "node --env-file=.env scripts/pgtap.mjs",
+    "db:test": "node --env-file=.env scripts/pgtap.mjs && node --env-file=.env --test \"tests-db/*.test.mjs\"",
     "db:push": "node --env-file=.env scripts/db-push.mjs"
   },
   "devDependencies": {
