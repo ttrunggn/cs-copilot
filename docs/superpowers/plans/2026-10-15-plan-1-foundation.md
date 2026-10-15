@@ -18,7 +18,9 @@
 | 2 | Gemini module + fallback, helpdesk sync/embed, `cases`, action `generate` (draft + verify) và `handoff` | 1 |
 | 3 | Jira: `jira_links`/`jira_issues`/`jira_comments`, link-indexer, jira-sync, `jira-diff` auto-note, Jira trong `check`/`generate` | 1 |
 | 4 | Job nền: `classify-topics`, `index-cases`, `learn-profiles`, `cleanup` (pg_cron) | 1, 2 |
-| 5 | Widget sidebar Crisp + tắt v4 | 1–3 |
+| 5 | Chrome extension (thanh công cụ trên ô Reply, điền draft) + tắt v4 | 1–3 |
+
+Vòng phản hồi draft → tin gửi (`outputs.final_text`, `edit_ratio`, `prompt_variants`) nằm ở Plan 2.
 
 ## Global Constraints
 
@@ -30,6 +32,8 @@
 - RLS bật trên mọi bảng, không có policy. Chỉ `service_role` truy cập. RPC chỉ grant execute cho `service_role`.
 - Import pin version: `jsr:@std/assert@1`, `npm:@supabase/supabase-js@2`.
 - Text hiển thị cho CS viết bằng tiếng Việt.
+- Xác thực: token riêng cho từng CS, gửi qua header `x-copilot-token`. DB chỉ lưu sha256 hex (`operators.copilot_token_hash`). Không có secret dùng chung theo workspace.
+- Giao diện cuối cùng là Chrome extension (Plan 5). Plan 1 kiểm tra bằng curl.
 - Dùng **project Supabase mới** cho v5 (project v4 đã có bảng `agent_profiles` khác schema).
 
 ## Review Focus
@@ -198,7 +202,8 @@ git commit -m "chore: scaffold supabase + deno, move v4 workflows to legacy"
 - Test: `supabase/tests/config_test.sql`
 
 **Interfaces:**
-- Produces: các bảng `workspaces`, `operators`, `operator_workspaces`, `ai_config`, `ai_usage_log`, `agent_profiles` với cột đúng như dưới. TS (Task 4–7) đọc `workspaces(website_id,name,widget_secret,topics,default_profile)`, `operator_workspaces(crisp_user_id,website_id,active)`, `operators(crisp_user_id,display_name)`, `agent_profiles(*)`.
+- Produces: các bảng `workspaces`, `operators`, `operator_workspaces`, `ai_config`, `ai_usage_log`, `agent_profiles` với cột đúng như dưới. TS (Task 4–7) đọc `workspaces(website_id,name,topics,default_profile)`, `operator_workspaces(crisp_user_id,website_id,active)`, `operators(crisp_user_id,display_name,copilot_token_hash)`, `agent_profiles(*)`.
+- Produces: RPC `public.issue_copilot_token(p_crisp_user_id text) returns text`, trả token plaintext (48 ký tự hex) và lưu `copilot_token_hash = encode(sha256(token), 'hex')`.
 
 - [ ] **Step 1: Viết test pgTAP (fail)**
 
@@ -207,7 +212,7 @@ git commit -m "chore: scaffold supabase + deno, move v4 workflows to legacy"
 ```sql
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(12);
 
 select has_table('public', 'workspaces', 'workspaces exists');
 select has_table('public', 'operators', 'operators exists');
@@ -219,9 +224,15 @@ select has_table('public', 'agent_profiles', 'agent_profiles exists');
 select is((select count(*)::int from public.ai_config), 7, 'ai_config seeded with 7 tasks');
 select is((select models[1] from public.ai_config where task = 'draft'), 'gemini-3.5-flash-lite', 'draft uses flash-lite first');
 
-insert into public.workspaces (website_id, name, widget_secret) values ('ws-t', 'T', 's');
+insert into public.workspaces (website_id, name) values ('ws-t', 'T');
 select is((select bot_identifiers from public.workspaces where website_id = 'ws-t'),
           '{"nicknames": ["Mary", "Zoey"], "learned": {}}'::jsonb, 'bot defaults to Mary/Zoey');
+
+insert into public.operators (crisp_user_id, display_name) values ('op-t', 'T');
+create temp table issued as select public.issue_copilot_token('op-t') as token;
+select is((select length(token) from issued), 48, 'token is 48 hex chars');
+select is((select copilot_token_hash from public.operators where crisp_user_id = 'op-t'),
+          (select encode(extensions.digest(token, 'sha256'), 'hex') from issued), 'stores sha256 of token');
 
 select is((select bool_and(relrowsecurity) from pg_class
            where relnamespace = 'public'::regnamespace
@@ -246,7 +257,6 @@ create table public.workspaces (
   website_id text primary key,
   name text not null,
   jira_project text,
-  widget_secret text not null,
   helpdesk_locale text not null default 'en',
   topics jsonb not null default '[]'::jsonb,
   bot_identifiers jsonb not null default '{"nicknames": ["Mary", "Zoey"], "learned": {}}'::jsonb,
@@ -262,6 +272,7 @@ create table public.operators (
   email text,
   display_name text,
   jira_display_name text,
+  copilot_token_hash text unique,
   updated_at timestamptz not null default now()
 );
 
@@ -318,12 +329,24 @@ alter table public.operator_workspaces enable row level security;
 alter table public.ai_config enable row level security;
 alter table public.ai_usage_log enable row level security;
 alter table public.agent_profiles enable row level security;
+
+-- Cấp token mới cho CS (token cũ mất hiệu lực). Plaintext chỉ trả về một lần.
+create function public.issue_copilot_token(p_crisp_user_id text)
+returns text language plpgsql security definer set search_path = public, extensions as $$
+declare v_token text := encode(gen_random_bytes(24), 'hex');
+begin
+  update operators set copilot_token_hash = encode(digest(v_token, 'sha256'), 'hex'), updated_at = now()
+  where crisp_user_id = p_crisp_user_id;
+  if not found then raise exception 'unknown operator %', p_crisp_user_id; end if;
+  return v_token;
+end $$;
+revoke execute on function public.issue_copilot_token(text) from public, anon, authenticated;
 ```
 
 - [ ] **Step 4: Áp migration và chạy test**
 
 Run: `npm run db:reset && npm run db:test`
-Expected: `config_test.sql .. ok`, 10/10 PASS.
+Expected: `config_test.sql .. ok`, 12/12 PASS.
 
 - [ ] **Step 5: Commit**
 
@@ -357,8 +380,8 @@ begin;
 create extension if not exists pgtap with schema extensions;
 select plan(27);
 
-insert into public.workspaces (website_id, name, widget_secret, topics) values
-  ('ws1', 'App A', 's',
+insert into public.workspaces (website_id, name, topics) values
+  ('ws1', 'App A',
    '[{"key":"billing","label":"Billing","segments":["billing","payment"]},
      {"key":"bug","label":"Bug","segments":["bug"]}]');
 
@@ -736,7 +759,6 @@ export interface Profile {
 export interface Workspace {
   website_id: string;
   name: string;
-  widget_secret: string;
   topics: Topic[];
   default_profile: Partial<Profile>;
 }
@@ -1029,6 +1051,7 @@ git commit -m "feat(fn): profile resolution with topic fallback and manual overr
   ```ts
   export interface Db {
     getWorkspace(websiteId: string): Promise<Workspace | null>;
+    getOperatorIdByTokenHash(tokenHash: string): Promise<string | null>;
     isOperatorMember(operatorId: string, websiteId: string): Promise<boolean>;
     getConversation(websiteId: string, sessionId: string): Promise<ConversationRow | null>;
     getMessages(websiteId: string, sessionId: string, limit: number): Promise<MessageRow[]>;
@@ -1036,7 +1059,7 @@ git commit -m "feat(fn): profile resolution with topic fallback and manual overr
     getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
   }
   ```
-- Produces (`auth.ts`): `class HttpError extends Error { status: number }`, `authorize(db: Db, req: { website_id: string; operator_id: string; secret: string }): Promise<Workspace>`.
+- Produces (`auth.ts`): `class HttpError extends Error { status: number }`, `sha256Hex(s: string): Promise<string>`, `authorize(db: Db, req: { website_id: string; token: string }): Promise<{ workspace: Workspace; operatorId: string }>`.
 - Produces (`n8n.ts`): `interface N8n { refreshConversation(websiteId: string, sessionId: string): Promise<{ stale: boolean }>; postNote(websiteId: string, sessionId: string, content: string): Promise<boolean> }`, `createN8n(opts: { baseUrl: string; secret: string; fetch?: typeof fetch; refreshTimeoutMs?: number }): N8n`. Endpoint: `POST {baseUrl}/copilot-refresh` body `{website_id, session_id}`, `POST {baseUrl}/copilot-post-note` body `{website_id, session_id, content}`, cả hai có header `x-copilot-secret`.
 
 - [ ] **Step 1: Viết interface `Db`**
@@ -1048,6 +1071,7 @@ import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "./types
 
 export interface Db {
   getWorkspace(websiteId: string): Promise<Workspace | null>;
+  getOperatorIdByTokenHash(tokenHash: string): Promise<string | null>;
   isOperatorMember(operatorId: string, websiteId: string): Promise<boolean>;
   getConversation(websiteId: string, sessionId: string): Promise<ConversationRow | null>;
   getMessages(websiteId: string, sessionId: string, limit: number): Promise<MessageRow[]>;
@@ -1062,15 +1086,18 @@ export interface Db {
 
 ```ts
 import { assertEquals, assertRejects } from "jsr:@std/assert@1";
-import { authorize, HttpError } from "../_shared/auth.ts";
+import { authorize, HttpError, sha256Hex } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
 import type { Workspace } from "../_shared/types.ts";
 
-const WS: Workspace = { website_id: "ws1", name: "App A", widget_secret: "s3cret", topics: [], default_profile: {} };
+const WS: Workspace = { website_id: "ws1", name: "App A", topics: [], default_profile: {} };
+const TOKEN = "tok-lan";
 
-function fakeDb(member = true): Db {
+async function fakeDb(member = true): Promise<Db> {
+  const lanHash = await sha256Hex(TOKEN);
   return {
     getWorkspace: (id) => Promise.resolve(id === "ws1" ? WS : null),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === lanHash ? "op-lan" : null),
     isOperatorMember: () => Promise.resolve(member),
     getConversation: () => Promise.resolve(null),
     getMessages: () => Promise.resolve([]),
@@ -1084,24 +1111,32 @@ async function status(p: Promise<unknown>): Promise<number> {
   return (e as HttpError).status;
 }
 
-Deno.test("missing fields -> 400", async () => {
-  assertEquals(await status(authorize(fakeDb(), { website_id: "ws1", operator_id: "", secret: "s3cret" })), 400);
+Deno.test("sha256Hex matches known vector", async () => {
+  assertEquals(await sha256Hex("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 });
 
-Deno.test("unknown workspace -> 401", async () => {
-  assertEquals(await status(authorize(fakeDb(), { website_id: "nope", operator_id: "op", secret: "s3cret" })), 401);
+Deno.test("missing token -> 401", async () => {
+  assertEquals(await status(authorize(await fakeDb(), { website_id: "ws1", token: "" })), 401);
 });
 
-Deno.test("wrong secret -> 401", async () => {
-  assertEquals(await status(authorize(fakeDb(), { website_id: "ws1", operator_id: "op", secret: "wrong!" })), 401);
+Deno.test("missing website_id -> 400", async () => {
+  assertEquals(await status(authorize(await fakeDb(), { website_id: "", token: TOKEN })), 400);
+});
+
+Deno.test("unknown token -> 401", async () => {
+  assertEquals(await status(authorize(await fakeDb(), { website_id: "ws1", token: "stolen?" })), 401);
+});
+
+Deno.test("unknown workspace -> 404", async () => {
+  assertEquals(await status(authorize(await fakeDb(), { website_id: "nope", token: TOKEN })), 404);
 });
 
 Deno.test("operator not in workspace -> 403", async () => {
-  assertEquals(await status(authorize(fakeDb(false), { website_id: "ws1", operator_id: "op", secret: "s3cret" })), 403);
+  assertEquals(await status(authorize(await fakeDb(false), { website_id: "ws1", token: TOKEN })), 403);
 });
 
-Deno.test("valid request returns workspace", async () => {
-  assertEquals(await authorize(fakeDb(), { website_id: "ws1", operator_id: "op", secret: "s3cret" }), WS);
+Deno.test("valid token returns workspace and operator", async () => {
+  assertEquals(await authorize(await fakeDb(), { website_id: "ws1", token: TOKEN }), { workspace: WS, operatorId: "op-lan" });
 });
 ```
 
@@ -1184,28 +1219,26 @@ export class HttpError extends Error {
   }
 }
 
-function safeEqual(a: string, b: string): boolean {
-  const ea = new TextEncoder().encode(a);
-  const eb = new TextEncoder().encode(b);
-  if (ea.length !== eb.length) return false;
-  let diff = 0;
-  for (let i = 0; i < ea.length; i++) diff |= ea[i] ^ eb[i];
-  return diff === 0;
+export async function sha256Hex(s: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/** Token cá nhân → operator; operator phải thuộc workspace đang mở. */
 export async function authorize(
   db: Db,
-  req: { website_id: string; operator_id: string; secret: string },
-): Promise<Workspace> {
-  if (!req.website_id || !req.operator_id || !req.secret) {
-    throw new HttpError(400, "Thiếu website_id, operator_id hoặc secret");
-  }
-  const ws = await db.getWorkspace(req.website_id);
-  if (!ws || !safeEqual(ws.widget_secret, req.secret)) throw new HttpError(401, "Sai workspace hoặc secret");
-  if (!(await db.isOperatorMember(req.operator_id, req.website_id))) {
+  req: { website_id: string; token: string },
+): Promise<{ workspace: Workspace; operatorId: string }> {
+  if (!req.token) throw new HttpError(401, "Thiếu token, nhập token trong Options của extension");
+  if (!req.website_id) throw new HttpError(400, "Thiếu website_id");
+  const operatorId = await db.getOperatorIdByTokenHash(await sha256Hex(req.token));
+  if (!operatorId) throw new HttpError(401, "Token không hợp lệ");
+  const workspace = await db.getWorkspace(req.website_id);
+  if (!workspace) throw new HttpError(404, "Workspace này chưa được cấu hình trong copilot");
+  if (!(await db.isOperatorMember(operatorId, req.website_id))) {
     throw new HttpError(403, "CS không thuộc workspace này");
   }
-  return ws;
+  return { workspace, operatorId };
 }
 ```
 
@@ -1269,13 +1302,13 @@ export function createN8n(opts: {
 - [ ] **Step 7: Chạy test, xác nhận pass**
 
 Run: `deno test supabase/functions/tests/auth.test.ts supabase/functions/tests/n8n.test.ts`
-Expected: `ok | 10 passed`.
+Expected: `ok | 12 passed`.
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add supabase/functions/_shared/db.ts supabase/functions/_shared/auth.ts supabase/functions/_shared/n8n.ts supabase/functions/tests/auth.test.ts supabase/functions/tests/n8n.test.ts
-git commit -m "feat(fn): workspace auth and n8n gateway client"
+git commit -m "feat(fn): per-operator token auth and n8n gateway client"
 ```
 
 ---
@@ -1290,8 +1323,8 @@ git commit -m "feat(fn): workspace auth and n8n gateway client"
 **Interfaces:**
 - Consumes: `Db`, `authorize`, `HttpError`, `N8n`, `resolveProfile`, `unansweredCustomerMessages`.
 - Produces:
-  - `handle(body: unknown, deps: { db: Db; n8n: N8n }): Promise<{ status: number; body: unknown }>`.
-  - Request: `{ website_id, session_id, operator_id, secret, action: "check" | "handoff" | "generate", force?: boolean }`.
+  - `handle(body: unknown, token: string, deps: { db: Db; n8n: N8n }): Promise<{ status: number; body: unknown }>`.
+  - HTTP: header `x-copilot-token`; body `{ website_id, session_id, action: "check" | "handoff" | "generate", force?: boolean }`.
   - Response `check`: `CheckResult` (dưới). Plan 2 thêm `handoff`/`generate`, Plan 3 điền `jira`.
 
 - [ ] **Step 1: Viết test (fail)**
@@ -1301,6 +1334,7 @@ git commit -m "feat(fn): workspace auth and n8n gateway client"
 ```ts
 import { assertEquals } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
+import { sha256Hex } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "../_shared/types.ts";
@@ -1308,7 +1342,6 @@ import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "../_sha
 const WS: Workspace = {
   website_id: "ws1",
   name: "App A",
-  widget_secret: "s3cret",
   topics: [{ key: "billing", label: "Billing", segments: ["billing"] }],
   default_profile: {},
 };
@@ -1332,9 +1365,13 @@ const PROFILES: ProfileRow[] = [
   { crisp_user_id: "op-lan", website_id: "ws1", topic: "billing", tone: "chi tiết", conversations_used: 9, learned_at: null, manual_override: null },
 ];
 
+const TOKEN = "tok-lan";
+const TOKEN_HASH = await sha256Hex(TOKEN);
+
 function deps(over: Partial<Db> = {}, stale = false) {
   const db: Db = {
     getWorkspace: () => Promise.resolve(WS),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
     isOperatorMember: () => Promise.resolve(true),
     getConversation: () => Promise.resolve(CONV),
     getMessages: () => Promise.resolve(MSGS),
@@ -1349,10 +1386,10 @@ function deps(over: Partial<Db> = {}, stale = false) {
   return { db, n8n };
 }
 
-const REQ = { website_id: "ws1", session_id: "session_1", operator_id: "op-lan", secret: "s3cret", action: "check" };
+const REQ = { website_id: "ws1", session_id: "session_1", action: "check" };
 
 Deno.test("check returns unanswered, topic and profile", async () => {
-  const r = await handle(REQ, deps());
+  const r = await handle(REQ, TOKEN, deps());
   assertEquals(r.status, 200);
   assertEquals(r.body, {
     action: "check",
@@ -1371,36 +1408,36 @@ Deno.test("check returns unanswered, topic and profile", async () => {
 });
 
 Deno.test("check passes through stale flag", async () => {
-  const r = await handle(REQ, deps({}, true));
+  const r = await handle(REQ, TOKEN, deps({}, true));
   assertEquals((r.body as { stale: boolean }).stale, true);
 });
 
 Deno.test("unknown action -> 400", async () => {
-  assertEquals((await handle({ ...REQ, action: "delete" }, deps())).status, 400);
+  assertEquals((await handle({ ...REQ, action: "delete" }, TOKEN, deps())).status, 400);
 });
 
 Deno.test("handoff not available yet -> 501", async () => {
-  assertEquals((await handle({ ...REQ, action: "handoff" }, deps())).status, 501);
+  assertEquals((await handle({ ...REQ, action: "handoff" }, TOKEN, deps())).status, 501);
 });
 
 Deno.test("missing session_id -> 400", async () => {
-  assertEquals((await handle({ ...REQ, session_id: "" }, deps())).status, 400);
+  assertEquals((await handle({ ...REQ, session_id: "" }, TOKEN, deps())).status, 400);
 });
 
 Deno.test("non-object body -> 400", async () => {
-  assertEquals((await handle("nope", deps())).status, 400);
+  assertEquals((await handle("nope", TOKEN, deps())).status, 400);
 });
 
 Deno.test("conversation not in DB -> 404", async () => {
-  assertEquals((await handle(REQ, deps({ getConversation: () => Promise.resolve(null) }))).status, 404);
+  assertEquals((await handle(REQ, TOKEN, deps({ getConversation: () => Promise.resolve(null) }))).status, 404);
 });
 
-Deno.test("auth failure propagates status", async () => {
-  assertEquals((await handle({ ...REQ, secret: "wrong!" }, deps())).status, 401);
+Deno.test("bad token -> 401", async () => {
+  assertEquals((await handle(REQ, "wrong!", deps())).status, 401);
 });
 
 Deno.test("unexpected error -> 500 without leaking details", async () => {
-  const r = await handle(REQ, deps({ getMessages: () => Promise.reject(new Error("db password=xyz")) }));
+  const r = await handle(REQ, TOKEN, deps({ getMessages: () => Promise.reject(new Error("db password=xyz")) }));
   assertEquals(r.status, 500);
   assertEquals(r.body, { error: "Lỗi hệ thống, thử lại sau" });
 });
@@ -1427,8 +1464,6 @@ const MESSAGE_LIMIT = 60;
 export interface CopilotRequest {
   website_id: string;
   session_id: string;
-  operator_id: string;
-  secret: string;
   action: Action;
   force: boolean;
 }
@@ -1458,17 +1493,19 @@ function parseRequest(body: unknown): CopilotRequest {
   return {
     website_id: str("website_id"),
     session_id: str("session_id"),
-    operator_id: str("operator_id"),
-    secret: str("secret"),
     action,
     force: b.force === true || b.force === "1",
   };
 }
 
-export async function handle(body: unknown, deps: { db: Db; n8n: N8n }): Promise<{ status: number; body: unknown }> {
+export async function handle(
+  body: unknown,
+  token: string,
+  deps: { db: Db; n8n: N8n },
+): Promise<{ status: number; body: unknown }> {
   try {
     const req = parseRequest(body);
-    const ws = await authorize(deps.db, req);
+    const { workspace: ws, operatorId } = await authorize(deps.db, { website_id: req.website_id, token });
     if (req.action !== "check") throw new HttpError(501, `Chức năng ${req.action} chưa có`);
 
     const { stale } = await deps.n8n.refreshConversation(req.website_id, req.session_id);
@@ -1477,8 +1514,8 @@ export async function handle(body: unknown, deps: { db: Db; n8n: N8n }): Promise
 
     const [messages, profiles, operator] = await Promise.all([
       deps.db.getMessages(req.website_id, req.session_id, MESSAGE_LIMIT),
-      deps.db.getProfiles(req.operator_id, req.website_id),
-      deps.db.getOperator(req.operator_id),
+      deps.db.getProfiles(operatorId, req.website_id),
+      deps.db.getOperator(operatorId),
     ]);
     const unanswered = unansweredCustomerMessages(messages);
     const { source } = resolveProfile(profiles, conv.topic, ws.default_profile);
@@ -1490,7 +1527,7 @@ export async function handle(body: unknown, deps: { db: Db; n8n: N8n }): Promise
       topic: conv.topic,
       topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
       profile_source: source,
-      profile_name: operator?.display_name ?? req.operator_id,
+      profile_name: operator?.display_name ?? operatorId,
       needs_reply: unanswered.length > 0,
       unanswered,
       last_customer_at: conv.last_customer_at,
@@ -1522,10 +1559,16 @@ export function createDb(sb: SupabaseClient): Db {
   return {
     async getWorkspace(websiteId) {
       const { data, error } = await sb.from("workspaces")
-        .select("website_id,name,widget_secret,topics,default_profile")
+        .select("website_id,name,topics,default_profile")
         .eq("website_id", websiteId).maybeSingle();
       if (error) throw error;
       return data as Workspace | null;
+    },
+    async getOperatorIdByTokenHash(tokenHash) {
+      const { data, error } = await sb.from("operators").select("crisp_user_id")
+        .eq("copilot_token_hash", tokenHash).maybeSingle();
+      if (error) throw error;
+      return (data?.crisp_user_id as string | undefined) ?? null;
     },
     async isOperatorMember(operatorId, websiteId) {
       const { data, error } = await sb.from("operator_workspaces").select("active")
@@ -1578,7 +1621,7 @@ import { handle } from "./handler.ts";
 
 const CORS = {
   "access-control-allow-origin": "*",
-  "access-control-allow-headers": "content-type",
+  "access-control-allow-headers": "content-type, x-copilot-token",
   "access-control-allow-methods": "POST, OPTIONS",
 };
 
@@ -1598,7 +1641,7 @@ Deno.serve(async (req) => {
   } catch {
     return json(400, { error: "Body không phải JSON" });
   }
-  const r = await handle(body, { db, n8n });
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n });
   return json(r.status, r.body);
 });
 ```
@@ -1614,8 +1657,8 @@ Seed dữ liệu (Git Bash):
 
 ```bash
 docker exec -i supabase_db_cs-copilot psql -U postgres -d postgres <<'SQL'
-insert into workspaces (website_id, name, widget_secret, topics)
-values ('ws-local', 'Local', 'local-secret', '[{"key":"billing","label":"Billing","segments":["billing"]}]')
+insert into workspaces (website_id, name, topics)
+values ('ws-local', 'Local', '[{"key":"billing","label":"Billing","segments":["billing"]}]')
 on conflict do nothing;
 select ingest_events('[
  {"website_id":"ws-local","event":"message:send","data":{"session_id":"session_x","fingerprint":1,"from":"user","type":"text","content":"Tôi bị trừ tiền 2 lần","timestamp":1760500000000}},
@@ -1623,6 +1666,8 @@ select ingest_events('[
  {"website_id":"ws-local","event":"message:send","data":{"session_id":"session_x","fingerprint":3,"from":"user","type":"text","content":"Sao rồi bạn?","timestamp":1760500120000}},
  {"website_id":"ws-local","event":"session:set_segments","data":{"session_id":"session_x","segments":["billing"]}}
 ]'::jsonb);
+update operators set copilot_token_hash = encode(extensions.digest('local-token', 'sha256'), 'hex')
+where crisp_user_id = 'op-local';
 SQL
 ```
 
@@ -1632,8 +1677,8 @@ Gọi:
 
 ```bash
 curl -s -X POST http://127.0.0.1:54321/functions/v1/copilot \
-  -H 'content-type: application/json' \
-  -d '{"website_id":"ws-local","session_id":"session_x","operator_id":"op-local","secret":"local-secret","action":"check"}'
+  -H 'content-type: application/json' -H 'x-copilot-token: local-token' \
+  -d '{"website_id":"ws-local","session_id":"session_x","action":"check"}'
 ```
 
 Expected: HTTP 200, JSON có `"stale":true` (n8n chưa chạy), `"topic":"billing"`, `"unanswered":["Sao rồi bạn?"]`, `"profile_source":"default"`, `"profile_name":"Lan"`.
@@ -2160,14 +2205,14 @@ git commit -m "feat(n8n): ingest, refresh, post-note and sync gateway workflows"
 
 ```sql
 -- Chạy trong Supabase SQL Editor sau khi `db push`. Thay giá trị trong <>.
-insert into public.workspaces (website_id, name, jira_project, widget_secret, helpdesk_locale, topics, default_profile)
+insert into public.workspaces (website_id, name, jira_project, helpdesk_locale, topics, default_profile)
 values
-  ('<WEBSITE_ID_APP_A>', '<App A>', '<JIRA_PROJECT_A>', '<openssl rand -hex 24>', 'en',
+  ('<WEBSITE_ID_APP_A>', '<App A>', '<JIRA_PROJECT_A>', 'en',
    '[{"key":"billing","label":"Billing","segments":["billing","payment"]},
      {"key":"bug","label":"Bug","segments":["bug"]},
      {"key":"setup","label":"Setup","segments":["setup","onboarding"]}]',
    '{"tone":"thân thiện, lịch sự, ngắn gọn","pronoun_self":"mình","pronoun_customer":"bạn"}'),
-  ('<WEBSITE_ID_APP_B>', '<App B>', '<JIRA_PROJECT_B>', '<openssl rand -hex 24>', 'en',
+  ('<WEBSITE_ID_APP_B>', '<App B>', '<JIRA_PROJECT_B>', 'en',
    '[{"key":"billing","label":"Billing","segments":["billing"]}]',
    '{"tone":"thân thiện, lịch sự, ngắn gọn"}');
 ```
@@ -2216,12 +2261,21 @@ select o.display_name, w.website_id from operators o join operator_workspaces w 
 
 Expected: cả 2 website có dữ liệu, `learned` có `mary`/`zoey`, danh sách CS đúng.
 
-- [ ] **Step 8: Gọi `check` thật**
+- [ ] **Step 8: Cấp token cho CS và gọi `check` thật**
+
+Trong SQL Editor (sau backfill, khi bảng `operators` đã có CS):
+
+```sql
+select crisp_user_id, display_name, email, public.issue_copilot_token(crisp_user_id) as token
+from public.operators where email = '<email của bạn>';
+```
+
+Lưu token (chỉ hiện một lần). Sau này gửi riêng cho từng CS để dán vào Options của extension (Plan 5).
 
 ```bash
 curl -s -X POST https://<PROJECT_REF>.supabase.co/functions/v1/copilot \
-  -H 'content-type: application/json' \
-  -d '{"website_id":"<WEBSITE_ID_APP_A>","session_id":"<session_ thật>","operator_id":"<crisp user_id của bạn>","secret":"<widget_secret A>","action":"check"}'
+  -H 'content-type: application/json' -H 'x-copilot-token: <token vừa cấp>' \
+  -d '{"website_id":"<WEBSITE_ID_APP_A>","session_id":"<session_ thật>","action":"check"}'
 ```
 
 Expected: HTTP 200, `"stale":false` (refresh n8n chạy được), `unanswered` khớp với thực tế trong Crisp.
