@@ -3,3 +3,4 @@ supabase/.branches/
 supabase/.temp/
 .env
 .superpowers/
+n8n/.deploy/
