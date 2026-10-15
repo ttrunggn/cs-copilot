@@ -101,6 +101,8 @@ Mọi bảng nghiệp vụ đều có `website_id`.
 - **`jira_issues`**: `issue_key` PK, `summary`, `status`, `status_category`, `assignee`, `updated_at`, `status_changed_at`.
 - **`jira_comments`**: `id` PK, `issue_key`, `author`, `role` (`tech`|`cs`|`bot`), `is_public`, `body_text`, `created_at`.
 
+**Nguồn ticket tin cậy:** Jira context của một conversation **chỉ** lấy từ `jira_links`, tức các link do CS dán trong private note và được `jira-link-indexer` ghi lại. Không tìm ticket theo email khách hay `meta.data` của Crisp, vì cả hai đều do phía khách ghi được (khác với v4). Meta `jira_keys` ghi ngược vào Crisp chỉ để hiển thị, không bao giờ được đọc lại làm nguồn. Mọi issue key phải khớp `^[A-Z][A-Z0-9_]+-\d+$` và thuộc `workspaces.jira_project` trước khi đưa vào JQL.
+
 ### 4.6 Output
 - **`outputs`**: `id`, `website_id`, `session_id`, `operator_id`, `kind` (`draft`|`handoff`), `input_fp`, `content`, `warnings jsonb` (`[{claim, reason, article_url}]`), `profile_used`, `model`, `created_at`.
   - Dùng làm cache: cùng `input_fp` trong 24h thì trả lại kết quả cũ, trừ khi `force=1`.
