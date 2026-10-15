@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(31);
 
 insert into public.workspaces (website_id, name, topics) values
   ('ws1', 'App A',
@@ -88,6 +88,18 @@ select ok((pg_temp.conv()).resolved_at is null, 'reopen clears resolved_at');
 do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[{"type":"operator","details":{"user_id":"op-hoa","email":"hoa@x.io","first_name":"Hoa","last_name":"Tran"}}]}}'); end $$;
 select ok(exists (select 1 from public.operators o join public.operator_workspaces w using (crisp_user_id)
                   where o.crisp_user_id = 'op-hoa' and o.email = 'hoa@x.io' and w.website_id = 'ws1'), 'operators:list upserts operator + membership');
+
+-- 25b-25e: membership theo danh sách operator của Crisp
+select ok(not (select active from public.operator_workspaces where crisp_user_id = 'op-lan' and website_id = 'ws1'),
+          'member seen only in messages stays inactive until operators:list confirms');
+select ok((select active from public.operator_workspaces where crisp_user_id = 'op-hoa' and website_id = 'ws1'),
+          'operators:list activates listed operators');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[{"details":{"user_id":"op-lan","email":"lan@x.io"}}]}}'); end $$;
+select ok(not (select active from public.operator_workspaces where crisp_user_id = 'op-hoa' and website_id = 'ws1'),
+          'operator removed from Crisp is deactivated');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[]}}'); end $$;
+select ok((select active from public.operator_workspaces where crisp_user_id = 'op-lan' and website_id = 'ws1'),
+          'empty operators list (API hiccup) does not deactivate everyone');
 
 -- 26: workspace lạ
 select throws_ok($$ select public.ingest_event('{"website_id":"nope","event":"message:send","data":{"session_id":"x"}}') $$,

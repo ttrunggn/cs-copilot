@@ -47,3 +47,11 @@ curl -s -X POST https://<project-ref>.supabase.co/functions/v1/copilot \
   -H 'content-type: application/json' -H 'x-copilot-token: <token>' \
   -d '{"website_id":"<website_id>","session_id":"<session_...>","action":"check"}'
 ```
+
+## 7. Quyền của CS
+- CS chỉ dùng được copilot khi `operator_workspaces.active = true`. Cờ này do `crisp-sync` (danh sách operator của Crisp) bật/tắt hằng đêm. CS chỉ xuất hiện qua tin nhắn sẽ chưa được kích hoạt, nên chạy `crisp-sync` trước khi cấp token.
+- CS bị xoá khỏi website Crisp tự mất quyền sau lần sync kế tiếp. Thu hồi ngay lập tức:
+  ```sql
+  update public.operators set copilot_token_hash = null where email = '<email>';
+  ```
+- Cấp lại token (token cũ mất hiệu lực): `select public.issue_copilot_token('<crisp_user_id>');`
