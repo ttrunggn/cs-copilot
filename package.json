@@ -3,11 +3,11 @@
   "private": true,
   "scripts": {
     "sb": "supabase",
-    "db:start": "supabase start",
-    "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "node --env-file=.env scripts/pgtap.mjs",
+    "db:push": "node --env-file=.env scripts/db-push.mjs"
   },
   "devDependencies": {
+    "pg": "^8.23.1",
     "supabase": "^2"
   }
 }
