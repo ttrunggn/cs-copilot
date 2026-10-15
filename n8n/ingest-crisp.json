@@ -1,0 +1,51 @@
+{
+  "name": "Copilot v5 — Ingest Crisp",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "crisp-ingest-REPLACE-WITH-RANDOM", "responseMode": "onReceived", "options": {} },
+      "id": "b1a00000-0000-4000-8000-000000000001",
+      "name": "Crisp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "b1a00000-0000-4000-8000-0000000000a1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chỉ chuyển tiếp event cần thiết. Mọi chuẩn hoá nằm trong RPC ingest_event.\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst b = $input.first().json.body || {};\nif (!ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
+      },
+      "id": "b1a00000-0000-4000-8000-000000000002",
+      "name": "Filter Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/ingest_event",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_event: $json.p_event }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "b1a00000-0000-4000-8000-000000000003",
+      "name": "Ingest Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "Crisp Webhook": { "main": [[{ "node": "Filter Events", "type": "main", "index": 0 }]] },
+    "Filter Events": { "main": [[{ "node": "Ingest Event", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,104 @@
+{
+  "name": "Copilot v5 — Refresh Conversation",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "copilot-refresh", "responseMode": "responseNode", "options": {} },
+      "id": "b2a00000-0000-4000-8000-000000000001",
+      "name": "Refresh Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "b2a00000-0000-4000-8000-0000000000a1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const SECRET = 'REPLACE_N8N_SHARED_SECRET';\nconst req = $input.first().json;\nif ((req.headers || {})['x-copilot-secret'] !== SECRET) throw new Error('unauthorized');\nconst { website_id, session_id } = req.body || {};\nif (!/^[\\w-]+$/.test(website_id || '') || !/^session_[\\w-]+$/.test(session_id || '')) throw new Error('bad input');\nreturn [{ json: { website_id, session_id } }];"
+      },
+      "id": "b2a00000-0000-4000-8000-000000000002",
+      "name": "Verify Secret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.crisp.chat/v1/website/{{ $json.website_id }}/conversation/{{ $json.session_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
+        "options": { "timeout": 8000 }
+      },
+      "id": "b2a00000-0000-4000-8000-000000000003",
+      "name": "Get Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.crisp.chat/v1/website/{{ $('Verify Secret').first().json.website_id }}/conversation/{{ $('Verify Secret').first().json.session_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "X-Crisp-Tier", "value": "plugin" }] },
+        "options": { "timeout": 8000 }
+      },
+      "id": "b2a00000-0000-4000-8000-000000000004",
+      "name": "Get Messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "credentials": { "httpBasicAuth": { "id": "REPLACE_CRISP", "name": "Crisp Plugin Token" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { website_id, session_id } = $('Verify Secret').first().json;\nconst conv = $('Get Conversation').first().json.data || {};\nconst meta = conv.meta || {};\nconst raw = $('Get Messages').first().json.data;\nconst msgs = Array.isArray(raw) ? raw : [];\nconst events = [{ website_id, event: 'session:meta', data: { session_id, email: meta.email || null, nickname: meta.nickname || null, segments: meta.segments || [], state: conv.state || null } }];\nfor (const m of msgs) events.push({ website_id, event: 'message:import', data: { ...m, session_id } });\nreturn [{ json: { p_events: events } }];"
+      },
+      "id": "b2a00000-0000-4000-8000-000000000005",
+      "name": "Build Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/ingest_events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_events: $json.p_events }) }}",
+        "options": { "timeout": 8000 }
+      },
+      "id": "b2a00000-0000-4000-8000-000000000006",
+      "name": "Ingest Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "credentials": { "httpCustomAuth": { "id": "REPLACE_SUPABASE", "name": "Supabase Service Key" } }
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "{\"ok\": true}", "options": {} },
+      "id": "b2a00000-0000-4000-8000-000000000007",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 0]
+    }
+  ],
+  "connections": {
+    "Refresh Webhook": { "main": [[{ "node": "Verify Secret", "type": "main", "index": 0 }]] },
+    "Verify Secret": { "main": [[{ "node": "Get Conversation", "type": "main", "index": 0 }]] },
+    "Get Conversation": { "main": [[{ "node": "Get Messages", "type": "main", "index": 0 }]] },
+    "Get Messages": { "main": [[{ "node": "Build Events", "type": "main", "index": 0 }]] },
+    "Build Events": { "main": [[{ "node": "Ingest Events", "type": "main", "index": 0 }]] },
+    "Ingest Events": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}
