@@ -22,7 +22,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 - Quy trình rollout cấp công ty.
 
 ### Tiêu chí thành công
-- CS ở cả 2 workspace dùng cùng một extension, mọi thứ tự phân theo `website_id`.
+- CS ở cả 2 workspace dùng cùng một widget + extension, mọi thứ tự phân theo `website_id`.
 - Draft của CS A khác draft của CS B về văn phong khi cùng một tình huống.
 - Không có tin của Mary/Zoey trong tóm tắt, dữ liệu học tone, hay mốc "tin cuối của CS".
 - Draft nêu thông tin trái helpdesk thì có cảnh báo ⚠.
@@ -42,8 +42,8 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 | Jira auto-note | Giữ: tự đăng note khi ticket thay đổi |
 | Ngưỡng profile theo topic | ≥ 5 hội thoại trong 90 ngày (config `min_conversations_per_topic`) |
 | Bot | Mary, Zoey. Nhận diện theo nickname lần đầu rồi cố định theo `user_id` |
-| Giao diện | **Chrome extension** trên `app.crisp.chat` (không dùng widget sidebar). Widget SDK của Crisp không ghi được vào ô soạn tin |
-| Xác thực | Token riêng cho từng CS (lưu hash trong `operators`), gửi qua header `x-copilot-token`. Workspace lấy từ URL Crisp và phải là workspace CS đó thuộc về |
+| Giao diện | **Lai**: Crisp Plugin Widget (sidebar) làm toàn bộ UI + gọi API; Chrome extension **chỉ** chèn chữ vào ô Reply (Widget SDK của Crisp không ghi được vào ô soạn tin). Thiếu extension thì widget chuyển sang nút Copy |
+| Xác thực | Token riêng cho từng CS (lưu hash trong `operators`), gửi qua header `x-copilot-token`. Token nhập một lần trong widget. Workspace lấy từ `$crisp.acquireData("conversation")` và phải là workspace CS đó thuộc về |
 | Draft | Điền vào ô Reply, **không** đăng private note. Handoff vẫn đăng note |
 | Vòng phản hồi | Ghép draft với tin CS gửi sau đó (cùng CS, cùng session, ≤ 15 phút), đo `edit_ratio`, A/B theo `prompt_version` |
 
@@ -65,7 +65,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
  │ pg_cron: lịch job nền + cleanup 90 ngày                     │
  └──────────────────────────────▲──────────────────────────────┘
                                 │
-                     Chrome extension trên app.crisp.chat
+          Crisp Plugin Widget (sidebar) ──► Extension chèn vào ô Reply
 ```
 
 **Nguyên tắc phân vai**
@@ -169,28 +169,64 @@ Bước chung: hash token → tìm operator → kiểm tra operator thuộc work
 ### 5.6 Gọi Gemini (dùng chung)
 Module `_shared/gemini.ts`: đọc `ai_config.models` theo task, thử lần lượt từng model. Gặp 429/5xx thì chuyển model tiếp theo. Ghi `ai_usage_log`. Hết chuỗi thì ném lỗi `AI_UNAVAILABLE`.
 
-## 6. Chrome extension
+## 6. Giao diện: Crisp Plugin Widget + extension cầu nối
 
-- Manifest V3, content script chạy trên `https://app.crisp.chat/*`. Lấy `website_id` và `session_id` từ URL (`/website/{website_id}/inbox/{session_id}`).
-- Trang Options: CS dán token cá nhân và URL Edge Function một lần.
-- Request đi qua background service worker (có `host_permissions` tới Supabase) để không vướng CORS của trang.
-- Thanh công cụ nhỏ gắn phía trên ô soạn tin:
-  - Chip trạng thái từ `check`: Jira (badge **MỚI**), số tin chưa trả lời, topic + profile đang dùng.
-  - `✨ Soạn tin` → `generate` → điền draft vào ô Reply (chèn như người gõ để editor Crisp nhận). Danh sách ⚠ (link helpdesk) hiện ngay trên thanh, không chèn vào tin.
-  - `↻ Soạn lại` (`force=1`), `📋 Handoff` → `handoff` (đăng note).
-- Khi đổi conversation (URL đổi), thanh tự chạy lại `check`.
+Nguyên tắc: mỗi phần chỉ làm việc mà phần kia không làm được. **Server (`outputs`) là nguồn sự thật duy nhất.** Extension không gọi mạng, không giữ trạng thái, không cần cấu hình.
+
+```
+app.crisp.chat (1 tab)
+  Ô Reply ◄── content script top-frame (chèn chữ, kiểm tra session)
+                  ▲ chrome.runtime qua background, cùng tab (frameId 0)
+  Sidebar iframe (widget của mình) ◄── content script trong iframe (cầu nối postMessage)
+                  │
+                  ▼ HTTPS + x-copilot-token
+            Edge Function copilot
+```
+
+### 6.1 Crisp Plugin Widget (sidebar)
+- Plugin Crisp riêng (tái sử dụng plugin của v4, đổi URL iframe), cài trên cả 2 website. Trang widget host tĩnh trên Cloudflare Pages hoặc GitHub Pages (Supabase Storage/Edge Function không phục vụ `text/html` trên domain mặc định).
+- Lấy `website_id`, `session_id` bằng `$crisp.acquireData("conversation")`, operator bằng `$crisp.acquireData("operator")`.
+- Token CS nhập một lần, lưu trong `localStorage` của widget (đọc/ghi trong try/catch, mất thì hỏi lại).
+- Khi mở: chạy `check`, hiện Jira (badge **MỚI**), số tin chưa trả lời, topic + profile.
+- Nút: `✨ Soạn tin`, `↻ Soạn lại` (`force=1`), `📋 Handoff` (đăng note).
+- Sau `generate`: hiện draft + ⚠ (link helpdesk) trong widget, rồi gửi lệnh chèn cho extension. Nút phụ: `Điền lại`, `Copy`.
+- Luôn hiện "draft gần nhất" của conversation (lấy từ server), nên reload widget không mất draft.
+
+### 6.2 Extension (MV3) — chỉ chèn chữ
+- Content script **trong iframe widget** (match domain widget, `all_frames: true`): nhận `window.postMessage` từ trang widget, chuyển qua `chrome.runtime` tới background, background gửi tới top frame cùng tab (`frameId: 0`), rồi trả kết quả ngược lại.
+- Content script **top frame** (`https://app.crisp.chat/*`): tìm ô Reply, chèn chữ như người gõ để editor Crisp nhận.
+- Permissions tối thiểu: không `host_permissions` tới Supabase, không `storage` cho token.
+
+### 6.3 Giao thức widget ↔ extension (`protocol: 1`)
+| Message | Hướng | Nội dung |
+|---|---|---|
+| `copilot:ping` | widget → ext | `{protocol}` |
+| `copilot:pong` | ext → widget | `{protocol, version}` |
+| `copilot:insert` | widget → ext | `{request_id, output_id, session_id, text, mode: "auto" \| "replace" \| "append"}` |
+| `copilot:insert_result` | ext → widget | `{request_id, status: "inserted" \| "session_mismatch" \| "not_empty" \| "duplicate" \| "composer_not_found"}` |
+
+Trang widget chỉ chấp nhận message có `origin` khớp. Content script chỉ nhận message có `source === window` và `type` bắt đầu bằng `copilot:`.
+
+### 6.4 Chốt chống bất đồng bộ
+1. **Sai conversation**: top frame so `session_id` trong lệnh với URL đang mở. Khác thì `session_mismatch`, không chèn. Widget báo "Draft của chat khác đã sẵn sàng".
+2. **Response muộn**: mỗi request widget có `request_id`. Response không khớp conversation/request hiện tại thì bỏ.
+3. **Chèn hai lần**: top frame nhớ các `output_id` đã chèn trong tab. Gặp lại thì trả `duplicate`, trừ khi `mode` là `replace`/`append` do CS chủ động bấm "Điền lại".
+4. **Ô Reply có chữ**: `mode: "auto"` + ô không rỗng thì trả `not_empty`. Widget hỏi **Thay thế / Chèn xuống cuối / Huỷ**.
+5. **Không có hoặc lệch extension**: không nhận `pong` trong 1 giây thì chế độ Copy. `protocol` khác thì báo "Cập nhật extension" và dùng Copy.
+6. **Sai người**: operator của token khác `acquireData("operator").user_id` thì widget cảnh báo.
+7. **Không mất dữ liệu**: draft lưu ở `outputs` trước khi chèn. Ghép draft với tin gửi chạy ở server (5.5), không phụ thuộc UI.
 
 ## 7. Xử lý lỗi
 
 | Tình huống | Hành vi |
 |---|---|
-| Sai token / operator không thuộc workspace | 401/403, extension nhắc kiểm tra token trong Options |
-| Không chèn được vào ô Reply (Crisp đổi giao diện) | Copy draft vào clipboard và báo CS dán bằng Ctrl+V |
-| Ô Reply đang có chữ CS gõ dở | Hỏi trước khi thay thế, không ghi đè im lặng |
+| Sai token / operator không thuộc workspace | 401/403, widget hiện ô nhập lại token |
+| Không chèn được vào ô Reply (`composer_not_found`, Crisp đổi giao diện) | Widget hiện nút Copy, báo CS dán bằng Ctrl+V |
+| Ô Reply đang có chữ CS gõ dở | Widget hỏi Thay thế / Chèn cuối / Huỷ (6.4) |
 | Refresh n8n > 3s | Dùng DB, `stale: true` |
-| `AI_UNAVAILABLE` | Extension báo hết quota hoặc AI lỗi. `check` vẫn chạy |
+| `AI_UNAVAILABLE` | Widget báo hết quota hoặc AI lỗi. `check` vẫn chạy |
 | Verify lỗi | Trả draft, gắn nhãn "chưa đối chiếu helpdesk" |
-| Post note (handoff) lỗi | Vẫn trả nội dung cho extension để copy |
+| Post note (handoff) lỗi | Widget vẫn hiện nội dung để copy |
 | Webhook ingest bị miss | Reconcile mỗi đêm. Ingest idempotent |
 | Prompt injection trong chat | Chat được đưa vào prompt như dữ liệu. Không có hành động tự động nào ra ngoài ngoài private note |
 
@@ -212,7 +248,7 @@ Module `_shared/gemini.ts`: đọc `ai_config.models` theo task, thử lần lư
 1. Tạo schema + RPC trên Supabase, nhập 2 dòng `workspaces`.
 2. Dựng các workflow n8n I/O, chạy backfill 90 ngày.
 3. Deploy Edge Functions + pg_cron, chạy `learn-profiles` lần đầu, xem lại vài profile.
-4. Cài extension cho bản thân + 1–2 CS, sau đó mở cho cả team. Tắt workflow v4.
+4. Đổi URL widget trong plugin Crisp + cài extension cho bản thân + 1–2 CS, sau đó mở cho cả team. Tắt workflow v4.
 
 ## 10. Cấu trúc repo
 
@@ -228,7 +264,8 @@ supabase/
     index-cases/
     embed-helpdesk/
 n8n/                  (workflow JSON export)
-extension/            (Chrome extension MV3)
+widget/               (trang widget sidebar, host tĩnh)
+extension/            (Chrome extension MV3, chỉ chèn chữ)
 legacy/               (4 workflow v4 hiện tại)
 docs/superpowers/specs/
 ```
@@ -236,6 +273,6 @@ docs/superpowers/specs/
 ## 11. Rủi ro / điểm cần xác minh khi build
 
 - **Crisp Helpdesk API**: xác nhận endpoint lấy danh sách và nội dung bài theo locale với token plugin hiện có.
-- **DOM ô soạn tin của Crisp**: selector và cách chèn chữ phải được dò trên `app.crisp.chat` thật. Có thể hỏng khi Crisp cập nhật giao diện (đã có fallback clipboard).
+- **DOM ô soạn tin của Crisp**: selector và cách chèn chữ phải được dò trên `app.crisp.chat` thật. Có thể hỏng khi Crisp cập nhật giao diện (đã có fallback Copy). Cần xác nhận thêm: content script với `all_frames` chạy được trong iframe widget của Crisp, và iframe widget được reload hay nhận dữ liệu mới khi CS đổi conversation.
 - **Tên model Gemini free tier** có thể đổi. Đã gom vào `ai_config` nên chỉ cần sửa dữ liệu.
 - **Quota free tier** không công bố cố định. Theo dõi qua `ai_usage_log`.
