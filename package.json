@@ -1,0 +1,13 @@
+{
+  "name": "cs-copilot",
+  "private": true,
+  "scripts": {
+    "sb": "supabase",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db"
+  },
+  "devDependencies": {
+    "supabase": "^2"
+  }
+}

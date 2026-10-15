@@ -1,0 +1,489 @@
+{
+  "name": "Crisp ↔ Jira — Link Indexer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crisp-jira-link",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "d3331e1c-2f81-4384-82f6-85c0ff6c0463",
+      "name": "Crisp Webhook (operator notes)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "a53cd967-17e2-4bdc-bf5f-9163a0bd0721"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================== CẤU HÌNH ==================\nconst CONFIG = {\n  WEBHOOK_SECRET: 'doi-chuoi-bi-mat-nay',              // khớp ?secret=... trong URL webhook bên Crisp\n  JIRA_BASE_URL: 'https://your-company.atlassian.net',\n  SUPABASE_URL: 'https://xxxxxxxx.supabase.co',\n  TIMEZONE: 'Asia/Ho_Chi_Minh',\n  ACCEPT_TEXT_MESSAGES: false,   // true = nhận cả link CS dán trong tin nhắn thường, không chỉ note\n  IGNORE_COMMENT_AUTHORS: ['Automation for Jira'],\n};\n// ==============================================\nconst item = $input.first().json;\nconst body = item.body || {};\nif (CONFIG.WEBHOOK_SECRET && (item.query || {}).secret !== CONFIG.WEBHOOK_SECRET) return [];\n\nconst data = body.data || {};\nif (data.from !== 'operator') return [];\nif (!(data.type === 'note' || (CONFIG.ACCEPT_TEXT_MESSAGES && data.type === 'text'))) return [];\nconst content = typeof data.content === 'string' ? data.content : '';\nif (/^(🔔|🔗|🤖|⚠️)/u.test(content.trim())) return [];   // note do hệ thống tạo -> bỏ qua\n\nconst host = CONFIG.JIRA_BASE_URL.replace(/^https?:\\/\\//, '').replace(/\\/+$/, '').replace(/\\./g, '\\\\.');\nconst keys = new Set();\nfor (const m of content.matchAll(new RegExp(host + '\\\\/browse\\\\/([A-Z][A-Z0-9_]+-\\\\d+)', 'g'))) keys.add(m[1]);\nfor (const m of content.matchAll(new RegExp(host + '\\\\/[^\\\\s]*[?&]selectedIssue=([A-Z][A-Z0-9_]+-\\\\d+)', 'g'))) keys.add(m[1]);\nif (!keys.size) return [];\n\nconst websiteId = data.website_id || body.website_id;\nreturn [...keys].map(k => ({ json: {\n  config: CONFIG,\n  website_id: websiteId,\n  session_id: data.session_id,\n  issue_key: k,\n  linked_by: data.user?.user_id || '',\n  linked_by_name: data.user?.nickname || '',\n} }));\n"
+      },
+      "id": "c90af72d-9a4d-46a1-ac43-de8025e9179c",
+      "name": "Extract Jira Links",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Extract Jira Links').item.json.config.SUPABASE_URL }}/rest/v1/jira_links",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "session_id,issue_key"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ website_id: $('Extract Jira Links').item.json.website_id, session_id: $('Extract Jira Links').item.json.session_id, issue_key: $('Extract Jira Links').item.json.issue_key, linked_by: $('Extract Jira Links').item.json.linked_by, active: true }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "4bc1235d-9486-42ea-9c6f-3fbebf510f64",
+      "name": "Upsert Link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase Service Key"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Extract Jira Links').item.json.config.JIRA_BASE_URL }}/rest/api/3/issue/{{ $('Extract Jira Links').item.json.issue_key }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "summary,status,updated"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b917897c-f11f-4502-9392-ade78df88a2e",
+      "name": "Get Issue",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_JIRA",
+          "name": "Jira Cloud (email + API token)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Extract Jira Links').item.json.config.JIRA_BASE_URL }}/rest/api/3/issue/{{ $('Extract Jira Links').item.json.issue_key }}/comment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "orderBy",
+              "value": "-created"
+            },
+            {
+              "name": "maxResults",
+              "value": "5"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "797fc4c6-3ad7-4884-94cd-106909b7815f",
+      "name": "Get Latest Comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_JIRA",
+          "name": "Jira Cloud (email + API token)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction adfToText(n) {\n  if (!n) return '';\n  if (typeof n === 'string') return n;\n  if (n.type === 'text') return n.text || '';\n  if (n.type === 'hardBreak') return '\\n';\n  if (n.type === 'mention') return n.attrs?.text || '';\n  if (n.type === 'media' || n.type === 'mediaInline') return `[Ảnh: ${n.attrs?.alt || 'không tên'}]`;\n  if (n.type === 'inlineCard' || n.type === 'blockCard') return n.attrs?.url || '';\n  const inner = (n.content || []).map(adfToText).join('');\n  if (n.type === 'listItem') return '• ' + inner;\n  return ['paragraph', 'heading', 'blockquote', 'codeBlock'].includes(n.type) ? inner + '\\n' : inner;\n}\nfunction fmt(t, tz) {\n  const d = typeof t === 'number' ? new Date(t) : new Date(t || Date.now());\n  if (isNaN(d)) return '?';\n  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })\n    .formatToParts(d).map(x => [x.type, x.value]));\n  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;\n}\nconst norm = v => String(v || '').toLowerCase();\nconst matchAny = (name, list) => (list || []).some(x => x && norm(name).includes(norm(x)));\nconst marker = (key, status, at) => `[jira-sync ${key} | status=${status} | at=${at}]`;\n\nconst ex = $('Extract Jira Links').all().map(x => x.json);\nconst issues = $('Get Issue').all().map(x => x.json);\nconst comments = $input.all().map(x => x.json);\nconst cfg = ex[0].config;\nconst nowIso = new Date().toISOString();\n\nreturn ex.map((e, i) => {\n  const iss = issues[i] || {};\n  const url = `${cfg.JIRA_BASE_URL}/browse/${e.issue_key}`;\n  if (!iss.fields) {\n    return { json: { ...e, active: false, last_status: null, last_seen_at: nowIso,\n      note: `⚠️ Không tìm thấy ticket ${e.issue_key} trên Jira (sai mã hoặc tài khoản API không có quyền xem). Hệ thống sẽ không theo dõi ticket này.\\n${url}` } };\n  }\n  const f = iss.fields;\n  const cms = (comments[i]?.comments || []).filter(c => !matchAny(c.author?.displayName, cfg.IGNORE_COMMENT_AUTHORS));\n  const latest = cms[0];   // orderBy=-created -> phần tử đầu là mới nhất\n  const status = f.status?.name || '?';\n  const baselineAt = latest?.created || nowIso;\n  const lastUpdate = latest\n    ? `${fmt(latest.created, cfg.TIMEZONE)} (${latest.author?.displayName || '?'}: \"${adfToText(latest.body).trim().replace(/\\s+/g, ' ').slice(0, 120)}\")`\n    : `${fmt(f.updated, cfg.TIMEZONE)} (chưa có comment)`;\n  const note = [\n    `🔗 ĐÃ THEO DÕI JIRA · ${e.issue_key}`,\n    f.summary || '',\n    url,\n    `Trạng thái hiện tại: ${status}`,\n    `Cập nhật mới nhất: ${lastUpdate}`,\n    `Từ giờ hệ thống tự thêm ghi chú khi ticket có comment mới hoặc đổi trạng thái.`,\n    marker(e.issue_key, status, baselineAt),\n  ].join('\\n');\n  return { json: { ...e, active: true, last_status: status, last_seen_at: baselineAt, note } };\n});\n"
+      },
+      "id": "9a036b6c-e30c-450b-8ee9-a8808d6e732f",
+      "name": "Build Confirm Note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.crisp.chat/v1/website/{{ $json.website_id }}/conversation/{{ $json.session_id }}/message",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'note', from: 'operator', origin: 'chat', content: $json.note }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "3eaeee31-fb43-44fe-a2f8-049c3f20bd8a",
+      "name": "Post Confirm Note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Build Confirm Note').item.json.config.SUPABASE_URL }}/rest/v1/jira_links",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "session_id",
+              "value": "=eq.{{ $('Build Confirm Note').item.json.session_id }}"
+            },
+            {
+              "name": "issue_key",
+              "value": "=eq.{{ $('Build Confirm Note').item.json.issue_key }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ active: $('Build Confirm Note').item.json.active, last_status: $('Build Confirm Note').item.json.last_status, last_seen_at: $('Build Confirm Note').item.json.last_seen_at, last_note_at: new Date().toISOString() }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "1f6975aa-4673-4e78-9a38-4926c62f1d66",
+      "name": "Save Baseline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase Service Key"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.crisp.chat/v1/website/{{ $('Build Confirm Note').first().json.website_id }}/conversation/{{ $('Build Confirm Note').first().json.session_id }}/meta",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "4a09cb2b-4e32-4754-abda-1d5a1bd80323",
+      "name": "Get Conversation Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const ex = $('Build Confirm Note').all().map(x => x.json);\nconst meta = ($input.first().json || {}).data || {};\nconst current = meta.data && typeof meta.data === 'object' ? meta.data : {};\nconst keys = new Set(String(current.jira_keys || '').split(/[\\s,;]+/).filter(Boolean));\nex.filter(e => e.active).forEach(e => keys.add(e.issue_key));\nreturn [{ json: { website_id: ex[0].website_id, session_id: ex[0].session_id, data: { ...current, jira_keys: [...keys].join(',') } } }];\n"
+      },
+      "id": "b18dd962-c450-42fb-89b4-bccf3811f756",
+      "name": "Merge jira_keys",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.crisp.chat/v1/website/{{ $json.website_id }}/conversation/{{ $json.session_id }}/meta",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ data: $json.data }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7621dee5-b789-4dba-8591-5f9e1093574c",
+      "name": "Save jira_keys to Crisp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## Jira Link Indexer\nCS dán link Jira vào **note** của conversation → workflow:\n1. Lưu liên kết conversation ↔ ticket vào Supabase (`jira_links`)\n2. Đăng note xác nhận: trạng thái hiện tại + **cập nhật mới nhất từ ngày nào** + dòng mốc `[jira-sync ...]`\n3. Ghi `jira_keys` vào custom data của conversation (widget Reply Assistant dùng để tìm ticket)\n\n**Setup**: sửa CONFIG trong *Extract Jira Links*; chạy `supabase_jira_sync.sql`; bên Crisp khai báo Web Hook cho tin nhắn của operator (event `message:received`, có thể thêm `message:send`) → Production URL của webhook + `?secret=...`. Gửi thử 1 note có link Jira và xem execution để xác nhận note của operator có được bắn sang không.",
+        "height": 420,
+        "width": 640,
+        "color": 4
+      },
+      "id": "8d0d8bbd-b2f7-430a-9185-956bfa4a3c07",
+      "name": "Sticky",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -180
+      ]
+    }
+  ],
+  "connections": {
+    "Crisp Webhook (operator notes)": {
+      "main": [
+        [
+          {
+            "node": "Extract Jira Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Jira Links": {
+      "main": [
+        [
+          {
+            "node": "Upsert Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Link": {
+      "main": [
+        [
+          {
+            "node": "Get Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Issue": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Comments": {
+      "main": [
+        [
+          {
+            "node": "Build Confirm Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Confirm Note": {
+      "main": [
+        [
+          {
+            "node": "Post Confirm Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Confirm Note": {
+      "main": [
+        [
+          {
+            "node": "Save Baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Baseline": {
+      "main": [
+        [
+          {
+            "node": "Get Conversation Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Conversation Meta": {
+      "main": [
+        [
+          {
+            "node": "Merge jira_keys",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge jira_keys": {
+      "main": [
+        [
+          {
+            "node": "Save jira_keys to Crisp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -1,0 +1,155 @@
+{
+  "name": "Crisp ↔ Jira — Attachment Proxy",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "jira-attachment",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ebcc7be0-bae8-41d2-b7fe-b7caa2e53127",
+      "name": "Attachment Link",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "856ab9fd-5fc7-47b5-ace3-01a5b5a28761"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================== CẤU HÌNH ==================\nconst CONFIG = {\n  ATTACHMENT_SECRET: 'doi-chuoi-bi-mat-anh',            // giống hệt ATTACHMENT_SECRET trong Sync Watcher và Reply Assistant\n  JIRA_BASE_URL: 'https://your-company.atlassian.net',\n};\n// ==============================================\n// ---- HMAC-SHA256 thuần JS (Code node của n8n mặc định không cho require('crypto')) ----\nfunction sha256(bytes) {\n  const frac = (x) => ((x - Math.floor(x)) * 4294967296) >>> 0;\n  const primes = []; for (let n = 2; primes.length < 64; n++) if (primes.every(p => n % p)) primes.push(n);\n  const K = primes.map(p => frac(Math.cbrt(p)));\n  const H = primes.slice(0, 8).map(p => frac(Math.sqrt(p)));\n  const len = bytes.length, total = ((len + 9 + 63) >> 6) << 6;\n  const buf = new Uint8Array(total); buf.set(bytes); buf[len] = 0x80;\n  const dv = new DataView(buf.buffer);\n  dv.setUint32(total - 4, (len * 8) >>> 0); dv.setUint32(total - 8, Math.floor(len / 536870912));\n  const W = new Uint32Array(64), r = (x, n) => (x >>> n) | (x << (32 - n));\n  for (let o = 0; o < total; o += 64) {\n    for (let i = 0; i < 16; i++) W[i] = dv.getUint32(o + i * 4);\n    for (let i = 16; i < 64; i++) {\n      const s0 = r(W[i - 15], 7) ^ r(W[i - 15], 18) ^ (W[i - 15] >>> 3);\n      const s1 = r(W[i - 2], 17) ^ r(W[i - 2], 19) ^ (W[i - 2] >>> 10);\n      W[i] = (W[i - 16] + s0 + W[i - 7] + s1) | 0;\n    }\n    let [a, b, c, d, e, f, g, h] = H;\n    for (let i = 0; i < 64; i++) {\n      const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;\n      const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;\n      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;\n    }\n    [a, b, c, d, e, f, g, h].forEach((v, i) => { H[i] = (H[i] + v) >>> 0; });\n  }\n  const out = new Uint8Array(32); H.forEach((v, i) => new DataView(out.buffer).setUint32(i * 4, v)); return out;\n}\nconst utf8 = (s) => Uint8Array.from(unescape(encodeURIComponent(String(s))), ch => ch.charCodeAt(0));\nfunction hmacHex(key, msg) {\n  let k = utf8(key); if (k.length > 64) k = sha256(k);\n  const kp = new Uint8Array(64); kp.set(k);\n  const inner = new Uint8Array(64 + utf8(msg).length); inner.set(kp.map(x => x ^ 0x36)); inner.set(utf8(msg), 64);\n  const ih = sha256(inner);\n  const outer = new Uint8Array(96); outer.set(kp.map(x => x ^ 0x5c)); outer.set(ih, 64);\n  return [...sha256(outer)].map(x => x.toString(16).padStart(2, '0')).join('');\n}\n\nconst q = $input.first().json.query || {};\nconst id = String(q.id || '');\nif (!/^\\d{1,12}$/.test(id)) throw new Error('Thiếu hoặc sai id');\nif (!q.sig || q.sig !== hmacHex(CONFIG.ATTACHMENT_SECRET, id)) throw new Error('Chữ ký không hợp lệ');\nconst thumb = q.thumb === '1';\nreturn [{ json: { url: `${CONFIG.JIRA_BASE_URL}/rest/api/3/attachment/${thumb ? 'thumbnail' : 'content'}/${id}${thumb ? '?redirect=true' : ''}` } }];\n"
+      },
+      "id": "7d9da5fd-e6ca-4a87-b177-85d15e2cc720",
+      "name": "Verify Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "c867fb1d-4c51-47e7-a437-abfe56f3199d",
+      "name": "Download from Jira",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_JIRA",
+          "name": "Jira Cloud (email + API token)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "private, max-age=86400"
+              },
+              {
+                "name": "X-Content-Type-Options",
+                "value": "nosniff"
+              },
+              {
+                "name": "Content-Security-Policy",
+                "value": "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox"
+              }
+            ]
+          }
+        }
+      },
+      "id": "bb56e783-430b-4bef-81b3-6d4b9bec1f75",
+      "name": "Return File",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Jira Attachment Proxy\nLink ảnh/file trong note Crisp trỏ về đây: `...?id=<attachment id>&sig=<HMAC>`. Workflow kiểm chữ ký → tải file từ Jira bằng tài khoản API → trả thẳng về trình duyệt của CS. Không lưu file ở đâu cả, link không hết hạn.\n\n**Setup**: chọn credential Jira; đặt `ATTACHMENT_SECRET` giống hệt bên Sync Watcher và Reply Assistant; **Activate** workflow; copy Production URL vào `ATTACHMENT_PROXY_URL` của 2 workflow kia.\n\nAi có link (đã ký) đều mở được file đó, nên đừng dán link này cho khách nếu ảnh chứa thông tin nội bộ. Đổi secret = vô hiệu hoá toàn bộ link cũ.",
+        "height": 380,
+        "width": 620,
+        "color": 4
+      },
+      "id": "2d1118c2-21e5-4b6c-a3ee-06eb8491afd3",
+      "name": "Sticky",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -120
+      ]
+    }
+  ],
+  "connections": {
+    "Attachment Link": {
+      "main": [
+        [
+          {
+            "node": "Verify Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Signature": {
+      "main": [
+        [
+          {
+            "node": "Download from Jira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download from Jira": {
+      "main": [
+        [
+          {
+            "node": "Return File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

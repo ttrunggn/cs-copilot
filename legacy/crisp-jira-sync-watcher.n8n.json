@@ -1,0 +1,501 @@
+{
+  "name": "Crisp ↔ Jira — Sync Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "5c933e18-4430-4557-a647-5a706c41628c",
+      "name": "Every 5 minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "jira-sync",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "55f6cfae-f117-4798-8f59-32395142793a",
+      "name": "Jira Webhook (optional)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        420
+      ],
+      "webhookId": "e647583b-36d7-498e-bd5e-1d10abc18ab3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================== CẤU HÌNH ==================\nconst CONFIG = {\n  WEBHOOK_SECRET: 'doi-chuoi-bi-mat-nay',\n  JIRA_BASE_URL: 'https://your-company.atlassian.net',\n  SUPABASE_URL: 'https://xxxxxxxx.supabase.co',\n  TIMEZONE: 'Asia/Ho_Chi_Minh',\n  POLL_LOOKBACK: '-30m',      // lượt quét định kỳ chỉ xét ticket có thay đổi trong khoảng này (rộng hơn chu kỳ quét để không sót)\n  COMMENTS_PER_CHECK: 10,\n  COMMENT_PREVIEW_CHARS: 700,\n  CS_COMMENT_AUTHORS: [],     // tên hiển thị Jira của CS -> comment của họ được gắn nhãn (CS)\n  IGNORE_COMMENT_AUTHORS: ['Automation for Jira'],\n  STOP_WHEN_DONE: true,       // ticket sang Done -> báo lần cuối rồi ngừng theo dõi\n  ATTACHMENT_PROXY_URL: 'https://YOUR-N8N-DOMAIN/webhook/jira-attachment', // Production URL của workflow Attachment Proxy\n  ATTACHMENT_SECRET: 'doi-chuoi-bi-mat-anh',   // phải giống hệt trong workflow Attachment Proxy\n  INCLUDE_NON_IMAGE_FILES: true, // cũng đưa link cho file log/pdf/video... không chỉ ảnh\n  NOTE_IMAGE_MARKDOWN: false,    // true = chèn ![ảnh](link) để thử xem Crisp có hiện ảnh trong note không\n};\n// ==============================================\nlet keys = null, source = 'schedule';\nif ($('Jira Webhook (optional)').isExecuted) {\n  const w = $('Jira Webhook (optional)').first().json;\n  if (CONFIG.WEBHOOK_SECRET && (w.query || {}).secret !== CONFIG.WEBHOOK_SECRET) return [];\n  const b = w.body || {};\n  const key = b.issue?.key || b.issue_key;\n  if (!key) return [];\n  keys = [String(key)];\n  source = 'webhook';\n}\nreturn [{ json: { config: CONFIG, keys, source } }];\n"
+      },
+      "id": "91ff9d19-9f94-4960-b1ab-7f8af88ee1b2",
+      "name": "Start",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Start').first().json.config.SUPABASE_URL }}/rest/v1/jira_links",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "active",
+              "value": "eq.true"
+            },
+            {
+              "name": "issue_key",
+              "value": "={{ $json.keys ? 'in.(' + $json.keys.join(',') + ')' : 'not.is.null' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c5328159-c498-4663-90cb-36ceee069596",
+      "name": "Get Active Links",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase Service Key"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const st = $('Start').first().json;\nconst links = $input.all().map(x => x.json).filter(l => l && l.issue_key && l.session_id);\nif (!links.length) return [];\nconst keys = [...new Set(links.map(l => l.issue_key))].slice(0, 200);\nlet jql = `key in (${keys.join(',')})`;\nif (st.source === 'schedule') jql += ` AND updated >= ${st.config.POLL_LOOKBACK}`;\nreturn [{ json: { jql, links } }];\n"
+      },
+      "id": "7f353411-d5d0-49aa-91f9-268750a103ae",
+      "name": "Build JQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Start').first().json.config.JIRA_BASE_URL }}/rest/api/3/search/jql",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "jql",
+              "value": "={{ $json.jql }}"
+            },
+            {
+              "name": "fields",
+              "value": "summary,status,updated,statuscategorychangedate,attachment"
+            },
+            {
+              "name": "maxResults",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "bc66779e-f976-46c9-9073-879cb0a389e8",
+      "name": "Search Changed Tickets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_JIRA",
+          "name": "Jira Cloud (email + API token)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const { links } = $('Build JQL').first().json;\nconst res = $input.first().json || {};\nconst issues = Array.isArray(res.issues) ? res.issues : [];\nconst out = [];\nfor (const iss of issues) {\n  for (const l of links.filter(x => x.issue_key === iss.key)) {\n    out.push({ json: {\n      issue_key: iss.key,\n      website_id: l.website_id,\n      session_id: l.session_id,\n      link: l,\n      summary: iss.fields?.summary || '',\n      status: iss.fields?.status?.name || '?',\n      status_category: iss.fields?.status?.statusCategory?.key || '',\n      updated: iss.fields?.updated || '',\n      status_changed_at: iss.fields?.statuscategorychangedate || '',\n      attachments: Array.isArray(iss.fields?.attachment) ? iss.fields.attachment : [],\n    } });\n  }\n}\nreturn out;   // rỗng = không ticket nào thay đổi -> dừng, không tạo note\n"
+      },
+      "id": "ee74481d-2855-478b-abc2-cfa7baec19d1",
+      "name": "Pair Tickets with Chats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Start').first().json.config.JIRA_BASE_URL }}/rest/api/3/issue/{{ $json.issue_key }}/comment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "orderBy",
+              "value": "-created"
+            },
+            {
+              "name": "maxResults",
+              "value": "={{ $('Start').first().json.config.COMMENTS_PER_CHECK }}"
+            },
+            {
+              "name": "expand",
+              "value": "renderedBody"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "238aa89c-49df-47ae-be91-8b533911b1f9",
+      "name": "Get Comments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_JIRA",
+          "name": "Jira Cloud (email + API token)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.crisp.chat/v1/website/{{ $('Pair Tickets with Chats').item.json.website_id }}/conversation/{{ $('Pair Tickets with Chats').item.json.session_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7a6fe438-604d-43a1-88ea-35249c8dbebc",
+      "name": "Get Chatlog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction adfToText(n) {\n  if (!n) return '';\n  if (typeof n === 'string') return n;\n  if (n.type === 'text') return n.text || '';\n  if (n.type === 'hardBreak') return '\\n';\n  if (n.type === 'mention') return n.attrs?.text || '';\n  if (n.type === 'media' || n.type === 'mediaInline') return `[Ảnh: ${n.attrs?.alt || 'không tên'}]`;\n  if (n.type === 'inlineCard' || n.type === 'blockCard') return n.attrs?.url || '';\n  const inner = (n.content || []).map(adfToText).join('');\n  if (n.type === 'listItem') return '• ' + inner;\n  return ['paragraph', 'heading', 'blockquote', 'codeBlock'].includes(n.type) ? inner + '\\n' : inner;\n}\nfunction fmt(t, tz) {\n  const d = typeof t === 'number' ? new Date(t) : new Date(t || Date.now());\n  if (isNaN(d)) return '?';\n  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: tz, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })\n    .formatToParts(d).map(x => [x.type, x.value]));\n  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;\n}\nconst norm = v => String(v || '').toLowerCase();\nconst matchAny = (name, list) => (list || []).some(x => x && norm(name).includes(norm(x)));\nconst marker = (key, status, at) => `[jira-sync ${key} | status=${status} | at=${at}]`;\n// ---- HMAC-SHA256 thuần JS (Code node của n8n mặc định không cho require('crypto')) ----\nfunction sha256(bytes) {\n  const frac = (x) => ((x - Math.floor(x)) * 4294967296) >>> 0;\n  const primes = []; for (let n = 2; primes.length < 64; n++) if (primes.every(p => n % p)) primes.push(n);\n  const K = primes.map(p => frac(Math.cbrt(p)));\n  const H = primes.slice(0, 8).map(p => frac(Math.sqrt(p)));\n  const len = bytes.length, total = ((len + 9 + 63) >> 6) << 6;\n  const buf = new Uint8Array(total); buf.set(bytes); buf[len] = 0x80;\n  const dv = new DataView(buf.buffer);\n  dv.setUint32(total - 4, (len * 8) >>> 0); dv.setUint32(total - 8, Math.floor(len / 536870912));\n  const W = new Uint32Array(64), r = (x, n) => (x >>> n) | (x << (32 - n));\n  for (let o = 0; o < total; o += 64) {\n    for (let i = 0; i < 16; i++) W[i] = dv.getUint32(o + i * 4);\n    for (let i = 16; i < 64; i++) {\n      const s0 = r(W[i - 15], 7) ^ r(W[i - 15], 18) ^ (W[i - 15] >>> 3);\n      const s1 = r(W[i - 2], 17) ^ r(W[i - 2], 19) ^ (W[i - 2] >>> 10);\n      W[i] = (W[i - 16] + s0 + W[i - 7] + s1) | 0;\n    }\n    let [a, b, c, d, e, f, g, h] = H;\n    for (let i = 0; i < 64; i++) {\n      const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;\n      const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;\n      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;\n    }\n    [a, b, c, d, e, f, g, h].forEach((v, i) => { H[i] = (H[i] + v) >>> 0; });\n  }\n  const out = new Uint8Array(32); H.forEach((v, i) => new DataView(out.buffer).setUint32(i * 4, v)); return out;\n}\nconst utf8 = (s) => Uint8Array.from(unescape(encodeURIComponent(String(s))), ch => ch.charCodeAt(0));\nfunction hmacHex(key, msg) {\n  let k = utf8(key); if (k.length > 64) k = sha256(k);\n  const kp = new Uint8Array(64); kp.set(k);\n  const inner = new Uint8Array(64 + utf8(msg).length); inner.set(kp.map(x => x ^ 0x36)); inner.set(utf8(msg), 64);\n  const ih = sha256(inner);\n  const outer = new Uint8Array(96); outer.set(kp.map(x => x ^ 0x5c)); outer.set(ih, 64);\n  return [...sha256(outer)].map(x => x.toString(16).padStart(2, '0')).join('');\n}\n\n// ---- Tìm file đính kèm thuộc về 1 comment ----\nfunction mediaAlts(n, acc = []) {\n  if (!n || typeof n !== 'object') return acc;\n  if ((n.type === 'media' || n.type === 'mediaInline') && n.attrs) acc.push(n.attrs.alt || '');\n  (n.content || []).forEach(c => mediaAlts(c, acc));\n  return acc;\n}\nfunction commentAttachments(c, attachments) {\n  const ids = new Set();\n  const html = String(c.renderedBody || '');\n  for (const m of html.matchAll(/\\/attachment\\/(?:content\\/|thumbnail\\/)?(\\d+)/g)) ids.add(m[1]);      // 1. link ảnh trong HTML\n  for (const m of html.matchAll(/\\/secure\\/(?:attachment|thumbnail)\\/(\\d+)\\//g)) ids.add(m[1]);\n  const cMs = Date.parse(c.created || '') || 0;\n  const alts = mediaAlts(c.body);\n  for (const alt of alts.filter(Boolean)) {                                                          // 2. khớp tên file\n    const cands = attachments.filter(a => a.filename === alt)\n      .sort((x, y) => Math.abs(Date.parse(x.created) - cMs) - Math.abs(Date.parse(y.created) - cMs));\n    if (cands.length) ids.add(String(cands[0].id));\n  }\n  if (alts.length > ids.size) {                                                                      // 3. cùng người, ±3 phút\n    attachments.filter(a => a.author?.accountId && a.author.accountId === c.author?.accountId\n      && Math.abs((Date.parse(a.created) || 0) - cMs) <= 180000).forEach(a => ids.add(String(a.id)));\n  }\n  return attachments.filter(a => ids.has(String(a.id)));\n}\nconst isImage = a => /^image\\//.test(a?.mimeType || '');\nconst proxyUrl = (cfg, id, thumb) => `${cfg.ATTACHMENT_PROXY_URL}?id=${id}${thumb ? '&thumb=1' : ''}&sig=${hmacHex(cfg.ATTACHMENT_SECRET, String(id))}`;\nconst kb = n => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round((n || 0) / 1024)) + ' KB');\n\nconst cfg = $('Start').first().json.config;\nconst pairs = $('Pair Tickets with Chats').all().map(x => x.json);\nconst cmRes = $('Get Comments').all().map(x => x.json);\nconst msgRes = $input.all().map(x => x.json);\nconst nowMs = Date.now();\nconst out = [];\n\npairs.forEach((p, i) => {\n  // 1. Mốc đã báo: ưu tiên dòng [jira-sync] mới nhất trong chatlog, không có thì lấy từ DB\n  const msgs = Array.isArray(msgRes[i]?.data) ? msgRes[i].data : [];\n  let mk = null;\n  const re = /\\[jira-sync ([A-Z][A-Z0-9_]+-\\d+) \\| status=([^|\\]]*) \\| at=([^\\]]*)\\]/g;\n  for (const m of msgs) {\n    if (m.type !== 'note' || typeof m.content !== 'string') continue;\n    for (const g of m.content.matchAll(re)) {\n      if (g[1] === p.issue_key && (!mk || m.timestamp > mk.ts)) mk = { status: g[2].trim(), at: g[3].trim(), ts: m.timestamp };\n    }\n  }\n  const baseAtStr = mk?.at || p.link.last_seen_at || p.link.linked_at || null;\n  const baseAt = Date.parse(baseAtStr || '') || 0;\n  const baseStatus = mk?.status || p.link.last_status || null;\n\n  // 2. Có gì mới hơn mốc?\n  const comments = (Array.isArray(cmRes[i]?.comments) ? cmRes[i].comments : [])\n    .filter(c => !matchAny(c.author?.displayName, cfg.IGNORE_COMMENT_AUTHORS))\n    .filter(c => (Date.parse(c.created || '') || 0) > baseAt)\n    .sort((a, b) => Date.parse(a.created) - Date.parse(b.created));\n  const statusChanged = !!baseStatus && baseStatus !== p.status;\n  const wanted = a => cfg.INCLUDE_NON_IMAGE_FILES || isImage(a);\n  const used = new Set();\n  const perComment = comments.map(c => {\n    const files = commentAttachments(c, p.attachments).filter(wanted);\n    files.forEach(a => used.add(String(a.id)));\n    return files;\n  });\n  const looseFiles = p.attachments   // file đính kèm thẳng vào ticket, không nằm trong comment\n    .filter(a => (Date.parse(a.created || '') || 0) > baseAt && !used.has(String(a.id)) && wanted(a))\n    .sort((a, b) => Date.parse(a.created) - Date.parse(b.created));\n  if (!comments.length && !statusChanged && !looseFiles.length) return;   // không có gì mới -> không tạo note\n  const fileLines = (files, indent) => files.flatMap(a => {\n    const icon = isImage(a) ? '🖼' : '📎';\n    const lines = [`${indent}${icon} ${a.filename} (${kb(a.size)}): ${proxyUrl(cfg, a.id)}`];\n    if (cfg.NOTE_IMAGE_MARKDOWN && isImage(a)) lines.push(`${indent}![${a.filename}](${proxyUrl(cfg, a.id, true)})`);\n    return lines;\n  });\n\n  // 3. Soạn note\n  const latestComment = comments[comments.length - 1];\n  const latestLoose = looseFiles[looseFiles.length - 1];\n  const latestChangeMs = Math.max(\n    latestComment ? Date.parse(latestComment.created) : 0,\n    latestLoose ? Date.parse(latestLoose.created) : 0,\n    statusChanged ? (Date.parse(p.status_changed_at) > baseAt ? Date.parse(p.status_changed_at) : Date.parse(p.updated) || 0) : 0,\n  );\n  const isDone = p.status_category === 'done';\n  const L = [\n    `🔔 CẬP NHẬT JIRA · ${p.issue_key}`,\n    p.summary,\n    `${cfg.JIRA_BASE_URL}/browse/${p.issue_key}`,\n    `🗓 Kiểm tra lúc ${fmt(nowMs, cfg.TIMEZONE)} · cập nhật mới nhất lúc ${fmt(latestChangeMs || nowMs, cfg.TIMEZONE)}` + (baseAt ? ` (lần báo trước: ${fmt(baseAt, cfg.TIMEZONE)})` : ''),\n    '',\n  ];\n  if (statusChanged) L.push(`• Trạng thái: ${baseStatus} → ${p.status}`);\n  else L.push(`• Trạng thái: ${p.status} (không đổi)`);\n  if (comments.length) {\n    L.push(`• ${comments.length} comment mới:`);\n    for (const c of comments) {\n      const who = c.author?.displayName || '?';\n      const role = matchAny(who, cfg.CS_COMMENT_AUTHORS) ? 'CS' : 'tech';\n      const text = adfToText(c.body).trim();\n      const cut = text.length > cfg.COMMENT_PREVIEW_CHARS ? text.slice(0, cfg.COMMENT_PREVIEW_CHARS) + '… (xem tiếp trên Jira)' : text;\n      L.push(`  – ${who} (${role}) · ${fmt(c.created, cfg.TIMEZONE)}`);\n      L.push('    ' + cut.replace(/\\n/g, '\\n    '));\n      L.push(...fileLines(perComment[comments.indexOf(c)], '    '));\n    }\n  }\n  if (looseFiles.length) {\n    L.push(`• ${looseFiles.length} file đính kèm mới trên ticket:`);\n    L.push(...fileLines(looseFiles, '  '));\n  }\n  L.push('');\n  if (isDone && cfg.STOP_WHEN_DONE) L.push('✅ Ticket đã hoàn tất. Hệ thống ngừng theo dõi tự động; dán lại link nếu cần theo dõi tiếp.');\n  L.push('💡 Cần soạn tin báo khách? Mở Reply Assistant ở sidebar.');\n  const cands = [latestComment?.created, latestLoose?.created].filter(Boolean)\n    .sort((a, b) => Date.parse(b) - Date.parse(a));\n  const newAt = cands[0] || baseAtStr || new Date(nowMs).toISOString();\n  L.push(marker(p.issue_key, p.status, newAt));\n\n  out.push({ json: {\n    website_id: p.website_id,\n    session_id: p.session_id,\n    issue_key: p.issue_key,\n    note: L.join('\\n'),\n    last_status: p.status,\n    last_seen_at: newAt,\n    active: !(isDone && cfg.STOP_WHEN_DONE),\n  } });\n});\nreturn out;\n"
+      },
+      "id": "14895627-ca48-4513-a98a-55f81a10c189",
+      "name": "Compare with Chatlog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.crisp.chat/v1/website/{{ $json.website_id }}/conversation/{{ $json.session_id }}/message",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'note', from: 'operator', origin: 'chat', content: $json.note }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "03e5115c-5b64-446c-baf7-824204dc406c",
+      "name": "Post Update Note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        300
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('Start').first().json.config.SUPABASE_URL }}/rest/v1/jira_links",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpCustomAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "session_id",
+              "value": "=eq.{{ $('Compare with Chatlog').item.json.session_id }}"
+            },
+            {
+              "name": "issue_key",
+              "value": "=eq.{{ $('Compare with Chatlog').item.json.issue_key }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ last_status: $('Compare with Chatlog').item.json.last_status, last_seen_at: $('Compare with Chatlog').item.json.last_seen_at, last_note_at: new Date().toISOString(), active: $('Compare with Chatlog').item.json.active }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "f611e226-6c80-4fb0-bf22-1b8e1c4498c2",
+      "name": "Save Sync State",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        300
+      ],
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase Service Key"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "## Jira Sync Watcher\nMỗi 5 phút: lấy các liên kết conversation ↔ ticket đang theo dõi → hỏi Jira ticket nào có thay đổi trong 30 phút qua → với từng conversation, đọc chatlog tìm dòng mốc `[jira-sync KEY | status | at]` gần nhất → chỉ khi có **comment mới hơn mốc** hoặc **trạng thái khác mốc** mới đăng note, ghi giờ kiểm tra + giờ cập nhật mới nhất. Không có gì mới → không tạo note. **Không gọi AI.**\n\n**Real-time hơn (tuỳ chọn)**: Jira → Automation → rule \"Comment added\" / \"Issue transitioned\" → action *Send web request* POST tới Production URL của *Jira Webhook (optional)* + `?secret=...`, body `{\"issue_key\": \"{{issue.key}}\"}`. Khi đó note xuất hiện gần như ngay lập tức; lịch 5 phút vẫn giữ làm lưới an toàn.\n\n**Lưu ý**: `key in (...)` lỗi nếu có mã ticket không tồn tại; Link Indexer đã tự tắt theo dõi các mã sai.",
+        "height": 440,
+        "width": 700,
+        "color": 4
+      },
+      "id": "49d22a16-98f0-4236-89bb-59e7fd345b07",
+      "name": "Sticky",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -260
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Active Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Links": {
+      "main": [
+        [
+          {
+            "node": "Build JQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build JQL": {
+      "main": [
+        [
+          {
+            "node": "Search Changed Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Changed Tickets": {
+      "main": [
+        [
+          {
+            "node": "Pair Tickets with Chats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pair Tickets with Chats": {
+      "main": [
+        [
+          {
+            "node": "Get Comments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Comments": {
+      "main": [
+        [
+          {
+            "node": "Get Chatlog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chatlog": {
+      "main": [
+        [
+          {
+            "node": "Compare with Chatlog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare with Chatlog": {
+      "main": [
+        [
+          {
+            "node": "Post Update Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Update Note": {
+      "main": [
+        [
+          {
+            "node": "Save Sync State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 5 minutes": {
+      "main": [
+        [
+          {
+            "node": "Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Webhook (optional)": {
+      "main": [
+        [
+          {
+            "node": "Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
