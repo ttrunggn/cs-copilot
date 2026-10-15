@@ -7,6 +7,9 @@ import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 const ACTIONS = ["check", "handoff", "generate"] as const;
 type Action = typeof ACTIONS[number];
 const MESSAGE_LIMIT = 60;
+// session_id/website_id đi vào URL Crisp ở phía n8n nên phải đúng định dạng Crisp.
+const SESSION_ID = /^session_[\w-]+$/;
+const WEBSITE_ID = /^[\w-]+$/;
 
 export interface CopilotRequest {
   website_id: string;
@@ -37,6 +40,8 @@ function parseRequest(body: unknown): CopilotRequest {
   const action = str("action") as Action;
   if (!ACTIONS.includes(action)) throw new HttpError(400, `action không hợp lệ: ${str("action")}`);
   if (!str("session_id")) throw new HttpError(400, "Thiếu session_id");
+  if (!SESSION_ID.test(str("session_id"))) throw new HttpError(400, "session_id không hợp lệ");
+  if (str("website_id") && !WEBSITE_ID.test(str("website_id"))) throw new HttpError(400, "website_id không hợp lệ");
   return {
     website_id: str("website_id"),
     session_id: str("session_id"),

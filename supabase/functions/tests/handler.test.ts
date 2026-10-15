@@ -107,3 +107,19 @@ Deno.test("unexpected error -> 500 without leaking details", async () => {
   assertEquals(r.status, 500);
   assertEquals(r.body, { error: "Lỗi hệ thống, thử lại sau" });
 });
+
+Deno.test("malformed session_id is rejected before reaching n8n", async () => {
+  let refreshed = false;
+  const d = deps();
+  d.n8n.refreshConversation = () => {
+    refreshed = true;
+    return Promise.resolve({ stale: false });
+  };
+  const r = await handle({ ...REQ, session_id: "session_1/../../operators" }, TOKEN, d);
+  assertEquals(r.status, 400);
+  assertEquals(refreshed, false);
+});
+
+Deno.test("malformed website_id -> 400", async () => {
+  assertEquals((await handle({ ...REQ, website_id: "ws1?x=1" }, TOKEN, deps())).status, 400);
+});
