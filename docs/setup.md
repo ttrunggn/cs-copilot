@@ -26,13 +26,13 @@ npx supabase functions deploy copilot --no-verify-jwt
 ```
 
 ## 4. n8n
-1. Không cần biến môi trường đặc biệt: workflow không dùng `require('crypto')` (n8n chặn), HMAC tính bằng node Crypto có sẵn.
+1. Không cần biến môi trường đặc biệt: workflow không dùng `require('crypto')` (n8n chặn).
 2. Import `n8n/copilot-gateway.json` (gộp 4 luồng; sinh lại bằng `node n8n/build-gateway.mjs`). Chọn credential **Supabase API** có sẵn của n8n (Host = `SUPABASE_URL`, Service Role Secret = `SUPABASE_SERVICE_ROLE_KEY`) và Crisp (Basic Auth plugin token).
-3. Thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET`, `REPLACE_CRISP_HOOK_SECRET` (ô **Secret** của node `Ingest · Sign Body`), đổi `crisp-ingest-REPLACE-WITH-RANDOM`. Placeholder chưa thay thì workflow từ chối mọi request.
+3. Thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET`, đổi `crisp-ingest-REPLACE-WITH-RANDOM`. Placeholder chưa thay thì workflow từ chối mọi request.
 4. Activate.
 
 ## 5. Crisp
-1. Web hook cho cả 2 website → Production URL của `Crisp Webhook`. Events: `message:send`, `message:received`, `session:set_segments`, `session:set_state`, `session:set_email`. Lấy signing secret điền vào `REPLACE_CRISP_HOOK_SECRET`.
+1. Web hook cho cả 2 website → Production URL của `Crisp Webhook`. Events: `message:send`, `message:received`, `session:set_segments`, `session:set_state`, `session:set_email`. Hook cấp website **không được Crisp ký**, nên giữ kín URL này (đường dẫn ngẫu nhiên là lớp bảo vệ duy nhất). Lộ URL thì đổi path ở cả n8n và Crisp.
 2. Backfill: trong `crisp-sync` đặt `DAYS = 90` → Run Manually → xác nhận `List Conversations` gọi `/conversations/1`, `/2`, … rồi dừng ở trang rỗng → trả `DAYS = 1`.
 
 ## 6. Kiểm tra

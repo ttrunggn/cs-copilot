@@ -6,9 +6,7 @@
         "httpMethod": "POST",
         "path": "crisp-ingest-REPLACE-WITH-RANDOM",
         "responseMode": "onReceived",
-        "options": {
-          "rawBody": true
-        }
+        "options": {}
       },
       "id": "b1a00000-0000-4000-8000-000000000001",
       "name": "Ingest · Crisp Webhook",
@@ -22,45 +20,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Crisp ký \"[timestamp;raw_body]\" bằng HMAC-SHA256. Node này ghép chuỗi cần ký; node Crypto kế tiếp tính HMAC\n// (n8n chặn module crypto trong Code node). Thiếu header hoặc timestamp lệch quá 5 phút thì bỏ.\nconst MAX_SKEW_S = 300;\nconst h = $input.first().json.headers || {};\nconst ts = String(h['x-crisp-request-timestamp'] || '');\nconst signature = String(h['x-crisp-signature'] || '');\nif (!/^\\d+$/.test(ts) || !/^[0-9a-f]{64}$/.test(signature)) return [];\nconst tsSeconds = ts.length > 11 ? Number(ts) / 1000 : Number(ts);\nif (Math.abs(Date.now() / 1000 - tsSeconds) > MAX_SKEW_S) return [];\nconst raw = (await this.helpers.getBinaryDataBuffer(0, 'data')).toString('utf8');\nreturn [{ json: { signed: '[' + ts + ';' + raw + ']', signature, raw } }];"
-      },
-      "id": "b1a00000-0000-4000-8000-000000000004",
-      "name": "Ingest · Prepare Signature",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        220,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "action": "hmac",
-        "type": "SHA256",
-        "value": "={{ $json.signed }}",
-        "dataPropertyName": "expected",
-        "secret": "REPLACE_CRISP_HOOK_SECRET",
-        "encoding": "hex"
-      },
-      "id": "b1a00000-0000-4000-8000-000000000005",
-      "name": "Ingest · Sign Body",
-      "type": "n8n-nodes-base.crypto",
-      "typeVersion": 1,
-      "position": [
-        440,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// So chữ ký Crisp với HMAC do node \"Sign Body\" tính. Secret còn là placeholder thì từ chối mọi request.\nconst secret = String($('Ingest · Sign Body').params.secret || '');\nif (secret.startsWith('REPLACE_') || secret.length < 16) throw new Error('Crisp hook secret chưa được cấu hình');\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst { expected, signature, raw } = $input.first().json;\nif (typeof expected !== 'string' || expected.length !== signature.length) return [];\nlet diff = 0;\nfor (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ signature.charCodeAt(i);\nif (diff !== 0) return [];\nconst b = JSON.parse(raw);\nif (!ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
+        "jsCode": "// Hook cấp website của Crisp không được ký (chỉ plugin hook có X-Crisp-Signature), nên webhook này\n// được bảo vệ bằng đường dẫn ngẫu nhiên. Chỉ chuyển tiếp event cần thiết; RPC ingest_event còn từ chối website lạ.\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst b = $input.first().json.body;\nif (!b || typeof b !== 'object' || !ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
       },
       "id": "b1a00000-0000-4000-8000-000000000002",
       "name": "Ingest · Filter Events",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
+        220,
         0
       ]
     },
@@ -82,7 +49,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        880,
+        440,
         0
       ],
       "credentials": {
@@ -637,28 +604,6 @@
   ],
   "connections": {
     "Ingest · Crisp Webhook": {
-      "main": [
-        [
-          {
-            "node": "Ingest · Prepare Signature",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ingest · Prepare Signature": {
-      "main": [
-        [
-          {
-            "node": "Ingest · Sign Body",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ingest · Sign Body": {
       "main": [
         [
           {

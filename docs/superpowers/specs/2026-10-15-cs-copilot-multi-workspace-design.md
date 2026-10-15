@@ -120,7 +120,7 @@ Mọi bảng nghiệp vụ đều có `website_id`.
 ### 5.1 n8n (I/O)
 | Workflow | Trigger | Việc làm |
 |---|---|---|
-| `ingest-crisp` | Webhook Crisp (`message:send`, `message:received`, `session:set_segments`, `session:set_state`, `session:set_email`) cho cả 2 website | Chuẩn hoá payload → RPC `ingest_event` |
+| `ingest-crisp` | Webhook Crisp cấp website (`message:send`, `message:received`, `session:set_segments`, `session:set_state`, `session:set_email`) cho cả 2 website. Hook cấp website không được Crisp ký, nên bảo vệ bằng đường dẫn ngẫu nhiên (plugin hiện không có scope cho plugin hook có chữ ký) | Lọc event → RPC `ingest_event` |
 | `backfill-crisp` | Chạy tay (90 ngày) + mỗi đêm (reconcile 24h) | Duyệt conversation/messages qua API → RPC `ingest_event` |
 | `refresh-conversation` | Webhook (gọi từ Edge Function) | Lấy messages + meta mới nhất của 1 session → RPC `ingest_event`, trả `ok` |
 | `jira-link-indexer` | Webhook note Crisp có link Jira | Ghi `jira_links`, lấy issue + comment → `jira_issues`/`jira_comments`, ghi `jira_keys` vào meta Crisp, đăng note xác nhận |
