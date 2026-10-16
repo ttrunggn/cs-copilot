@@ -1,6 +1,8 @@
 // Backfill conversation + tin nhắn từ Crisp vào Supabase qua RPC ingest_events (giống workflow crisp-sync).
 // Chạy: node --env-file=.env scripts/backfill.mjs <website_id> [days=90]
 // Mỗi conversation chỉ lấy trang tin mới nhất của Crisp (đủ cho học tone; conversation rất dài sẽ thiếu tin cũ).
+// Danh sách conversation của Crisp gồm nhiều nhóm, mỗi nhóm tự sắp xếp mới → cũ (đo thực tế: trang 7 quay lại
+// hôm nay), nên không dừng ở conversation cũ đầu tiên mà bỏ qua nó, chỉ dừng khi 3 trang liên tiếp toàn cũ.
 import { readFileSync } from "node:fs";
 import pg from "pg";
 
@@ -27,12 +29,14 @@ const db = new pg.Client({
 });
 await db.connect();
 
-let page = 1, convs = 0, msgs = 0, done = false;
-while (!done) {
+const OLD_PAGES_TO_STOP = 3;
+let page = 1, convs = 0, msgs = 0, oldPages = 0;
+while (oldPages < OLD_PAGES_TO_STOP) {
   const list = await crisp(`/website/${websiteId}/conversations/${page}`);
   if (!list?.length) break;
-  for (const c of list) {
-    if ((c.updated_at ?? c.created_at) < since) { done = true; break; }
+  const recent = list.filter((c) => (c.updated_at ?? c.created_at) >= since);
+  oldPages = recent.length ? 0 : oldPages + 1;
+  for (const c of recent) {
     const messages = (await crisp(`/website/${websiteId}/conversation/${c.session_id}/messages`)) ?? [];
     const events = [{ website_id: websiteId, event: "session:meta", data: { session_id: c.session_id, email: c.meta?.email ?? null, nickname: c.meta?.nickname ?? null, segments: c.meta?.segments ?? [], state: c.state ?? null } }];
     for (const m of messages) events.push({ website_id: websiteId, event: "message:import", data: { ...m, session_id: c.session_id } });
