@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
 
 // Hook cấp website của Crisp KHÔNG được ký (chỉ plugin hook có X-Crisp-Signature),
 // nên ingest được bảo vệ bằng đường dẫn webhook ngẫu nhiên và chỉ cho qua event hợp lệ.
@@ -6,9 +6,10 @@ const wf = JSON.parse(await Deno.readTextFile(new URL("./ingest-crisp.json", imp
 const node = (name: string) => wf.nodes.find((n: { name: string }) => n.name === name);
 const filter: string = node("Filter Events").parameters.jsCode;
 
-function run(body: unknown): Promise<unknown[]> {
-  const fn = new Function("$input", `return (async function () { ${filter} }).call(this);`);
-  return fn.call({}, { first: () => ({ json: { headers: {}, body } }) });
+function run(body: unknown, path = "crisp-ingest-b3d3d4eb3bc264f3222f0018"): Promise<unknown[]> {
+  const fn = new Function("$input", "$", `return (async function () { ${filter} }).call(this);`);
+  const $ = (name: string) => (name === "Crisp Webhook" ? { params: { path } } : null);
+  return fn.call({}, { first: () => ({ json: { headers: {}, body } }) }, $);
 }
 
 const EVENT = { website_id: "ws1", event: "message:send", data: { session_id: "session_1", content: "hi" } };
@@ -40,4 +41,12 @@ Deno.test("payload without website_id or data is dropped", async () => {
 
 Deno.test("non-object body is dropped", async () => {
   assertEquals(await run("garbage"), []);
+});
+
+Deno.test("unreplaced placeholder webhook path fails closed", async () => {
+  await assertRejects(() => run(EVENT, "crisp-ingest-REPLACE-WITH-RANDOM"), Error, "chưa được thay");
+});
+
+Deno.test("too-short webhook path fails closed", async () => {
+  await assertRejects(() => run(EVENT, "crisp-ingest-abc"), Error, "chưa được thay");
 });

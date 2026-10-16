@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Hook cấp website của Crisp không được ký (chỉ plugin hook có X-Crisp-Signature), nên webhook này\n// được bảo vệ bằng đường dẫn ngẫu nhiên. Chỉ chuyển tiếp event cần thiết; RPC ingest_event còn từ chối website lạ.\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst b = $input.first().json.body;\nif (!b || typeof b !== 'object' || !ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
+        "jsCode": "// Hook cấp website của Crisp không được ký (chỉ plugin hook có X-Crisp-Signature), nên webhook này được bảo vệ\n// bằng đường dẫn ngẫu nhiên. Đường dẫn còn là placeholder hoặc quá ngắn thì từ chối mọi request.\nconst path = String($('Crisp Webhook').params.path || '');\nif (path.includes('REPLACE') || path.replace('crisp-ingest-', '').length < 20) throw new Error('Đường dẫn webhook chưa được thay bằng chuỗi ngẫu nhiên');\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst b = $input.first().json.body;\nif (!b || typeof b !== 'object' || !ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
       },
       "id": "b1a00000-0000-4000-8000-000000000002",
       "name": "Filter Events",
