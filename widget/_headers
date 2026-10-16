@@ -1,0 +1,4 @@
+/*
+  Content-Security-Policy: frame-ancestors https://app.crisp.chat
+  Referrer-Policy: no-referrer
+  X-Content-Type-Options: nosniff

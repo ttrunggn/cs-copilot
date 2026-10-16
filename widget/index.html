@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CS Copilot</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://assets.crisp.chat/widget/javascripts/sdk.min.js"></script>
+</head>
+<body>
+  <main id="app" aria-live="polite">
+    <p class="muted">Đang tải…</p>
+  </main>
+  <template id="token-form">
+    <form class="token">
+      <label for="token-input">Token copilot</label>
+      <input id="token-input" type="password" autocomplete="off" required placeholder="Dán token được cấp">
+      <button type="submit">Lưu</button>
+      <p class="hint"></p>
+    </form>
+  </template>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
