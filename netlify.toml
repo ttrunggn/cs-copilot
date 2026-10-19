@@ -1,0 +1,6 @@
+# Netlify tự deploy khi push lên GitHub: chỉ phục vụ thư mục widget/ (trang tĩnh, không có bước build).
+# extension.zip trong widget/ được build sẵn bằng: node --env-file=.env scripts/build-extension.mjs
+[build]
+  base = "widget"
+  publish = "."
+  command = ""
