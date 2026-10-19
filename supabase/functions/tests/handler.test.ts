@@ -81,6 +81,8 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     profile_name: "Lan Nguyen",
     needs_reply: true,
     unanswered: ["c"],
+    pending_messages: [{ text: "c", bot_replied: false }],
+    bot_replied_count: 0,
     last_customer_at: CONV.last_customer_at,
     last_human_operator_at: CONV.last_human_operator_at,
     jira: [],

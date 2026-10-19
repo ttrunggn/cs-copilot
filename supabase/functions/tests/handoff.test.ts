@@ -42,16 +42,21 @@ Deno.test("handoff note lists each issue from a multi-issue message", async () =
   }
 });
 
-Deno.test("handoff transcript excludes bot messages", async () => {
+Deno.test("handoff transcript keeps customer-facing bot replies but drops bot notes", async () => {
   const { ai, calls } = fakeAi({ handoff: JSON.stringify(FIELDS) });
   const { deps } = makeDeps({
     ai,
-    messages: [msg("user", "help", 1), msg("operator", "I am Mary the bot", 2, { is_bot: true, operator_name: "Mary" })],
+    messages: [
+      msg("user", "help", 1),
+      msg("operator", "I am Mary the bot", 2, { is_bot: true, operator_name: "Mary" }),
+      msg("operator", "old private note", 3, { is_bot: true, type: "note", operator_name: "Mary" }),
+    ],
   });
   await handle(REQ, TOKEN, deps);
   const prompt = calls.find((c) => c.task === "handoff")!.prompt;
   assertEquals(prompt.includes("help"), true);
-  assertEquals(prompt.includes("Mary the bot"), false);
+  assertEquals(prompt.includes("Bot (Mary): I am Mary the bot"), true);
+  assertEquals(prompt.includes("old private note"), false);
 });
 
 Deno.test("handoff uses content_en in prompt", async () => {

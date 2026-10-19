@@ -56,6 +56,17 @@ Deno.test("draft prompt carries the agent's last messages so the reply continues
   assertEquals(p.includes("Do not greet again"), true);
 });
 
+Deno.test("draft prompt keeps the bot's customer-facing answer for a human takeover", async () => {
+  const { deps, calls } = setup();
+  deps.db.getMessages = () => Promise.resolve([
+    msg("user", "Do you keep backups?", 1),
+    msg("operator", "Successful translations are saved in Translation History.", 2, { is_bot: true, operator_name: "Mary" }),
+  ]);
+  await handle(REQ, TOKEN, deps);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("Bot (Mary): Successful translations are saved in Translation History."), true);
+});
+
 Deno.test("generate uses content_en in prompt", async () => {
   const f = fakeAi({
     translate: JSON.stringify({ items: [{ i: 0, en: "My currency does not change" }] }),

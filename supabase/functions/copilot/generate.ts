@@ -111,7 +111,8 @@ export async function runGenerate(
   }
 
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
-  const transcript = humanTranscript(messages);
+  // Giữ reply text của bot trong context để CS không lặp lại hoặc phủ định điều khách vừa được thông báo.
+  const transcript = humanTranscript(messages, 40, true);
   const topic = await resolveTopic(deps, ws, req.website_id, req.session_id, conv.topic, transcript);
   const { profile, source } = resolveProfile(profiles, topic, ws.default_profile);
   const found = await retrieve(deps, req.website_id, messages);

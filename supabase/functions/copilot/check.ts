@@ -16,6 +16,8 @@ export interface CheckResult {
   profile_name: string;
   needs_reply: boolean;
   unanswered: string[];
+  pending_messages: { text: string; bot_replied: boolean }[];
+  bot_replied_count: number;
   last_customer_at: string | null;
   last_human_operator_at: string | null;
   jira: ConversationJira[];
@@ -44,6 +46,7 @@ export async function runCheck(
     deps.db.getJiraRows(req.website_id, req.session_id),
   ]);
   const unanswered = unansweredCustomerMessages(messages);
+  const pendingMessages = pendingCustomerMessages(messages);
   const { source } = resolveProfile(profiles, conv.topic, ws.default_profile);
   return {
     action: "check",
@@ -55,6 +58,8 @@ export async function runCheck(
     profile_name: operator?.display_name ?? operatorId,
     needs_reply: unanswered.length > 0,
     unanswered,
+    pending_messages: pendingMessages,
+    bot_replied_count: pendingMessages.filter((m) => m.bot_replied).length,
     last_customer_at: conv.last_customer_at,
     last_human_operator_at: conv.last_human_operator_at,
     jira: jiraForConversation(jiraRows, conv.last_human_operator_at),
@@ -63,4 +68,19 @@ export async function runCheck(
       ? { output_id: latest.id, content: latest.content, warnings: latest.warnings, verified: latest.verified, helpdesk_matches: latest.helpdesk_matches, created_at: latest.created_at }
       : null,
   };
+}
+
+/** Tin khách chờ CS; đánh dấu riêng nếu Bot đã gửi câu trả lời sau tin đó. */
+function pendingCustomerMessages(messages: Awaited<ReturnType<Db["getMessages"]>>) {
+  const ordered = [...messages].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+  const lastHumanReply = ordered.reduce((last, m, i) =>
+    m.from === "operator" && !m.is_bot && m.type !== "note" && m.type !== "event" ? i : last, -1);
+  const pending = ordered.slice(lastHumanReply + 1);
+  const customerIndices = pending.flatMap((m, i) => m.from === "user" && m.type !== "note" && m.type !== "event" ? [i] : []);
+  return customerIndices.map((index, i) => {
+    const end = customerIndices[i + 1] ?? pending.length;
+    const botReplied = pending.slice(index + 1, end).some((m) => m.from === "operator" && m.is_bot && m.type === "text");
+    const customer = pending[index];
+    return { text: customer.content, bot_replied: botReplied };
+  });
 }

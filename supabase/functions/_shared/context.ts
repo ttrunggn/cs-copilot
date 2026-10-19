@@ -13,12 +13,19 @@ function isCustomerFacing(m: MessageRow): boolean {
   return m.type !== "note" && m.type !== "event";
 }
 
-/** Hội thoại dạng text cho prompt (tiếng Anh): bỏ tin bot và event, note ghi rõ là nội bộ, tin khách dùng bản dịch nếu có. */
-export function humanTranscript(messages: MessageRow[], maxLines = 40): string {
+/**
+ * Hội thoại dạng text cho prompt (tiếng Anh). Mặc định bỏ bot để học giọng CS;
+ * draft/handoff có thể giữ bot reply để biết khách đã được thông báo điều gì.
+ */
+export function humanTranscript(messages: MessageRow[], maxLines = 40, includeBotReplies = false): string {
   const lines: string[] = [];
   for (const m of byTime(messages)) {
-    if (m.is_bot || m.type === "event") continue;
-    const who = m.from === "user" ? "Customer" : `Agent${m.operator_name ? ` (${m.operator_name})` : ""}`;
+    if (m.type === "event" || (m.is_bot && (!includeBotReplies || m.type !== "text"))) continue;
+    const who = m.from === "user"
+      ? "Customer"
+      : m.is_bot
+      ? `Bot${m.operator_name ? ` (${m.operator_name})` : ""}`
+      : `Agent${m.operator_name ? ` (${m.operator_name})` : ""}`;
     const text = m.content_en ?? m.content;
     const body = m.type === "note" ? `[Internal note] ${text}` : text;
     lines.push(`${who}: ${body.slice(0, MAX_MESSAGE_CHARS)}`);

@@ -94,6 +94,8 @@ export function draftPrompt(i: {
       "- Only state facts that appear in the help center articles or the conversation. " +
       "When the agent must check something you cannot know (store-specific state, whether a fix shipped, account details), " +
       "write [[CS: <what to check, in Vietnamese>]] at that spot instead of guessing.",
+      "- A line labelled Bot is a reply the customer has already received. Do not call that question unanswered, repeat it, or contradict a product fact in it unless a help center article explicitly says otherwise.",
+      "- For backup, storage, plan, quota, availability, or other product-policy claims: use the help center as the source of truth. If its answer is missing or conflicting, add a [[CS: …]] check instead of making a definite claim.",
       "- Output only the message text. No placeholders like [Name].",
     ].join("\n"),
     [
@@ -245,7 +247,7 @@ export function handoffPrompt(transcript: string, topicLabel: string | null, jir
     "summary: one sentence, at most 20 words: who/what the customer wants.",
     "issues: one item per distinct problem or request the customer raised (merge duplicates, usually 1-4 items). " +
     "issue: at most 12 words. state = done | in_progress | waiting_customer | waiting_tech | not_started, judged from what agents replied, " +
-    "did or wrote in internal notes. detail: at most 25 words and must say exactly what was done or told to the customer: " +
+    "bots replied, did or wrote in internal notes. A Bot line means the customer already received that reply; never mark it not_started solely because no human CS replied. detail: at most 25 words and must say exactly what was done or told to the customer: " +
     "the steps or setting given, the price/plan/discount offered, the ticket created, what is still missing. " +
     'Never write vague phrases like "đã hỗ trợ", "đã giải đáp", "đã hướng dẫn" without saying what.',
     "waiting_on: customer | tech | cs | none. next_step: at most 20 words, the concrete next action for the agent taking over.",

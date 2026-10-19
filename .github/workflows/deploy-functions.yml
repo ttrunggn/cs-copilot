@@ -15,6 +15,44 @@ env:
   PROJECT_REF: rbodkthyuiyfotewgxku
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      copilot: ${{ steps.filter.outputs.copilot }}
+      embed_helpdesk: ${{ steps.filter.outputs.embed_helpdesk }}
+      jira_sync: ${{ steps.filter.outputs.jira_sync }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            copilot:
+              - 'supabase/functions/copilot/**'
+              - 'supabase/functions/_shared/auth.ts'
+              - 'supabase/functions/_shared/context.ts'
+              - 'supabase/functions/_shared/db.ts'
+              - 'supabase/functions/_shared/gemini.ts'
+              - 'supabase/functions/_shared/jira.ts'
+              - 'supabase/functions/_shared/n8n.ts'
+              - 'supabase/functions/_shared/profile.ts'
+              - 'supabase/functions/_shared/prompts.ts'
+              - 'supabase/functions/_shared/translate.ts'
+              - 'supabase/functions/_shared/types.ts'
+            embed_helpdesk:
+              - 'supabase/functions/embed-helpdesk/**'
+              - 'supabase/functions/_shared/chunk.ts'
+              - 'supabase/functions/_shared/db.ts'
+              - 'supabase/functions/_shared/gemini.ts'
+              - 'supabase/functions/_shared/secret.ts'
+              - 'supabase/functions/_shared/types.ts'
+            jira_sync:
+              - 'supabase/functions/jira-sync/**'
+              - 'supabase/functions/_shared/db.ts'
+              - 'supabase/functions/_shared/jira.ts'
+              - 'supabase/functions/_shared/n8n.ts'
+              - 'supabase/functions/_shared/secret.ts'
+              - 'supabase/functions/_shared/types.ts'
   test:
     runs-on: ubuntu-latest
     steps:
@@ -24,8 +62,9 @@ jobs:
           deno-version: v2.x
       - run: deno task test
 
-  deploy:
-    needs: test
+  deploy-copilot:
+    needs: [changes, test]
+    if: needs.changes.outputs.copilot == 'true'
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -35,5 +74,29 @@ jobs:
         with:
           version: latest
       - run: supabase functions deploy copilot --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+
+  deploy-embed-helpdesk:
+    needs: [changes, test]
+    if: needs.changes.outputs.embed_helpdesk == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
       - run: supabase functions deploy embed-helpdesk --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+
+  deploy-jira-sync:
+    needs: [changes, test]
+    if: needs.changes.outputs.jira_sync == 'true'
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
       - run: supabase functions deploy jira-sync --no-verify-jwt --use-api --project-ref "$PROJECT_REF"

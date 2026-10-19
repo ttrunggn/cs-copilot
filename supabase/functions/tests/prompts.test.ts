@@ -63,9 +63,9 @@ Deno.test("draftPrompt contains English instruction, helpdesk block and conversa
   ]) assertEquals(p.includes(s), true, s);
 });
 
-Deno.test("draftPrompt asks to answer each issue in order and bans chatbot filler", () => {
+Deno.test("draftPrompt asks to answer each issue in order, respects bot replies, and bans chatbot filler", () => {
   const p = draftPrompt(draftInput);
-  for (const s of ["chatbot could not resolve", "answer each one in the order", "I hope this helps", "Do not greet again", "[[CS:"]) {
+  for (const s of ["chatbot could not resolve", "answer each one in the order", "A line labelled Bot", "help center as the source of truth", "I hope this helps", "Do not greet again", "[[CS:"]) {
     assertEquals(p.includes(s), true, s);
   }
 });
@@ -83,7 +83,7 @@ Deno.test("verifyPrompt asks for Vietnamese reasons and ignores CS markers", () 
 
 Deno.test("handoffPrompt requires Vietnamese and one issue per customer problem", () => {
   const p = handoffPrompt("Customer: a\nCustomer: b", "Billing", "");
-  for (const s of ["Vietnamese", "one item per", "<conversation>"]) assertEquals(p.includes(s), true, s);
+  for (const s of ["Vietnamese", "one item per", "A Bot line", "<conversation>"]) assertEquals(p.includes(s), true, s);
 });
 
 Deno.test("handoffPrompt demands concrete, short details and includes Jira context", () => {

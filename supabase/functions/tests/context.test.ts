@@ -26,6 +26,15 @@ Deno.test("humanTranscript drops bot messages and events, labels notes", () => {
   assertEquals(out, "Customer: Hi\nAgent (Lan): [Internal note] check log\nAgent (Lan): Chào bạn");
 });
 
+Deno.test("humanTranscript can retain customer-facing bot replies for a takeover", () => {
+  const out = humanTranscript([
+    m("user", "Do you keep backups?", 1),
+    m("operator", "Successful translations are in Translation History.", 2, { is_bot: true, operator_name: "Mary" }),
+    m("operator", "internal handoff", 3, { is_bot: true, type: "note" }),
+  ], 40, true);
+  assertEquals(out, "Customer: Do you keep backups?\nBot (Mary): Successful translations are in Translation History.");
+});
+
 Deno.test("humanTranscript sorts by time and keeps the last N lines", () => {
   const out = humanTranscript([m("user", "c", 3), m("user", "a", 1), m("user", "b", 2)], 2);
   assertEquals(out, "Customer: b\nCustomer: c");

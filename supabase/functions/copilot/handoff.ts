@@ -44,7 +44,8 @@ export async function runHandoff(
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
   const topicLabel = ws.topics.find((t) => t.key === conv.topic)?.label ?? null;
   const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
-  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES), topicLabel, jira), {
+  // Bot reply là trạng thái hỗ trợ đã nói với khách, không được bỏ khỏi handoff.
+  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES, true), topicLabel, jira), {
     schema: HANDOFF_SCHEMA,
   });
   let fields;
