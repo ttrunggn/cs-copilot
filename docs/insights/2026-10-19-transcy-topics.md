@@ -5,7 +5,7 @@ Nguồn: 384 conversation cập nhật gần nhất (backfill 90 ngày), Gemini 
 ## Kết quả chính
 - **~60% inbox không phải yêu cầu hỗ trợ**: email marketing, newsletter, thư mời sự kiện, thông báo hệ thống Shopify (hoá đơn phí quảng cáo, collaborator, theme export). Copilot gắn `system_email` và không soạn tin, không học giọng văn từ nhóm này.
 - **Hỗ trợ thật ~40%**: translation 16% · billing thật ~5% · store_access 3% · onboarding 3% · language_switcher 3% · currency 2% · language_setup 1% · geolocation 1%.
-- **~22% khách không dùng tiếng Anh** (fr, es, nl, ja, zh, no, de) → draft phải trả lời đúng ngôn ngữ khách.
+- **~22% khách không dùng tiếng Anh** (fr, es, nl, ja, zh, no, de) → CS chỉ trả lời tiếng Anh: draft luôn tiếng Anh, tin khách được dịch sang tiếng Anh trước khi đưa vào AI.
 - Segment Crisp thưa: chỉ 36/982 conversation map được topic từ segment (`chatbot_paid_*`, `onboarding-chat`). Phần còn lại cần AI phân loại. Segment `enum_*` là gói của khách, dùng làm ngữ cảnh, không phải topic.
 
 ## Vấn đề hay gặp theo topic

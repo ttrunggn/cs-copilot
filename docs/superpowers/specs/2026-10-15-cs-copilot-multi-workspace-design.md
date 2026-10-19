@@ -46,6 +46,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 | Xác thực | **Widget trong Crisp:** không cần nhập gì. Crisp gắn `token` của website vào URL iframe; Edge Function so sha256 với `workspaces.crisp_widget_token_hash` (lấy từ API "List all connect websites" của plugin) và kiểm tra operator (từ `$crisp.acquireData("operator")`) đang active trong workspace. **Công cụ/curl:** token cá nhân qua header `x-copilot-token` (hash trong `operators`). Đánh đổi: danh tính CS do trình duyệt báo, một CS trong workspace có thể mạo danh CS khác; người ngoài workspace thì không |
 | Draft | Điền vào ô Reply, **không** đăng private note. Handoff vẫn đăng note |
 | Vòng phản hồi | Ghép draft với tin CS gửi sau đó (cùng CS, cùng session, ≤ 15 phút), đo `edit_ratio`, A/B theo `prompt_version` |
+| Ngôn ngữ | **CS chỉ trả lời bằng tiếng Anh.** Draft luôn tiếng Anh. Tin khách không phải tiếng Anh (~22% ở Transcy) được dịch sang tiếng Anh trước khi đưa vào prompt soạn tin, handoff, phân loại topic và học giọng văn; bản gốc giữ trong `messages`. `check` không gọi AI nên hiển thị nguyên văn |
 
 ## 3. Kiến trúc
 
