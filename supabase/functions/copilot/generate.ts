@@ -18,7 +18,8 @@ import type { CaseMatch, HelpdeskChunk, MessageRow, Warning, Workspace } from ".
 import { loadConversation } from "./load.ts";
 
 export const HELPDESK_K = 5;
-export const HELPDESK_MIN_SIMILARITY = 0.5;
+// Đo trên helpdesk Transcy: câu liên quan ≥ 0.70, câu lạc đề ~0.52.
+export const HELPDESK_MIN_SIMILARITY = 0.65;
 export const CASES_K = 3;
 export const CASES_MIN_SIMILARITY = 0.6;
 

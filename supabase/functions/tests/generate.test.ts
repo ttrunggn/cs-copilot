@@ -146,3 +146,10 @@ Deno.test("check returns latest_draft", async () => {
   const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };
   assertEquals(body.latest_draft, { output_id: 5, content: "last draft", warnings: [], verified: false, created_at: latest.created_at });
 });
+
+Deno.test("off-topic helpdesk chunks around 0.52–0.6 similarity are not used", async () => {
+  const { deps, calls } = setup({ helpdesk: [{ ...HD, similarity: 0.6 }] });
+  const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals(body.helpdesk_matches, 0);
+  assertEquals(calls.some((c) => c.task === "verify"), false);
+});
