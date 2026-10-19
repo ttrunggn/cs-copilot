@@ -4,7 +4,7 @@ import { buildGateway, SOURCES } from "./build-gateway.mjs";
 const read = async (f: string) => JSON.parse(await Deno.readTextFile(new URL(`./${f}`, import.meta.url)));
 const gateway = await read("copilot-gateway.json");
 
-Deno.test("gateway is up to date with the 4 source workflows", async () => {
+Deno.test("gateway is up to date with the 5 source workflows", async () => {
   const sources = await Promise.all(SOURCES.map((s: { file: string }) => read(s.file)));
   assertEquals(gateway, buildGateway(sources));
 });
@@ -26,4 +26,8 @@ Deno.test("gateway has the 3 webhook paths the Edge Function and Crisp call", ()
   const paths = gateway.nodes.filter((n: { type: string }) => n.type === "n8n-nodes-base.webhook")
     .map((n: { parameters: { path: string } }) => n.parameters.path).sort();
   assertEquals(paths, ["copilot-post-note", "copilot-refresh", "crisp-ingest-REPLACE-WITH-RANDOM"]);
+});
+
+Deno.test("gateway includes the helpdesk sync with its prefix", () => {
+  assert(gateway.nodes.some((n: { name: string }) => n.name === "Helpdesk · Embed"));
 });

@@ -1,4 +1,4 @@
-// Gộp 4 workflow nguồn thành 1 workflow "Copilot v5 — Gateway" để import một lần.
+// Gộp các workflow nguồn thành 1 workflow "Copilot v5 — Gateway" để import một lần.
 // Tên node được thêm tiền tố để không trùng, và mọi tham chiếu $('Tên node') được đổi theo.
 // Chạy: node n8n/build-gateway.mjs  (4 file nguồn vẫn là bản gốc, có test riêng)
 export const SOURCES = [
@@ -6,6 +6,7 @@ export const SOURCES = [
   { file: "copilot-refresh.json", prefix: "Refresh" },
   { file: "copilot-post-note.json", prefix: "Note" },
   { file: "crisp-sync.json", prefix: "Sync" },
+  { file: "helpdesk-sync.json", prefix: "Helpdesk" },
 ];
 const ROW_HEIGHT = 450;
 

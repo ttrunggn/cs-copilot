@@ -21,19 +21,24 @@ deno task test     # test Edge Function + workflow n8n
 ```bash
 npx supabase login
 npx supabase link --project-ref <project-ref>
-npx supabase secrets set N8N_WEBHOOK_BASE=<...> N8N_SHARED_SECRET=<...>
+npx supabase secrets set N8N_WEBHOOK_BASE=<...> N8N_SHARED_SECRET=<...> GEMINI_API_KEYS=<key1,key2,...>
 npx supabase functions deploy copilot --no-verify-jwt
+npx supabase functions deploy embed-helpdesk --no-verify-jwt   # n8n gọi bằng header x-copilot-secret
 ```
 
 ## 4. n8n
 1. Không cần biến môi trường đặc biệt: workflow không dùng `require('crypto')` (n8n chặn).
-2. Import `n8n/copilot-gateway.json` (gộp 4 luồng; sinh lại bằng `node n8n/build-gateway.mjs`). Chọn credential **Supabase API** có sẵn của n8n (Host = `SUPABASE_URL`, Service Role Secret = `SUPABASE_SERVICE_ROLE_KEY`) và Crisp (Basic Auth plugin token).
-3. Thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET`, đổi `crisp-ingest-REPLACE-WITH-RANDOM`. Placeholder chưa thay thì workflow từ chối mọi request.
+2. Import `n8n/copilot-gateway.json` (gộp 5 luồng: ingest, refresh, post note, crisp sync, helpdesk sync; sinh lại bằng `node n8n/build-gateway.mjs`). Chọn credential **Supabase API** có sẵn của n8n (Host = `SUPABASE_URL`, Service Role Secret = `SUPABASE_SERVICE_ROLE_KEY`) và Crisp (Basic Auth plugin token).
+3. Thay `YOUR-PROJECT`, `REPLACE_N8N_SHARED_SECRET` (cả trong node `Helpdesk · Embed`), đổi `crisp-ingest-REPLACE-WITH-RANDOM`. Placeholder chưa thay thì workflow từ chối mọi request.
 4. Activate.
 
 ## 5. Crisp
 1. Web hook cho cả 2 website → Production URL của `Crisp Webhook`. Events: `message:send`, `message:received`, `session:set_segments`, `session:set_state`, `session:set_email`. Hook cấp website **không được Crisp ký**, nên giữ kín URL này (đường dẫn ngẫu nhiên là lớp bảo vệ duy nhất). Lộ URL thì đổi path ở cả n8n và Crisp.
 2. Backfill: trong `crisp-sync` đặt `DAYS = 90` → Run Manually → xác nhận `List Conversations` gọi `/conversations/1`, `/2`, … rồi dừng ở trang rỗng → trả `DAYS = 1`.
+
+## 5b. Helpdesk
+1. Trong n8n bấm `Helpdesk · Run Manually` lần đầu (chỉ bài `published` được lưu, bài bị gỡ publish sẽ bị xoá ở lần sync sau).
+2. Embed lần đầu: `node --env-file=.env scripts/embed-helpdesk.mjs` (lặp tới khi `remaining 0`). Các đêm sau node `Helpdesk · Embed` tự gọi.
 
 ## 6. Kiểm tra
 ```sql

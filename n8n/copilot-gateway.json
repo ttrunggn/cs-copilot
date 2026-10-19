@@ -600,6 +600,286 @@
         }
       },
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000001",
+      "name": "Helpdesk · Nightly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        1800
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b5a00000-0000-4000-8000-000000000002",
+      "name": "Helpdesk · Run Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        2000
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/workspaces",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "website_id,helpdesk_locale"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000003",
+      "name": "Helpdesk · Get Workspaces",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        1900
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.crisp.chat/v1/website/{{ $json.website_id }}/helpdesk/locale/{{ $json.helpdesk_locale || 'en' }}/articles/1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $request.url.replace(/articles\\/(\\d+)/, (m, p) => 'articles/' + (Number(p) + 1)) }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !Array.isArray($response.body.data) || $response.body.data.length === 0 }}",
+              "limitPagesFetched": true,
+              "maxRequests": 50
+            }
+          }
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000004",
+      "name": "Helpdesk · List Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        1900
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gom các trang bài viết theo workspace. Chỉ bài published còn giá trị; bài khác coi như đã gỡ.\nconst groups = new Map();\n$input.all().forEach((item, i) => {\n  const ws = $('Helpdesk · Get Workspaces').itemMatching(i).json;\n  if (!ws || !ws.website_id) return;\n  if (!groups.has(ws.website_id)) groups.set(ws.website_id, { website_id: ws.website_id, locale: ws.helpdesk_locale || 'en', list: [], meta: {} });\n  const g = groups.get(ws.website_id);\n  for (const a of (Array.isArray(item.json.data) ? item.json.data : [])) {\n    if (!a || a.status !== 'published' || !a.article_id || g.meta[a.article_id]) continue;\n    g.list.push({ article_id: a.article_id, updated_at: a.updated_at || 0 });\n    g.meta[a.article_id] = { title: a.title || '', url: a.url || '', category: (a.category && a.category.name) || null };\n  }\n});\nreturn [...groups.values()].map((json) => ({ json }));"
+      },
+      "id": "b5a00000-0000-4000-8000-000000000005",
+      "name": "Helpdesk · Build List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/helpdesk_stale_articles",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_website_id: $json.website_id, p_locale: $json.locale, p_list: $json.list }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000006",
+      "name": "Helpdesk · Find Stale",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        1900
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// RPC trả mảng article_id; tuỳ phiên bản n8n mỗi phần tử có thể nằm ở nhiều dạng item khác nhau.\nconst out = [];\nconst seen = new Set();\n$input.all().forEach((item, i) => {\n  const g = $('Helpdesk · Build List').itemMatching(i).json;\n  const raw = item.json;\n  const values = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw).flat() : [raw]);\n  for (const v of values) {\n    if (typeof v !== 'string' || !g.meta[v] || seen.has(g.website_id + '/' + v)) continue;\n    seen.add(g.website_id + '/' + v);\n    out.push({ json: { website_id: g.website_id, locale: g.locale, article_id: v, ...g.meta[v] } });\n  }\n});\nreturn out;"
+      },
+      "id": "b5a00000-0000-4000-8000-000000000007",
+      "name": "Helpdesk · Split Stale",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.crisp.chat/v1/website/{{ $json.website_id }}/helpdesk/locale/{{ $json.locale }}/article/{{ $json.article_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Crisp-Tier",
+              "value": "plugin"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000008",
+      "name": "Helpdesk · Get Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        1900
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "REPLACE_CRISP",
+          "name": "Crisp Plugin Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gom bài đã tải theo workspace để upsert một lần. Bài lỗi hoặc không còn published thì bỏ qua.\nconst groups = new Map();\n$input.all().forEach((item, i) => {\n  const s = $('Helpdesk · Split Stale').itemMatching(i).json;\n  const a = item.json && item.json.data;\n  if (!s || !a || !a.article_id || a.status !== 'published') return;\n  if (!groups.has(s.website_id)) groups.set(s.website_id, { p_website_id: s.website_id, p_locale: s.locale, p_articles: [] });\n  groups.get(s.website_id).p_articles.push({\n    article_id: a.article_id, title: a.title || s.title, url: a.url || s.url, category: s.category,\n    content: a.content || '', updated_at: a.updated_at || 0,\n  });\n});\nreturn [...groups.values()].map((json) => ({ json }));"
+      },
+      "id": "b5a00000-0000-4000-8000-000000000009",
+      "name": "Helpdesk · Build Articles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        1900
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/rpc/upsert_helpdesk_articles",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000010",
+      "name": "Helpdesk · Upsert Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        1900
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/functions/v1/embed-helpdesk",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-copilot-secret",
+              "value": "REPLACE_N8N_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000011",
+      "name": "Helpdesk · Embed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        1900
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      },
+      "executeOnce": true
     }
   ],
   "connections": {
@@ -822,6 +1102,116 @@
         [
           {
             "node": "Sync · Ingest Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Nightly": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Get Workspaces",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Run Manually": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Get Workspaces",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Get Workspaces": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · List Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · List Articles": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Build List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Build List": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Find Stale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Find Stale": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Split Stale",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Split Stale": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Get Article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Get Article": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Build Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Build Articles": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Upsert Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Upsert Articles": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Embed",
             "type": "main",
             "index": 0
           }

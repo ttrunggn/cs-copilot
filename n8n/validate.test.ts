@@ -1,6 +1,6 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
 
-const FILES = ["ingest-crisp.json", "copilot-refresh.json", "copilot-post-note.json", "crisp-sync.json", "copilot-gateway.json"];
+const FILES = ["ingest-crisp.json", "copilot-refresh.json", "copilot-post-note.json", "crisp-sync.json", "helpdesk-sync.json", "copilot-gateway.json"];
 const dir = new URL(".", import.meta.url);
 
 interface Node { name: string; type: string; typeVersion: number; parameters: Record<string, unknown>; credentials?: Record<string, { id: string }> }
