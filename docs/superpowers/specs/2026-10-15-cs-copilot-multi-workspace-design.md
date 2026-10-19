@@ -169,7 +169,7 @@ Bước chung: hash token → tìm operator → kiểm tra operator thuộc work
 - **Dùng lại**: `learn-profiles` ưu tiên `final_text` của draft `light_edit`/`heavy_edit` làm tin mẫu (đây là văn phong CS đã chỉnh).
 
 ### 5.6 Gọi Gemini (dùng chung)
-Module `_shared/gemini.ts`: đọc `ai_config.models` theo task, thử lần lượt từng model. Gặp 429/5xx thì chuyển model tiếp theo. Ghi `ai_usage_log`. Hết chuỗi thì ném lỗi `AI_UNAVAILABLE`.
+Module `_shared/gemini.ts`: đọc `ai_config.models` theo task, thử lần lượt từng model. Có nhiều API key free (secret `GEMINI_API_KEYS`, ngăn cách bằng dấu phẩy): key gặp 429 thì xoay sang key kế tiếp trên cùng model, key vừa chạy được thử trước ở lần sau; mọi key đều 429, hoặc gặp 404/5xx, thì chuyển model tiếp theo. Ghi `ai_usage_log`. Hết chuỗi thì ném lỗi `AI_UNAVAILABLE`.
 
 ## 6. Giao diện: Crisp Plugin Widget + extension cầu nối
 

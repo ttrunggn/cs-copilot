@@ -34,46 +34,46 @@ const ok = (text: string) => ({ status: 200, body: { candidates: [{ content: { p
 Deno.test("generate falls back on 429 then succeeds", async () => {
   const f = fakeFetch({ m1: [{ status: 429 }], m2: [ok("hi")] });
   const { s, log } = store(["m1", "m2"]);
-  const r = await createGemini({ apiKey: "k", store: s, fetch: f.fn }).generate("draft", "p");
+  const r = await createGemini({ apiKeys: ["k"], store: s, fetch: f.fn }).generate("draft", "p");
   assertEquals(r, { text: "hi", model: "m2" });
   assertEquals(log, [["m1", "draft", true], ["m2", "draft", false]]);
 });
 
 Deno.test("generate falls back on 404 and 503", async () => {
   const f = fakeFetch({ m1: [{ status: 404 }], m2: [{ status: 503 }], m3: [ok("x")] });
-  const r = await createGemini({ apiKey: "k", store: store(["m1", "m2", "m3"]).s, fetch: f.fn }).generate("verify", "p");
+  const r = await createGemini({ apiKeys: ["k"], store: store(["m1", "m2", "m3"]).s, fetch: f.fn }).generate("verify", "p");
   assertEquals(r.model, "m3");
 });
 
 Deno.test("generate falls back on network error", async () => {
   const f = fakeFetch({ m1: [new Error("reset")], m2: [ok("x")] });
-  const r = await createGemini({ apiKey: "k", store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p");
+  const r = await createGemini({ apiKeys: ["k"], store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p");
   assertEquals(r.model, "m2");
 });
 
 Deno.test("generate throws immediately on 400", async () => {
   const f = fakeFetch({ m1: [{ status: 400, body: { error: { message: "bad" } } }], m2: [ok("x")] });
-  const err = await assertRejects(() => createGemini({ apiKey: "k", store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p"));
+  const err = await assertRejects(() => createGemini({ apiKeys: ["k"], store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p"));
   assertEquals(err instanceof AiUnavailable, false);
   assertEquals(f.calls.length, 1);
 });
 
 Deno.test("generate throws AiUnavailable when all models fail", async () => {
   const f = fakeFetch({ m1: [{ status: 429 }], m2: [{ status: 500 }] });
-  const err = await assertRejects(() => createGemini({ apiKey: "k", store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p"));
+  const err = await assertRejects(() => createGemini({ apiKeys: ["k"], store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p"));
   assertEquals((err as AiUnavailable).code, "AI_UNAVAILABLE");
 });
 
 Deno.test("generate drops thought parts", async () => {
   const f = fakeFetch({ m1: [{ status: 200, body: { candidates: [{ content: { parts: [{ text: "x", thought: true }, { text: "answer" }] } }] } }] });
-  const r = await createGemini({ apiKey: "k", store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p");
+  const r = await createGemini({ apiKeys: ["k"], store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p");
   assertEquals(r.text, "answer");
 });
 
 Deno.test("generate sends responseSchema when schema given", async () => {
   const f = fakeFetch({ m1: [ok("{}")] });
   const schema = { type: "OBJECT", properties: { a: { type: "STRING" } } };
-  await createGemini({ apiKey: "k", store: store(["m1"]).s, fetch: f.fn }).generate("handoff", "p", { schema });
+  await createGemini({ apiKeys: ["k"], store: store(["m1"]).s, fetch: f.fn }).generate("handoff", "p", { schema });
   const body = JSON.parse(String(f.calls[0].init.body));
   assertEquals(body.generationConfig, { responseMimeType: "application/json", responseSchema: schema });
   assertEquals(body.contents[0].parts[0].text, "p");
@@ -81,7 +81,7 @@ Deno.test("generate sends responseSchema when schema given", async () => {
 
 Deno.test("generate sends api key in x-goog-api-key header, not in URL", async () => {
   const f = fakeFetch({ m1: [ok("x")] });
-  await createGemini({ apiKey: "secret-key", store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p");
+  await createGemini({ apiKeys: ["secret-key"], store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p");
   assertEquals((f.calls[0].init.headers as Record<string, string>)["x-goog-api-key"], "secret-key");
   assertEquals(f.calls[0].url.includes("secret-key"), false);
   assertEquals(f.calls[0].url, "https://generativelanguage.googleapis.com/v1beta/models/m1:generateContent");
@@ -94,7 +94,7 @@ Deno.test("embed batches 150 texts into 2 requests and keeps order", async () =>
     body: { embeddings: Array.from({ length: n }, (_, i) => ({ values: [from + i] })) },
   });
   const f = fakeFetch({ e1: [reply(0, 100), reply(100, 50)] });
-  const out = await createGemini({ apiKey: "k", store: store(["e1"]).s, fetch: f.fn }).embed(texts, "query");
+  const out = await createGemini({ apiKeys: ["k"], store: store(["e1"]).s, fetch: f.fn }).embed(texts, "query");
   assertEquals(f.calls.length, 2);
   assertEquals(out.length, 150);
   assertEquals(out[149], [149]);
@@ -105,6 +105,53 @@ Deno.test("embed batches 150 texts into 2 requests and keeps order", async () =>
 
 Deno.test("logUsage failure does not break generate", async () => {
   const f = fakeFetch({ m1: [ok("fine")] });
-  const r = await createGemini({ apiKey: "k", store: store(["m1"], { failLog: true }).s, fetch: f.fn }).generate("draft", "p");
+  const r = await createGemini({ apiKeys: ["k"], store: store(["m1"], { failLog: true }).s, fetch: f.fn }).generate("draft", "p");
   assertEquals(r.text, "fine");
+});
+
+function keyedFetch(byKey: Record<string, Reply[]>) {
+  const calls: { key: string; model: string }[] = [];
+  const fn = (input: string | URL | Request, init?: RequestInit) => {
+    const key = (init?.headers as Record<string, string>)["x-goog-api-key"];
+    const model = String(input).match(/models\/([^:]+):/)?.[1] ?? "";
+    calls.push({ key, model });
+    const r = byKey[`${key}/${model}`]?.shift();
+    if (!r) return Promise.reject(new Error(`no reply for ${key}/${model}`));
+    if (r instanceof Error) return Promise.reject(r);
+    return Promise.resolve(new Response(JSON.stringify(r.body ?? {}), { status: r.status }));
+  };
+  return { fn: fn as typeof fetch, calls };
+}
+
+Deno.test("429 on one key rotates to the next key on the same model", async () => {
+  const f = keyedFetch({ "k1/m1": [{ status: 429 }], "k2/m1": [ok("from k2")] });
+  const r = await createGemini({ apiKeys: ["k1", "k2"], store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p");
+  assertEquals(r, { text: "from k2", model: "m1" });
+  assertEquals(f.calls, [{ key: "k1", model: "m1" }, { key: "k2", model: "m1" }]);
+});
+
+Deno.test("the key that worked is tried first on the next call", async () => {
+  const f = keyedFetch({ "k1/m1": [{ status: 429 }], "k2/m1": [ok("a"), ok("b")] });
+  const ai = createGemini({ apiKeys: ["k1", "k2"], store: store(["m1"]).s, fetch: f.fn });
+  await ai.generate("draft", "p");
+  await ai.generate("draft", "p");
+  assertEquals(f.calls.map((c) => c.key), ["k1", "k2", "k2"]);
+});
+
+Deno.test("all keys rate-limited falls back to the next model", async () => {
+  const f = keyedFetch({ "k1/m1": [{ status: 429 }], "k2/m1": [{ status: 429 }], "k1/m2": [ok("m2 ok")] });
+  const r = await createGemini({ apiKeys: ["k1", "k2"], store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p");
+  assertEquals(r.model, "m2");
+});
+
+Deno.test("404 skips the other keys for that model", async () => {
+  const f = keyedFetch({ "k1/m1": [{ status: 404 }], "k1/m2": [ok("x")] });
+  await createGemini({ apiKeys: ["k1", "k2"], store: store(["m1", "m2"]).s, fetch: f.fn }).generate("draft", "p");
+  assertEquals(f.calls, [{ key: "k1", model: "m1" }, { key: "k1", model: "m2" }]);
+});
+
+Deno.test("embed also rotates keys on 429", async () => {
+  const f = keyedFetch({ "k1/e1": [{ status: 429 }], "k2/e1": [{ status: 200, body: { embeddings: [{ values: [1] }] } }] });
+  const out = await createGemini({ apiKeys: ["k1", "k2"], store: store(["e1"]).s, fetch: f.fn }).embed(["t"], "document");
+  assertEquals(out, [[1]]);
 });

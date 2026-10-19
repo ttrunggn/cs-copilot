@@ -30,8 +30,12 @@ function retryable(status: number): boolean {
   return status === 429 || status === 404 || status >= 500;
 }
 
-export function createGemini(opts: { apiKey: string; store: AiStore; fetch?: typeof fetch }): Ai {
+/** Nhiều API key (free tier): key hết quota (429) thì xoay sang key kế tiếp, key vừa chạy được thử trước ở lần sau. */
+export function createGemini(opts: { apiKeys: string[]; store: AiStore; fetch?: typeof fetch }): Ai {
   const doFetch = opts.fetch ?? fetch;
+  const keys = opts.apiKeys.filter((k) => k.trim());
+  if (!keys.length) throw new Error("Thiếu Gemini API key");
+  let preferred = 0;
 
   async function log(model: string, task: AiTask, is429: boolean) {
     try {
@@ -41,24 +45,35 @@ export function createGemini(opts: { apiKey: string; store: AiStore; fetch?: typ
     }
   }
 
-  /** Thử lần lượt từng model của task; trả JSON response của model đầu tiên thành công. */
+  /**
+   * Thử lần lượt từng model của task. Trong một model: 429 → key kế tiếp; 404/5xx/lỗi mạng → model kế tiếp
+   * (đổi key không giúp được). Trả JSON response đầu tiên thành công.
+   */
   async function call(task: AiTask, method: string, body: (model: string) => unknown): Promise<{ json: any; model: string }> {
     for (const model of await opts.store.getModels(task)) {
-      let res: Response;
-      try {
-        res = await doFetch(`${BASE}/${model}:${method}`, {
-          method: "POST",
-          headers: { "content-type": "application/json", "x-goog-api-key": opts.apiKey },
-          body: JSON.stringify(body(model)),
-        });
-      } catch {
-        await log(model, task, false);
-        continue;
+      for (let n = 0; n < keys.length; n++) {
+        const k = (preferred + n) % keys.length;
+        let res: Response;
+        try {
+          res = await doFetch(`${BASE}/${model}:${method}`, {
+            method: "POST",
+            headers: { "content-type": "application/json", "x-goog-api-key": keys[k] },
+            body: JSON.stringify(body(model)),
+          });
+        } catch {
+          await log(model, task, false);
+          break;
+        }
+        await log(model, task, res.status === 429);
+        if (res.ok) {
+          preferred = k;
+          return { json: await res.json(), model };
+        }
+        const detail = await res.text().catch(() => "");
+        if (res.status === 429) continue;
+        if (!retryable(res.status)) throw new Error(`Gemini ${model} ${res.status}: ${detail.slice(0, 300)}`);
+        break;
       }
-      await log(model, task, res.status === 429);
-      if (res.ok) return { json: await res.json(), model };
-      const detail = await res.text().catch(() => "");
-      if (!retryable(res.status)) throw new Error(`Gemini ${model} ${res.status}: ${detail.slice(0, 300)}`);
     }
     throw new AiUnavailable();
   }
