@@ -9,7 +9,7 @@ select has_table('public', 'ai_config', 'ai_config exists');
 select has_table('public', 'ai_usage_log', 'ai_usage_log exists');
 select has_table('public', 'agent_profiles', 'agent_profiles exists');
 
-select is((select count(*)::int from public.ai_config), 7, 'ai_config seeded with 7 tasks');
+select is((select count(*)::int from public.ai_config), 8, 'ai_config seeded with 8 tasks (incl. translate)');
 select is((select models[1] from public.ai_config where task = 'draft'), 'gemini-3.5-flash-lite', 'draft uses flash-lite first');
 
 insert into public.workspaces (website_id, name) values ('ws-t', 'T');
