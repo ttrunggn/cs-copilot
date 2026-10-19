@@ -1,0 +1,12 @@
+[
+  {"key":"translation","label":"Dịch nội dung","segments":["chatbot_paid_error_translation"]},
+  {"key":"language_switcher","label":"Nút chuyển ngôn ngữ","segments":["chatbot_paid_error_switcher","chatbot_paid_guidance_switcher","chatbot_onboarding_manage_switcher"]},
+  {"key":"currency","label":"Tiền tệ","segments":["chatbot_paid_error_currency","chatbot_paid_guidance_currency"]},
+  {"key":"language_setup","label":"Thiết lập ngôn ngữ","segments":["chatbot_paid_error_language","chatbot_paid_guidance_language"]},
+  {"key":"geolocation","label":"Tự nhận vị trí","segments":["chatbot_paid_guidance_geolocation"]},
+  {"key":"onboarding","label":"Cài đặt & chuyển app","segments":["onboarding-chat","chatbot_onboarding","chatbot_onboarding_request_onboarding"]},
+  {"key":"billing","label":"Thanh toán & gói","segments":[]},
+  {"key":"store_access","label":"Quyền collaborator","segments":[]},
+  {"key":"system_email","label":"Email hệ thống/marketing","segments":[]},
+  {"key":"other","label":"Khác","segments":[]}
+]
