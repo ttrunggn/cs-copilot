@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "CS Copilot — chèn draft",
+  "version": "1.0.0",
+  "description": "Chèn draft của CS Copilot vào ô Reply của Crisp. Không gọi mạng, không lưu dữ liệu.",
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["https://app.crisp.chat/*"], "js": ["composer.js"] },
+    { "matches": ["__WIDGET_ORIGIN__/*"], "js": ["bridge.js"], "all_frames": true }
+  ]
+}
