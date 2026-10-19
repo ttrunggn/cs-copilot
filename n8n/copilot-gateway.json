@@ -862,7 +862,7 @@
           ]
         },
         "options": {
-          "timeout": 120000
+          "timeout": 150000
         }
       },
       "id": "b5a00000-0000-4000-8000-000000000011",
@@ -880,6 +880,60 @@
         }
       },
       "executeOnce": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 4
+            }
+          ]
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000012",
+      "name": "Helpdesk · Embed Nightly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        2200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/functions/v1/embed-helpdesk",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-copilot-secret",
+              "value": "REPLACE_N8N_SHARED_SECRET"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 150000
+        }
+      },
+      "id": "b5a00000-0000-4000-8000-000000000013",
+      "name": "Helpdesk · Embed Pending",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        2200
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
     }
   ],
   "connections": {
@@ -1124,6 +1178,17 @@
         [
           {
             "node": "Helpdesk · Get Workspaces",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Helpdesk · Embed Nightly": {
+      "main": [
+        [
+          {
+            "node": "Helpdesk · Embed Pending",
             "type": "main",
             "index": 0
           }

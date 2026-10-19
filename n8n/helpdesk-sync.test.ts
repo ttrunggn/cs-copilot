@@ -90,3 +90,14 @@ Deno.test("Crisp requests use the plugin tier header and Embed sends the shared 
 Deno.test("no Code node uses require (n8n blocks the crypto module)", () => {
   for (const n of wf.nodes) assert(!String(n.parameters.jsCode ?? "").includes("require("), n.name);
 });
+
+Deno.test("embedding also runs on its own nightly schedule, even when no article changed", () => {
+  const trigger = node("Embed Nightly");
+  assertEquals(trigger.type, "n8n-nodes-base.scheduleTrigger");
+  assertEquals(wf.connections["Embed Nightly"].main[0].map((t: { node: string }) => t.node), ["Embed Pending"]);
+  const embed = node("Embed Pending");
+  assertEquals(embed.parameters.url, "https://YOUR-PROJECT.supabase.co/functions/v1/embed-helpdesk");
+  assert(embed.parameters.headerParameters.parameters.some((p: { name: string; value: string }) =>
+    p.name === "x-copilot-secret" && p.value === "REPLACE_N8N_SHARED_SECRET"
+  ));
+});
