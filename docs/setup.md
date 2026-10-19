@@ -24,6 +24,7 @@ npx supabase link --project-ref <project-ref>
 npx supabase secrets set N8N_WEBHOOK_BASE=<...> N8N_SHARED_SECRET=<...> GEMINI_API_KEYS=<key1,key2,...>
 npx supabase functions deploy copilot --no-verify-jwt
 npx supabase functions deploy embed-helpdesk --no-verify-jwt   # n8n gọi bằng header x-copilot-secret
+npx supabase functions deploy jira-sync --no-verify-jwt        # n8n gọi bằng header x-copilot-secret
 ```
 
 ## 4. n8n
@@ -52,6 +53,12 @@ deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-prof
 # bỏ bớt bước: --skip-classify / --skip-profiles / --skip-cases
 ```
 Bộ topic theo tình huống thực tế: `node --env-file=.env scripts/derive-situations.mjs <website_id> > situations.json` (chỉ đọc), xem rồi cập nhật `supabase/seed/<app>-topics.json` + `workspaces.topics`. Sửa tay giọng một CS: ghi trường vào `agent_profiles.manual_override` (luôn thắng, lần học sau không ghi đè).
+
+## 5e. Jira
+1. `workspaces.jira_project` = project key (Transcy: `TNT`). CS dán link `https://<site>.atlassian.net/browse/TNT-123` vào **private note** là copilot tự theo dõi ticket đó (link trong tin gửi khách không tính).
+2. Link đã có trong lịch sử chat: `select public.backfill_jira_links(<website_id>);` (theo dõi im lặng, không đăng note vào chat cũ).
+3. n8n: tạo credential **Jira SW Cloud API** (email + API token tạo ở id.atlassian.com → Security → API tokens), chọn ở node `Jira · Search Jira`. Workflow chạy mỗi 5 phút.
+4. Tắt 2 workflow v4 `crisp-jira-link-indexer` và `crisp-jira-sync-watcher` để không đăng note trùng.
 
 ## 6. Kiểm tra
 ```sql

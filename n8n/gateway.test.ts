@@ -4,7 +4,7 @@ import { buildGateway, SOURCES } from "./build-gateway.mjs";
 const read = async (f: string) => JSON.parse(await Deno.readTextFile(new URL(`./${f}`, import.meta.url)));
 const gateway = await read("copilot-gateway.json");
 
-Deno.test("gateway is up to date with the 5 source workflows", async () => {
+Deno.test("gateway is up to date with the 6 source workflows", async () => {
   const sources = await Promise.all(SOURCES.map((s: { file: string }) => read(s.file)));
   assertEquals(gateway, buildGateway(sources));
 });

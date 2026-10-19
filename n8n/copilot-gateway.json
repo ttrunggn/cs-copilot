@@ -934,6 +934,166 @@
           "name": "Supabase API"
         }
       }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "b6a00000-0000-4000-8000-000000000001",
+      "name": "Jira · Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        2250
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b6a00000-0000-4000-8000-000000000002",
+      "name": "Jira · Run Manually",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        2450
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://YOUR-PROJECT.supabase.co/rest/v1/jira_links",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "issue_key"
+            },
+            {
+              "name": "active",
+              "value": "eq.true"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "b6a00000-0000-4000-8000-000000000003",
+      "name": "Jira · Get Active Links",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        2350
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ticket đang theo dõi → JQL \"key in (...)\", mỗi lô 50 key. Key sai định dạng bị bỏ để không chèn được vào JQL.\nconst KEY = /^[A-Z][A-Z0-9_]+-\\d+$/;\nconst keys = [...new Set($input.all().map((i) => i.json && i.json.issue_key).filter((k) => typeof k === 'string' && KEY.test(k)))];\nconst out = [];\nfor (let i = 0; i < keys.length; i += 50) out.push({ json: { jql: 'key in (' + keys.slice(i, i + 50).join(',') + ')' } });\nreturn out;"
+      },
+      "id": "b6a00000-0000-4000-8000-000000000004",
+      "name": "Jira · Build JQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        2350
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-JIRA.atlassian.net/rest/api/3/search/jql",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "jiraSoftwareCloudApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jql: $json.jql, fields: ['summary', 'status', 'assignee', 'updated', 'comment'], maxResults: 100 }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "b6a00000-0000-4000-8000-000000000005",
+      "name": "Jira · Search Jira",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        2350
+      ],
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "REPLACE_JIRA",
+          "name": "Jira Copilot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gộp kết quả các lô Jira search thành một payload cho Edge Function jira-sync.\nconst issues = [];\nfor (const item of $input.all()) for (const i of (item.json && Array.isArray(item.json.issues) ? item.json.issues : [])) issues.push(i);\nreturn [{ json: { issues } }];"
+      },
+      "id": "b6a00000-0000-4000-8000-000000000006",
+      "name": "Jira · Collect Issues",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        2350
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-PROJECT.supabase.co/functions/v1/jira-sync",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-copilot-secret",
+              "value": "REPLACE_N8N_SHARED_SECRET"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "b6a00000-0000-4000-8000-000000000007",
+      "name": "Jira · Jira Sync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        2350
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "REPLACE_SUPABASE",
+          "name": "Supabase API"
+        }
+      }
     }
   ],
   "connections": {
@@ -1277,6 +1437,72 @@
         [
           {
             "node": "Helpdesk · Embed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira · Every 5 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Jira · Get Active Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira · Run Manually": {
+      "main": [
+        [
+          {
+            "node": "Jira · Get Active Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira · Get Active Links": {
+      "main": [
+        [
+          {
+            "node": "Jira · Build JQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira · Build JQL": {
+      "main": [
+        [
+          {
+            "node": "Jira · Search Jira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira · Search Jira": {
+      "main": [
+        [
+          {
+            "node": "Jira · Collect Issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira · Collect Issues": {
+      "main": [
+        [
+          {
+            "node": "Jira · Jira Sync",
             "type": "main",
             "index": 0
           }

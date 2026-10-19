@@ -7,6 +7,7 @@ export const SOURCES = [
   { file: "copilot-post-note.json", prefix: "Note" },
   { file: "crisp-sync.json", prefix: "Sync" },
   { file: "helpdesk-sync.json", prefix: "Helpdesk" },
+  { file: "jira-sync.json", prefix: "Jira" },
 ];
 const ROW_HEIGHT = 450;
 
