@@ -105,6 +105,7 @@ export interface OutputRow {
   helpdesk_matches: number | null;
   topic: string | null;
   prompt_version: string | null;
+  posted: boolean | null; // chỉ handoff: note đã lên Crisp chưa
   created_at: string;
 }
 

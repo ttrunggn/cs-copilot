@@ -104,7 +104,7 @@ Deno.test("verify parse failure returns draft unverified", async () => {
 Deno.test("second generate with same input returns cached output", async () => {
   const cached: OutputRow = {
     id: 9, kind: "draft", content: "cached draft", warnings: [], verified: true, helpdesk_matches: 2,
-    topic: "billing", prompt_version: "draft-v1", created_at: "2026-10-15T03:05:00+00:00",
+    topic: "billing", prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:05:00+00:00",
   };
   const { deps, calls } = setup({ cached });
   const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
@@ -115,7 +115,7 @@ Deno.test("second generate with same input returns cached output", async () => {
 Deno.test("force bypasses cache", async () => {
   const cached: OutputRow = {
     id: 9, kind: "draft", content: "cached", warnings: [], verified: true, helpdesk_matches: 0,
-    topic: null, prompt_version: "draft-v1", created_at: "2026-10-15T03:05:00+00:00",
+    topic: null, prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:05:00+00:00",
   };
   const { deps } = setup({ cached });
   const body = (await handle({ ...REQ, force: true }, TOKEN, deps)).body as Record<string, unknown>;
@@ -140,7 +140,7 @@ Deno.test("generate still works when embed fails", async () => {
 Deno.test("check returns latest_draft", async () => {
   const latest: OutputRow = {
     id: 5, kind: "draft", content: "last draft", warnings: [], verified: false, helpdesk_matches: 0,
-    topic: null, prompt_version: "draft-v1", created_at: "2026-10-15T03:06:00+00:00",
+    topic: null, prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:06:00+00:00",
   };
   const m = makeDeps({ db: { getLatestDraft: () => Promise.resolve(latest) } });
   const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };

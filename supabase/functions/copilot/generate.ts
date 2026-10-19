@@ -142,6 +142,7 @@ export async function runGenerate(
     profile_used: source,
     model,
     prompt_version: variant.prompt_version,
+    posted: null,
   });
   return {
     action: "generate", stale, cached: false, output_id: outputId, draft, warnings: checked.warnings,

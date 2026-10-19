@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(17);
+select plan(18);
 
 insert into public.workspaces (website_id, name) values ('ws-k', 'K');
 
@@ -48,5 +48,6 @@ select is((select array[calls, errors_429] from public.ai_usage_log where model 
 select has_table('public', 'outputs', 'outputs table exists');
 
 select set_eq($$ select article_id from public.helpdesk_articles a join public.helpdesk_pending_articles p on p.id = a.id where a.website_id = 'ws-k' $$, array['a1'], 'pending view lists only articles whose chunks are stale');
+select has_column('public', 'outputs', 'posted', 'outputs remembers whether a handoff note reached Crisp');
 select * from finish();
 rollback;

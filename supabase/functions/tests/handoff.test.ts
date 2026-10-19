@@ -66,27 +66,41 @@ Deno.test("handoff uses content_en in prompt", async () => {
   assertEquals(prompt.includes("remboursement"), false);
 });
 
+const CACHED = {
+  id: 7, kind: "handoff" as const, content: "📋 Handoff — cũ", warnings: [], verified: null, helpdesk_matches: null,
+  topic: "billing", prompt_version: null, posted: true, created_at: "2026-10-15T03:05:00+00:00",
+};
+
+Deno.test("cached handoff that never reached Crisp is posted again", async () => {
+  const marks: [number, boolean][] = [];
+  const { deps, notes } = makeDeps({ cached: { ...CACHED, posted: false }, db: { markPosted: (id, p) => (marks.push([id, p]), Promise.resolve()) } });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ", posted: true });
+  assertEquals(notes, ["📋 Handoff — cũ"]);
+  assertEquals(marks, [[7, true]]);
+});
+
+Deno.test("handoff records whether the note was posted", async () => {
+  const marks: [number, boolean][] = [];
+  const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const { deps } = makeDeps({ ai, postOk: false, db: { markPosted: (id, p) => (marks.push([id, p]), Promise.resolve()) } });
+  await handle(REQ, TOKEN, deps);
+  assertEquals(marks, [[42, false]]);
+});
+
 Deno.test("handoff cached does not repost", async () => {
   const { ai, calls } = fakeAi({});
-  const cached = {
-    id: 7, kind: "handoff" as const, content: "📋 Handoff — cũ", warnings: [], verified: null, helpdesk_matches: null,
-    topic: "billing", prompt_version: null, created_at: "2026-10-15T03:05:00+00:00",
-  };
-  const { deps, notes } = makeDeps({ ai, cached });
+  const { deps, notes } = makeDeps({ ai, cached: CACHED });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
-  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ", posted: false });
+  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ", posted: true });
   assertEquals(notes, []);
   assertEquals(calls.filter((c) => c.task === "handoff").length, 0);
 });
 
 Deno.test("handoff force ignores cache", async () => {
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
-  const cached = {
-    id: 7, kind: "handoff" as const, content: "old", warnings: [], verified: null, helpdesk_matches: null,
-    topic: null, prompt_version: null, created_at: "2026-10-15T03:05:00+00:00",
-  };
-  const { deps, notes } = makeDeps({ ai, cached });
+  const { deps, notes } = makeDeps({ ai, cached: { ...CACHED, content: "old" } });
   const r = await handle({ ...REQ, force: true }, TOKEN, deps);
   assertEquals((r.body as { cached: boolean }).cached, false);
   assertEquals(notes.length, 1);

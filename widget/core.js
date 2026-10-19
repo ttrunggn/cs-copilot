@@ -87,6 +87,12 @@ export function toDraftViewModel(out) {
   };
 }
 
+/** Trạng thái note handoff: chỉ báo "đã đăng trước đó" khi note thật sự đã lên Crisp. */
+export function handoffStatus(h) {
+  if (!h.posted) return "Chưa đăng được note, copy giúp";
+  return h.cached ? "Note này đã đăng trước đó" : "Đã đăng private note";
+}
+
 const INSERT_MESSAGES = {
   inserted: "Đã điền draft vào ô Reply, đọc lại rồi bấm Send",
   session_mismatch: "Draft của chat khác đã sẵn sàng, mở lại đúng chat để điền",

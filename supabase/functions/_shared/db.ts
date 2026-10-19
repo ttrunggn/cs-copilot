@@ -3,7 +3,7 @@ import type { AiStore } from "./gemini.ts";
 import type { HelpdeskStore } from "../embed-helpdesk/handler.ts";
 import type { CaseMatch, ConversationRow, HelpdeskChunk, MessageRow, NewOutput, OutputRow, ProfileRow, Variant, Workspace } from "./types.ts";
 
-const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,created_at";
+const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,posted,created_at";
 const CACHE_HOURS = 24;
 
 export interface Db {
@@ -18,6 +18,7 @@ export interface Db {
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
   findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>;
   insertOutput(row: NewOutput): Promise<number>;
+  markPosted(outputId: number, posted: boolean): Promise<void>;
   getLatestDraft(websiteId: string, sessionId: string, operatorId: string): Promise<OutputRow | null>;
   setAiTopic(websiteId: string, sessionId: string, topic: string): Promise<void>;
   matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
@@ -98,6 +99,10 @@ export function createDb(sb: SupabaseClient): Db {
       const { data, error } = await sb.from("outputs").insert(row).select("id").single();
       if (error) throw error;
       return data.id as number;
+    },
+    async markPosted(outputId, posted) {
+      const { error } = await sb.from("outputs").update({ posted }).eq("id", outputId);
+      if (error) throw error;
     },
     async getLatestDraft(websiteId, sessionId, operatorId) {
       const { data, error } = await sb.from("outputs").select(OUTPUT_COLUMNS)

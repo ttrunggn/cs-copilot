@@ -50,6 +50,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
+    markPosted: () => Promise.resolve(),
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),

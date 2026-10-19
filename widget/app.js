@@ -1,4 +1,4 @@
-import { describeShape, insertResultMessage, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
+import { describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
 import { acceptReply, bridgeState, draftInsert, newRequestId, PING_TIMEOUT_MS, PROTOCOL } from "./bridge-core.js";
 
 const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
@@ -196,7 +196,7 @@ function draftPanel() {
 
 function handoffPanel() {
   if (!handoff) return null;
-  const status = handoff.cached ? "Note này đã đăng trước đó" : handoff.posted ? "Đã đăng private note" : "Chưa đăng được note, copy giúp";
+  const status = handoffStatus(handoff);
   return el("section", { className: "card" }, [
     el("div", { className: "row" }, [el("h3", { textContent: "Handoff" }), el("span", { className: "badge", textContent: status })]),
     el("div", { className: "draft", textContent: handoff.note }),

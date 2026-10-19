@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { describeShape, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toDraftViewModel, toViewModel } from "./core.js";
+import { describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toDraftViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -139,4 +139,11 @@ Deno.test("insertResultMessage covers the 5 statuses", () => {
 
 Deno.test("reloaded latest_draft without helpdesk match keeps the no-article badge", () => {
   assertEquals(toDraftViewModel({ content: "x", warnings: [], verified: true, helpdesk_matches: 0 }).badge, "Không có bài helpdesk liên quan");
+});
+
+Deno.test("handoffStatus says already posted only when it really was", () => {
+  assertEquals(handoffStatus({ cached: true, posted: true }), "Note này đã đăng trước đó");
+  assertEquals(handoffStatus({ cached: true, posted: false }), "Chưa đăng được note, copy giúp");
+  assertEquals(handoffStatus({ cached: false, posted: true }), "Đã đăng private note");
+  assertEquals(handoffStatus({ cached: false, posted: false }), "Chưa đăng được note, copy giúp");
 });

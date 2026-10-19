@@ -31,7 +31,13 @@ export async function runHandoff(
     const hit = await deps.db.findCachedOutput({
       websiteId: req.website_id, sessionId: req.session_id, operatorId, kind: "handoff", inputFp,
     });
-    if (hit) return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content, posted: false };
+    if (hit) {
+      // Lần trước đăng lỗi thì đăng lại note cũ, không báo "đã đăng" khi Crisp chưa có note.
+      if (hit.posted) return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content, posted: true };
+      const posted = await deps.n8n.postNote(req.website_id, req.session_id, hit.content);
+      await deps.db.markPosted(hit.id, posted);
+      return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content, posted };
+    }
   }
 
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
@@ -63,7 +69,9 @@ export async function runHandoff(
     profile_used: null,
     model,
     prompt_version: null,
+    posted: null,
   });
   const posted = await deps.n8n.postNote(req.website_id, req.session_id, note);
+  await deps.db.markPosted(outputId, posted);
   return { action: "handoff", stale, cached: false, output_id: outputId, note, posted };
 }

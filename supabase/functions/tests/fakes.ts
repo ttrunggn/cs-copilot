@@ -92,6 +92,7 @@ export function makeDeps(opts: {
       inserted.push(row);
       return Promise.resolve(42);
     },
+    markPosted: () => Promise.resolve(),
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),
