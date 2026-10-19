@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** CS bấm `✨ Soạn tin` trong sidebar Crisp thì nhận một draft tiếng Anh theo giọng văn của chính mình, có đối chiếu Helpdesk (⚠ kèm link), draft được điền thẳng vào ô Reply (extension load-unpacked miễn phí, không có thì Copy). Nút `📋 Handoff` đăng private note tóm tắt. Mỗi draft được ghép với tin CS thực sự gửi để đo `edit_ratio` theo `prompt_version`.
+**Goal:** Giá trị chính: nút `📋 Handoff` đăng private note tiếng Việt liệt kê từng vấn đề khách nêu kèm trạng thái, để người nhận case (đổi ca, chuyển case, cuối buổi) hoặc CS vừa nhận tin dài nhiều vấn đề nắm case nhanh. Phụ: `✨ Soạn tin` cho draft tiếng Anh nối tiếp mạch CS đang trả lời (không văn chatbot), trả lời lần lượt từng vấn đề, có đối chiếu Helpdesk (⚠ kèm link), điền thẳng vào ô Reply (extension load-unpacked miễn phí, không có thì Copy). Mỗi draft được ghép với tin CS thực sự gửi để đo `edit_ratio` theo `prompt_version`.
 
 **Architecture:** Edge Function `copilot` thêm action `generate` và `handoff`, gọi Gemini qua `_shared/gemini.ts` (fallback model + `ai_usage_log`). Tin khách không phải tiếng Anh được dịch một lần và lưu vào `messages.content_en`. Helpdesk được n8n kéo từ Crisp về `helpdesk_articles`, Edge Function `embed-helpdesk` cắt đoạn + embed vào `helpdesk_chunks` (pgvector). Ghép draft ↔ tin gửi chạy bằng trigger Postgres, không phụ thuộc UI. Extension MV3 chỉ chèn chữ, đóng gói thành `widget/extension.zip` host cùng Netlify.
 
@@ -14,7 +14,8 @@
 
 - Branch `feat/plan-2-ai-drafting` tách từ `feat/plan-1-foundation`. Ledger: `.superpowers/sdd/2026-10-19-plan-2-ai-drafting/progress.md` với dòng `Ruling:` cho mọi quyết định lệch plan.
 - TDD cho mọi thay đổi code. Lệnh test: `deno task test` (Deno), `npm run db:test` (pgTAP + node). Cả hai phải xanh trước mỗi commit.
-- **Ngôn ngữ:** draft luôn tiếng Anh. Mọi input AI dùng `content_en ?? content` cho tin khách. Handoff note viết tiếng Anh. `check` hiển thị nguyên văn, không gọi AI. Text giao diện widget vẫn tiếng Việt.
+- **Ngôn ngữ:** chỉ reply cho khách (draft) là tiếng Anh. Mọi note nội bộ (handoff) và lý do cảnh báo ⚠ là tiếng Việt, giữ nguyên tên tính năng, URL, thông báo lỗi. Mọi input AI dùng `content_en ?? content` cho tin khách. `check` hiển thị nguyên văn, không gọi AI. Text giao diện widget tiếng Việt.
+- **Văn phong draft:** chat tới CS là case chatbot không xử lý được. Draft nối tiếp mạch CS: không chào lại nếu CS đã chào, không câu đệm chatbot ("I hope this helps", "Feel free to reach out", "I understand your frustration"), không heading. Khách nêu nhiều vấn đề thì trả lời lần lượt, đúng thứ tự khách hỏi. Chi tiết không có trong hội thoại/helpdesk mà CS phải tự kiểm tra → `[[CS: <việc cần kiểm tra, tiếng Việt>]]`, không đoán.
 - Model lấy từ `ai_config.models` theo task. Thêm task `translate` (cùng chuỗi `gemini-3.5-flash-lite → gemini-3.1-flash-lite → gemini-2.5-flash`). Embed: `gemini-embedding-2`, `outputDimensionality: 768`, `batchEmbedContents` (≤ 100 text/request).
 - Gemini: 429, 404, 5xx hoặc lỗi mạng → thử model kế tiếp. 4xx khác → ném lỗi ngay. Hết chuỗi → `AiUnavailable` (code `AI_UNAVAILABLE`) → HTTP 503.
 - Bỏ phần `thought: true` khi đọc `candidates[0].content.parts`.
@@ -22,16 +23,16 @@
 - Crisp/Jira credential chỉ nằm trong n8n. Edge Function gọi n8n bằng `x-copilot-secret`. `embed-helpdesk` nhận gọi từ n8n bằng chính `x-copilot-secret` (= `N8N_SHARED_SECRET`), deploy `--no-verify-jwt`, so sánh constant-time.
 - Cache `outputs`: cùng `input_fp` + `kind` + operator trong 24h thì trả lại, trừ khi `force`.
 - Ngưỡng outcome: `sent_as_is` < 0.05 ≤ `light_edit` < 0.4 ≤ `heavy_edit`. Cửa sổ ghép 15 phút. `ignored` tính trong view, không cần cron.
-- Helpdesk chỉ lấy bài `status = "published"` và `visibility = "visible"`, locale `workspaces.helpdesk_locale` (Transcy: `en`, 289 bài). Endpoint đã kiểm tra: `GET /v1/website/{id}/helpdesk/locale/{locale}/articles/{page}` (có `url`, `updated_at` ms) và `GET …/article/{article_id}` (có `content` markdown). `GET /helpdesk` cần scope thiếu, không dùng.
+- Helpdesk chỉ lấy bài `status = "published"` (bài khác không còn giá trị; bài bị unpublish sẽ biến khỏi list và bị xoá khỏi DB), lưu kèm `category.name`, locale `workspaces.helpdesk_locale` (Transcy: `en`, 289 bài). Endpoint đã kiểm tra: `GET /v1/website/{id}/helpdesk/locale/{locale}/articles/{page}` (có `url`, `updated_at` ms) và `GET …/article/{article_id}` (có `content` markdown). `GET /helpdesk` cần scope thiếu, không dùng.
 - Extension: không `host_permissions` tới Supabase, không `storage`, không gọi mạng. Cài bằng "Load unpacked" (miễn phí). Domain widget lấy từ `WIDGET_ORIGIN` trong `.env` lúc build.
 - Không đụng credential dùng chung trên n8n dev của công ty.
 
 ## Review Focus
 
-1. **Khách viết tiếng Pháp/Nhật/Hà Lan…** → draft vẫn tiếng Anh, transcript và câu truy vấn helpdesk dùng bản dịch; dịch lỗi thì vẫn soạn được từ bản gốc. Test: Task 4 `ensureEnglish falls back to original when AI fails`, Task 6 `generate uses content_en in prompt`.
-2. **Helpdesk không có bài liên quan** (similarity thấp) → không nhét đoạn rác vào prompt, verify bỏ qua và trả `helpdesk_matches: 0`, widget ghi "Không có bài helpdesk liên quan". Test: Task 6 `generate skips verify when no helpdesk chunk passes threshold`.
-3. **Gemini trả JSON lỗi hoặc có ```json fence** ở verify/handoff/classify → verify lỗi thì vẫn trả draft với `verified: false`; handoff lỗi parse thì 503 không đăng note rác. Test: Task 5 `parseJson strips fences`, Task 6 `verify parse failure returns draft unverified`, Task 7 `handoff with unparseable AI output posts nothing`.
-4. **CS bấm Soạn tin hai lần / mở lại widget** → lần hai trả cache (`cached: true`), widget luôn hiện draft gần nhất từ server. Test: Task 6 `second generate with same input returns cached output`, Task 6 `check returns latest_draft`.
+1. **Khách viết tiếng Pháp/Nhật/Hà Lan…** → draft vẫn tiếng Anh, transcript và câu truy vấn helpdesk dùng bản dịch; dịch lỗi thì vẫn soạn được từ bản gốc. Test: Task 4 `ensureEnglish falls back to original when AI fails`, Task 7 `generate uses content_en in prompt`.
+2. **Helpdesk không có bài liên quan** (similarity thấp) → không nhét đoạn rác vào prompt, verify bỏ qua và trả `helpdesk_matches: 0`, widget ghi "Không có bài helpdesk liên quan". Test: Task 7 `generate skips verify when no helpdesk chunk passes threshold`.
+3. **Gemini trả JSON lỗi hoặc có ```json fence** ở verify/handoff/classify → verify lỗi thì vẫn trả draft với `verified: false`; handoff lỗi parse thì 503 không đăng note rác. Test: Task 5 `parseJson strips fences`, Task 7 `verify parse failure returns draft unverified`, Task 6 `handoff with unparseable AI output posts nothing`.
+4. **Tin khách rất dài, nhiều vấn đề trong một tin** → handoff liệt kê riêng từng vấn đề với trạng thái; draft trả lời đủ từng vấn đề theo thứ tự. Test: Task 5 `formatHandoffNote lists every issue with Vietnamese state`, `draftPrompt asks to answer each issue in order`, Task 6 `handoff note lists each issue from a multi-issue message`.
 5. **CS gửi tin không liên quan draft sau > 15 phút, hoặc tin của bot/note** → không ghép nhầm. Test: Task 2 `message after 15 minutes does not match`, `bot message does not match`, `note does not match`.
 
 ---
@@ -88,7 +89,7 @@ widget/
 **Interfaces:**
 - Produces (SQL):
   - `messages.content_en text` (null = chưa dịch).
-  - `helpdesk_articles(id bigint identity pk, website_id fk, locale, article_id, title, url, content_md, content_hash, embedded_hash, source_updated_at timestamptz, updated_at)`, unique `(website_id, locale, article_id)`.
+  - `helpdesk_articles(id bigint identity pk, website_id fk, locale, article_id, title, url, category, content_md, content_hash, embedded_hash, source_updated_at timestamptz, updated_at)`, unique `(website_id, locale, article_id)`.
   - `helpdesk_chunks(article_pk bigint fk on delete cascade, chunk_idx int, text, embedding vector(768), pk(article_pk, chunk_idx))`.
   - `cases` đúng spec 4.4 (`embedding vector(768)`), dữ liệu do Plan 4 ghi; Plan 2 chỉ đọc.
   - `outputs` đúng spec 4.6 + `verified boolean`, `helpdesk_matches int`; index `(website_id, session_id, operator_id, kind, created_at desc)`.
@@ -96,7 +97,7 @@ widget/
   - `insert into ai_config values ('translate', array['gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-2.5-flash'])`.
   - `log_ai_usage(p_model text, p_task text, p_is_429 boolean) returns void` — upsert `(current_date, model, task)`, `calls + 1`, `errors_429 + (p_is_429::int)`.
   - `helpdesk_stale_articles(p_website_id text, p_locale text, p_list jsonb) returns setof text` — `p_list = [{article_id, updated_at (ms)}]`. Nếu list không rỗng: xoá bài của website/locale không có trong list. Trả `article_id` chưa có hoặc có `source_updated_at < to_timestamp(updated_at/1000)`.
-  - `upsert_helpdesk_articles(p_website_id text, p_locale text, p_articles jsonb) returns int` — mỗi phần tử `{article_id, title, url, content, updated_at}`; `content_hash = md5(title || E'\n' || content)`.
+  - `upsert_helpdesk_articles(p_website_id text, p_locale text, p_articles jsonb) returns int` — mỗi phần tử `{article_id, title, url, category, content, updated_at}`; `content_hash = md5(title || E'\n' || content)`.
   - `replace_helpdesk_chunks(p_article_pk bigint, p_hash text, p_chunks jsonb) returns void` — `p_chunks = [{text, embedding: "[...]"}]`; xoá chunk cũ, chèn mới, `embedded_hash = p_hash`, trong một transaction.
   - `match_helpdesk(p_website_id text, p_embedding vector(768), p_k int) returns table(title text, url text, text text, similarity float)` — `1 - (embedding <=> p_embedding)`, giảm dần.
   - `match_cases(p_website_id text, p_embedding vector(768), p_k int) returns table(summary text, resolution text, final_reply text, similarity float)` — chỉ `resolved_at > now() - interval '90 days'`.
@@ -270,7 +271,8 @@ export interface HelpdeskChunk { title: string; url: string; text: string; simil
 export interface CaseMatch { summary: string; resolution: string | null; final_reply: string | null; similarity: number }
 export interface Variant { prompt_version: string; template_notes: string | null; weight: number }
 export interface Warning { claim: string; reason: string; article_url: string | null }
-export interface HandoffFields { problem: string; done: string; status: string; waiting_on: "customer" | "tech" | "cs" | "none"; next_step: string }
+export interface HandoffIssue { issue: string; state: "done" | "in_progress" | "waiting_customer" | "waiting_tech" | "not_started"; detail: string }
+export interface HandoffFields { summary: string; issues: HandoffIssue[]; done: string; waiting_on: "customer" | "tech" | "cs" | "none"; next_step: string }
 // prompts.ts
 export const DEFAULT_VARIANT: Variant = { prompt_version: "draft-v1", template_notes: null, weight: 100 };
 export function pickVariant(variants: Variant[], rand?: () => number): Variant;   // ngẫu nhiên theo weight > 0; rỗng → DEFAULT_VARIANT
@@ -283,23 +285,28 @@ export const VERIFY_SCHEMA, HANDOFF_SCHEMA, CLASSIFY_SCHEMA, TRANSLATE_SCHEMA: R
 export function parseJson<T>(text: string): T;                                    // bỏ ```json … ``` rồi JSON.parse; lỗi thì ném
 export function parseWarnings(text: string, helpdesk: HelpdeskChunk[]): Warning[]; // bỏ item thiếu claim; article_url không thuộc helpdesk → null; tối đa 5
 export function parseTopic(text: string, topics: Topic[]): string | null;          // key không có trong topics → null
-export function parseHandoff(text: string): HandoffFields;                        // thiếu trường → ném
+export function parseHandoff(text: string): HandoffFields;                        // thiếu trường hoặc issues rỗng → ném; tối đa 8 issue
+export function countTodos(draft: string): number;                                 // số marker [[CS: …]]
 export function formatHandoffNote(h: HandoffFields, operatorName: string): string;
 ```
-- `draftPrompt` phải chứa: `Write the reply in English`; helpdesk dạng `[H1] {title} — {url}\n{text}` với câu "Help center articles are the highest-priority source. If they do not cover a fact, do not invent it."; case tương tự là "past replies for reference, may be outdated"; tone, pronoun, emoji, signature, ≤ 8 `sample_messages` của profile; `variantNotes` nếu có; transcript trong `<conversation>`; "Output only the message text, no placeholders like [Name]".
+- `draftPrompt` phải chứa: `Write the reply in English`; mô tả bối cảnh "the chatbot could not resolve this; you are drafting the next message of the human agent"; các luật văn phong ở Global Constraints (nối tiếp mạch, không chào lại, danh sách câu đệm bị cấm, trả lời từng vấn đề theo thứ tự, marker `[[CS: …]]` tiếng Việt cho chi tiết phải tự kiểm tra); helpdesk dạng `[H1] {title} — {url}\n{text}` với câu "Help center articles are the highest-priority source. If they do not cover a fact, do not invent it."; case tương tự là "past replies for reference, may be outdated"; tone, pronoun, emoji, signature, ≤ 8 `sample_messages` của profile; `variantNotes` nếu có; transcript trong `<conversation>`; "Output only the message text, no placeholders like [Name]".
+- `verifyPrompt`: `reason` viết tiếng Việt, `claim` trích nguyên câu tiếng Anh trong draft. Marker `[[CS: …]]` không bị coi là claim.
+- `handoffPrompt`: "Write every field in Vietnamese; keep feature names, URLs and error messages verbatim"; tách **từng** vấn đề khách nêu thành một issue (tin dài nhiều ý phải ra nhiều issue), trạng thái dựa trên việc CS đã trả lời/đã làm gì trong transcript.
 - `CLASSIFY_SCHEMA`: `{topic: {type: "STRING", enum: <keys>}}` — vì enum phụ thuộc topics nên export `classifySchema(topics)` thay cho hằng.
 - `formatHandoffNote` (đúng copy):
 ```
 📋 Handoff — {operatorName}
-• Problem: {problem}
-• Done so far: {done}
-• Status: {status}
-• Waiting on: {Customer|Tech|CS|Nobody}
-• Next step: {next_step}
+Tóm tắt: {summary}
+Khách cần:
+1. {issue} — {Đã xong|Đang xử lý|Chờ khách|Chờ tech|Chưa xử lý}: {detail}
+2. …
+Đã làm: {done}
+Đang chờ: {Khách|Tech|CS|Không ai}
+Bước tiếp theo: {next_step}
 ```
 (`postNote` tự thêm 🤖 ở đầu.)
 
-- [ ] **Step 1: Viết test (fail):** `pickVariant respects weights` (rand 0.1 với weights [1,9] → variant 1; 0.5 → variant 2; weight 0 không bao giờ chọn), `pickVariant empty → draft-v1`, `draftPrompt contains English instruction, helpdesk block and conversation tags`, `draftPrompt omits helpdesk section when none`, `parseJson strips fences`, `parseJson throws on garbage`, `parseWarnings nulls unknown urls and caps at 5`, `parseTopic rejects unknown key`, `parseHandoff throws on missing field`, `formatHandoffNote exact text`.
+- [ ] **Step 1: Viết test (fail):** `pickVariant respects weights` (rand 0.1 với weights [1,9] → variant 1; 0.5 → variant 2; weight 0 không bao giờ chọn), `pickVariant empty → draft-v1`, `draftPrompt contains English instruction, helpdesk block and conversation tags`, `draftPrompt asks to answer each issue in order and bans chatbot filler`, `handoffPrompt requires Vietnamese and one issue per customer problem`, `countTodos counts [[CS: …]] markers`, `draftPrompt omits helpdesk section when none`, `parseJson strips fences`, `parseJson throws on garbage`, `parseWarnings nulls unknown urls and caps at 5`, `parseTopic rejects unknown key`, `parseHandoff throws on missing field or empty issues`, `formatHandoffNote lists every issue with Vietnamese state` (đúng copy, 3 issue với 3 trạng thái khác nhau).
 - [ ] **Step 2: `deno task test`** — FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: `deno task test`** — PASS.
@@ -307,15 +314,49 @@ export function formatHandoffNote(h: HandoffFields, operatorName: string): strin
 
 ---
 
-### Task 6: Action `generate` (+ `latest_draft` trong `check`)
+### Task 6: Action `handoff` (giá trị chính, làm trước)
 
 **Files:**
-- Create: `supabase/functions/copilot/check.ts`, `copilot/generate.ts`
-- Modify: `copilot/handler.ts` (chỉ parse + auth + dispatch), `copilot/index.ts` (inject `ai = createGemini({apiKey: Deno.env.get("GEMINI_API_KEY")!, store: createAiStore(sb)})`), `_shared/db.ts`
+- Create: `supabase/functions/copilot/check.ts`, `copilot/handoff.ts`
+- Modify: `copilot/handler.ts` (chỉ parse + auth + dispatch), `copilot/index.ts` (inject `ai = createGemini({apiKey: Deno.env.get("GEMINI_API_KEY")!, store: createAiStore(sb)})`), `_shared/db.ts`, `_shared/types.ts`
+- Test: `tests/handoff.test.ts`, sửa `tests/handler.test.ts`
+
+**Interfaces:**
+- Consumes: `ensureEnglish`, `humanTranscript`, `inputFingerprint("handoff")`, `handoffPrompt`, `HANDOFF_SCHEMA`, `parseHandoff`, `formatHandoffNote`, `n8n.postNote`, `db.getOperator`.
+- Produces:
+```ts
+// db.ts — thêm vào Db
+findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>; // created_at > now()-24h
+insertOutput(row: NewOutput): Promise<number>;
+// types.ts
+export interface OutputRow { id: number; kind: "draft" | "handoff"; content: string; warnings: Warning[]; verified: boolean | null; helpdesk_matches: number | null; topic: string | null; prompt_version: string | null; created_at: string }
+export type NewOutput = Omit<OutputRow, "id" | "created_at"> & { website_id: string; session_id: string; operator_id: string; input_fp: string; profile_used: string; model: string | null };
+// handler deps
+{ db: Db; n8n: N8n; ai: Ai }
+// handoff.ts
+export interface HandoffResult { action: "handoff"; stale: boolean; cached: boolean; output_id: number; note: string; posted: boolean }
+```
+- Luồng: refresh → conv (404) → messages → `ensureEnglish` → `inputFingerprint("handoff")` → cache hit (không `force`) trả note cũ, `posted: false`, **không** đăng lại → `handoff` (schema) → `parseHandoff` → `formatHandoffNote(fields, operator display_name)` → lưu `outputs` (`kind:"handoff"`) **trước** khi `postNote` → `postNote` false thì `posted: false` (widget cho Copy, spec mục 7). Jira context để trống (Plan 3).
+- `AiUnavailable` hoặc parse lỗi → `{status: 503, body: {error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE"}}`, không đăng gì.
+- Xoá nhánh `501` cho `handoff` (vẫn giữ 501 cho `generate` tới Task 7).
+
+- [ ] **Step 1: Viết test (fail):** `handoff posts formatted Vietnamese note and stores output`, `handoff note lists each issue from a multi-issue message` (AI giả trả 3 issue → note có dòng `1.`, `2.`, `3.`), `handoff transcript excludes bot messages` (prompt không chứa nội dung tin `is_bot`), `handoff uses content_en in prompt`, `handoff cached does not repost`, `handoff post failure returns posted false with note`, `handoff with unparseable AI output posts nothing` (503, `postNote` không được gọi), `handoff AI unavailable returns 503`.
+- [ ] **Step 2: `deno task test`** — FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: `deno task test`** — PASS.
+- [ ] **Step 5: Commit** `feat(copilot): Vietnamese handoff note listing each customer issue`
+
+---
+
+### Task 7: Action `generate` (+ `latest_draft` trong `check`)
+
+**Files:**
+- Create: `supabase/functions/copilot/generate.ts`
+- Modify: `copilot/handler.ts`, `copilot/check.ts`, `_shared/db.ts`
 - Test: `tests/generate.test.ts`, sửa `tests/handler.test.ts`
 
 **Interfaces:**
-- Consumes: Task 3–5.
+- Consumes: Task 3–6 (`findCachedOutput`, `insertOutput`, `OutputRow`, deps `ai` từ Task 6).
 - Produces:
 ```ts
 // db.ts — thêm vào Db
@@ -323,25 +364,19 @@ setAiTopic(websiteId: string, sessionId: string, topic: string): Promise<void>; 
 matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
 matchCases(websiteId: string, embedding: number[], k: number): Promise<CaseMatch[]>;
 getVariants(task: "draft"): Promise<Variant[]>;
-findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>; // created_at > now()-24h
-insertOutput(row: NewOutput): Promise<number>;
 getLatestDraft(websiteId: string, sessionId: string, operatorId: string): Promise<OutputRow | null>;
-// types.ts
-export interface OutputRow { id: number; kind: "draft" | "handoff"; content: string; warnings: Warning[]; verified: boolean | null; helpdesk_matches: number | null; topic: string | null; prompt_version: string | null; created_at: string }
-export type NewOutput = Omit<OutputRow, "id" | "created_at"> & { website_id: string; session_id: string; operator_id: string; input_fp: string; profile_used: string; model: string | null };
-// handler deps
-{ db: Db; n8n: N8n; ai: Ai }
 // generate.ts
 export const HELPDESK_K = 5, HELPDESK_MIN_SIMILARITY = 0.5, CASES_K = 3, CASES_MIN_SIMILARITY = 0.6;
 export interface GenerateResult { action: "generate"; stale: boolean; cached: boolean; output_id: number; draft: string; warnings: Warning[]; verified: boolean; helpdesk_matches: number; topic: string | null; topic_label: string | null; profile_source: ProfileSource; prompt_version: string }
 // CheckResult thêm: latest_draft: { output_id: number; content: string; warnings: Warning[]; verified: boolean | null; created_at: string } | null
 ```
 - Luồng `generate` (spec 5.2): refresh → conv (404 nếu không có) → messages → `ensureEnglish` → `inputFingerprint("draft")` → cache (bỏ qua khi `force`) → topic: `conv.topic` hoặc `classify` (lưu `setAiTopic`; classify lỗi → topic null, không dừng) → `resolveProfile` → `ai.embed([latestCustomerQuery], "query")` → `matchHelpdesk` + `matchCases`, lọc theo ngưỡng → `pickVariant(getVariants("draft"))` → `draft` → nếu có helpdesk: `verify` (lỗi gọi/parse → `verified: false, warnings: []`), không có helpdesk → `verified: true, helpdesk_matches: 0` → `insertOutput` → trả kết quả. Embed lỗi → soạn tiếp không có helpdesk/case (`verified: false`).
-- `AiUnavailable` từ bước `draft` → `{status: 503, body: {error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE"}}`.
+- `AiUnavailable` từ bước `draft` → 503 `AI_UNAVAILABLE` như Task 6.
 - Xoá dòng `501` cho `generate`.
 
 - [ ] **Step 1: Viết test (fail)** với `ai` giả ghi lại prompt theo task:
-  - `generate returns draft, warnings and stores output` (insertOutput nhận `kind:"draft"`, `prompt_version`, `input_fp`, `warnings`).
+  - `generate returns draft, warnings and stores output`
+  - `draft prompt carries the agent's last messages so the reply continues their flow` (prompt chứa tin CS gần nhất và luật không chào lại). (insertOutput nhận `kind:"draft"`, `prompt_version`, `input_fp`, `warnings`).
   - `generate uses content_en in prompt` (prompt draft chứa bản EN, không chứa bản Pháp).
   - `generate classifies missing topic and saves it` (`setAiTopic` gọi với key hợp lệ).
   - `generate skips verify when no helpdesk chunk passes threshold` (chunk similarity 0.3 → không gọi task verify, `helpdesk_matches: 0`).
@@ -355,26 +390,6 @@ export interface GenerateResult { action: "generate"; stale: boolean; cached: bo
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: `deno task test`** — PASS.
 - [ ] **Step 5: Commit** `feat(copilot): generate English drafts grounded in helpdesk with verify warnings`
-
----
-
-### Task 7: Action `handoff`
-
-**Files:**
-- Create: `supabase/functions/copilot/handoff.ts`
-- Modify: `copilot/handler.ts`
-- Test: `tests/handoff.test.ts`
-
-**Interfaces:**
-- Consumes: `ensureEnglish`, `humanTranscript`, `inputFingerprint("handoff")`, `handoffPrompt`, `HANDOFF_SCHEMA`, `parseHandoff`, `formatHandoffNote`, `n8n.postNote`, `db.findCachedOutput/insertOutput`, `db.getOperator`.
-- Produces: `HandoffResult { action: "handoff"; stale: boolean; cached: boolean; output_id: number; note: string; posted: boolean }`.
-- Cache hit (không `force`) → trả note cũ, `posted: false`, **không** đăng lại. Mới → lưu `outputs` (`kind:"handoff"`) **trước** khi `postNote`; `postNote` false → `posted: false` (widget cho Copy, spec mục 7). Jira context để trống (Plan 3).
-
-- [ ] **Step 1: Viết test (fail):** `handoff posts formatted note and stores output`, `handoff transcript excludes bot messages` (prompt không chứa nội dung tin `is_bot`), `handoff cached does not repost`, `handoff post failure returns posted false with note`, `handoff with unparseable AI output posts nothing` (503, `postNote` không được gọi), `handoff AI unavailable returns 503`.
-- [ ] **Step 2: `deno task test`** — FAIL.
-- [ ] **Step 3: Implement**, xoá nhánh 501.
-- [ ] **Step 4: `deno task test`** — PASS.
-- [ ] **Step 5: Commit** `feat(copilot): handoff note posted as private note`
 
 ---
 
@@ -416,10 +431,10 @@ export function handleEmbed(secretHeader: string, deps: { store: HelpdeskStore; 
 
 **Interfaces:**
 - Consumes: RPC `helpdesk_stale_articles`, `upsert_helpdesk_articles` (Task 1), Edge Function `embed-helpdesk` (Task 8).
-- Chuỗi node: `Nightly` (3h) + `Run Manually` → `Get Workspaces` (`select=website_id,helpdesk_locale`) → `List Articles` (Crisp, phân trang `articles/{page}` tới khi `data` rỗng, maxRequests 50) → `Build List` (lọc published + visible → `{website_id, locale, list:[{article_id, updated_at}]}`, mỗi workspace một item, theo mẫu `itemMatching` của `crisp-sync.json`) → `Find Stale` (RPC) → `Split Stale` → `Get Article` (batch 5 / 1000ms, `onError: continueRegularOutput`) → `Build Articles` (gom theo website) → `Upsert Articles` (RPC) → `Embed` (POST `https://YOUR-PROJECT.supabase.co/functions/v1/embed-helpdesk`, header `x-copilot-secret: REPLACE_N8N_SHARED_SECRET`, timeout 120000).
+- Chuỗi node: `Nightly` (3h) + `Run Manually` → `Get Workspaces` (`select=website_id,helpdesk_locale`) → `List Articles` (Crisp, phân trang `articles/{page}` tới khi `data` rỗng, maxRequests 50) → `Build List` (lọc `status === "published"` → `{website_id, locale, list:[{article_id, updated_at}]}`, mỗi workspace một item, theo mẫu `itemMatching` của `crisp-sync.json`) → `Find Stale` (RPC) → `Split Stale` → `Get Article` (batch 5 / 1000ms, `onError: continueRegularOutput`) → `Build Articles` (gom theo website, lấy `category.name` từ list) → `Upsert Articles` (RPC) → `Embed` (POST `https://YOUR-PROJECT.supabase.co/functions/v1/embed-helpdesk`, header `x-copilot-secret: REPLACE_N8N_SHARED_SECRET`, timeout 120000).
 - Credential: `Supabase API` cho RPC, `Crisp Plugin Token` + header `X-Crisp-Tier: plugin` cho Crisp. Không tạo credential mới.
 
-- [ ] **Step 1: Viết test (fail):** trong `validate.test.ts` thêm `helpdesk-sync` vào danh sách workflow được kiểm (node references hợp lệ, credential đúng tên, header plugin tier trên mọi request Crisp); `helpdesk-sync filters published visible articles` chạy code node `Build List` với fixture 3 bài (1 draft, 1 hidden, 1 published visible) → list 1 phần tử; `gateway.test.ts` kỳ vọng prefix `Helpdesk · ` và 5 workflow.
+- [ ] **Step 1: Viết test (fail):** trong `validate.test.ts` thêm `helpdesk-sync` vào danh sách workflow được kiểm (node references hợp lệ, credential đúng tên, header plugin tier trên mọi request Crisp); `helpdesk-sync filters published visible articles` chạy code node `Build List` với fixture 3 bài (1 draft, 1 unpublished, 1 published) → list 1 phần tử; `gateway.test.ts` kỳ vọng prefix `Helpdesk · ` và 5 workflow.
 - [ ] **Step 2: `deno task test`** — FAIL.
 - [ ] **Step 3: Viết workflow, cập nhật build-gateway, chạy `node n8n/build-gateway.mjs`.**
 - [ ] **Step 4: `deno task test`** — PASS.
@@ -479,16 +494,16 @@ export function insertMessage({ requestId, outputId, sessionId, text, mode }) //
 export function acceptReply(ev, { extensionOrigin: null, pending })          // nhận khi ev.source === window, type copilot:*, request_id khớp pending; else null
 export function bridgeState(pong)                     // null → "missing"; protocol khác → "outdated"; → "ready"
 // core.js
-export function toDraftViewModel(out)                 // { text, warnings: [{claim, reason, url}], badge: "Đã đối chiếu helpdesk" | "Chưa đối chiếu helpdesk" | "Không có bài helpdesk liên quan" }
+export function toDraftViewModel(out)                 // { text, todos: number, warnings: [{claim, reason, url}], badge: "Đã đối chiếu helpdesk" | "Chưa đối chiếu helpdesk" | "Không có bài helpdesk liên quan" }
 export function insertResultMessage(status)           // copy tiếng Việt cho 5 status của spec 6.3
 // mapError: 503 + code AI_UNAVAILABLE → { kind: "retry", message: "AI đang hết quota hoặc lỗi, thử lại sau" }
 ```
-- UI: dưới phần check thêm 3 nút `✨ Soạn tin`, `↻ Soạn lại` (`force: true`), `📋 Handoff`. Có `latest_draft` thì hiện luôn. Sau `generate`: hiện draft (textContent) + danh sách ⚠ (link mở tab mới, `rel="noopener"`) + badge, rồi gửi `copilot:insert` mode `auto`. `not_empty` → hỏi **Thay thế / Chèn xuống cuối / Huỷ**. Nút phụ `Điền lại` (`replace`) và `Copy`.
+- UI: dưới phần check thêm 3 nút theo thứ tự `📋 Handoff` (nút chính, nổi bật), `✨ Soạn tin`, `↻ Soạn lại` (`force: true`). Draft còn marker `[[CS: …]]` thì hiện "Còn N chỗ cần CS điền" và tô vàng marker trong phần xem trước. Có `latest_draft` thì hiện luôn. Sau `generate`: hiện draft (textContent) + danh sách ⚠ (link mở tab mới, `rel="noopener"`) + badge, rồi gửi `copilot:insert` mode `auto`. `not_empty` → hỏi **Thay thế / Chèn xuống cuối / Huỷ**. Nút phụ `Điền lại` (`replace`) và `Copy`.
 - Extension `missing` → thay `Điền lại` bằng `Copy` + dòng "Cài extension để điền thẳng vào ô Reply" mở hướng dẫn: tải `extension.zip`, giải nén, `chrome://extensions` → bật Developer mode → Load unpacked. `outdated` → "Cập nhật extension".
 - Response về khi CS đã đổi conversation (session khác `readContext`) hoặc `request_id` cũ → bỏ (spec 6.4 #2).
 - Handoff: hiện note; `posted: false` → "Chưa đăng được note, copy giúp" + Copy; `cached: true` → "Note này đã đăng trước đó".
 
-- [ ] **Step 1: Viết test (fail):** `acceptReply drops other source / wrong request_id`, `bridgeState missing/outdated/ready`, `insertMessage shape matches protocol`, `toDraftViewModel badges for verified/unverified/no helpdesk`, `insertResultMessage covers 5 statuses`, `mapError 503 AI_UNAVAILABLE → retry`.
+- [ ] **Step 1: Viết test (fail):** `acceptReply drops other source / wrong request_id`, `bridgeState missing/outdated/ready`, `insertMessage shape matches protocol`, `toDraftViewModel badges for verified/unverified/no helpdesk`, `toDraftViewModel counts [[CS]] todos`, `insertResultMessage covers 5 statuses`, `mapError 503 AI_UNAVAILABLE → retry`.
 - [ ] **Step 2: `deno task test`** — FAIL.
 - [ ] **Step 3: Implement core + app.js + CSS.**
 - [ ] **Step 4: `deno task test`** — PASS.

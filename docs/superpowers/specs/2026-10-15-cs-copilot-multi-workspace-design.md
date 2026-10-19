@@ -10,7 +10,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 
 1. **Soạn tin** gửi khách theo đúng **giọng văn của chính CS đó**, theo **từng topic**, học từ lịch sử chat **90 ngày gần nhất**.
 2. **Đối chiếu draft với Crisp Helpdesk** của workspace để không trả lời theo thông tin cũ, có cảnh báo ⚠ kèm link bài viết.
-3. **Tóm tắt / Handoff** một conversation chưa đóng (chỉ phần CS xử lý, bỏ chatbot) khi CS bấm nút.
+3. **Tóm tắt / Handoff** một conversation chưa đóng (chỉ phần CS xử lý, bỏ chatbot) khi CS bấm nút. **Đây là giá trị chính của tool**: giúp người nhận case (đổi ca, chuyển case, tóm tắt cuối buổi) hoặc CS vừa nhận một tin khách rất dài, nhiều vấn đề nắm case nhanh.
 4. **Theo dõi Jira** từ tin cuối của CS: status đổi, comment mới. Tự đăng note vào Crisp khi có thay đổi.
 5. **Draft điền thẳng vào ô Reply** của Crisp (qua Chrome extension). CS đọc, sửa, rồi tự bấm Send.
 6. **Vòng phản hồi**: lưu draft và tin CS thực sự gửi, đo mức CS phải sửa, chạy A/B giữa các phiên bản prompt để cải thiện draft về sau.
@@ -31,6 +31,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 
 | Chủ đề | Quyết định |
 |---|---|
+| Giá trị chính | Chat tới tay CS là case chatbot không xử lý được, nên draft **không** viết như chatbot: nối tiếp mạch CS đang trả lời, không chào lại, không câu đệm kiểu "I hope this helps". Draft đáng giá nhất khi tin khách dài và có nhiều vấn đề: trả lời lần lượt từng vấn đề. Chi tiết CS phải tự kiểm tra thì để `[[CS: …]]` thay vì đoán |
 | Workspace | 2 app khác nhau, helpdesk riêng. CS có thể làm ở cả 2 |
 | Jira | 1 site, mỗi workspace một project, 1 credential |
 | Kiến trúc | **Supabase = hạ tầng** (DB, logic, cron). **n8n = cổng kết nối** (chỉ I/O) |
@@ -46,7 +47,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 | Xác thực | **Widget trong Crisp:** không cần nhập gì. Crisp gắn `token` của website vào URL iframe; Edge Function so sha256 với `workspaces.crisp_widget_token_hash` (lấy từ API "List all connect websites" của plugin) và kiểm tra operator (từ `$crisp.acquireData("operator")`) đang active trong workspace. **Công cụ/curl:** token cá nhân qua header `x-copilot-token` (hash trong `operators`). Đánh đổi: danh tính CS do trình duyệt báo, một CS trong workspace có thể mạo danh CS khác; người ngoài workspace thì không |
 | Draft | Điền vào ô Reply, **không** đăng private note. Handoff vẫn đăng note |
 | Vòng phản hồi | Ghép draft với tin CS gửi sau đó (cùng CS, cùng session, ≤ 15 phút), đo `edit_ratio`, A/B theo `prompt_version` |
-| Ngôn ngữ | **CS chỉ trả lời bằng tiếng Anh.** Draft luôn tiếng Anh. Tin khách không phải tiếng Anh (~22% ở Transcy) được dịch sang tiếng Anh trước khi đưa vào prompt soạn tin, handoff, phân loại topic và học giọng văn; bản gốc giữ trong `messages`. `check` không gọi AI nên hiển thị nguyên văn |
+| Ngôn ngữ | **Reply cho khách bằng tiếng Anh, mọi note nội bộ (handoff, Jira auto-note, cảnh báo ⚠) bằng tiếng Việt.** Draft luôn tiếng Anh. Tin khách không phải tiếng Anh (~22% ở Transcy) được dịch sang tiếng Anh trước khi đưa vào prompt soạn tin, handoff, phân loại topic và học giọng văn; bản gốc giữ trong `messages`. `check` không gọi AI nên hiển thị nguyên văn |
 
 ## 3. Kiến trúc
 
@@ -126,7 +127,7 @@ Mọi bảng nghiệp vụ đều có `website_id`.
 | `refresh-conversation` | Webhook (gọi từ Edge Function) | Lấy messages + meta mới nhất của 1 session → RPC `ingest_event`, trả `ok` |
 | `jira-link-indexer` | Webhook note Crisp có link Jira | Ghi `jira_links`, lấy issue + comment → `jira_issues`/`jira_comments`, ghi `jira_keys` vào meta Crisp, đăng note xác nhận |
 | `jira-sync` | Mỗi 5 phút + Jira webhook | Lấy issue đang link đã thay đổi → upsert `jira_issues`/`jira_comments` → gọi Edge Function `jira-diff` |
-| `helpdesk-sync` | Mỗi đêm | Lấy bài helpdesk từng workspace → upsert `helpdesk_articles` khi `content_hash` đổi → gọi Edge Function để embed bài đã đổi |
+| `helpdesk-sync` | Mỗi đêm | Lấy bài helpdesk từng workspace, **chỉ bài `status = published`** (bài nháp/unpublished không còn giá trị, bị xoá khỏi DB), lưu kèm category → upsert `helpdesk_articles` khi `content_hash` đổi → gọi Edge Function để embed bài đã đổi |
 | `post-note` | Webhook (gọi từ Edge Function) | Đăng private note vào Crisp |
 | `jira-attachment-proxy` | Giữ nguyên | Proxy file đính kèm Jira có ký chữ ký |
 
@@ -139,8 +140,8 @@ Bước chung: hash token → tìm operator → kiểm tra operator thuộc work
 
 - **`check`** (không AI): ticket đang link, status, comment tech mới kể từ `last_human_operator_at`, status có đổi kể từ mốc đó không, số tin khách chưa trả lời, topic hiện tại, profile sẽ dùng.
 - **`handoff`**: hội thoại đã bỏ tin bot + Jira context → Gemini (`handoff`) → note có cấu trúc:
-  - Vấn đề của khách · Đã làm gì · Đang tới đâu
-  - Jira (status + cập nhật mới) · Đang chờ ai (khách / tech / CS) · Bước tiếp theo
+  - Tiếng Việt. Tóm tắt 1–2 câu · **Danh sách từng vấn đề khách nêu** kèm trạng thái (đã xong / đang xử lý / chờ khách / chờ tech / chưa xử lý)
+  - Đã làm gì · Jira (status + cập nhật mới) · Đang chờ ai (khách / tech / CS) · Bước tiếp theo
   - Đăng note qua n8n, lưu `outputs`.
 - **`generate`**:
   1. Topic: lấy từ `conversations.topic`; chưa có thì phân loại ngay (`classify`).
