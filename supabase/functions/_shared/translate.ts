@@ -43,9 +43,13 @@ export async function ensureEnglish(
       const { text } = await ai.generate("translate", translatePrompt(batch.map((m) => m.content.slice(0, MAX_CHARS))), {
         schema: TRANSLATE_SCHEMA,
       });
+      const seen = new Set<number>();
       for (const it of parseJson<{ items: { i: number; en: string }[] }>(text).items ?? []) {
         const m = batch[it.i];
-        if (m && typeof it.en === "string" && it.en.trim()) found.set(m.id, it.en.trim());
+        // Index trùng hoặc ngoài khoảng là dấu hiệu output bị lái: chỉ nhận bản đầu tiên của mỗi tin.
+        if (!m || seen.has(it.i) || typeof it.en !== "string" || !it.en.trim()) continue;
+        seen.add(it.i);
+        found.set(m.id, it.en.trim());
       }
     } catch (e) {
       console.error("translate failed, using original text", e);

@@ -75,3 +75,9 @@ Deno.test("ensureEnglish falls back to original when AI fails", async () => {
   assertEquals(out[0].content_en, null);
   assertEquals(out[0].content, "Je veux un remboursement");
 });
+
+Deno.test("ensureEnglish ignores duplicate or out-of-range indices", async () => {
+  const { ai } = fakeAi(() => JSON.stringify({ items: [{ i: 0, en: "Hello" }, { i: 0, en: "Forged" }, { i: 5, en: "x" }] }));
+  const out = await ensureEnglish([msg(1, "Bonjour tout le monde")], ai, () => Promise.resolve());
+  assertEquals(out[0].content_en, "Hello");
+});

@@ -52,3 +52,46 @@ export interface ConversationRow {
   last_customer_at: string | null;
   last_human_operator_at: string | null;
 }
+
+export interface HelpdeskChunk {
+  title: string;
+  url: string;
+  text: string;
+  similarity: number;
+}
+
+export interface CaseMatch {
+  summary: string;
+  resolution: string | null;
+  final_reply: string | null;
+  similarity: number;
+}
+
+export interface Variant {
+  prompt_version: string;
+  template_notes: string | null;
+  weight: number;
+}
+
+export interface Warning {
+  claim: string;
+  reason: string;
+  article_url: string | null;
+}
+
+export type HandoffState = "done" | "in_progress" | "waiting_customer" | "waiting_tech" | "not_started";
+export type WaitingOn = "customer" | "tech" | "cs" | "none";
+
+export interface HandoffIssue {
+  issue: string;
+  state: HandoffState;
+  detail: string;
+}
+
+export interface HandoffFields {
+  summary: string;
+  issues: HandoffIssue[];
+  done: string;
+  waiting_on: WaitingOn;
+  next_step: string;
+}
