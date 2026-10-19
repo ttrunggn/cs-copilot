@@ -1,0 +1,39 @@
+# Push lên master có đổi code Edge Function → chạy test → deploy lên Supabase.
+# Cần secret của repo: SUPABASE_ACCESS_TOKEN (Supabase → Account → Access Tokens; nên đặt hạn dài).
+# Migration DB vẫn chạy tay (npm run db:push) để không tự đổi schema production.
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/deploy-functions.yml"
+  workflow_dispatch:
+
+env:
+  PROJECT_REF: rbodkthyuiyfotewgxku
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase functions deploy copilot --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+      - run: supabase functions deploy embed-helpdesk --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+      - run: supabase functions deploy jira-sync --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
