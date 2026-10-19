@@ -50,6 +50,11 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
+    getLatestDraft: () => Promise.resolve(null),
+    setAiTopic: () => Promise.resolve(),
+    matchHelpdesk: () => Promise.resolve([]),
+    matchCases: () => Promise.resolve([]),
+    getVariants: () => Promise.resolve([]),
     ...over,
   };
   const n8n: N8n = {
@@ -77,6 +82,7 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     last_customer_at: CONV.last_customer_at,
     last_human_operator_at: CONV.last_human_operator_at,
     jira: [],
+    latest_draft: null,
   });
 });
 
@@ -87,10 +93,6 @@ Deno.test("check passes through stale flag", async () => {
 
 Deno.test("unknown action -> 400", async () => {
   assertEquals((await handle({ ...REQ, action: "delete" }, TOKEN, deps())).status, 400);
-});
-
-Deno.test("generate not available yet -> 501", async () => {
-  assertEquals((await handle({ ...REQ, action: "generate" }, TOKEN, deps())).status, 501);
 });
 
 Deno.test("missing session_id -> 400", async () => {

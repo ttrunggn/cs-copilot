@@ -92,6 +92,11 @@ export function makeDeps(opts: {
       inserted.push(row);
       return Promise.resolve(42);
     },
+    getLatestDraft: () => Promise.resolve(null),
+    setAiTopic: () => Promise.resolve(),
+    matchHelpdesk: () => Promise.resolve([]),
+    matchCases: () => Promise.resolve([]),
+    getVariants: () => Promise.resolve([]),
     ...over,
   };
   const n8n: N8n = {

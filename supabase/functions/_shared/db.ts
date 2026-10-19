@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { AiStore } from "./gemini.ts";
-import type { ConversationRow, MessageRow, NewOutput, OutputRow, ProfileRow, Workspace } from "./types.ts";
+import type { CaseMatch, ConversationRow, HelpdeskChunk, MessageRow, NewOutput, OutputRow, ProfileRow, Variant, Workspace } from "./types.ts";
 
 const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,created_at";
 const CACHE_HOURS = 24;
@@ -17,6 +17,11 @@ export interface Db {
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
   findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>;
   insertOutput(row: NewOutput): Promise<number>;
+  getLatestDraft(websiteId: string, sessionId: string, operatorId: string): Promise<OutputRow | null>;
+  setAiTopic(websiteId: string, sessionId: string, topic: string): Promise<void>;
+  matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
+  matchCases(websiteId: string, embedding: number[], k: number): Promise<CaseMatch[]>;
+  getVariants(task: "draft"): Promise<Variant[]>;
 }
 
 export function createDb(sb: SupabaseClient): Db {
@@ -92,6 +97,33 @@ export function createDb(sb: SupabaseClient): Db {
       const { data, error } = await sb.from("outputs").insert(row).select("id").single();
       if (error) throw error;
       return data.id as number;
+    },
+    async getLatestDraft(websiteId, sessionId, operatorId) {
+      const { data, error } = await sb.from("outputs").select(OUTPUT_COLUMNS)
+        .eq("website_id", websiteId).eq("session_id", sessionId).eq("operator_id", operatorId).eq("kind", "draft")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data as OutputRow | null;
+    },
+    async setAiTopic(websiteId, sessionId, topic) {
+      const { error } = await sb.from("conversations").update({ topic, topic_source: "ai" })
+        .eq("website_id", websiteId).eq("session_id", sessionId).is("topic", null);
+      if (error) throw error;
+    },
+    async matchHelpdesk(websiteId, embedding, k) {
+      const { data, error } = await sb.rpc("match_helpdesk", { p_website_id: websiteId, p_embedding: JSON.stringify(embedding), p_k: k });
+      if (error) throw error;
+      return (data ?? []) as HelpdeskChunk[];
+    },
+    async matchCases(websiteId, embedding, k) {
+      const { data, error } = await sb.rpc("match_cases", { p_website_id: websiteId, p_embedding: JSON.stringify(embedding), p_k: k });
+      if (error) throw error;
+      return (data ?? []) as CaseMatch[];
+    },
+    async getVariants(task) {
+      const { data, error } = await sb.from("prompt_variants").select("prompt_version,template_notes,weight").eq("task", task);
+      if (error) throw error;
+      return (data ?? []) as Variant[];
     },
   };
 }

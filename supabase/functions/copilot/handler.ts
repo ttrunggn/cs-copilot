@@ -3,9 +3,11 @@ import type { Db } from "../_shared/db.ts";
 import { type Ai, AiUnavailable } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { runCheck } from "./check.ts";
+import { runGenerate } from "./generate.ts";
 import { runHandoff } from "./handoff.ts";
 
 export type { CheckResult } from "./check.ts";
+export type { GenerateResult } from "./generate.ts";
 export type { HandoffResult } from "./handoff.ts";
 
 const ACTIONS = ["check", "handoff", "generate"] as const;
@@ -60,8 +62,8 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
         return { status: 200, body: await runCheck(req, ws, operatorId, deps) };
       case "handoff":
         return { status: 200, body: await runHandoff(req, ws, operatorId, deps) };
-      default:
-        throw new HttpError(501, `Chức năng ${req.action} chưa có`);
+      case "generate":
+        return { status: 200, body: await runGenerate(req, ws, operatorId, deps) };
     }
   } catch (e) {
     if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };

@@ -22,6 +22,11 @@ async function fakeDb(member = true): Promise<Db> {
     saveTranslations: () => Promise.resolve(),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
+    getLatestDraft: () => Promise.resolve(null),
+    setAiTopic: () => Promise.resolve(),
+    matchHelpdesk: () => Promise.resolve([]),
+    matchCases: () => Promise.resolve([]),
+    getVariants: () => Promise.resolve([]),
   };
 }
 
