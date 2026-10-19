@@ -1,10 +1,10 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(15);
 
 insert into public.workspaces (website_id, name) values ('ws-f', 'F');
 insert into public.conversations (website_id, session_id)
-select 'ws-f', 's' || i from generate_series(1, 7) i;
+select 'ws-f', 's' || i from generate_series(1, 9) i;
 
 -- Mỗi kịch bản một session; draft tạo lúc T0 = 1 giờ trước.
 insert into public.outputs (website_id, session_id, operator_id, kind, input_fp, content, prompt_version, created_at)
@@ -40,5 +40,19 @@ select is((pg_temp.out('s6')).matched_at, null, 'other operator does not match')
 select is((select ignored_pct from public.draft_feedback_stats where prompt_version = 'v-test'), 100::numeric, 'unmatched old draft counts as ignored');
 
 select is(has_function_privilege('anon', 'public.word_edit_ratio(text, text)', 'execute'), false, 'anon cannot call word_edit_ratio');
+-- 13: tin "Let me check" gửi trước, rồi mới gửi draft → draft ghép với tin giống nó hơn
+insert into public.outputs (website_id, session_id, operator_id, kind, input_fp, content, prompt_version, created_at)
+values ('ws-f', 's8', 'op1', 'draft', 'fp', 'Your plan was changed to Annual, the refund is on the way', 'v-other', now() - interval '1 hour');
+select pg_temp.send('s8', 'Let me check that for you', interval '1 minute');
+select pg_temp.send('s8', 'Your plan was changed to Annual, the refund is on the way', interval '3 minutes');
+select is((pg_temp.out('s8')).outcome, 'sent_as_is', 'a closer later send replaces an earlier unrelated match');
+-- 14: tin sau khác xa hơn thì giữ ghép cũ
+select pg_temp.send('s8', 'totally unrelated words', interval '5 minutes');
+select is((pg_temp.out('s8')).final_text, 'Your plan was changed to Annual, the refund is on the way', 'a worse later send does not replace the match');
+-- 15: khách sửa tin → bản dịch cũ bị xoá để dịch lại
+insert into public.messages (website_id, session_id, fingerprint, "from", type, content, content_en, created_at)
+values ('ws-f', 's9', 'fp-edit', 'user', 'text', 'Bonjour', 'Hello', now());
+update public.messages set content = 'Bonsoir' where fingerprint = 'fp-edit';
+select is((select content_en from public.messages where fingerprint = 'fp-edit'), null, 'editing content clears the stale translation');
 select * from finish();
 rollback;
