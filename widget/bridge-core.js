@@ -21,3 +21,9 @@ export function bridgeState(pong) {
   if (!pong) return "missing";
   return pong.protocol === PROTOCOL ? "ready" : "outdated";
 }
+
+/** Lệnh chèn cho một draft: luôn dùng session của chính draft, và từ chối nếu đang mở chat khác. */
+export function draftInsert(draft, currentSessionId, requestId, mode) {
+  if (!draft || draft.session_id !== currentSessionId) return null;
+  return insertMessage({ requestId, outputId: draft.output_id, sessionId: draft.session_id, text: draft.vm.text, mode });
+}

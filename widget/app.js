@@ -1,12 +1,13 @@
 import { describeShape, insertResultMessage, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
-import { acceptReply, bridgeState, insertMessage, newRequestId, PING_TIMEOUT_MS, PROTOCOL } from "./bridge-core.js";
+import { acceptReply, bridgeState, draftInsert, newRequestId, PING_TIMEOUT_MS, PROTOCOL } from "./bridge-core.js";
 
 const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
 const INSERT_TIMEOUT_MS = 3000;
 const app = document.getElementById("app");
 let operatorId = "";
 let check = null; // kết quả check gần nhất
-let draft = null; // { output_id, vm }
+let draft = null; // { output_id, session_id, vm } — gắn với chat đã soạn
+let shownSession = ""; // chat đang hiển thị; đổi chat thì xoá draft/handoff cũ
 let handoff = null; // { note, posted, cached }
 let notice = ""; // dòng trạng thái dưới draft/handoff
 let choice = false; // đang hỏi Thay thế / Chèn cuối / Huỷ
@@ -46,8 +47,12 @@ function pingExtension() {
 
 function sendInsert(mode) {
   const ctx = readContext(location.search);
-  if (!draft || "error" in ctx) return;
   const requestId = newRequestId();
+  const msg = "error" in ctx ? null : draftInsert(draft, ctx.sessionId, requestId, mode);
+  if (!msg) {
+    notice = insertResultMessage("session_mismatch");
+    return render();
+  }
   const onMsg = (ev) => {
     const r = acceptReply(ev, window, requestId);
     if (!r) return;
@@ -63,10 +68,7 @@ function sendInsert(mode) {
     render();
   }, INSERT_TIMEOUT_MS);
   window.addEventListener("message", onMsg);
-  window.postMessage(
-    insertMessage({ requestId, outputId: draft.output_id, sessionId: ctx.sessionId, text: draft.vm.text, mode }),
-    location.origin,
-  );
+  window.postMessage(msg, location.origin);
 }
 
 async function copy(text) {
@@ -106,8 +108,9 @@ async function onGenerate(force) {
   choice = false;
   render();
   try {
+    const sessionId = readContext(location.search).sessionId;
     const out = await call("generate", force ? { force: true } : {});
-    draft = { output_id: out.output_id, vm: toDraftViewModel(out) };
+    draft = { output_id: out.output_id, session_id: sessionId, vm: toDraftViewModel(out) };
     busy = "";
     render();
     if (bridge === "ready") sendInsert("auto");
@@ -228,6 +231,14 @@ function render() {
 
 async function load() {
   if (!operatorId) return showMessage("Đang xác định CS đang đăng nhập…");
+  const sessionId = readContext(location.search).sessionId;
+  if (sessionId !== shownSession) {
+    shownSession = sessionId;
+    draft = null;
+    handoff = null;
+    choice = false;
+    notice = "";
+  }
   showMessage("Đang kiểm tra…");
   try {
     check = await call("check");
@@ -236,7 +247,7 @@ async function load() {
     return showMessage(e.message ?? "Không kết nối được copilot", e.kind === "retry" || e.kind === "fatal");
   }
   if (check.latest_draft && !draft) {
-    draft = { output_id: check.latest_draft.output_id, vm: toDraftViewModel(check.latest_draft) };
+    draft = { output_id: check.latest_draft.output_id, session_id: sessionId, vm: toDraftViewModel(check.latest_draft) };
   }
   render();
 }
