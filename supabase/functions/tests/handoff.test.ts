@@ -120,7 +120,7 @@ Deno.test("handoff with unparseable AI output posts nothing", async () => {
   const { deps, notes, inserted } = makeDeps({ ai });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 503);
-  assertEquals((r.body as { code: string }).code, "AI_UNAVAILABLE");
+  assertEquals((r.body as { code: string }).code, "AI_BAD_OUTPUT");
   assertEquals(notes, []);
   assertEquals(inserted, []);
 });
@@ -132,4 +132,11 @@ Deno.test("handoff AI unavailable returns 503", async () => {
   assertEquals(r.status, 503);
   assertEquals(r.body, { error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE" });
   assertEquals(notes, []);
+});
+
+Deno.test("unreadable handoff says AI_BAD_OUTPUT, not quota", async () => {
+  const { ai } = fakeAi({ handoff: "not json" });
+  const { deps } = makeDeps({ ai });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.body, { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" });
 });

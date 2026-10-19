@@ -20,6 +20,7 @@ export function mapError(status, body) {
   if (status === 401) return { kind: "fatal", message: msg ?? "Widget không hợp lệ cho workspace này" };
   if (status === 403) return { kind: "forbidden", message: msg ?? "Bạn chưa được cấp quyền ở workspace này" };
   if (status === 404) return { kind: "retry", message: "Chưa có dữ liệu conversation này, thử lại sau vài giây" };
+  if (status === 503 && body?.code === "AI_BAD_OUTPUT") return { kind: "retry", message: body.error ?? "AI trả kết quả không dùng được, bấm lại thử" };
   if (status === 503 && body?.code === "AI_UNAVAILABLE") return { kind: "retry", message: "AI đang hết quota hoặc lỗi, thử lại sau" };
   return { kind: "fatal", message: "Không kết nối được copilot, thử lại sau" };
 }
@@ -68,7 +69,7 @@ export function describeShape(data) {
 const HTTPS_URL = /^https:\/\//;
 
 /** Draft từ generate hoặc latest_draft của check → dữ liệu hiển thị. Link cảnh báo chỉ nhận https. */
-export function toDraftViewModel(out) {
+export function toDraftViewModel(out, now = Date.now()) {
   const text = out.draft ?? out.content ?? "";
   const badge = out.verified !== true
     ? "Chưa đối chiếu helpdesk"
@@ -77,6 +78,7 @@ export function toDraftViewModel(out) {
     : "Đã đối chiếu helpdesk";
   return {
     text,
+    age: out.created_at ? timeAgo(out.created_at, now) : null,
     todos: (text.match(/\[\[CS:[^\]]*\]\]/g) ?? []).length,
     badge,
     warnings: (out.warnings ?? []).map((w) => ({

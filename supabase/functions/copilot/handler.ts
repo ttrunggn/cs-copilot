@@ -1,6 +1,6 @@
 import { authorize, authorizeWidget, HttpError } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
-import { type Ai, AiUnavailable } from "../_shared/gemini.ts";
+import { type Ai, AiBadOutput, AiUnavailable } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { runCheck } from "./check.ts";
 import { runGenerate } from "./generate.ts";
@@ -67,6 +67,10 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
     }
   } catch (e) {
     if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };
+    if (e instanceof AiBadOutput) {
+      console.error("copilot ai bad output", e.message);
+      return { status: 503, body: { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" } };
+    }
     if (e instanceof AiUnavailable) {
       console.error("copilot ai unavailable", e.message);
       return { status: 503, body: { error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE" } };

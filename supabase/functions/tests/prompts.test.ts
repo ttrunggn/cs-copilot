@@ -175,3 +175,15 @@ Deno.test("classifyPrompt includes each topic's definition when present", () => 
   const p = classifyPrompt("Customer: x", [{ key: "billing", label: "Thanh toán & gói", definition: "Đổi gói, hoàn tiền, credit", segments: [] }]);
   assertEquals(p.includes("- billing: Thanh toán & gói — Đổi gói, hoàn tiền, credit"), true);
 });
+
+Deno.test("parseHandoff accepts a first-contact note with empty done", () => {
+  const h = parseHandoff(JSON.stringify({ summary: "s", issues: [{ issue: "i", state: "not_started", detail: "" }], done: "", waiting_on: "cs", next_step: "n" }));
+  assertEquals(h.done, "Chưa có");
+});
+
+Deno.test("formatHandoffNote says how many issues were left out beyond 8", () => {
+  const issues = Array.from({ length: 11 }, (_, i) => ({ issue: `v${i + 1}`, state: "not_started", detail: "" }));
+  const h = parseHandoff(JSON.stringify({ summary: "s", issues, done: "d", waiting_on: "cs", next_step: "n" }));
+  assertEquals(h.issues.length, 8);
+  assertEquals(formatHandoffNote(h, "Lan").includes("… và 3 vấn đề khác"), true);
+});

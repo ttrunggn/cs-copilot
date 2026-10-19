@@ -1,6 +1,6 @@
 import { humanTranscript, inputFingerprint } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
-import { type Ai, AiUnavailable } from "../_shared/gemini.ts";
+import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { formatHandoffNote, HANDOFF_SCHEMA, handoffPrompt, parseHandoff } from "../_shared/prompts.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
@@ -50,7 +50,7 @@ export async function runHandoff(
     fields = parseHandoff(text);
   } catch (e) {
     console.error("handoff output unreadable", e);
-    throw new AiUnavailable("AI trả kết quả không đọc được");
+    throw new AiBadOutput("handoff không đọc được");
   }
   const operator = await deps.db.getOperator(operatorId);
   const note = formatHandoffNote(fields, operator?.display_name ?? operatorId);

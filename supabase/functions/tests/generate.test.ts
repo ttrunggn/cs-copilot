@@ -153,3 +153,21 @@ Deno.test("off-topic helpdesk chunks around 0.52–0.6 similarity are not used",
   assertEquals(body.helpdesk_matches, 0);
   assertEquals(calls.some((c) => c.task === "verify"), false);
 });
+
+Deno.test("empty AI draft is not saved or cached and returns AI_BAD_OUTPUT", async () => {
+  const { deps, inserted } = setup({ ai: fakeAi({ draft: "   " }) });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 503);
+  assertEquals(r.body, { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" });
+  assertEquals(inserted, []);
+});
+
+Deno.test("check hides a latest draft written before the newest customer message", async () => {
+  const old: OutputRow = {
+    id: 5, kind: "draft", content: "old turn", warnings: [], verified: true, helpdesk_matches: 1,
+    topic: null, prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:02:30+00:00", // trước last_customer_at 03:03
+  };
+  const m = makeDeps({ db: { getLatestDraft: () => Promise.resolve(old) } });
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };
+  assertEquals(body.latest_draft, null);
+});

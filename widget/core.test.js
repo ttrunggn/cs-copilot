@@ -147,3 +147,12 @@ Deno.test("handoffStatus says already posted only when it really was", () => {
   assertEquals(handoffStatus({ cached: false, posted: true }), "Đã đăng private note");
   assertEquals(handoffStatus({ cached: false, posted: false }), "Chưa đăng được note, copy giúp");
 });
+
+Deno.test("mapError 503 AI_BAD_OUTPUT → retry with server message", () => {
+  assertEquals(mapError(503, { code: "AI_BAD_OUTPUT", error: "AI trả kết quả không dùng được, bấm lại thử" }), { kind: "retry", message: "AI trả kết quả không dùng được, bấm lại thử" });
+});
+
+Deno.test("toDraftViewModel shows how old the draft is", () => {
+  const vm = toDraftViewModel({ content: "x", warnings: [], verified: true, helpdesk_matches: 1, created_at: "2026-10-16T09:50:00Z" }, NOW);
+  assertEquals(vm.age, "10 phút trước");
+});

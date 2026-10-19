@@ -7,6 +7,14 @@ export class AiUnavailable extends Error {
   }
 }
 
+/** AI trả lời nhưng nội dung không dùng được (rỗng, JSON hỏng). Khác với hết quota. */
+export class AiBadOutput extends Error {
+  readonly code = "AI_BAD_OUTPUT";
+  constructor(message = "AI trả kết quả không dùng được") {
+    super(message);
+  }
+}
+
 export interface AiStore {
   getModels(task: AiTask): Promise<string[]>;
   logUsage(model: string, task: AiTask, is429: boolean): Promise<void>;

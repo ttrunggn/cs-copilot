@@ -249,14 +249,20 @@ export function handoffPrompt(transcript: string, topicLabel: string | null): st
 export function parseHandoff(text: string): HandoffFields {
   const h = parseJson<Partial<HandoffFields>>(text);
   const str = (v: unknown) => typeof v === "string" && v.trim() !== "";
-  if (!str(h.summary) || !str(h.done) || !str(h.next_step)) throw new Error("handoff thiếu trường");
+  if (!str(h.summary) || !str(h.next_step)) throw new Error("handoff thiếu trường");
   if (!WAITING.includes(h.waiting_on as WaitingOn)) throw new Error("handoff waiting_on không hợp lệ");
-  const issues = (Array.isArray(h.issues) ? h.issues : [])
-    .filter((i) => str(i?.issue) && STATES.includes(i.state))
-    .slice(0, MAX_ISSUES)
-    .map((i) => ({ issue: i.issue.trim(), state: i.state, detail: (i.detail ?? "").trim() }));
-  if (!issues.length) throw new Error("handoff không có vấn đề nào");
-  return { summary: h.summary!.trim(), issues, done: h.done!.trim(), waiting_on: h.waiting_on!, next_step: h.next_step!.trim() };
+  const valid = (Array.isArray(h.issues) ? h.issues : []).filter((i) => str(i?.issue) && STATES.includes(i.state));
+  if (!valid.length) throw new Error("handoff không có vấn đề nào");
+  const issues = valid.slice(0, MAX_ISSUES).map((i) => ({ issue: i.issue.trim(), state: i.state, detail: (i.detail ?? "").trim() }));
+  return {
+    summary: h.summary!.trim(),
+    issues,
+    ...(valid.length > MAX_ISSUES ? { more: valid.length - MAX_ISSUES } : {}),
+    // Chat mới nhận, chưa ai làm gì thì model có thể để trống.
+    done: str(h.done) ? h.done!.trim() : "Chưa có",
+    waiting_on: h.waiting_on!,
+    next_step: h.next_step!.trim(),
+  };
 }
 
 const STATE_LABEL: Record<HandoffState, string> = {
@@ -274,6 +280,7 @@ export function formatHandoffNote(h: HandoffFields, operatorName: string): strin
     `Tóm tắt: ${h.summary}`,
     "Khách cần:",
     ...h.issues.map((i, n) => `${n + 1}. ${i.issue} — ${STATE_LABEL[i.state]}${i.detail ? `: ${i.detail}` : ""}`),
+    ...(h.more ? [`… và ${h.more} vấn đề khác`] : []),
     `Đã làm: ${h.done}`,
     `Đang chờ: ${WAITING_LABEL[h.waiting_on]}`,
     `Bước tiếp theo: ${h.next_step}`,

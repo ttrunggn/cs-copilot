@@ -177,7 +177,7 @@ function draftPanel() {
     ])
     : null;
   return el("section", { className: "card" }, [
-    el("div", { className: "row" }, [el("h3", { textContent: "Draft" }), el("span", { className: "badge", textContent: vm.badge })]),
+    el("div", { className: "row" }, [el("h3", { textContent: vm.age ? `Draft · ${vm.age}` : "Draft" }), el("span", { className: "badge", textContent: vm.badge })]),
     vm.todos ? el("p", { className: "warn", textContent: `Còn ${vm.todos} chỗ cần CS điền` }) : null,
     draftText(vm.text),
     vm.warnings.length

@@ -56,7 +56,8 @@ export async function runCheck(
     last_customer_at: conv.last_customer_at,
     last_human_operator_at: conv.last_human_operator_at,
     jira: [],
-    latest_draft: latest
+    // Draft viết trước tin khách mới nhất là của lượt trước: không hiện để tránh "Điền lại" nhầm.
+    latest_draft: latest && (!conv.last_customer_at || Date.parse(latest.created_at) >= Date.parse(conv.last_customer_at))
       ? { output_id: latest.id, content: latest.content, warnings: latest.warnings, verified: latest.verified, helpdesk_matches: latest.helpdesk_matches, created_at: latest.created_at }
       : null,
   };

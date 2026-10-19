@@ -1,6 +1,6 @@
 import { humanTranscript, inputFingerprint, latestCustomerQuery } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
-import type { Ai } from "../_shared/gemini.ts";
+import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 import {
@@ -125,6 +125,8 @@ export async function runGenerate(
     variantNotes: variant.template_notes,
   }));
   const draft = text.trim();
+  // Draft rỗng (bị chặn an toàn, model không trả gì) thì không lưu, không cache 24h.
+  if (!draft) throw new AiBadOutput("draft rỗng");
   // Không có bài helpdesk liên quan thì không có gì để đối chiếu; chỉ "chưa đối chiếu" khi tìm kiếm hoặc verify lỗi.
   const checked = found.helpdesk.length ? await verify(deps, draft, found.helpdesk) : { verified: found.ok, warnings: [] };
 
