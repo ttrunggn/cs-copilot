@@ -1,12 +1,10 @@
 [
-  {"key":"translation","label":"Dịch nội dung","segments":["chatbot_paid_error_translation"]},
-  {"key":"language_switcher","label":"Nút chuyển ngôn ngữ","segments":["chatbot_paid_error_switcher","chatbot_paid_guidance_switcher","chatbot_onboarding_manage_switcher"]},
-  {"key":"currency","label":"Tiền tệ","segments":["chatbot_paid_error_currency","chatbot_paid_guidance_currency"]},
-  {"key":"language_setup","label":"Thiết lập ngôn ngữ","segments":["chatbot_paid_error_language","chatbot_paid_guidance_language"]},
-  {"key":"geolocation","label":"Tự nhận vị trí","segments":["chatbot_paid_guidance_geolocation"]},
-  {"key":"onboarding","label":"Cài đặt & chuyển app","segments":["onboarding-chat","chatbot_onboarding","chatbot_onboarding_request_onboarding"]},
-  {"key":"billing","label":"Thanh toán & gói","segments":[]},
-  {"key":"store_access","label":"Quyền collaborator","segments":[]},
-  {"key":"system_email","label":"Email hệ thống/marketing","segments":[]},
-  {"key":"other","label":"Khác","segments":[]}
+  {"key":"translation_content","label":"Nội dung dịch","definition":"Khách cần sửa, bổ sung, chặn dịch, hoặc báo dịch sai/thiếu ở sản phẩm, menu, theme, blog, metafield","segments":["chatbot_paid_error_translation"]},
+  {"key":"switcher_display","label":"Nút chuyển ngôn ngữ","definition":"Nút đổi ngôn ngữ/tiền tệ không hiện, sai vị trí, cần cấu hình hoặc đổi giao diện, tự nhận vị trí/chuyển hướng ngôn ngữ","segments":["chatbot_paid_error_switcher","chatbot_paid_guidance_switcher","chatbot_onboarding_manage_switcher","chatbot_paid_error_language","chatbot_paid_guidance_language","chatbot_paid_guidance_geolocation"]},
+  {"key":"billing_and_plan","label":"Thanh toán & gói","definition":"Đổi/nâng/huỷ gói, hoàn tiền, phí bị trừ, credit, giới hạn số ngôn ngữ hoặc số từ","segments":[]},
+  {"key":"technical_bugs","label":"Lỗi kỹ thuật, chuyển tech","definition":"Lỗi hệ thống CS không tự xử lý được: đồng bộ, dữ liệu sai, tính năng không chạy, cần chuyển tech/Jira","segments":[]},
+  {"key":"setup_access","label":"Cài đặt & quyền truy cập","definition":"Cài đặt ban đầu, xin/cấp quyền collaborator, gỡ app, gỡ thẻ tc còn dính trên store","segments":["onboarding-chat","chatbot_onboarding","chatbot_onboarding_request_onboarding"]},
+  {"key":"currency_and_market","label":"Tiền tệ & thị trường","definition":"Quy đổi giá sai, định dạng tiền tệ, cài đặt market hoặc tiền tệ","segments":["chatbot_paid_error_currency","chatbot_paid_guidance_currency"]},
+  {"key":"system_email","label":"Email hệ thống/marketing","definition":"Email tự động, hoá đơn Shopify, newsletter, quảng cáo, spam: không phải khách cần hỗ trợ","segments":[]},
+  {"key":"other","label":"Khác","definition":"Ca lẻ, hiếm gặp, không thuộc nhóm nào ở trên","segments":[]}
 ]

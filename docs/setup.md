@@ -45,6 +45,13 @@ npx supabase functions deploy embed-helpdesk --no-verify-jwt   # n8n gọi bằn
 2. Deploy cả thư mục `widget/` lên Netlify (cùng site). Team tải `extension.zip` từ widget → giải nén → `chrome://extensions` → Developer mode → Load unpacked.
 3. Xem hiệu quả draft: `select * from draft_feedback_stats;` trong SQL Editor.
 
+## 5d. Giọng văn từng CS (chạy tay, vd mỗi tuần)
+```bash
+deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id>
+# chỉ học lại giọng, không phân loại lại topic: thêm --skip-classify
+```
+Bộ topic theo tình huống thực tế: `node --env-file=.env scripts/derive-situations.mjs <website_id> > situations.json` (chỉ đọc), xem rồi cập nhật `supabase/seed/<app>-topics.json` + `workspaces.topics`. Sửa tay giọng một CS: ghi trường vào `agent_profiles.manual_override` (luôn thắng, lần học sau không ghi đè).
+
 ## 6. Kiểm tra
 ```sql
 select website_id, count(*) from conversations group by 1;

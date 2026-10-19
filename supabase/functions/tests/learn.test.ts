@@ -110,3 +110,17 @@ Deno.test("parseClassifyBatch keeps valid index/topic pairs only", () => {
   const text = JSON.stringify({ items: [{ i: 0, topic: "billing" }, { i: 1, topic: "hacking" }, { i: 7, topic: "currency" }, { i: 0, topic: "currency" }] });
   assertEquals([...parseClassifyBatch(text, 2, TOPICS)], [[0, "billing"]]);
 });
+
+Deno.test("classifyBatchPrompt includes topic definitions", () => {
+  const p = classifyBatchPrompt([{ i: 0, text: "x" }], [{ key: "billing", label: "Thanh toán", definition: "Đổi gói, hoàn tiền", segments: [] }]);
+  assertEquals(p.includes("- billing: Thanh toán — Đổi gói, hoàn tiền"), true);
+});
+
+Deno.test("pickSamples skips messages with images or Crisp file links (customer-specific)", () => {
+  const out = pickSamples([
+    op("a", "s1", "Please accept our request.\n\n![](https://storage.crisp.chat/users/upload/x.png)\n\nThanks!"),
+    op("a", "s2", "Here is the file: https://storage.crisp.chat/users/upload/report.pdf please check"),
+    op("a", "s3", "Please accept our collaborator request so we can check the settings."),
+  ]);
+  assertEquals(out, ["Please accept our collaborator request so we can check the settings."]);
+});

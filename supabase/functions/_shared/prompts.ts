@@ -175,6 +175,10 @@ export function parseWarnings(text: string, helpdesk: HelpdeskChunk[]): Warning[
 
 // ---------- classify ----------
 
+export function topicLine(t: Topic): string {
+  return `- ${t.key}: ${t.label}${t.definition ? ` — ${t.definition}` : ""}`;
+}
+
 export function classifySchema(topics: Topic[]): Record<string, unknown> {
   return {
     type: "OBJECT",
@@ -184,7 +188,7 @@ export function classifySchema(topics: Topic[]): Record<string, unknown> {
 }
 
 export function classifyPrompt(transcript: string, topics: Topic[]): string {
-  const list = topics.map((t) => `- ${t.key}: ${t.label}`).join("\n");
+  const list = topics.map(topicLine).join("\n");
   return [
     "Classify this customer support conversation into exactly one topic key from the list.",
     list,

@@ -1,5 +1,5 @@
 // Logic thuần cho việc học giọng văn từng CS và phân loại topic theo lô (script scripts/learn-profiles.ts dùng).
-import { DATA_ONLY, neutralize, parseJson } from "./prompts.ts";
+import { DATA_ONLY, neutralize, parseJson, topicLine } from "./prompts.ts";
 import type { Profile, Topic } from "./types.ts";
 
 export interface OpMessage {
@@ -13,6 +13,8 @@ export const SKIP_TOPICS = ["system_email"];
 const MIN_SAMPLE_CHARS = 30;
 const MAX_SAMPLE_CHARS = 700;
 const MAX_PER_SESSION = 3;
+// Ảnh chụp/file đính kèm là của riêng khách đó, không dùng làm tin mẫu cho khách khác.
+const CUSTOMER_SPECIFIC = /!\[[^\]]*\]\(|storage\.crisp\.chat/i;
 const MAX_PROFILE_SAMPLES = 8;
 const SNIPPET_MESSAGES = 3;
 const SNIPPET_CHARS = 300;
@@ -58,7 +60,7 @@ export function pickSamples(msgs: OpMessage[], max = 40): string[] {
   for (const m of [...msgs].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))) {
     const text = m.content.trim();
     const key = text.toLowerCase().replace(/\s+/g, " ");
-    if (text.length < MIN_SAMPLE_CHARS || text.length > MAX_SAMPLE_CHARS || seen.has(key)) continue;
+    if (text.length < MIN_SAMPLE_CHARS || text.length > MAX_SAMPLE_CHARS || seen.has(key) || CUSTOMER_SPECIFIC.test(text)) continue;
     if ((perSession.get(m.session_id) ?? 0) >= MAX_PER_SESSION) continue;
     seen.add(key);
     perSession.set(m.session_id, (perSession.get(m.session_id) ?? 0) + 1);
@@ -152,7 +154,7 @@ export function classifyBatchSchema(topics: Topic[]): Record<string, unknown> {
 export function classifyBatchPrompt(items: { i: number; text: string }[], topics: Topic[]): string {
   return [
     "Classify each customer support conversation (customer's first messages) into exactly one topic key.",
-    topics.map((t) => `- ${t.key}: ${t.label}`).join("\n"),
+    topics.map(topicLine).join("\n"),
     `Return {"items":[{"i":<index>,"topic":"<key>"}]} with one item per conversation. ${DATA_ONLY}`,
     items.map((it) => `<conversation i="${it.i}">\n${neutralize(it.text)}\n</conversation>`).join("\n"),
   ].join("\n\n");

@@ -12,6 +12,7 @@ export interface MessageRow {
 export interface Topic {
   key: string;
   label: string;
+  definition?: string; // mô tả khi nào thuộc topic, giúp AI phân loại
   segments: string[];
 }
 

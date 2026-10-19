@@ -21,3 +21,20 @@ Nguồn: 384 conversation cập nhật gần nhất (backfill 90 ngày), Gemini 
 | geolocation | auto-detect không chạy; tự chuyển ngôn ngữ ngoài ý muốn |
 
 Danh sách topic áp dụng: `supabase/seed/transcy-topics.json`.
+
+## Cập nhật 2026-10-19: topic theo tình huống CS xử lý thực tế
+
+Phân tích lại 352 hội thoại có CS người thật trả lời trong 90 ngày (`scripts/derive-situations.mjs`), gom theo cách CS xử lý, chỉ giữ nhóm ≥ 10 hội thoại và xuất hiện ≥ 4 tuần; ca lẻ vào `other`.
+
+| Topic | Hội thoại có CS | Tuần |
+|---|---|---|
+| translation_content — Nội dung dịch | 108 (31%) | 14 |
+| switcher_display — Nút chuyển ngôn ngữ | 66 (19%) | 13 |
+| billing_and_plan — Thanh toán & gói | 61 (17%) | 14 |
+| technical_bugs — Lỗi kỹ thuật, chuyển tech | 43 (12%) | 14 |
+| setup_access — Cài đặt & quyền truy cập (gồm gỡ thẻ tc) | 20 (6%) | 12 |
+| currency_and_market — Tiền tệ & thị trường | 13 (4%) | 7 |
+| system_email — Email hệ thống/marketing | 33 (9%) | — |
+| other — Khác | 8 (2%) | — |
+
+Segment Crisp ở Transcy chủ yếu là tên gói (`transcy`, `enum_growth`…), không phản ánh tình huống, nên topic chủ yếu do AI phân loại (1.583 hội thoại đã gán). Bộ này thay cho 10 topic theo tính năng ở trên.
