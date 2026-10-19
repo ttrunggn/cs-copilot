@@ -3,6 +3,7 @@ import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "./types
 
 export interface Db {
   getWorkspace(websiteId: string): Promise<Workspace | null>;
+  getWidgetTokenHash(websiteId: string): Promise<string | null>;
   getOperatorIdByTokenHash(tokenHash: string): Promise<string | null>;
   isOperatorMember(operatorId: string, websiteId: string): Promise<boolean>;
   getConversation(websiteId: string, sessionId: string): Promise<ConversationRow | null>;
@@ -19,6 +20,12 @@ export function createDb(sb: SupabaseClient): Db {
         .eq("website_id", websiteId).maybeSingle();
       if (error) throw error;
       return data as Workspace | null;
+    },
+    async getWidgetTokenHash(websiteId) {
+      const { data, error } = await sb.from("workspaces").select("crisp_widget_token_hash")
+        .eq("website_id", websiteId).maybeSingle();
+      if (error) throw error;
+      return (data?.crisp_widget_token_hash as string | undefined) ?? null;
     },
     async getOperatorIdByTokenHash(tokenHash) {
       const { data, error } = await sb.from("operators").select("crisp_user_id")

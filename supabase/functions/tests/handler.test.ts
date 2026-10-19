@@ -33,10 +33,13 @@ const PROFILES: ProfileRow[] = [
 
 const TOKEN = "tok-lan";
 const TOKEN_HASH = await sha256Hex(TOKEN);
+const CRISP_TOKEN = "11111111-2222-3333-4444-555555555555";
+const WIDGET_HASH = await sha256Hex(CRISP_TOKEN);
 
 function deps(over: Partial<Db> = {}, stale = false) {
   const db: Db = {
     getWorkspace: () => Promise.resolve(WS),
+    getWidgetTokenHash: () => Promise.resolve(WIDGET_HASH),
     getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
     isOperatorMember: () => Promise.resolve(true),
     getConversation: () => Promise.resolve(CONV),
@@ -122,4 +125,14 @@ Deno.test("malformed session_id is rejected before reaching n8n", async () => {
 
 Deno.test("malformed website_id -> 400", async () => {
   assertEquals((await handle({ ...REQ, website_id: "ws1?x=1" }, TOKEN, deps())).status, 400);
+});
+
+Deno.test("widget request (no personal token) authenticates with Crisp token + operator_id", async () => {
+  const r = await handle({ ...REQ, crisp_token: CRISP_TOKEN, operator_id: "op-lan" }, "", deps());
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { profile_name: string }).profile_name, "Lan Nguyen");
+});
+
+Deno.test("widget request with forged Crisp token -> 401", async () => {
+  assertEquals((await handle({ ...REQ, crisp_token: "forged", operator_id: "op-lan" }, "", deps())).status, 401);
 });

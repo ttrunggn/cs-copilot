@@ -3,20 +3,27 @@ import { mapError, readContext, timeAgo, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
-Deno.test("reads website_id and session_id from Crisp iframe URL", () => {
-  assertEquals(readContext("?website_id=f5733b35-0234&session_id=session_abc-1&locale=en"), { websiteId: "f5733b35-0234", sessionId: "session_abc-1" });
+const TOKEN = "11111111-2222-3333-4444-555555555555";
+
+Deno.test("reads website_id, session_id and Crisp website token from iframe URL", () => {
+  assertEquals(readContext(`?website_id=f5733b35-0234&session_id=session_abc-1&token=${TOKEN}&locale=en`),
+    { websiteId: "f5733b35-0234", sessionId: "session_abc-1", crispToken: TOKEN });
+});
+
+Deno.test("missing Crisp token means the page was not opened by Crisp", () => {
+  assertEquals(readContext("?website_id=ws1&session_id=session_1"), { error: "Mở copilot từ sidebar của Crisp" });
 });
 
 Deno.test("missing session_id asks to open a conversation", () => {
-  assertEquals(readContext("?website_id=ws1"), { error: "Mở một conversation để dùng copilot" });
+  assertEquals(readContext(`?website_id=ws1&token=${TOKEN}`), { error: "Mở một conversation để dùng copilot" });
 });
 
 Deno.test("malformed ids are rejected", () => {
-  assertEquals(readContext("?website_id=ws1&session_id=../x"), { error: "Mở một conversation để dùng copilot" });
+  assertEquals(readContext(`?website_id=ws1&session_id=../x&token=${TOKEN}`), { error: "Mở một conversation để dùng copilot" });
 });
 
-Deno.test("401 → needToken", () => {
-  assertEquals(mapError(401, { error: "Token không hợp lệ" }).kind, "needToken");
+Deno.test("401 → fatal with server message (no token form anymore)", () => {
+  assertEquals(mapError(401, { error: "Widget không hợp lệ cho workspace này" }), { kind: "fatal", message: "Widget không hợp lệ cho workspace này" });
 });
 
 Deno.test("403 → forbidden with server message", () => {

@@ -43,7 +43,7 @@ Một copilot trong sidebar Crisp, dùng chung cho **2 Crisp workspace** (2 app 
 | Ngưỡng profile theo topic | ≥ 5 hội thoại trong 90 ngày (config `min_conversations_per_topic`) |
 | Bot | Mary, Zoey. Nhận diện theo nickname lần đầu rồi cố định theo `user_id` |
 | Giao diện | **Lai**: Crisp Plugin Widget (sidebar) làm toàn bộ UI + gọi API; Chrome extension **chỉ** chèn chữ vào ô Reply (Widget SDK của Crisp không ghi được vào ô soạn tin). Thiếu extension thì widget chuyển sang nút Copy |
-| Xác thực | Token riêng cho từng CS (lưu hash trong `operators`), gửi qua header `x-copilot-token`. Token nhập một lần trong widget. Workspace lấy từ `$crisp.acquireData("conversation")` và phải là workspace CS đó thuộc về |
+| Xác thực | **Widget trong Crisp:** không cần nhập gì. Crisp gắn `token` của website vào URL iframe; Edge Function so sha256 với `workspaces.crisp_widget_token_hash` (lấy từ API "List all connect websites" của plugin) và kiểm tra operator (từ `$crisp.acquireData("operator")`) đang active trong workspace. **Công cụ/curl:** token cá nhân qua header `x-copilot-token` (hash trong `operators`). Đánh đổi: danh tính CS do trình duyệt báo, một CS trong workspace có thể mạo danh CS khác; người ngoài workspace thì không |
 | Draft | Điền vào ô Reply, **không** đăng private note. Handoff vẫn đăng note |
 | Vòng phản hồi | Ghép draft với tin CS gửi sau đó (cùng CS, cùng session, ≤ 15 phút), đo `edit_ratio`, A/B theo `prompt_version` |
 
@@ -186,7 +186,7 @@ app.crisp.chat (1 tab)
 ### 6.1 Crisp Plugin Widget (sidebar)
 - Plugin Crisp riêng (tái sử dụng plugin của v4, đổi URL iframe), cài trên cả 2 website. Trang widget host tĩnh trên **Netlify** (Supabase Storage/Edge Function không phục vụ `text/html` trên domain mặc định). File `_headers` của Netlify đặt `Content-Security-Policy: frame-ancestors https://app.crisp.chat` để chỉ Crisp nhúng được widget; extension match đúng domain Netlify này cho content script trong iframe.
 - Lấy `website_id`, `session_id` bằng `$crisp.acquireData("conversation")`, operator bằng `$crisp.acquireData("operator")`.
-- Token CS nhập một lần, lưu trong `localStorage` của widget (đọc/ghi trong try/catch, mất thì hỏi lại).
+- Không nhập token: widget gửi `crisp_token` (từ URL iframe) + `operator_id` (từ SDK). Ai trong workspace đã cài plugin, đang active, mở chat là dùng được.
 - Khi mở: chạy `check`, hiện Jira (badge **MỚI**), số tin chưa trả lời, topic + profile.
 - Nút: `✨ Soạn tin`, `↻ Soạn lại` (`force=1`), `📋 Handoff` (đăng note).
 - Sau `generate`: hiện draft + ⚠ (link helpdesk) trong widget, rồi gửi lệnh chèn cho extension. Nút phụ: `Điền lại`, `Copy`.

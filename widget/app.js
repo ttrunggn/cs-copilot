@@ -1,17 +1,9 @@
 import { mapError, readContext, toViewModel } from "./core.js";
 
 const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
-const TOKEN_KEY = "copilot_token";
 const app = document.getElementById("app");
-let memoryToken = "";
+let operatorId = "";
 
-function getToken() {
-  try { return localStorage.getItem(TOKEN_KEY) || memoryToken; } catch { return memoryToken; }
-}
-function setToken(t) {
-  memoryToken = t;
-  try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* chỉ giữ trong phiên */ }
-}
 function fit() {
   try { window.$crisp?.setHeight?.(Math.min(document.body.scrollHeight + 8, 350)); } catch { /* ngoài Crisp */ }
 }
@@ -24,19 +16,6 @@ function show(...nodes) {
   app.replaceChildren(...nodes);
   fit();
 }
-
-function showToken(hint) {
-  const form = document.getElementById("token-form").content.firstElementChild.cloneNode(true);
-  form.querySelector(".hint").textContent = hint ?? "Token do người quản lý copilot cấp, chỉ nhập một lần.";
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    setToken(form.querySelector("input").value.trim());
-    load();
-  });
-  show(form);
-  form.querySelector("input").focus();
-}
-
 function showMessage(text, retry) {
   show(el("p", { className: "muted", textContent: text }), ...(retry ? [el("button", { textContent: "Thử lại", onclick: load })] : []));
 }
@@ -59,15 +38,20 @@ function render(check) {
 async function load() {
   const ctx = readContext(location.search);
   if ("error" in ctx) return showMessage(ctx.error);
-  const token = getToken();
-  if (!token) return showToken();
+  if (!operatorId) return showMessage("Đang xác định CS đang đăng nhập…");
   showMessage("Đang kiểm tra…");
   let res, body = {};
   try {
     res = await fetch(API, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-copilot-token": token },
-      body: JSON.stringify({ website_id: ctx.websiteId, session_id: ctx.sessionId, action: "check" }),
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        website_id: ctx.websiteId,
+        session_id: ctx.sessionId,
+        crisp_token: ctx.crispToken,
+        operator_id: operatorId,
+        action: "check",
+      }),
     });
     body = await res.json().catch(() => ({}));
   } catch {
@@ -75,9 +59,17 @@ async function load() {
   }
   if (res.ok) return render(body);
   const err = mapError(res.status, body);
-  if (err.kind === "needToken") { setToken(""); return showToken(err.message); }
-  showMessage(err.message, err.kind !== "forbidden");
+  showMessage(err.message, err.kind === "retry" || err.kind === "fatal");
 }
 
-window.CRISP_READY_TRIGGER = fit;
+// CS đang đăng nhập lấy từ SDK chính thức của Crisp, không cần nhập token.
+window.CRISP_READY_TRIGGER = () => {
+  $crisp.onDataAcquired = (namespace) => {
+    if (namespace !== "operator") return;
+    operatorId = String($crisp.data.operator?.user_id ?? "");
+    if (!operatorId) return showMessage("Plugin chưa có quyền đọc thông tin CS (scope website:operators)");
+    load();
+  };
+  $crisp.acquireData("operator");
+};
 load();

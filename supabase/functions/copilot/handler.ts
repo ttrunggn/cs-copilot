@@ -1,4 +1,4 @@
-import { authorize, HttpError } from "../_shared/auth.ts";
+import { authorize, authorizeWidget, HttpError } from "../_shared/auth.ts";
 import { unansweredCustomerMessages } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
 import type { N8n } from "../_shared/n8n.ts";
@@ -16,6 +16,8 @@ export interface CopilotRequest {
   session_id: string;
   action: Action;
   force: boolean;
+  crisp_token: string;
+  operator_id: string;
 }
 
 export interface CheckResult {
@@ -47,6 +49,8 @@ function parseRequest(body: unknown): CopilotRequest {
     session_id: str("session_id"),
     action,
     force: b.force === true || b.force === "1",
+    crisp_token: str("crisp_token"),
+    operator_id: str("operator_id"),
   };
 }
 
@@ -57,7 +61,10 @@ export async function handle(
 ): Promise<{ status: number; body: unknown }> {
   try {
     const req = parseRequest(body);
-    const { workspace: ws, operatorId } = await authorize(deps.db, { website_id: req.website_id, token });
+    // Token cá nhân (curl/tooling) hoặc widget trong Crisp (token website + operator từ SDK).
+    const { workspace: ws, operatorId } = token
+      ? await authorize(deps.db, { website_id: req.website_id, token })
+      : await authorizeWidget(deps.db, req);
     if (req.action !== "check") throw new HttpError(501, `Chức năng ${req.action} chưa có`);
 
     const { stale } = await deps.n8n.refreshConversation(req.website_id, req.session_id);
