@@ -7,7 +7,7 @@ const STOPWORDS = new Set(
     .split(" "),
 );
 const MAX_BATCH = 20;
-const MAX_CHARS = 1500;
+const MAX_CHARS = 6000;
 
 /** Đoán nhanh tin có phải tiếng Anh không (không gọi AI): ít ký tự ngoài ASCII và đủ stopword tiếng Anh. */
 export function looksEnglish(text: string): boolean {

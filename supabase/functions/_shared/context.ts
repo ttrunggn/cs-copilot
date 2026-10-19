@@ -1,6 +1,10 @@
 import { sha256Hex } from "./auth.ts";
 import type { MessageRow } from "./types.ts";
 
+// Tin khách dài nhiều vấn đề phải tới AI đủ ý; tổng transcript vẫn có trần để prompt không phình.
+const MAX_MESSAGE_CHARS = 6000;
+const MAX_TRANSCRIPT_CHARS = 24000;
+
 function byTime(messages: MessageRow[]): MessageRow[] {
   return [...messages].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
 }
@@ -17,9 +21,17 @@ export function humanTranscript(messages: MessageRow[], maxLines = 40): string {
     const who = m.from === "user" ? "Customer" : `Agent${m.operator_name ? ` (${m.operator_name})` : ""}`;
     const text = m.content_en ?? m.content;
     const body = m.type === "note" ? `[Internal note] ${text}` : text;
-    lines.push(`${who}: ${body.slice(0, 1500)}`);
+    lines.push(`${who}: ${body.slice(0, MAX_MESSAGE_CHARS)}`);
   }
-  return lines.slice(-maxLines).join("\n");
+  // Giữ dòng mới nhất trước; vượt tổng trần thì bỏ dòng cũ nhất.
+  const kept: string[] = [];
+  let total = 0;
+  for (const line of lines.slice(-maxLines).reverse()) {
+    if (kept.length && total + line.length + 1 > MAX_TRANSCRIPT_CHARS) break;
+    kept.unshift(line);
+    total += line.length + 1;
+  }
+  return kept.join("\n");
 }
 
 /** Các tin khách gửi liên tiếp sau lần cuối một CS người thật trả lời. Bot và note không tính là trả lời. */

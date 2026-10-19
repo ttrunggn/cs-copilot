@@ -79,3 +79,16 @@ Deno.test("inputFingerprint changes when a message is added", async () => {
   assertEquals(a === (await inputFingerprint("draft", "op", [...base, m("operator", "b", 2)])), false);
   assertEquals(a === (await inputFingerprint("handoff", "op", base)), false);
 });
+
+Deno.test("humanTranscript keeps a long multi-issue customer message whole", () => {
+  const long = "Issue one. ".repeat(400) + "LAST ISSUE: refund please"; // ~4400 ký tự
+  assertEquals(humanTranscript([m("user", long, 1)]).endsWith("LAST ISSUE: refund please"), true);
+});
+
+Deno.test("humanTranscript drops the oldest lines beyond the total budget, never the newest", () => {
+  const msgs = Array.from({ length: 10 }, (_, i) => m("user", `${i}:` + "x".repeat(5000), i + 1));
+  const out = humanTranscript(msgs);
+  assertEquals(out.length <= 24000, true, `length ${out.length}`);
+  assertEquals(out.includes("Customer: 9:"), true);
+  assertEquals(out.includes("Customer: 0:"), false);
+});

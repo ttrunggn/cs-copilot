@@ -81,3 +81,10 @@ Deno.test("ensureEnglish ignores duplicate or out-of-range indices", async () =>
   const out = await ensureEnglish([msg(1, "Bonjour tout le monde")], ai, () => Promise.resolve());
   assertEquals(out[0].content_en, "Hello");
 });
+
+Deno.test("ensureEnglish sends a long message whole for translation", async () => {
+  const long = "Je veux un remboursement. ".repeat(160) + "DERNIER POINT";
+  const { ai, prompts } = fakeAi(() => JSON.stringify({ items: [{ i: 0, en: "ok" }] }));
+  await ensureEnglish([msg(1, long)], ai, () => Promise.resolve());
+  assertEquals(prompts[0].includes("DERNIER POINT"), true);
+});
