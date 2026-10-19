@@ -98,6 +98,7 @@ export function makeDeps(opts: {
     matchHelpdesk: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
+    getJiraRows: () => Promise.resolve([]),
     ...over,
   };
   const n8n: N8n = {

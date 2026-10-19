@@ -1,4 +1,4 @@
-import { describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
+import { describeShape, handoffStatus, insertResultMessage, toJiraViewModel, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
 import { acceptReply, bridgeState, draftInsert, newRequestId, PING_TIMEOUT_MS, PROTOCOL } from "./bridge-core.js";
 
 const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
@@ -207,6 +207,21 @@ function handoffPanel() {
   ]);
 }
 
+function jiraPanel() {
+  const items = toJiraViewModel(check?.jira);
+  if (!items.length) return null;
+  return el("section", { className: "card" }, items.map((j) =>
+    el("div", { className: "jira" }, [
+      el("div", { className: "row" }, [
+        j.url ? el("a", { href: j.url, target: "_blank", rel: "noopener noreferrer", textContent: j.title }) : el("strong", { textContent: j.title }),
+        j.isNew ? el("span", { className: "badge new", textContent: "MỚI" }) : null,
+      ]),
+      j.summary ? el("p", { className: "muted", textContent: j.summary }) : null,
+      j.news.length ? el("ul", { className: "meta" }, j.news.map((t) => el("li", { textContent: t }))) : null,
+    ])
+  ));
+}
+
 function render() {
   if (!check) return;
   const vm = toViewModel(check, Date.now());
@@ -216,6 +231,7 @@ function render() {
     vm.stale ? el("span", { className: "badge", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
     vm.unanswered.length ? el("ul", { className: "pending" }, vm.unanswered.map((t) => el("li", { textContent: t }))) : null,
     el("ul", { className: "meta" }, vm.meta.map((t) => el("li", { textContent: t }))),
+    jiraPanel(),
     el("div", { className: "actions" }, [
       el("button", { className: "primary", textContent: "📋 Handoff", disabled, onclick: () => onHandoff(false) }),
       el("button", { textContent: "✨ Soạn tin", disabled, onclick: () => onGenerate(false) }),

@@ -2,6 +2,7 @@ import { humanTranscript, inputFingerprint } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
+import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
 import { formatHandoffNote, HANDOFF_SCHEMA, handoffPrompt, parseHandoff } from "../_shared/prompts.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
 import type { Workspace } from "../_shared/types.ts";
@@ -42,7 +43,8 @@ export async function runHandoff(
 
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
   const topicLabel = ws.topics.find((t) => t.key === conv.topic)?.label ?? null;
-  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES), topicLabel, ""), {
+  const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
+  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES), topicLabel, jira), {
     schema: HANDOFF_SCHEMA,
   });
   let fields;

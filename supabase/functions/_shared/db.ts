@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { AiStore } from "./gemini.ts";
 import type { HelpdeskStore } from "../embed-helpdesk/handler.ts";
+import type { JiraStore, TrackedLink } from "../jira-sync/handler.ts";
+import type { JiraComment, JiraIssue, JiraLink } from "./jira.ts";
 import type { CaseMatch, ConversationRow, HelpdeskChunk, MessageRow, NewOutput, OutputRow, ProfileRow, Variant, Workspace } from "./types.ts";
 
 const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,posted,created_at";
@@ -24,6 +26,7 @@ export interface Db {
   matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
   matchCases(websiteId: string, embedding: number[], k: number): Promise<CaseMatch[]>;
   getVariants(task: "draft"): Promise<Variant[]>;
+  getJiraRows(websiteId: string, sessionId: string): Promise<{ link: JiraLink; issue: JiraIssue | null }[]>;
 }
 
 export function createDb(sb: SupabaseClient): Db {
@@ -126,6 +129,27 @@ export function createDb(sb: SupabaseClient): Db {
       if (error) throw error;
       return (data ?? []) as CaseMatch[];
     },
+    async getJiraRows(websiteId, sessionId) {
+      const { data: links, error } = await sb.from("jira_links")
+        .select("website_id,session_id,issue_key,url,silent_baseline,last_seen_status,last_seen_comment_at")
+        .eq("website_id", websiteId).eq("session_id", sessionId).order("created_at");
+      if (error) throw error;
+      if (!links?.length) return [];
+      const keys = links.map((l) => l.issue_key as string);
+      const [{ data: issues, error: e1 }, { data: comments, error: e2 }] = await Promise.all([
+        sb.from("jira_issues").select("issue_key,summary,status,status_category,assignee,updated_at,status_changed_at").in("issue_key", keys),
+        sb.from("jira_comments").select("id,issue_key,author,role,body_text,created_at").in("issue_key", keys).order("created_at"),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      return (links as JiraLink[]).map((link) => {
+        const i = (issues ?? []).find((x) => x.issue_key === link.issue_key);
+        return {
+          link,
+          issue: i ? { ...(i as Omit<JiraIssue, "comments">), comments: ((comments ?? []) as (JiraComment & { issue_key: string })[]).filter((c) => c.issue_key === link.issue_key) } : null,
+        };
+      });
+    },
     async getVariants(task) {
       const { data, error } = await sb.from("prompt_variants").select("prompt_version,template_notes,weight").eq("task", task);
       if (error) throw error;
@@ -167,6 +191,57 @@ export function createHelpdeskStore(sb: SupabaseClient): HelpdeskStore {
         p_hash: hash,
         p_chunks: chunks.map((c) => ({ text: c.text, embedding: JSON.stringify(c.embedding) })),
       });
+      if (error) throw error;
+    },
+  };
+}
+
+export function createJiraStore(sb: SupabaseClient): JiraStore {
+  return {
+    async csNames() {
+      const [{ data: ops, error: e1 }, { data: ws, error: e2 }] = await Promise.all([
+        sb.from("operators").select("display_name,jira_display_name"),
+        sb.from("workspaces").select("cs_jira_authors"),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      const names = new Set<string>();
+      for (const o of ops ?? []) for (const n of [o.display_name, o.jira_display_name]) if (n) names.add(n as string);
+      for (const w of ws ?? []) for (const n of (w.cs_jira_authors as string[] | null) ?? []) names.add(n);
+      return [...names];
+    },
+    async saveIssue(issue) {
+      const { data: prev, error: e0 } = await sb.from("jira_issues").select("status,status_changed_at").eq("issue_key", issue.issue_key).maybeSingle();
+      if (e0) throw e0;
+      const changed = prev && prev.status !== issue.status;
+      const { error } = await sb.from("jira_issues").upsert({
+        issue_key: issue.issue_key,
+        summary: issue.summary,
+        status: issue.status,
+        status_category: issue.status_category,
+        assignee: issue.assignee,
+        updated_at: issue.updated_at,
+        status_changed_at: changed ? new Date().toISOString() : prev?.status_changed_at ?? null,
+        synced_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      if (issue.comments.length) {
+        const { error: e2 } = await sb.from("jira_comments").upsert(issue.comments.map((c) => ({ ...c, issue_key: issue.issue_key })));
+        if (e2) throw e2;
+      }
+    },
+    async linksFor(keys) {
+      const { data, error } = await sb.from("jira_links")
+        .select("website_id,session_id,issue_key,url,silent_baseline,last_seen_status,last_seen_comment_at").eq("active", true).in("issue_key", keys);
+      if (error) throw error;
+      const { data: ws, error: e2 } = await sb.from("workspaces").select("website_id,jira_auto_note");
+      if (e2) throw e2;
+      const auto = new Map((ws ?? []).map((w) => [w.website_id as string, w.jira_auto_note as boolean]));
+      return ((data ?? []) as JiraLink[]).map((l): TrackedLink => ({ ...l, auto_note: auto.get(l.website_id) ?? true }));
+    },
+    async updateLink(link, patch) {
+      const { error } = await sb.from("jira_links").update(patch)
+        .eq("website_id", link.website_id).eq("session_id", link.session_id).eq("issue_key", link.issue_key);
       if (error) throw error;
     },
   };

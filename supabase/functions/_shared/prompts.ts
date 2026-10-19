@@ -79,6 +79,7 @@ export function draftPrompt(i: {
   helpdesk: HelpdeskChunk[];
   cases: CaseMatch[];
   variantNotes: string | null;
+  jira?: string;
 }): string {
   const p = i.profile;
   const parts = [
@@ -118,6 +119,13 @@ export function draftPrompt(i: {
   if (i.cases.length) {
     const cs = i.cases.map((c) => `- ${neutralize(c.summary)}${c.final_reply ? `\n  Reply: ${neutralize(c.final_reply)}` : ""}`).join("\n");
     parts.push(`Similar past cases (for reference, may be outdated):\n<cases>\n${cs}\n</cases>`);
+  }
+  if (i.jira) {
+    parts.push(
+      "Jira tickets the team opened for this customer (internal). If a ticket has news the customer has not been told yet, " +
+        "relay it in plain words; never paste ticket links, keys or internal names.\n" +
+        `<jira>\n${i.jira}\n</jira>`,
+    );
   }
   if (i.variantNotes) parts.push(`Extra guidance: ${i.variantNotes}`);
   parts.push(`${DATA_ONLY}\n<conversation>\n${neutralize(i.transcript)}\n</conversation>`);

@@ -56,6 +56,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     matchHelpdesk: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
+    getJiraRows: () => Promise.resolve([]),
     ...over,
   };
   const n8n: N8n = {

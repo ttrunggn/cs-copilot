@@ -106,3 +106,18 @@ const INSERT_MESSAGES = {
 export function insertResultMessage(status) {
   return INSERT_MESSAGES[status] ?? INSERT_MESSAGES.composer_not_found;
 }
+
+/** Ticket Jira của chat: tiêu đề + badge MỚI + các tin mới kể từ lần CS trả lời gần nhất. Link chỉ nhận https. */
+export function toJiraViewModel(items, now = Date.now()) {
+  return (items ?? []).map((j) => ({
+    key: j.issue_key,
+    url: typeof j.url === "string" && HTTPS_URL.test(j.url) ? j.url : null,
+    title: `${j.issue_key} · ${j.status ?? "chưa đồng bộ"}`,
+    summary: j.summary,
+    isNew: j.is_new,
+    news: [
+      ...(j.status_changed ? ["Đổi trạng thái"] : []),
+      ...j.new_comments.slice(-2).map((c) => `${c.role === "tech" ? "Tech" : c.role === "cs" ? "CS" : "Bot"} · ${c.author} (${timeAgo(c.created_at, now)}): ${c.body}`),
+    ],
+  }));
+}

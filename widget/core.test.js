@@ -156,3 +156,14 @@ Deno.test("toDraftViewModel shows how old the draft is", () => {
   const vm = toDraftViewModel({ content: "x", warnings: [], verified: true, helpdesk_matches: 1, created_at: "2026-10-16T09:50:00Z" }, NOW);
   assertEquals(vm.age, "10 phút trước");
 });
+
+Deno.test("toJiraViewModel shows status, NEW badge and the latest new comment", async () => {
+  const { toJiraViewModel } = await import("./core.js");
+  const vm = toJiraViewModel([{
+    issue_key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", summary: "Menu bug", status: "Pending Dev",
+    is_new: true, status_changed: true, new_comments: [{ author: "Dev Minh", role: "tech", body: "Fixed", created_at: "2026-10-16T09:00:00Z" }], recent_comments: [],
+  }, { issue_key: "TNT-2", url: "javascript:alert(1)", summary: null, status: null, is_new: false, status_changed: false, new_comments: [], recent_comments: [] }], NOW);
+  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", title: "TNT-1 · Pending Dev", summary: "Menu bug", isNew: true, news: ["Đổi trạng thái", "Tech · Dev Minh (1 giờ trước): Fixed"] });
+  assertEquals(vm[1].url, null);
+  assertEquals(vm[1].title, "TNT-2 · chưa đồng bộ");
+});

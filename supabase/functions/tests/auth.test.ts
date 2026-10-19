@@ -28,6 +28,7 @@ async function fakeDb(member = true): Promise<Db> {
     matchHelpdesk: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
+    getJiraRows: () => Promise.resolve([]),
   };
 }
 

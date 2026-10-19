@@ -33,3 +33,6 @@ mark.todo { background: #ffe58a; color: #5a4300; border-radius: 3px; padding: 0 
 .notice { margin: 0; color: var(--accent); }
 details.hint summary { cursor: pointer; }
 details.hint ol { margin: 4px 0 0; padding-left: 18px; }
+.badge.new { background: #ffe1e1; color: #b3261e; font-weight: 600; }
+.jira { display: grid; gap: 2px; }
+.jira a { color: var(--accent); font-weight: 600; text-decoration: none; }

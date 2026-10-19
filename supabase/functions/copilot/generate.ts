@@ -13,6 +13,7 @@ import {
   VERIFY_SCHEMA,
   verifyPrompt,
 } from "../_shared/prompts.ts";
+import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
 import type { CaseMatch, HelpdeskChunk, MessageRow, Warning, Workspace } from "../_shared/types.ts";
 import { loadConversation } from "./load.ts";
@@ -115,6 +116,7 @@ export async function runGenerate(
   const { profile, source } = resolveProfile(profiles, topic, ws.default_profile);
   const found = await retrieve(deps, req.website_id, messages);
   const variant = pickVariant(await deps.db.getVariants("draft"));
+  const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
 
   const { text, model } = await deps.ai.generate("draft", draftPrompt({
     profile,
@@ -123,6 +125,7 @@ export async function runGenerate(
     helpdesk: found.helpdesk,
     cases: found.cases,
     variantNotes: variant.template_notes,
+    jira,
   }));
   const draft = text.trim();
   // Draft rỗng (bị chặn an toàn, model không trả gì) thì không lưu, không cache 24h.

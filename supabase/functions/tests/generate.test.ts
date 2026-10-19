@@ -171,3 +171,31 @@ Deno.test("check hides a latest draft written before the newest customer message
   const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };
   assertEquals(body.latest_draft, null);
 });
+
+const JIRA_ROWS = [{
+  link: {
+    website_id: "ws1", session_id: "session_1", issue_key: "TNT-9184", url: "https://firegroup.atlassian.net/browse/TNT-9184",
+    silent_baseline: false, last_seen_status: "Pending Dev", last_seen_comment_at: null,
+  },
+  issue: {
+    issue_key: "TNT-9184", summary: "Switcher missing", status: "Pending Dev", status_category: "indeterminate", assignee: null,
+    updated_at: null, status_changed_at: null,
+    comments: [{ id: "2", author: "Dev Minh", role: "tech" as const, body_text: "Fixed, deploying tomorrow", created_at: "2026-10-15T03:10:00.000Z" }],
+  },
+}];
+
+Deno.test("check lists linked Jira tickets with a NEW flag for tech news after the last agent reply", async () => {
+  const m = makeDeps({ db: { getJiraRows: () => Promise.resolve(JIRA_ROWS) } });
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { jira: { issue_key: string; is_new: boolean }[] };
+  assertEquals(body.jira.map((j) => [j.issue_key, j.is_new]), [["TNT-9184", true]]);
+});
+
+Deno.test("draft prompt carries Jira context so the reply can relay tech updates", async () => {
+  const f = fakeAi({ draft: "ok", verify: '{"warnings":[]}' });
+  const m = makeDeps({ ai: f.ai, db: { getJiraRows: () => Promise.resolve(JIRA_ROWS), matchHelpdesk: () => Promise.resolve([HD]) } });
+  await handle(REQ, TOKEN, m.deps);
+  const p = f.calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("TNT-9184 (Pending Dev): Switcher missing"), true);
+  assertEquals(p.includes("[tech] Dev Minh: Fixed, deploying tomorrow"), true);
+  assertEquals(p.includes("never paste ticket links"), true);
+});

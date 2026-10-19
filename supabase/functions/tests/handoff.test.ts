@@ -140,3 +140,14 @@ Deno.test("unreadable handoff says AI_BAD_OUTPUT, not quota", async () => {
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.body, { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" });
 });
+
+Deno.test("handoff prompt includes the linked Jira tickets", async () => {
+  const { ai, calls } = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const rows = [{
+    link: { website_id: "ws1", session_id: "session_1", issue_key: "TNT-1", url: "u", silent_baseline: false, last_seen_status: null, last_seen_comment_at: null },
+    issue: { issue_key: "TNT-1", summary: "Menu bug", status: "In Progress", status_category: "indeterminate", assignee: null, updated_at: null, comments: [] },
+  }];
+  const { deps } = makeDeps({ ai, db: { getJiraRows: () => Promise.resolve(rows) } });
+  await handle(REQ, TOKEN, deps);
+  assertEquals(calls.find((c) => c.task === "handoff")!.prompt.includes("<jira>\nTNT-1 (In Progress): Menu bug\n</jira>"), true);
+});
