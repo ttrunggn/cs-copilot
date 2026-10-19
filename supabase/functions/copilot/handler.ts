@@ -1,12 +1,15 @@
 import { authorize, authorizeWidget, HttpError } from "../_shared/auth.ts";
-import { unansweredCustomerMessages } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
+import { type Ai, AiUnavailable } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
-import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
+import { runCheck } from "./check.ts";
+import { runHandoff } from "./handoff.ts";
+
+export type { CheckResult } from "./check.ts";
+export type { HandoffResult } from "./handoff.ts";
 
 const ACTIONS = ["check", "handoff", "generate"] as const;
 type Action = typeof ACTIONS[number];
-const MESSAGE_LIMIT = 60;
 // session_id/website_id đi vào URL Crisp ở phía n8n nên phải đúng định dạng Crisp.
 const SESSION_ID = /^session_[\w-]+$/;
 const WEBSITE_ID = /^[\w-]+$/;
@@ -20,19 +23,10 @@ export interface CopilotRequest {
   operator_id: string;
 }
 
-export interface CheckResult {
-  action: "check";
-  stale: boolean;
-  workspace: string;
-  topic: string | null;
-  topic_label: string | null;
-  profile_source: ProfileSource;
-  profile_name: string;
-  needs_reply: boolean;
-  unanswered: string[];
-  last_customer_at: string | null;
-  last_human_operator_at: string | null;
-  jira: unknown[];
+export interface Deps {
+  db: Db;
+  n8n: N8n;
+  ai: Ai;
 }
 
 function parseRequest(body: unknown): CopilotRequest {
@@ -54,48 +48,27 @@ function parseRequest(body: unknown): CopilotRequest {
   };
 }
 
-export async function handle(
-  body: unknown,
-  token: string,
-  deps: { db: Db; n8n: N8n },
-): Promise<{ status: number; body: unknown }> {
+export async function handle(body: unknown, token: string, deps: Deps): Promise<{ status: number; body: unknown }> {
   try {
     const req = parseRequest(body);
     // Token cá nhân (curl/tooling) hoặc widget trong Crisp (token website + operator từ SDK).
     const { workspace: ws, operatorId } = token
       ? await authorize(deps.db, { website_id: req.website_id, token })
       : await authorizeWidget(deps.db, req);
-    if (req.action !== "check") throw new HttpError(501, `Chức năng ${req.action} chưa có`);
-
-    const { stale } = await deps.n8n.refreshConversation(req.website_id, req.session_id);
-    const conv = await deps.db.getConversation(req.website_id, req.session_id);
-    if (!conv) throw new HttpError(404, "Chưa có dữ liệu conversation này");
-
-    const [messages, profiles, operator] = await Promise.all([
-      deps.db.getMessages(req.website_id, req.session_id, MESSAGE_LIMIT),
-      deps.db.getProfiles(operatorId, req.website_id),
-      deps.db.getOperator(operatorId),
-    ]);
-    const unanswered = unansweredCustomerMessages(messages);
-    const { source } = resolveProfile(profiles, conv.topic, ws.default_profile);
-
-    const result: CheckResult = {
-      action: "check",
-      stale,
-      workspace: ws.name,
-      topic: conv.topic,
-      topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
-      profile_source: source,
-      profile_name: operator?.display_name ?? operatorId,
-      needs_reply: unanswered.length > 0,
-      unanswered,
-      last_customer_at: conv.last_customer_at,
-      last_human_operator_at: conv.last_human_operator_at,
-      jira: [],
-    };
-    return { status: 200, body: result };
+    switch (req.action) {
+      case "check":
+        return { status: 200, body: await runCheck(req, ws, operatorId, deps) };
+      case "handoff":
+        return { status: 200, body: await runHandoff(req, ws, operatorId, deps) };
+      default:
+        throw new HttpError(501, `Chức năng ${req.action} chưa có`);
+    }
   } catch (e) {
     if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };
+    if (e instanceof AiUnavailable) {
+      console.error("copilot ai unavailable", e.message);
+      return { status: 503, body: { error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE" } };
+    }
     console.error("copilot error", e);
     return { status: 500, body: { error: "Lỗi hệ thống, thử lại sau" } };
   }

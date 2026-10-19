@@ -95,3 +95,24 @@ export interface HandoffFields {
   waiting_on: WaitingOn;
   next_step: string;
 }
+
+export interface OutputRow {
+  id: number;
+  kind: "draft" | "handoff";
+  content: string;
+  warnings: Warning[];
+  verified: boolean | null;
+  helpdesk_matches: number | null;
+  topic: string | null;
+  prompt_version: string | null;
+  created_at: string;
+}
+
+export type NewOutput = Omit<OutputRow, "id" | "created_at"> & {
+  website_id: string;
+  session_id: string;
+  operator_id: string;
+  input_fp: string;
+  profile_used: string | null;
+  model: string | null;
+};

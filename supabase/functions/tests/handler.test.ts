@@ -3,6 +3,7 @@ import { handle } from "../copilot/handler.ts";
 import { sha256Hex } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
 import type { N8n } from "../_shared/n8n.ts";
+import { fakeAi } from "./fakes.ts";
 import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "../_shared/types.ts";
 
 const WS: Workspace = {
@@ -47,13 +48,15 @@ function deps(over: Partial<Db> = {}, stale = false) {
     saveTranslations: () => Promise.resolve(),
     getProfiles: () => Promise.resolve(PROFILES),
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
+    findCachedOutput: () => Promise.resolve(null),
+    insertOutput: () => Promise.resolve(1),
     ...over,
   };
   const n8n: N8n = {
     refreshConversation: () => Promise.resolve({ stale }),
     postNote: () => Promise.resolve(true),
   };
-  return { db, n8n };
+  return { db, n8n, ai: fakeAi({}).ai };
 }
 
 const REQ = { website_id: "ws1", session_id: "session_1", action: "check" };
@@ -86,8 +89,8 @@ Deno.test("unknown action -> 400", async () => {
   assertEquals((await handle({ ...REQ, action: "delete" }, TOKEN, deps())).status, 400);
 });
 
-Deno.test("handoff not available yet -> 501", async () => {
-  assertEquals((await handle({ ...REQ, action: "handoff" }, TOKEN, deps())).status, 501);
+Deno.test("generate not available yet -> 501", async () => {
+  assertEquals((await handle({ ...REQ, action: "generate" }, TOKEN, deps())).status, 501);
 });
 
 Deno.test("missing session_id -> 400", async () => {

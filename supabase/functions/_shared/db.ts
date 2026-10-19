@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { AiStore } from "./gemini.ts";
-import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "./types.ts";
+import type { ConversationRow, MessageRow, NewOutput, OutputRow, ProfileRow, Workspace } from "./types.ts";
+
+const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,created_at";
+const CACHE_HOURS = 24;
 
 export interface Db {
   getWorkspace(websiteId: string): Promise<Workspace | null>;
@@ -12,6 +15,8 @@ export interface Db {
   saveTranslations(rows: { id: number; content_en: string }[]): Promise<void>;
   getProfiles(operatorId: string, websiteId: string): Promise<ProfileRow[]>;
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
+  findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>;
+  insertOutput(row: NewOutput): Promise<number>;
 }
 
 export function createDb(sb: SupabaseClient): Db {
@@ -73,6 +78,20 @@ export function createDb(sb: SupabaseClient): Db {
         .eq("crisp_user_id", operatorId).maybeSingle();
       if (error) throw error;
       return data as { display_name: string | null } | null;
+    },
+    async findCachedOutput(q) {
+      const since = new Date(Date.now() - CACHE_HOURS * 3600_000).toISOString();
+      const { data, error } = await sb.from("outputs").select(OUTPUT_COLUMNS)
+        .eq("website_id", q.websiteId).eq("session_id", q.sessionId).eq("operator_id", q.operatorId)
+        .eq("kind", q.kind).eq("input_fp", q.inputFp).gt("created_at", since)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (error) throw error;
+      return data as OutputRow | null;
+    },
+    async insertOutput(row) {
+      const { data, error } = await sb.from("outputs").insert(row).select("id").single();
+      if (error) throw error;
+      return data.id as number;
     },
   };
 }

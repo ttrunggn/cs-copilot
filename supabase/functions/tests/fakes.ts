@@ -1,0 +1,105 @@
+// Dependency giả dùng chung cho test handler/handoff/generate.
+import { sha256Hex } from "../_shared/auth.ts";
+import type { Db } from "../_shared/db.ts";
+import type { Ai, AiTask } from "../_shared/gemini.ts";
+import type { N8n } from "../_shared/n8n.ts";
+import type { ConversationRow, MessageRow, NewOutput, OutputRow, Workspace } from "../_shared/types.ts";
+
+export const TOKEN = "tok-lan";
+export const TOKEN_HASH = await sha256Hex(TOKEN);
+
+export const WS: Workspace = {
+  website_id: "ws1",
+  name: "App A",
+  topics: [
+    { key: "billing", label: "Thanh toán & gói", segments: ["billing"] },
+    { key: "translation", label: "Dịch nội dung", segments: [] },
+  ],
+  default_profile: {},
+};
+
+export const CONV: ConversationRow = {
+  website_id: "ws1",
+  session_id: "session_1",
+  customer_email: "k@x.io",
+  customer_name: "Khách",
+  topic: "billing",
+  topic_source: "segment",
+  state: "unresolved",
+  last_customer_at: "2026-10-15T03:03:00+00:00",
+  last_human_operator_at: "2026-10-15T03:02:00+00:00",
+};
+
+let id = 100;
+export function msg(from: "user" | "operator", content: string, minute: number, extra: Partial<MessageRow> = {}): MessageRow {
+  return {
+    id: id++,
+    content_en: null,
+    from,
+    type: "text",
+    is_bot: false,
+    content,
+    created_at: `2026-10-15T03:${String(minute).padStart(2, "0")}:00+00:00`,
+    operator_name: from === "operator" ? "Lan" : null,
+    ...extra,
+  };
+}
+
+export type AiReply = string | Error;
+
+/** AI giả: trả lời theo task, ghi lại prompt từng lần gọi. */
+export function fakeAi(replies: Partial<Record<AiTask, AiReply | ((prompt: string) => AiReply)>>, embedding: number[] | Error = [0.1]) {
+  const calls: { task: AiTask; prompt: string }[] = [];
+  const ai: Ai = {
+    generate(task, prompt) {
+      calls.push({ task, prompt });
+      const r = replies[task];
+      const v = typeof r === "function" ? r(prompt) : r;
+      if (v === undefined) return Promise.reject(new Error(`unexpected ai task ${task}`));
+      return v instanceof Error ? Promise.reject(v) : Promise.resolve({ text: v, model: "m-test" });
+    },
+    embed(texts) {
+      calls.push({ task: "embed", prompt: texts.join("\n") });
+      return embedding instanceof Error ? Promise.reject(embedding) : Promise.resolve(texts.map(() => embedding));
+    },
+  };
+  return { ai, calls };
+}
+
+export function makeDeps(opts: {
+  db?: Partial<Db>;
+  messages?: MessageRow[];
+  ai?: Ai;
+  stale?: boolean;
+  postOk?: boolean;
+  cached?: OutputRow | null;
+} = {}) {
+  const over: Partial<Db> = opts.db ?? {};
+  const inserted: NewOutput[] = [];
+  const notes: string[] = [];
+  const db: Db = {
+    getWorkspace: () => Promise.resolve(WS),
+    getWidgetTokenHash: () => Promise.resolve(null),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
+    isOperatorMember: () => Promise.resolve(true),
+    getConversation: () => Promise.resolve(CONV),
+    getMessages: () => Promise.resolve(opts.messages ?? [msg("user", "a", 1), msg("operator", "b", 2), msg("user", "c", 3)]),
+    saveTranslations: () => Promise.resolve(),
+    getProfiles: () => Promise.resolve([]),
+    getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
+    findCachedOutput: () => Promise.resolve(opts.cached ?? null),
+    insertOutput: (row) => {
+      inserted.push(row);
+      return Promise.resolve(42);
+    },
+    ...over,
+  };
+  const n8n: N8n = {
+    refreshConversation: () => Promise.resolve({ stale: opts.stale ?? false }),
+    postNote: (_w, _s, content) => {
+      notes.push(content);
+      return Promise.resolve(opts.postOk ?? true);
+    },
+  };
+  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, notes };
+}
