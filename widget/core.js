@@ -20,6 +20,7 @@ export function mapError(status, body) {
   if (status === 401) return { kind: "fatal", message: msg ?? "Widget không hợp lệ cho workspace này" };
   if (status === 403) return { kind: "forbidden", message: msg ?? "Bạn chưa được cấp quyền ở workspace này" };
   if (status === 404) return { kind: "retry", message: "Chưa có dữ liệu conversation này, thử lại sau vài giây" };
+  if (status === 503 && body?.code === "AI_UNAVAILABLE") return { kind: "retry", message: "AI đang hết quota hoặc lỗi, thử lại sau" };
   return { kind: "fatal", message: "Không kết nối được copilot, thử lại sau" };
 }
 
@@ -62,4 +63,38 @@ export function describeShape(data) {
   return Object.entries(data)
     .map(([k, v]) => (v && typeof v === "object" && !Array.isArray(v) ? `${k}{${Object.keys(v).join(",")}}` : k))
     .join(", ");
+}
+
+const HTTPS_URL = /^https:\/\//;
+
+/** Draft từ generate hoặc latest_draft của check → dữ liệu hiển thị. Link cảnh báo chỉ nhận https. */
+export function toDraftViewModel(out) {
+  const text = out.draft ?? out.content ?? "";
+  const badge = out.verified !== true
+    ? "Chưa đối chiếu helpdesk"
+    : out.helpdesk_matches === 0
+    ? "Không có bài helpdesk liên quan"
+    : "Đã đối chiếu helpdesk";
+  return {
+    text,
+    todos: (text.match(/\[\[CS:[^\]]*\]\]/g) ?? []).length,
+    badge,
+    warnings: (out.warnings ?? []).map((w) => ({
+      claim: w.claim,
+      reason: w.reason,
+      url: typeof w.article_url === "string" && HTTPS_URL.test(w.article_url) ? w.article_url : null,
+    })),
+  };
+}
+
+const INSERT_MESSAGES = {
+  inserted: "Đã điền draft vào ô Reply, đọc lại rồi bấm Send",
+  session_mismatch: "Draft của chat khác đã sẵn sàng, mở lại đúng chat để điền",
+  not_empty: "Ô Reply đang có chữ",
+  duplicate: "Draft này đã được điền rồi",
+  composer_not_found: "Không tìm thấy ô Reply, bấm Copy rồi dán bằng Ctrl+V",
+};
+
+export function insertResultMessage(status) {
+  return INSERT_MESSAGES[status] ?? INSERT_MESSAGES.composer_not_found;
 }

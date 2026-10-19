@@ -20,3 +20,16 @@ button { font: inherit; border: 1px solid var(--line); background: var(--card); 
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .token { display: grid; gap: 6px; }
 .token input { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+button:disabled { opacity: .55; cursor: default; }
+.card { display: grid; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px; }
+.draft { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+mark.todo { background: #ffe58a; color: #5a4300; border-radius: 3px; padding: 0 2px; }
+.warn { margin: 0; color: var(--warn-fg); font-weight: 600; }
+.warnings { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 4px; }
+.warnings li { background: var(--warn-bg); color: var(--warn-fg); border-radius: 6px; padding: 4px 6px; }
+.warnings a { color: inherit; }
+.notice { margin: 0; color: var(--accent); }
+details.hint summary { cursor: pointer; }
+details.hint ol { margin: 4px 0 0; padding-left: 18px; }

@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { describeShape, mapError, operatorIdFrom, readContext, timeAgo, toViewModel } from "./core.js";
+import { describeShape, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toDraftViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -100,4 +100,39 @@ Deno.test("operatorIdFrom handles the shapes Crisp may return", () => {
 Deno.test("describeShape lists field names only, never values", () => {
   assertEquals(describeShape({ email: "secret@x", operator: { first_name: "Lan" } }), "email, operator{first_name}");
   assertEquals(describeShape(null), "(trống)");
+});
+
+Deno.test("mapError 503 AI_UNAVAILABLE → retry with quota message", () => {
+  assertEquals(mapError(503, { code: "AI_UNAVAILABLE", error: "x" }), { kind: "retry", message: "AI đang hết quota hoặc lỗi, thử lại sau" });
+});
+
+Deno.test("toDraftViewModel badges for verified/unverified/no helpdesk", () => {
+  const base = { draft: "Hi", warnings: [], verified: true, helpdesk_matches: 2 };
+  assertEquals(toDraftViewModel(base).badge, "Đã đối chiếu helpdesk");
+  assertEquals(toDraftViewModel({ ...base, verified: false }).badge, "Chưa đối chiếu helpdesk");
+  assertEquals(toDraftViewModel({ ...base, helpdesk_matches: 0 }).badge, "Không có bài helpdesk liên quan");
+});
+
+Deno.test("toDraftViewModel accepts latest_draft shape and maps warnings", () => {
+  const vm = toDraftViewModel({ content: "Hello", warnings: [{ claim: "c", reason: "r", article_url: "https://h/a" }], verified: null });
+  assertEquals(vm.text, "Hello");
+  assertEquals(vm.warnings, [{ claim: "c", reason: "r", url: "https://h/a" }]);
+  assertEquals(vm.badge, "Chưa đối chiếu helpdesk");
+});
+
+Deno.test("toDraftViewModel counts [[CS]] todos", () => {
+  assertEquals(toDraftViewModel({ draft: "A [[CS: kiểm tra gói]] B [[CS: link]]", warnings: [], verified: true, helpdesk_matches: 1 }).todos, 2);
+});
+
+Deno.test("toDraftViewModel drops non-https warning links", () => {
+  const vm = toDraftViewModel({ draft: "x", warnings: [{ claim: "c", reason: "r", article_url: "javascript:alert(1)" }], verified: true, helpdesk_matches: 1 });
+  assertEquals(vm.warnings[0].url, null);
+});
+
+Deno.test("insertResultMessage covers the 5 statuses", () => {
+  for (const s of ["inserted", "session_mismatch", "not_empty", "duplicate", "composer_not_found"]) {
+    assertEquals(typeof insertResultMessage(s), "string", s);
+    assertEquals(insertResultMessage(s).length > 0, true, s);
+  }
+  assertEquals(insertResultMessage("session_mismatch"), "Draft của chat khác đã sẵn sàng, mở lại đúng chat để điền");
 });
