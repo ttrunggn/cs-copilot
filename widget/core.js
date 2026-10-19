@@ -52,7 +52,7 @@ export function toViewModel(check, now) {
 
 /** user_id của CS đang đăng nhập, chấp nhận các cấu trúc mà $crisp.data.operator có thể trả về. */
 export function operatorIdFrom(data) {
-  const id = data?.user_id ?? data?.operator?.user_id ?? data?.data?.user_id ?? data?.details?.user_id;
+  const id = data?.user_id ?? data?.operator?.user_id ?? data?.data?.operator?.user_id ?? data?.data?.user_id ?? data?.details?.user_id;
   return typeof id === "string" ? id : "";
 }
 

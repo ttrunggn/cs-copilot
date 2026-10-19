@@ -91,6 +91,8 @@ Deno.test("operatorIdFrom handles the shapes Crisp may return", () => {
   assertEquals(operatorIdFrom({ operator: { user_id: "u2" } }), "u2");
   assertEquals(operatorIdFrom({ data: { user_id: "u3" } }), "u3");
   assertEquals(operatorIdFrom({ details: { user_id: "u4" } }), "u4");
+  // Cấu trúc thực tế trong Crisp (đo trên Transcy): data{operator}
+  assertEquals(operatorIdFrom({ data: { operator: { user_id: "u5" } } }), "u5");
   assertEquals(operatorIdFrom({ email: "x@y" }), "");
   assertEquals(operatorIdFrom(undefined), "");
 });
