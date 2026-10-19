@@ -55,3 +55,4 @@ curl -s -X POST https://<project-ref>.supabase.co/functions/v1/copilot \
   update public.operators set copilot_token_hash = null where email = '<email>';
   ```
 - Cấp lại token (token cũ mất hiệu lực): `select public.issue_copilot_token('<crisp_user_id>');`
+- Widget trong Crisp không cần token cá nhân: Edge Function tin `token` của website (Crisp gắn vào URL iframe) cộng `operator_id` do SDK báo. Hệ quả: một CS trong workspace có thể mạo danh CS khác; người đã nghỉ nếu giữ lại token website vẫn đọc được kết quả `check` khi biết `user_id` của một CS còn active. Khi có người nghỉ mà cần chặn ngay: tạo lại token website của plugin (cài lại plugin trên website), rồi cập nhật `workspaces.crisp_widget_token_hash` = sha256 của token mới.
