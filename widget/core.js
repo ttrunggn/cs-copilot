@@ -49,3 +49,17 @@ export function toViewModel(check, now) {
     ],
   };
 }
+
+/** user_id của CS đang đăng nhập, chấp nhận các cấu trúc mà $crisp.data.operator có thể trả về. */
+export function operatorIdFrom(data) {
+  const id = data?.user_id ?? data?.operator?.user_id ?? data?.data?.user_id ?? data?.details?.user_id;
+  return typeof id === "string" ? id : "";
+}
+
+/** Liệt kê tên trường (không lộ giá trị) để chẩn đoán cấu trúc dữ liệu Crisp trả về. */
+export function describeShape(data) {
+  if (!data || typeof data !== "object") return "(trống)";
+  return Object.entries(data)
+    .map(([k, v]) => (v && typeof v === "object" && !Array.isArray(v) ? `${k}{${Object.keys(v).join(",")}}` : k))
+    .join(", ");
+}

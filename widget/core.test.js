@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { mapError, readContext, timeAgo, toViewModel } from "./core.js";
+import { describeShape, mapError, operatorIdFrom, readContext, timeAgo, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -84,4 +84,18 @@ Deno.test("escapes and truncates long customer messages", () => {
 
 Deno.test("stale flag passes through", () => {
   assertEquals(toViewModel({ ...CHECK, stale: true }, NOW).stale, true);
+});
+
+Deno.test("operatorIdFrom handles the shapes Crisp may return", () => {
+  assertEquals(operatorIdFrom({ user_id: "u1" }), "u1");
+  assertEquals(operatorIdFrom({ operator: { user_id: "u2" } }), "u2");
+  assertEquals(operatorIdFrom({ data: { user_id: "u3" } }), "u3");
+  assertEquals(operatorIdFrom({ details: { user_id: "u4" } }), "u4");
+  assertEquals(operatorIdFrom({ email: "x@y" }), "");
+  assertEquals(operatorIdFrom(undefined), "");
+});
+
+Deno.test("describeShape lists field names only, never values", () => {
+  assertEquals(describeShape({ email: "secret@x", operator: { first_name: "Lan" } }), "email, operator{first_name}");
+  assertEquals(describeShape(null), "(trống)");
 });

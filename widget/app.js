@@ -1,4 +1,4 @@
-import { mapError, readContext, toViewModel } from "./core.js";
+import { describeShape, mapError, operatorIdFrom, readContext, toViewModel } from "./core.js";
 
 const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
 const app = document.getElementById("app");
@@ -66,8 +66,11 @@ async function load() {
 window.CRISP_READY_TRIGGER = () => {
   $crisp.onDataAcquired = (namespace) => {
     if (namespace !== "operator") return;
-    operatorId = String($crisp.data.operator?.user_id ?? "");
-    if (!operatorId) return showMessage("Plugin chưa có quyền đọc thông tin CS (scope website:operators)");
+    operatorId = operatorIdFrom($crisp.data.operator);
+    if (!operatorId) {
+      console.warn("[copilot] operator data shape:", describeShape($crisp.data.operator));
+      return showMessage(`Không đọc được CS đang đăng nhập. Crisp trả về: ${describeShape($crisp.data.operator)}`);
+    }
     load();
   };
   $crisp.acquireData("operator");
