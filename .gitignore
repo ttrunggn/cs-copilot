@@ -6,3 +6,4 @@ supabase/.temp/
 n8n/.deploy/
 
 extension/dist/
+.vscode/
