@@ -1,8 +1,9 @@
 // Học giọng văn từng CS từ chatlog 90 ngày. Chạy tay khi muốn cập nhật (vd mỗi tuần):
-//   deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id> [--skip-classify]
+//   deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id> [--skip-classify] [--skip-profiles] [--skip-cases]
 // 1) Phân loại topic theo lô cho hội thoại chưa có topic (theo bộ topic của workspace).
 // 2) Mỗi CS: profile "_all" + profile riêng cho topic có ≥ min_conversations_per_topic hội thoại.
 //    Bỏ chat email hệ thống. Trường nào có trong manual_override vẫn thắng lúc dùng (không bị ghi đè).
+// 3) Tóm tắt hội thoại đã resolve chưa có trong `cases` thành case tương tự cho Soạn tin.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createAiStore } from "../supabase/functions/_shared/db.ts";
 import { createGemini } from "../supabase/functions/_shared/gemini.ts";
@@ -17,8 +18,11 @@ import {
   parseClassifyBatch,
   parseLearned,
   pickSamples,
+  SKIP_TOPICS,
 } from "../supabase/functions/_shared/learn.ts";
-import type { Topic } from "../supabase/functions/_shared/types.ts";
+import { casePrompt, caseSchema, lastAgentReply, parseCases } from "../supabase/functions/_shared/cases.ts";
+import { humanTranscript } from "../supabase/functions/_shared/context.ts";
+import type { MessageRow, Topic } from "../supabase/functions/_shared/types.ts";
 
 const [websiteId, ...flags] = Deno.args;
 if (!websiteId) throw new Error("Cần website_id");
@@ -102,7 +106,7 @@ const { data: ops } = await sb.from("operators").select("crisp_user_id,display_n
 const nameOf = new Map((ops ?? []).map((o) => [o.crisp_user_id as string, (o.display_name as string) ?? o.crisp_user_id]));
 const label = (key: string) => (key === "_all" ? null : topics.find((t) => t.key === key)?.label ?? key);
 
-for (const [opId, groups] of groupForLearning(opMsgs, topicOf, ws.min_conversations_per_topic)) {
+for (const [opId, groups] of flags.includes("--skip-profiles") ? [] : groupForLearning(opMsgs, topicOf, ws.min_conversations_per_topic)) {
   for (const [topic, msgs] of groups) {
     const samples = pickSamples(msgs);
     const name = nameOf.get(opId) ?? opId;
@@ -127,4 +131,61 @@ for (const [opId, groups] of groupForLearning(opMsgs, topicOf, ws.min_conversati
       console.warn(`- ${name} / ${topic}: lỗi ${e instanceof Error ? e.message : e}`);
     }
   }
+}
+
+// ---------- 3) case tương tự ----------
+// Hội thoại đã resolve có CS người thật trả lời, chưa có trong `cases` → tóm tắt + embed để Soạn tin tham khảo.
+if (!flags.includes("--skip-cases")) {
+  const CASE_BATCH = 8;
+  const done = new Set(
+    (await all<{ session_id: string }>((a, b) => sb.from("cases").select("session_id").eq("website_id", websiteId).range(a, b)))
+      .map((r) => r.session_id),
+  );
+  const resolved = await all<{ session_id: string; topic: string | null; resolved_at: string | null; updated_at: string }>((a, b) =>
+    sb.from("conversations").select("session_id,topic,resolved_at,updated_at").eq("website_id", websiteId).eq("state", "resolved")
+      .gt("updated_at", since).range(a, b)
+  );
+  const rows = await all<MessageRow & { session_id: string }>((a, b) =>
+    sb.from("messages").select("id,session_id,from,type,is_bot,content,content_en,created_at,operator_name").eq("website_id", websiteId)
+      .gt("created_at", since).order("id").range(a, b)
+  );
+  const bySession = new Map<string, MessageRow[]>();
+  for (const r of rows) {
+    if (!bySession.has(r.session_id)) bySession.set(r.session_id, []);
+    bySession.get(r.session_id)!.push(r);
+  }
+  const todo = resolved
+    .filter((c) => !done.has(c.session_id) && !SKIP_TOPICS.includes(c.topic ?? ""))
+    .map((c) => ({ c, msgs: bySession.get(c.session_id) ?? [] }))
+    .filter(({ msgs }) => lastAgentReply(msgs));
+  console.log(`tóm tắt ${todo.length} hội thoại đã resolve thành case…`);
+  let saved = 0, skipped = 0;
+  for (let i = 0; i < todo.length; i += CASE_BATCH) {
+    const batch = todo.slice(i, i + CASE_BATCH);
+    try {
+      const { text } = await ai.generate("case_summary", casePrompt(batch.map(({ msgs }, j) => ({ i: j, transcript: humanTranscript(msgs, 30) }))), {
+        schema: caseSchema,
+      });
+      const parsed = parseCases(text, batch.length);
+      const keep = batch.map((b, j) => ({ ...b, sum: parsed.get(j) })).filter((b) => b.sum);
+      skipped += batch.length - keep.length;
+      if (!keep.length) continue;
+      const vectors = await ai.embed(keep.map((k) => k.sum!.summary), "document");
+      const { error } = await sb.from("cases").upsert(keep.map((k, j) => ({
+        website_id: websiteId,
+        session_id: k.c.session_id,
+        topic: k.c.topic,
+        summary: k.sum!.summary,
+        resolution: k.sum!.resolution,
+        final_reply: lastAgentReply(k.msgs),
+        embedding: JSON.stringify(vectors[j]),
+        resolved_at: k.c.resolved_at ?? k.c.updated_at,
+      })), { onConflict: "website_id,session_id" });
+      if (error) throw error;
+      saved += keep.length;
+    } catch (e) {
+      console.warn(`lô case ${i / CASE_BATCH + 1} lỗi, bỏ qua: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  console.log(`đã lưu ${saved} case, bỏ qua ${skipped} hội thoại không có cách xử lý đáng dùng lại`);
 }
