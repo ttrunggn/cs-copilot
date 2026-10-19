@@ -9,6 +9,7 @@ export interface Db {
   isOperatorMember(operatorId: string, websiteId: string): Promise<boolean>;
   getConversation(websiteId: string, sessionId: string): Promise<ConversationRow | null>;
   getMessages(websiteId: string, sessionId: string, limit: number): Promise<MessageRow[]>;
+  saveTranslations(rows: { id: number; content_en: string }[]): Promise<void>;
   getProfiles(operatorId: string, websiteId: string): Promise<ProfileRow[]>;
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
 }
@@ -49,11 +50,17 @@ export function createDb(sb: SupabaseClient): Db {
     },
     async getMessages(websiteId, sessionId, limit) {
       const { data, error } = await sb.from("messages")
-        .select("from,type,is_bot,content,created_at,operator_name")
+        .select("id,from,type,is_bot,content,content_en,created_at,operator_name")
         .eq("website_id", websiteId).eq("session_id", sessionId)
         .order("created_at", { ascending: false }).limit(limit);
       if (error) throw error;
       return ((data ?? []) as MessageRow[]).reverse();
+    },
+    async saveTranslations(rows) {
+      for (const r of rows) {
+        const { error } = await sb.from("messages").update({ content_en: r.content_en }).eq("id", r.id);
+        if (error) throw error;
+      }
     },
     async getProfiles(operatorId, websiteId) {
       const { data, error } = await sb.from("agent_profiles").select("*")

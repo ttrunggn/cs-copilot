@@ -1,8 +1,11 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { humanTranscript, unansweredCustomerMessages } from "../_shared/context.ts";
+import { humanTranscript, inputFingerprint, latestCustomerQuery, unansweredCustomerMessages } from "../_shared/context.ts";
 import type { MessageRow } from "../_shared/types.ts";
 
+let nextId = 1;
 const m = (from: "user" | "operator", content: string, minute: number, extra: Partial<MessageRow> = {}): MessageRow => ({
+  id: nextId++,
+  content_en: null,
   from,
   type: "text",
   is_bot: false,
@@ -20,12 +23,12 @@ Deno.test("humanTranscript drops bot messages and events, labels notes", () => {
     m("operator", "", 4, { type: "event" }),
     m("operator", "Chào bạn", 5),
   ]);
-  assertEquals(out, "Khách: Hi\nCS (Lan): [Ghi chú nội bộ] check log\nCS (Lan): Chào bạn");
+  assertEquals(out, "Customer: Hi\nAgent (Lan): [Internal note] check log\nAgent (Lan): Chào bạn");
 });
 
 Deno.test("humanTranscript sorts by time and keeps the last N lines", () => {
   const out = humanTranscript([m("user", "c", 3), m("user", "a", 1), m("user", "b", 2)], 2);
-  assertEquals(out, "Khách: b\nKhách: c");
+  assertEquals(out, "Customer: b\nCustomer: c");
 });
 
 Deno.test("unanswered: trailing customer messages after last human reply", () => {
@@ -48,4 +51,31 @@ Deno.test("unanswered: internal notes do not count as a reply", () => {
 
 Deno.test("unanswered: empty when a human CS replied last", () => {
   assertEquals(unansweredCustomerMessages([m("user", "a", 1), m("operator", "ok", 2)]), []);
+});
+
+Deno.test("humanTranscript uses content_en and English labels", () => {
+  const out = humanTranscript([m("user", "Je veux un remboursement", 1, { content_en: "I want a refund" }), m("operator", "Sure", 2)]);
+  assertEquals(out, "Customer: I want a refund\nAgent (Lan): Sure");
+});
+
+Deno.test("latestCustomerQuery prefers unanswered English text", () => {
+  const q = latestCustomerQuery([
+    m("user", "old", 1),
+    m("operator", "ok", 2),
+    m("user", "Bonjour", 3, { content_en: "Hello" }),
+    m("user", "switcher cassé", 4, { content_en: "switcher broken" }),
+  ]);
+  assertEquals(q, "Hello\nswitcher broken");
+});
+
+Deno.test("latestCustomerQuery falls back to the last customer message", () => {
+  assertEquals(latestCustomerQuery([m("user", "a", 1), m("user", "b", 2), m("operator", "done", 3)]), "b");
+});
+
+Deno.test("inputFingerprint changes when a message is added", async () => {
+  const base = [m("user", "a", 1)];
+  const a = await inputFingerprint("draft", "op", base);
+  assertEquals(a, await inputFingerprint("draft", "op", base));
+  assertEquals(a === (await inputFingerprint("draft", "op", [...base, m("operator", "b", 2)])), false);
+  assertEquals(a === (await inputFingerprint("handoff", "op", base)), false);
 });

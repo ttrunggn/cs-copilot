@@ -1,4 +1,6 @@
 export interface MessageRow {
+  id: number;
+  content_en: string | null;
   from: "user" | "operator";
   type: string;
   is_bot: boolean;

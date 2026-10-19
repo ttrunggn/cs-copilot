@@ -23,9 +23,9 @@ const CONV: ConversationRow = {
   last_human_operator_at: "2026-10-15T03:02:00+00:00",
 };
 const MSGS: MessageRow[] = [
-  { from: "user", type: "text", is_bot: false, content: "a", created_at: "2026-10-15T03:01:00+00:00", operator_name: null },
-  { from: "operator", type: "text", is_bot: false, content: "b", created_at: "2026-10-15T03:02:00+00:00", operator_name: "Lan" },
-  { from: "user", type: "text", is_bot: false, content: "c", created_at: "2026-10-15T03:03:00+00:00", operator_name: null },
+  { id: 1, content_en: null, from: "user", type: "text", is_bot: false, content: "a", created_at: "2026-10-15T03:01:00+00:00", operator_name: null },
+  { id: 2, content_en: null, from: "operator", type: "text", is_bot: false, content: "b", created_at: "2026-10-15T03:02:00+00:00", operator_name: "Lan" },
+  { id: 3, content_en: null, from: "user", type: "text", is_bot: false, content: "c", created_at: "2026-10-15T03:03:00+00:00", operator_name: null },
 ];
 const PROFILES: ProfileRow[] = [
   { crisp_user_id: "op-lan", website_id: "ws1", topic: "billing", tone: "chi tiết", conversations_used: 9, learned_at: null, manual_override: null },
@@ -44,6 +44,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     isOperatorMember: () => Promise.resolve(true),
     getConversation: () => Promise.resolve(CONV),
     getMessages: () => Promise.resolve(MSGS),
+    saveTranslations: () => Promise.resolve(),
     getProfiles: () => Promise.resolve(PROFILES),
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     ...over,

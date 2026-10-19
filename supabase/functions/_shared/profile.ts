@@ -3,9 +3,9 @@ import type { Profile, ProfileRow } from "./types.ts";
 export type ProfileSource = "topic" | "all" | "default";
 
 export const BUILTIN_PROFILE: Profile = {
-  tone: "thân thiện, lịch sự, ngắn gọn",
-  pronoun_self: "mình",
-  pronoun_customer: "bạn",
+  tone: "friendly, polite, concise",
+  pronoun_self: "I",
+  pronoun_customer: "you",
   use_emoji: false,
   signature: null,
   sample_messages: [],

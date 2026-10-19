@@ -19,6 +19,7 @@ async function fakeDb(member = true): Promise<Db> {
     getMessages: () => Promise.resolve([]),
     getProfiles: () => Promise.resolve([]),
     getOperator: () => Promise.resolve(null),
+    saveTranslations: () => Promise.resolve(),
   };
 }
 

@@ -55,3 +55,7 @@ Deno.test("null learned fields do not erase defaults", () => {
   assertEquals(r.profile.tone, "ws tone");
   assertEquals(r.profile.pronoun_self, BUILTIN_PROFILE.pronoun_self);
 });
+
+Deno.test("built-in profile writes in English", () => {
+  assertEquals([BUILTIN_PROFILE.pronoun_self, BUILTIN_PROFILE.pronoun_customer, BUILTIN_PROFILE.tone], ["I", "you", "friendly, polite, concise"]);
+});
