@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { AiStore } from "./gemini.ts";
+import type { HelpdeskStore } from "../embed-helpdesk/handler.ts";
 import type { CaseMatch, ConversationRow, HelpdeskChunk, MessageRow, NewOutput, OutputRow, ProfileRow, Variant, Workspace } from "./types.ts";
 
 const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,created_at";
@@ -137,6 +138,30 @@ export function createAiStore(sb: SupabaseClient): AiStore {
     },
     async logUsage(model, task, is429) {
       const { error } = await sb.rpc("log_ai_usage", { p_model: model, p_task: task, p_is_429: is429 });
+      if (error) throw error;
+    },
+  };
+}
+
+export function createHelpdeskStore(sb: SupabaseClient): HelpdeskStore {
+  return {
+    async pendingArticles(limit) {
+      const { data, error } = await sb.from("helpdesk_pending_articles").select("id,title,content_md,content_hash")
+        .order("id").limit(limit);
+      if (error) throw error;
+      return (data ?? []) as { id: number; title: string; content_md: string; content_hash: string }[];
+    },
+    async countPending() {
+      const { count, error } = await sb.from("helpdesk_pending_articles").select("id", { count: "exact", head: true });
+      if (error) throw error;
+      return count ?? 0;
+    },
+    async replaceChunks(articlePk, hash, chunks) {
+      const { error } = await sb.rpc("replace_helpdesk_chunks", {
+        p_article_pk: articlePk,
+        p_hash: hash,
+        p_chunks: chunks.map((c) => ({ text: c.text, embedding: JSON.stringify(c.embedding) })),
+      });
       if (error) throw error;
     },
   };
