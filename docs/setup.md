@@ -37,8 +37,13 @@ npx supabase functions deploy embed-helpdesk --no-verify-jwt   # n8n gọi bằn
 2. Backfill: trong `crisp-sync` đặt `DAYS = 90` → Run Manually → xác nhận `List Conversations` gọi `/conversations/1`, `/2`, … rồi dừng ở trang rỗng → trả `DAYS = 1`.
 
 ## 5b. Helpdesk
-1. Trong n8n bấm `Helpdesk · Run Manually` lần đầu (chỉ bài `published` được lưu, bài bị gỡ publish sẽ bị xoá ở lần sync sau).
+1. Trong n8n bấm `Helpdesk · Run Manually` lần đầu (hoặc chạy từ máy: `node --env-file=.env scripts/helpdesk-sync.mjs <website_id> en`) (chỉ bài `published` được lưu, bài bị gỡ publish sẽ bị xoá ở lần sync sau).
 2. Embed lần đầu: `node --env-file=.env scripts/embed-helpdesk.mjs` (lặp tới khi `remaining 0`). Các đêm sau node `Helpdesk · Embed` tự gọi.
+
+## 5c. Widget + extension
+1. Build extension: `node --env-file=.env scripts/build-extension.mjs` (cần `WIDGET_ORIGIN`), tạo `widget/extension.zip`.
+2. Deploy cả thư mục `widget/` lên Netlify (cùng site). Team tải `extension.zip` từ widget → giải nén → `chrome://extensions` → Developer mode → Load unpacked.
+3. Xem hiệu quả draft: `select * from draft_feedback_stats;` trong SQL Editor.
 
 ## 6. Kiểm tra
 ```sql
