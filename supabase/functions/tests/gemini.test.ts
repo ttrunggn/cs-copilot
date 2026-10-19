@@ -155,3 +155,17 @@ Deno.test("embed also rotates keys on 429", async () => {
   const out = await createGemini({ apiKeys: ["k1", "k2"], store: store(["e1"]).s, fetch: f.fn }).embed(["t"], "document");
   assertEquals(out, [[1]]);
 });
+
+Deno.test("revoked or invalid key (403 / 400 API_KEY_INVALID) skips to the next key", async () => {
+  for (const bad of [{ status: 403 }, { status: 401 }, { status: 400, body: { error: { status: "INVALID_ARGUMENT", details: [{ reason: "API_KEY_INVALID" }] } } }]) {
+    const f = keyedFetch({ "k1/m1": [bad], "k2/m1": [ok("from k2")] });
+    const r = await createGemini({ apiKeys: ["k1", "k2"], store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p");
+    assertEquals(r.text, "from k2", JSON.stringify(bad));
+  }
+});
+
+Deno.test("every key invalid ends in AiUnavailable, not a plain error", async () => {
+  const f = keyedFetch({ "k1/m1": [{ status: 403 }], "k2/m1": [{ status: 403 }] });
+  const err = await assertRejects(() => createGemini({ apiKeys: ["k1", "k2"], store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p"));
+  assertEquals(err instanceof AiUnavailable, true);
+});

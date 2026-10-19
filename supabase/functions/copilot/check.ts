@@ -18,7 +18,14 @@ export interface CheckResult {
   last_customer_at: string | null;
   last_human_operator_at: string | null;
   jira: unknown[];
-  latest_draft: { output_id: number; content: string; warnings: Warning[]; verified: boolean | null; created_at: string } | null;
+  latest_draft: {
+    output_id: number;
+    content: string;
+    warnings: Warning[];
+    verified: boolean | null;
+    helpdesk_matches: number | null;
+    created_at: string;
+  } | null;
 }
 
 /** Không gọi AI: tin chờ trả lời, topic, profile sẽ dùng. Hiển thị nguyên văn tin khách. */
@@ -50,7 +57,7 @@ export async function runCheck(
     last_human_operator_at: conv.last_human_operator_at,
     jira: [],
     latest_draft: latest
-      ? { output_id: latest.id, content: latest.content, warnings: latest.warnings, verified: latest.verified, created_at: latest.created_at }
+      ? { output_id: latest.id, content: latest.content, warnings: latest.warnings, verified: latest.verified, helpdesk_matches: latest.helpdesk_matches, created_at: latest.created_at }
       : null,
   };
 }

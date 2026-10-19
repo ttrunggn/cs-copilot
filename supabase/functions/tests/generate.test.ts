@@ -144,7 +144,7 @@ Deno.test("check returns latest_draft", async () => {
   };
   const m = makeDeps({ db: { getLatestDraft: () => Promise.resolve(latest) } });
   const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };
-  assertEquals(body.latest_draft, { output_id: 5, content: "last draft", warnings: [], verified: false, created_at: latest.created_at });
+  assertEquals(body.latest_draft, { output_id: 5, content: "last draft", warnings: [], verified: false, helpdesk_matches: 0, created_at: latest.created_at });
 });
 
 Deno.test("off-topic helpdesk chunks around 0.52–0.6 similarity are not used", async () => {

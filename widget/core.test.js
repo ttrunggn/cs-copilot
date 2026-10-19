@@ -136,3 +136,7 @@ Deno.test("insertResultMessage covers the 5 statuses", () => {
   }
   assertEquals(insertResultMessage("session_mismatch"), "Draft của chat khác đã sẵn sàng, mở lại đúng chat để điền");
 });
+
+Deno.test("reloaded latest_draft without helpdesk match keeps the no-article badge", () => {
+  assertEquals(toDraftViewModel({ content: "x", warnings: [], verified: true, helpdesk_matches: 0 }).badge, "Không có bài helpdesk liên quan");
+});

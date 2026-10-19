@@ -25,6 +25,11 @@ const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const EMBED_BATCH = 100;
 const EMBED_DIM = 768;
 
+/** Key bị thu hồi/sai: thử key kế tiếp (đổi model không giúp được). */
+function badKey(status: number, detail: string): boolean {
+  return status === 401 || status === 403 || (status === 400 && detail.includes("API_KEY_INVALID"));
+}
+
 /** Lỗi đáng thử model kế tiếp: hết quota, model không tồn tại, lỗi phía Google. */
 function retryable(status: number): boolean {
   return status === 429 || status === 404 || status >= 500;
@@ -46,7 +51,7 @@ export function createGemini(opts: { apiKeys: string[]; store: AiStore; fetch?: 
   }
 
   /**
-   * Thử lần lượt từng model của task. Trong một model: 429 → key kế tiếp; 404/5xx/lỗi mạng → model kế tiếp
+   * Thử lần lượt từng model của task. Trong một model: 429 hoặc key sai/bị thu hồi → key kế tiếp; 404/5xx/lỗi mạng → model kế tiếp
    * (đổi key không giúp được). Trả JSON response đầu tiên thành công.
    */
   async function call(task: AiTask, method: string, body: (model: string) => unknown): Promise<{ json: any; model: string }> {
@@ -70,7 +75,7 @@ export function createGemini(opts: { apiKeys: string[]; store: AiStore; fetch?: 
           return { json: await res.json(), model };
         }
         const detail = await res.text().catch(() => "");
-        if (res.status === 429) continue;
+        if (res.status === 429 || badKey(res.status, detail)) continue;
         if (!retryable(res.status)) throw new Error(`Gemini ${model} ${res.status}: ${detail.slice(0, 300)}`);
         break;
       }
