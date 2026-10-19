@@ -37,13 +37,48 @@ export function timeAgo(iso, now) {
 const SOURCE_LABEL = { topic: "theo topic", all: "chung", default: "mặc định workspace" };
 const MAX_CHARS = 300;
 
+/** Crisp lưu file thành marker + MIME + URL trong content; chỉ mở ảnh từ storage của Crisp. */
+function customerMessage(text, botReplied) {
+  const raw = String(text ?? "");
+  const file = raw.match(/^\s*\[file\]\s*([^\s]+)\s+(https:\/\/[^\s]+)\s*$/i);
+  if (!file) return { text: raw.length > MAX_CHARS ? raw.slice(0, MAX_CHARS) + "…" : raw, botReplied };
+
+  const mime = file[1].toLowerCase();
+  let imageUrl = null;
+  if (mime.startsWith("image/")) {
+    try {
+      const url = new URL(file[2]);
+      if (url.hostname === "storage.crisp.chat") imageUrl = url.href;
+    } catch { /* malformed attachment URL */ }
+  }
+  return {
+    text: imageUrl ? "Khách gửi ảnh" : mime.startsWith("image/") ? "Khách gửi ảnh (không mở được liên kết)" : "Khách gửi tệp đính kèm",
+    imageUrl,
+    botReplied,
+  };
+}
+
 export function toViewModel(check, now) {
   const count = check.unanswered.length;
+  const pendingMessages = check.pending_messages ?? check.unanswered.map((text) => ({ text, bot_replied: false }));
+  const visibleMessages = pendingMessages.slice(-3).map((m) => customerMessage(m.text, Boolean(m.bot_replied)));
   return {
-    header: check.needs_reply ? `${count} tin khách chưa trả lời` : "Không có tin chờ trả lời",
+    header: check.needs_reply ? `${count} tin khách đang chờ` : "Không có tin chờ",
+    subtitle: check.needs_reply
+      ? `Khách nhắn ${timeAgo(check.last_customer_at, now)}${check.bot_replied_count ? ` · Bot đã phản hồi ${check.bot_replied_count} tin, CS chưa trả lời` : " · Chưa có CS trả lời"}`
+      : `Khách nhắn ${timeAgo(check.last_customer_at, now)} · CS trả lời ${timeAgo(check.last_human_operator_at, now)}`,
     stale: check.stale,
     needsReply: check.needs_reply,
-    unanswered: check.unanswered.slice(-3).map((t) => (t.length > MAX_CHARS ? t.slice(0, MAX_CHARS) + "…" : t)),
+    unanswered: visibleMessages.map((m) => m.text),
+    pendingMessages: visibleMessages,
+    pendingCount: count,
+    hiddenPendingCount: Math.max(0, count - visibleMessages.length),
+    botRepliedCount: check.bot_replied_count ?? visibleMessages.filter((m) => m.botReplied).length,
+    metaRows: [
+      { label: "Topic", value: check.topic_label ?? check.topic ?? "Chưa xác định" },
+      { label: "Giọng văn", value: `${check.profile_name} (${SOURCE_LABEL[check.profile_source] ?? check.profile_source})` },
+      { label: "CS trả lời", value: timeAgo(check.last_human_operator_at, now) },
+    ],
     meta: [
       `Topic: ${check.topic_label ?? check.topic ?? "chưa xác định"}`,
       `Giọng văn: ${check.profile_name} (${SOURCE_LABEL[check.profile_source] ?? check.profile_source})`,
@@ -81,6 +116,7 @@ export function toDraftViewModel(out, now = Date.now()) {
     age: out.created_at ? timeAgo(out.created_at, now) : null,
     todos: (text.match(/\[\[CS:[^\]]*\]\]/g) ?? []).length,
     badge,
+    verified: out.verified === true,
     warnings: (out.warnings ?? []).map((w) => ({
       claim: w.claim,
       reason: w.reason,

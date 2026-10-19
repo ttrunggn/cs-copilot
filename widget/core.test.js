@@ -57,7 +57,7 @@ Deno.test("view model shows last 3 unanswered, newest last", () => {
   const vm = toViewModel(CHECK, NOW);
   assertEquals(vm.needsReply, true);
   assertEquals(vm.unanswered, ["b", "c", "d"]);
-  assertEquals(vm.header, "4 tin khách chưa trả lời");
+  assertEquals(vm.header, "4 tin khách đang chờ");
 });
 
 Deno.test("view model meta lines", () => {
@@ -70,7 +70,7 @@ Deno.test("view model meta lines", () => {
 
 Deno.test("view model when nothing pending", () => {
   const vm = toViewModel({ ...CHECK, needs_reply: false, unanswered: [], topic: null, topic_label: null, profile_source: "default" }, NOW);
-  assertEquals(vm.header, "Không có tin chờ trả lời");
+  assertEquals(vm.header, "Không có tin chờ");
   assertEquals(vm.meta[0], "Topic: chưa xác định");
   assertEquals(vm.meta[1], "Giọng văn: Lan Nguyen (mặc định workspace)");
 });
