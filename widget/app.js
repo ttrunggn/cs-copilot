@@ -13,7 +13,8 @@ let notice = ""; // dòng trạng thái dưới draft/handoff
 let choice = false; // đang hỏi Thay thế / Chèn cuối / Huỷ
 let draftPlacement = ""; // inserted | copied
 let busy = "";
-let bridge = "missing"; // missing | outdated | ready
+let bridge = "checking"; // checking | missing | outdated | ready
+let bridgeProbe = null;
 
 function fit() {
   try { window.$crisp?.setHeight?.(Math.min(document.body.scrollHeight + 8, 700)); } catch { /* ngoài Crisp */ }
@@ -47,6 +48,31 @@ function pingExtension() {
     window.postMessage({ type: "copilot:ping", protocol: PROTOCOL }, location.origin);
     setTimeout(() => (window.removeEventListener("message", onMsg), resolve(null)), PING_TIMEOUT_MS);
   });
+}
+
+/**
+ * Content script của Chrome đôi lúc được inject sau khi widget đã chạy.
+ * Đừng kết luận "chưa cài" từ một lần ping sớm; thử lại ngắn gọn khi mở panel
+ * và khi CS quay lại tab.
+ */
+async function detectExtension() {
+  if (bridgeProbe) return bridgeProbe;
+  bridge = "checking";
+  render();
+  bridgeProbe = (async () => {
+    for (const delay of [0, 300, 1000]) {
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+      const pong = await pingExtension();
+      if (pong) {
+        bridge = bridgeState(pong);
+        render();
+        return;
+      }
+    }
+    bridge = "missing";
+    render();
+  })().finally(() => { bridgeProbe = null; });
+  return bridgeProbe;
 }
 
 function sendInsert(mode) {
@@ -158,11 +184,13 @@ function draftText(text) {
 }
 
 function extensionHint() {
-  if (bridge === "ready") return null;
-  const text = bridge === "outdated" ? "Extension đã cũ" : "Chưa cài extension";
+  if (bridge === "ready" || bridge === "checking") return null;
+  const outdated = bridge === "outdated";
+  const text = outdated ? "Extension cần cập nhật" : "Không nhận diện được extension";
   return el("details", { className: "hint" }, [
     el("summary", { textContent: text }),
-    el("strong", { textContent: bridge === "outdated" ? "Extension đã cũ, tải bản mới" : "Cài extension để điền thẳng vào ô Reply" }),
+    el("strong", { textContent: outdated ? "Tải và cài lại bản extension mới" : "Nếu đã cài, tải lại trang Crisp hoặc bấm kiểm tra lại" }),
+    !outdated ? el("button", { className: "button-link", textContent: "Kiểm tra lại", onclick: detectExtension }) : null,
     el("ol", {}, [
       el("li", {}, [el("a", { href: "extension.zip", textContent: "Tải extension.zip", download: "cs-copilot-extension.zip" })]),
       el("li", { textContent: "Giải nén ra một thư mục" }),
@@ -345,7 +373,10 @@ window.CRISP_READY_TRIGGER = () => {
 const ctx = readContext(location.search);
 if ("error" in ctx) showMessage(ctx.error);
 else showMessage("Đang xác định CS đang đăng nhập…");
-pingExtension().then((pong) => {
-  bridge = bridgeState(pong);
-  render();
+detectExtension();
+window.addEventListener("focus", () => {
+  if (bridge !== "ready") detectExtension();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && bridge !== "ready") detectExtension();
 });
