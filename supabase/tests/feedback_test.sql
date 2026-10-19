@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(12);
 
 insert into public.workspaces (website_id, name) values ('ws-f', 'F');
 insert into public.conversations (website_id, session_id)
@@ -39,5 +39,6 @@ select is((pg_temp.out('s5')).matched_at, null, 'note does not match');
 select is((pg_temp.out('s6')).matched_at, null, 'other operator does not match');
 select is((select ignored_pct from public.draft_feedback_stats where prompt_version = 'v-test'), 100::numeric, 'unmatched old draft counts as ignored');
 
+select is(has_function_privilege('anon', 'public.word_edit_ratio(text, text)', 'execute'), false, 'anon cannot call word_edit_ratio');
 select * from finish();
 rollback;
