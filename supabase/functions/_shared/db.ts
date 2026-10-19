@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import type { AiStore } from "./gemini.ts";
 import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "./types.ts";
 
 export interface Db {
@@ -65,6 +66,20 @@ export function createDb(sb: SupabaseClient): Db {
         .eq("crisp_user_id", operatorId).maybeSingle();
       if (error) throw error;
       return data as { display_name: string | null } | null;
+    },
+  };
+}
+
+export function createAiStore(sb: SupabaseClient): AiStore {
+  return {
+    async getModels(task) {
+      const { data, error } = await sb.from("ai_config").select("models").eq("task", task).maybeSingle();
+      if (error) throw error;
+      return (data?.models as string[] | undefined) ?? [];
+    },
+    async logUsage(model, task, is429) {
+      const { error } = await sb.rpc("log_ai_usage", { p_model: model, p_task: task, p_is_429: is429 });
+      if (error) throw error;
     },
   };
 }
