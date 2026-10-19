@@ -26,7 +26,7 @@ Deno.test("handoff posts formatted Vietnamese note and stores output", async () 
   assertEquals(body.posted, true);
   assertEquals(body.cached, false);
   assertEquals(body.output_id, 42);
-  assertEquals((body.note as string).startsWith("📋 Handoff — Lan Nguyen\nTóm tắt: Khách cần sửa switcher"), true);
+  assertEquals((body.note as string).startsWith("📋 Handoff — Lan Nguyen\nKhách cần sửa switcher"), true);
   assertEquals(notes, [body.note]);
   assertEquals(inserted[0].kind, "handoff");
   assertEquals(inserted[0].content, body.note);
@@ -37,7 +37,7 @@ Deno.test("handoff note lists each issue from a multi-issue message", async () =
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
   const { deps } = makeDeps({ ai, messages: [msg("user", "1) switcher broken 2) change plan 3) translate theme", 1)] });
   const note = ((await handle(REQ, TOKEN, deps)).body as { note: string }).note;
-  for (const line of ["1. Switcher không hiện trên mobile — Chờ tech", "2. Đổi sang gói annual — Đã xong", "3. Dịch theme mới — Chưa xử lý"]) {
+  for (const line of ["1. Switcher không hiện trên mobile — 🛠 Chờ tech", "2. Đổi sang gói annual — ✅ Xong", "3. Dịch theme mới — ❗ Chưa xử lý"]) {
     assertEquals(note.includes(line), true, line);
   }
 });

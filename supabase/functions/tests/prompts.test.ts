@@ -82,8 +82,16 @@ Deno.test("verifyPrompt asks for Vietnamese reasons and ignores CS markers", () 
 });
 
 Deno.test("handoffPrompt requires Vietnamese and one issue per customer problem", () => {
-  const p = handoffPrompt("Customer: a\nCustomer: b", "Billing");
+  const p = handoffPrompt("Customer: a\nCustomer: b", "Billing", "");
   for (const s of ["Vietnamese", "one item per", "<conversation>"]) assertEquals(p.includes(s), true, s);
+});
+
+Deno.test("handoffPrompt demands concrete, short details and includes Jira context", () => {
+  const p = handoffPrompt("Customer: a", null, "TNT-1 (Pending Dev): Bug");
+  for (const s of ["exactly what was done", "prices", "Never write vague", "at most 25 words", "<jira>\nTNT-1 (Pending Dev): Bug\n</jira>"]) {
+    assertEquals(p.includes(s), true, s);
+  }
+  assertEquals(handoffPrompt("Customer: a", null, "").includes("<jira>"), false);
 });
 
 Deno.test("classifyPrompt and schema list topic keys", () => {
@@ -119,36 +127,37 @@ Deno.test("parseTopic rejects unknown key", () => {
 });
 
 Deno.test("parseHandoff throws on missing field or empty issues", () => {
-  const full = { summary: "s", issues: [{ issue: "i", state: "done", detail: "d" }], done: "d", waiting_on: "tech", next_step: "n" };
+  const full = { summary: "s", issues: [{ issue: "i", state: "done", detail: "d" }], waiting_on: "tech", next_step: "n" };
   assertEquals(parseHandoff(JSON.stringify(full)).issues.length, 1);
   assertThrows(() => parseHandoff(JSON.stringify({ ...full, next_step: undefined })));
   assertThrows(() => parseHandoff(JSON.stringify({ ...full, issues: [] })));
   assertThrows(() => parseHandoff(JSON.stringify({ ...full, waiting_on: "boss" })));
 });
 
-Deno.test("formatHandoffNote lists every issue with Vietnamese state", () => {
+Deno.test("formatHandoffNote is short: summary, one line per issue with state, next step", () => {
   const note = formatHandoffNote({
-    summary: "Khách cần sửa switcher và đổi gói",
+    summary: "Khách muốn xác nhận giá tri ân khi nâng Growth → Continental",
     issues: [
-      { issue: "Switcher không hiện trên mobile", state: "waiting_tech", detail: "đã gửi ticket" },
-      { issue: "Đổi sang gói annual", state: "done", detail: "đã đổi" },
-      { issue: "Dịch theme mới", state: "not_started", detail: "chưa trả lời" },
+      { issue: "Giá MSRP hiện cho khách EU", state: "done", detail: "khách tự ẩn compare price trong theme" },
+      { issue: "Ưu đãi nâng gói", state: "waiting_customer", detail: "Raymond báo giá tri ân $49 cho Continental, áp dụng 1 tháng" },
+      { issue: "Lỗi dịch menu", state: "waiting_tech", detail: "đã tạo TNT-9184" },
     ],
-    done: "Kiểm tra theme, gửi ticket",
-    waiting_on: "tech",
-    next_step: "Báo khách khi tech fix",
-  }, "Lan");
+    waiting_on: "customer",
+    next_step: "khách đồng ý thì áp ưu đãi $49 và báo lại",
+  }, "Ethan Nguyen");
   assertEquals(note, [
-    "📋 Handoff — Lan",
-    "Tóm tắt: Khách cần sửa switcher và đổi gói",
-    "Khách cần:",
-    "1. Switcher không hiện trên mobile — Chờ tech: đã gửi ticket",
-    "2. Đổi sang gói annual — Đã xong: đã đổi",
-    "3. Dịch theme mới — Chưa xử lý: chưa trả lời",
-    "Đã làm: Kiểm tra theme, gửi ticket",
-    "Đang chờ: Tech",
-    "Bước tiếp theo: Báo khách khi tech fix",
+    "📋 Handoff — Ethan Nguyen",
+    "Khách muốn xác nhận giá tri ân khi nâng Growth → Continental",
+    "1. Giá MSRP hiện cho khách EU — ✅ Xong: khách tự ẩn compare price trong theme",
+    "2. Ưu đãi nâng gói — ⏳ Chờ khách: Raymond báo giá tri ân $49 cho Continental, áp dụng 1 tháng",
+    "3. Lỗi dịch menu — 🛠 Chờ tech: đã tạo TNT-9184",
+    "➡️ Tiếp theo (chờ khách): khách đồng ý thì áp ưu đãi $49 và báo lại",
   ].join("\n"));
+});
+
+Deno.test("formatHandoffNote omits the waiting label when nobody is waited on", () => {
+  const note = formatHandoffNote({ summary: "s", issues: [{ issue: "i", state: "done", detail: "d" }], waiting_on: "none", next_step: "đóng chat" }, "Lan");
+  assertEquals(note.endsWith("➡️ Tiếp theo: đóng chat"), true);
 });
 
 Deno.test("countTodos counts [[CS: …]] markers", () => {
@@ -176,14 +185,14 @@ Deno.test("classifyPrompt includes each topic's definition when present", () => 
   assertEquals(p.includes("- billing: Thanh toán & gói — Đổi gói, hoàn tiền, credit"), true);
 });
 
-Deno.test("parseHandoff accepts a first-contact note with empty done", () => {
-  const h = parseHandoff(JSON.stringify({ summary: "s", issues: [{ issue: "i", state: "not_started", detail: "" }], done: "", waiting_on: "cs", next_step: "n" }));
-  assertEquals(h.done, "Chưa có");
+Deno.test("parseHandoff does not need a 'done' field", () => {
+  const h = parseHandoff(JSON.stringify({ summary: "s", issues: [{ issue: "i", state: "not_started", detail: "" }], waiting_on: "cs", next_step: "n" }));
+  assertEquals(h.next_step, "n");
 });
 
 Deno.test("formatHandoffNote says how many issues were left out beyond 8", () => {
   const issues = Array.from({ length: 11 }, (_, i) => ({ issue: `v${i + 1}`, state: "not_started", detail: "" }));
-  const h = parseHandoff(JSON.stringify({ summary: "s", issues, done: "d", waiting_on: "cs", next_step: "n" }));
+  const h = parseHandoff(JSON.stringify({ summary: "s", issues, waiting_on: "cs", next_step: "n" }));
   assertEquals(h.issues.length, 8);
   assertEquals(formatHandoffNote(h, "Lan").includes("… và 3 vấn đề khác"), true);
 });

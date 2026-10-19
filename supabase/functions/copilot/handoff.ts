@@ -42,7 +42,7 @@ export async function runHandoff(
 
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
   const topicLabel = ws.topics.find((t) => t.key === conv.topic)?.label ?? null;
-  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES), topicLabel), {
+  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES), topicLabel, ""), {
     schema: HANDOFF_SCHEMA,
   });
   let fields;

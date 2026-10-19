@@ -224,25 +224,27 @@ export const HANDOFF_SCHEMA = {
         required: ["issue", "state", "detail"],
       },
     },
-    done: { type: "STRING" },
     waiting_on: { type: "STRING", enum: WAITING },
     next_step: { type: "STRING" },
   },
-  required: ["summary", "issues", "done", "waiting_on", "next_step"],
+  required: ["summary", "issues", "waiting_on", "next_step"],
 };
 
-export function handoffPrompt(transcript: string, topicLabel: string | null): string {
+export function handoffPrompt(transcript: string, topicLabel: string | null, jiraBlock: string): string {
   return [
-    "Write an internal handoff note so another support agent can take over this conversation quickly.",
-    "Write every field in Vietnamese; keep feature names, URLs, store names and error messages verbatim.",
-    "summary: 1–2 sentences on who the customer is and what they want.",
-    "issues: one item per distinct problem or request the customer raised (a long message with several problems gives several items). " +
-    "state = done | in_progress | waiting_customer | waiting_tech | not_started, judged from what the agents already replied or did; " +
-    "detail = where it stands in one short sentence.",
-    "done: what the agents have already done. waiting_on: customer | tech | cs | none. next_step: the concrete next action.",
+    "Write an internal handoff note so another support agent can take over this conversation in under 30 seconds of reading.",
+    "Write every field in Vietnamese; keep feature names, plan names, prices, URLs, ticket keys and error messages verbatim.",
+    "summary: one sentence, at most 20 words: who/what the customer wants.",
+    "issues: one item per distinct problem or request the customer raised (merge duplicates, usually 1-4 items). " +
+    "issue: at most 12 words. state = done | in_progress | waiting_customer | waiting_tech | not_started, judged from what agents replied, " +
+    "did or wrote in internal notes. detail: at most 25 words and must say exactly what was done or told to the customer: " +
+    "the steps or setting given, the price/plan/discount offered, the ticket created, what is still missing. " +
+    'Never write vague phrases like "đã hỗ trợ", "đã giải đáp", "đã hướng dẫn" without saying what.',
+    "waiting_on: customer | tech | cs | none. next_step: at most 20 words, the concrete next action for the agent taking over.",
     topicLabel ? `Topic: ${topicLabel}` : "",
     DATA_ONLY,
     `<conversation>\n${neutralize(transcript)}\n</conversation>`,
+    jiraBlock ? `Jira tickets linked to this conversation (status and recent comments):\n<jira>\n${jiraBlock}\n</jira>` : "",
   ].filter(Boolean).join("\n\n");
 }
 
@@ -258,31 +260,28 @@ export function parseHandoff(text: string): HandoffFields {
     summary: h.summary!.trim(),
     issues,
     ...(valid.length > MAX_ISSUES ? { more: valid.length - MAX_ISSUES } : {}),
-    // Chat mới nhận, chưa ai làm gì thì model có thể để trống.
-    done: str(h.done) ? h.done!.trim() : "Chưa có",
     waiting_on: h.waiting_on!,
     next_step: h.next_step!.trim(),
   };
 }
 
 const STATE_LABEL: Record<HandoffState, string> = {
-  done: "Đã xong",
-  in_progress: "Đang xử lý",
-  waiting_customer: "Chờ khách",
-  waiting_tech: "Chờ tech",
-  not_started: "Chưa xử lý",
+  done: "✅ Xong",
+  in_progress: "🔄 Đang xử lý",
+  waiting_customer: "⏳ Chờ khách",
+  waiting_tech: "🛠 Chờ tech",
+  not_started: "❗ Chưa xử lý",
 };
-const WAITING_LABEL: Record<WaitingOn, string> = { customer: "Khách", tech: "Tech", cs: "CS", none: "Không ai" };
+const WAITING_LABEL: Record<WaitingOn, string> = { customer: "khách", tech: "tech", cs: "CS", none: "" };
 
+/** Note ngắn: 1 dòng tóm tắt, mỗi vấn đề 1 dòng (trạng thái + làm gì cụ thể), 1 dòng bước tiếp theo. */
 export function formatHandoffNote(h: HandoffFields, operatorName: string): string {
+  const waiting = WAITING_LABEL[h.waiting_on];
   return [
     `📋 Handoff — ${operatorName}`,
-    `Tóm tắt: ${h.summary}`,
-    "Khách cần:",
+    h.summary,
     ...h.issues.map((i, n) => `${n + 1}. ${i.issue} — ${STATE_LABEL[i.state]}${i.detail ? `: ${i.detail}` : ""}`),
     ...(h.more ? [`… và ${h.more} vấn đề khác`] : []),
-    `Đã làm: ${h.done}`,
-    `Đang chờ: ${WAITING_LABEL[h.waiting_on]}`,
-    `Bước tiếp theo: ${h.next_step}`,
+    `➡️ Tiếp theo${waiting ? ` (chờ ${waiting})` : ""}: ${h.next_step}`,
   ].join("\n");
 }

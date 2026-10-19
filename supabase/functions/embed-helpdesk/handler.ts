@@ -1,5 +1,6 @@
 import { chunkMarkdown } from "../_shared/chunk.ts";
 import type { Ai } from "../_shared/gemini.ts";
+import { secretOk } from "../_shared/secret.ts";
 
 export interface HelpdeskStore {
   pendingArticles(limit: number): Promise<{ id: number; title: string; content_md: string; content_hash: string }[]>;
@@ -10,14 +11,6 @@ export interface HelpdeskStore {
 const DEFAULT_BATCH = 20;
 // Edge Function free tier dừng ở ~150s; chừa thời gian cho countPending và response.
 const DEFAULT_BUDGET_MS = 90_000;
-
-/** So sánh không phụ thuộc vị trí ký tự sai. Secret placeholder hoặc < 32 ký tự thì luôn từ chối. */
-function secretOk(got: string, secret: string): boolean {
-  if (secret.startsWith("REPLACE_") || secret.length < 32) return false;
-  let diff = got.length ^ secret.length;
-  for (let i = 0; i < secret.length; i++) diff |= secret.charCodeAt(i) ^ (got.charCodeAt(i) || 0);
-  return diff === 0;
-}
 
 /**
  * Embed các bài helpdesk đã đổi nội dung (embedded_hash ≠ content_hash). n8n gọi sau mỗi lần đồng bộ và mỗi đêm.

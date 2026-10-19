@@ -93,7 +93,6 @@ export interface HandoffFields {
   summary: string;
   issues: HandoffIssue[];
   more?: number; // số vấn đề bị lược bớt khi quá MAX_ISSUES
-  done: string;
   waiting_on: WaitingOn;
   next_step: string;
 }

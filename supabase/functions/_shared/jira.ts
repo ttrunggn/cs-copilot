@@ -187,7 +187,7 @@ export function jiraForConversation(rows: { link: JiraLink; issue: JiraIssue | n
 export function jiraPromptBlock(items: ConversationJira[]): string {
   if (!items.length) return "";
   return items.map((j) => {
-    const head = `${j.issue_key} (${j.status ?? "unknown status"}): ${neutralize(j.summary ?? "")}`;
+    const head = `${neutralize(j.issue_key)} (${neutralize(j.status ?? "unknown status")}): ${neutralize(oneLine(j.summary ?? "", 300))}`;
     const cs = j.recent_comments.map((c) => `  - [${c.role}] ${neutralize(c.author)}: ${neutralize(c.body)}`);
     return [head, ...cs].join("\n");
   }).join("\n");
