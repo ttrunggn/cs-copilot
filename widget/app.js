@@ -4,6 +4,8 @@ import { acceptReply, bridgeState, draftInsert, newRequestId, PING_TIMEOUT_MS, P
 const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
 const INSERT_TIMEOUT_MS = 3000;
 const app = document.getElementById("app");
+const requestedTheme = new URLSearchParams(location.search).get("theme");
+if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 let operatorId = "";
 let check = null; // kết quả check gần nhất
 let draft = null; // { output_id, session_id, vm } — gắn với chat đã soạn
@@ -12,6 +14,7 @@ let handoff = null; // { note, posted, cached }
 let notice = ""; // dòng trạng thái dưới draft/handoff
 let choice = false; // đang hỏi Thay thế / Chèn cuối / Huỷ
 let draftPlacement = ""; // inserted | copied
+let knowledgeOpen = false; // UI scaffold: sẽ nối FAQ search sau
 let busy = "";
 let bridge = "checking"; // checking | missing | outdated | ready
 let bridgeProbe = null;
@@ -208,7 +211,7 @@ function draftPanel() {
     el("button", { className: bridge === "ready" ? "button-secondary" : "button-primary", textContent: "Copy", onclick: () => copy(vm.text) }),
     el("button", { className: "button-link", textContent: "Soạn lại", disabled: Boolean(busy), onclick: () => onGenerate(true) }),
   ]);
-  return el("section", { className: "card draft-card" }, [
+  return el("section", { className: "card ai-card draft-card" }, [
     el("div", { className: "draft-heading" }, [
       el("h2", { textContent: "Draft cho tin này" }),
       el("p", { className: draftPlacement ? "success-line" : "muted", textContent: draftPlacement === "inserted"
@@ -288,6 +291,52 @@ function pendingMessageCard(m) {
   return el("article", { className: `pending-message${m.imageUrl ? " has-image" : ""}` }, children);
 }
 
+/** Các khối dưới đây là UI scaffold theo SPEC v1; chưa gọi API để không giả dữ liệu. */
+function insightPanel() {
+  return el("section", { className: "card insight-card future-card" }, [
+    el("div", { className: "row" }, [
+      el("span", { className: "eyebrow", textContent: "Ý ĐỊNH & TÂM TRẠNG" }),
+      el("button", { className: "button-secondary compact-button", textContent: "Phân tích lại", disabled: true, title: "Sẽ nối service sentiment" }),
+    ]),
+    el("strong", { className: "future-title", textContent: "Chưa có dữ liệu phân tích" }),
+    el("p", { className: "muted", textContent: "Ý định, mood và điểm sentiment sẽ hiển thị tại đây sau khi tích hợp." }),
+  ]);
+}
+
+function knowledgePanel() {
+  if (!knowledgeOpen) return null;
+  return el("section", { className: "card ai-card knowledge-card future-card" }, [
+    el("div", {}, [
+      el("h2", { textContent: "Hỏi tài liệu" }),
+      el("p", { className: "subtitle", textContent: "Tìm trong FAQ nội bộ, trả lời kèm nguồn" }),
+    ]),
+    el("textarea", { className: "field", rows: 3, placeholder: "Nhập câu hỏi hoặc vấn đề của khách…", disabled: true }),
+    el("p", { className: "muted", textContent: "Tìm kiếm tài liệu sẽ được nối ở bước tiếp theo; không có nguồn thì panel sẽ không đoán chính sách." }),
+    el("button", { className: "button-primary", textContent: "Tìm trong tài liệu", disabled: true }),
+  ]);
+}
+
+function techPanel() {
+  if (!handoff) return null;
+  return el("section", { className: "card ai-card tech-card future-card" }, [
+    el("div", {}, [
+      el("h2", { textContent: "Báo Tech" }),
+      el("p", { className: "subtitle", textContent: "Chỉ gửi khi CS bấm. Gửi qua Gmail của team." }),
+    ]),
+    el("div", { className: "field field-static", textContent: "Nội dung email sẽ được tạo từ báo cáo đóng chat và ticket Jira." }),
+    el("p", { className: "muted", textContent: "Gmail OAuth, người nhận và trạng thái gửi sẽ được nối sau." }),
+    el("button", { className: "button-primary", textContent: "Xem lại và gửi", disabled: true }),
+  ]);
+}
+
+function csatPanel() {
+  return el("section", { className: "csat-panel future-card" }, [
+    el("span", { className: "eyebrow", textContent: "SEND SURVEY" }),
+    el("p", { className: "muted", textContent: "Cảnh báo mood và trạng thái đã gửi sẽ hiển thị khi CSAT được nối." }),
+    el("button", { className: "csat-button", textContent: "Send CSAT Survey", disabled: true }),
+  ]);
+}
+
 function render() {
   if (!check) return;
   const vm = toViewModel(check, Date.now());
@@ -298,6 +347,7 @@ function render() {
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
     vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
+    insightPanel(),
     vm.pendingMessages.length ? el("section", { className: "pending-section" }, [
       ...vm.pendingMessages.map(pendingMessageCard),
       vm.hiddenPendingCount ? el("p", { className: "muted", textContent: `Đang hiện ${vm.pendingMessages.length} trong ${vm.pendingCount} tin` }) : null,
@@ -308,7 +358,9 @@ function render() {
     el("div", { className: "actions" }, [
       el("button", { className: "button-primary compose-button", textContent: busy.startsWith("Đang soạn") ? "Đang soạn…" : "Soạn tin trả lời", disabled, onclick: () => onGenerate(false) }),
       el("button", { className: "button-secondary private-button", textContent: busy.startsWith("Đang viết") ? "Đang viết private note…" : "🔒  Private note", disabled, onclick: () => onHandoff(false) }),
+      el("button", { className: "button-secondary knowledge-button", textContent: "Hỏi tài liệu", onclick: () => ((knowledgeOpen = !knowledgeOpen), render()) }),
     ]),
+    knowledgePanel(),
     busy ? el("div", { className: "loading-card" }, [
       el("p", { className: "muted", textContent: busy }),
       el("div", { className: "skeleton" }, [el("i"), el("i"), el("i")]),
@@ -327,8 +379,10 @@ function render() {
     ]))),
     jiraPanel(),
     handoffPanel(),
+    techPanel(),
     draftPanel(),
     extensionHint(),
+    csatPanel(),
   );
 }
 
@@ -339,6 +393,7 @@ async function load() {
     shownSession = sessionId;
     draft = null;
     handoff = null;
+    knowledgeOpen = false;
     choice = false;
     draftPlacement = "";
     notice = "";
