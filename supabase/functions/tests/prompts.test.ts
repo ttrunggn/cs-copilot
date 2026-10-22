@@ -18,7 +18,7 @@ import {
   verifyPrompt,
 } from "../_shared/prompts.ts";
 import { BUILTIN_PROFILE } from "../_shared/profile.ts";
-import type { HelpdeskChunk, Topic, Variant } from "../_shared/types.ts";
+import type { HelpdeskChunk, NoteFormat, Topic, Variant } from "../_shared/types.ts";
 
 const HD: HelpdeskChunk[] = [
   { title: "Activate Transcy", url: "https://help.transcy.io/en/article/a", text: "Enable the app embed in your theme.", similarity: 0.8 },
@@ -179,6 +179,80 @@ Deno.test("formatHandoffNote is short: summary, one line per issue with state, n
     "3. Lỗi dịch menu — 🛠 Chờ tech: đã tạo TNT-9184",
     "➡️ Tiếp theo (chờ khách): khách đồng ý thì áp ưu đãi $49 và báo lại",
   ].join("\n"));
+});
+
+const FMT_EN: NoteFormat = {
+  language: "en",
+  header: "Handoff — {name}",
+  sections: [
+    { field: "issues", label: "Issues raised:" },
+    { field: "summary", label: "Why:" },
+    { field: "next_step", label: "Next:" },
+  ],
+  line_style: "bullets",
+  state_style: "text",
+  sign_off: "— {name}",
+  notes_used: 7,
+};
+
+Deno.test("formatHandoffNote with a learned format renders in that CS's format and keeps every field", () => {
+  const note = formatHandoffNote({
+    summary: "Khách cần sửa switcher và đổi gói",
+    issues: [
+      { issue: "Switcher không hiện trên mobile", state: "waiting_tech", detail: "đã gửi ticket" },
+      { issue: "Đổi sang gói annual", state: "done", detail: "đã đổi" },
+    ],
+    waiting_on: "tech",
+    next_step: "Báo khách khi tech fix",
+  }, "Lan Nguyen", FMT_EN);
+  assertEquals(note, [
+    "Handoff — Lan Nguyen",
+    "Issues raised:",
+    "- Switcher không hiện trên mobile — Chờ tech: đã gửi ticket",
+    "- Đổi sang gói annual — Xong: đã đổi",
+    "Why: Khách cần sửa switcher và đổi gói",
+    "Next: (waiting on tech) Báo khách khi tech fix",
+    "— Lan Nguyen",
+  ].join("\n"));
+});
+
+Deno.test("formatHandoffNote appends fields the learned format has no slot for, under default labels", () => {
+  const fmt: NoteFormat = { ...FMT_EN, header: null, sign_off: null, sections: [{ field: "issues", label: "Vấn đề:" }] };
+  const note = formatHandoffNote({
+    summary: "Khách muốn hoàn tiền",
+    issues: [{ issue: "Trừ tiền 2 lần", state: "in_progress", detail: "đang check billing" }],
+    waiting_on: "none",
+    next_step: "Hoàn tiền rồi báo khách",
+  }, "Lan", fmt);
+  assertEquals(note, [
+    "Vấn đề:",
+    "- Trừ tiền 2 lần — Đang xử lý: đang check billing",
+    "Khách muốn hoàn tiền",
+    "Next step: Hoàn tiền rồi báo khách",
+  ].join("\n"));
+});
+
+Deno.test("formatHandoffNote learned format in Vietnamese keeps emoji states and the more-issues line", () => {
+  const fmt: NoteFormat = {
+    language: "vi",
+    header: "Bàn giao — {name}",
+    sections: [
+      { field: "summary", label: "Tóm tắt:" },
+      { field: "issues", label: "" },
+      { field: "next_step", label: "Bước tiếp:" },
+    ],
+    line_style: "numbered",
+    state_style: "emoji",
+    sign_off: null,
+    notes_used: 3,
+  };
+  const issues = Array.from({ length: 9 }, (_, i) => ({ issue: `v${i + 1}`, state: "not_started" as const, detail: "" }));
+  const note = formatHandoffNote({ summary: "s", issues, more: 1, waiting_on: "cs", next_step: "n" }, "Lan", fmt);
+  assertEquals(note.includes("Bàn giao — Lan"), true);
+  assertEquals(note.includes("Tóm tắt: s"), true);
+  assertEquals(note.includes("1. v1 — ❗ Chưa xử lý"), true);
+  assertEquals(note.includes("… và 1 vấn đề khác"), true);
+  assertEquals(note.includes("Bước tiếp: (chờ CS) n"), true);
 });
 
 Deno.test("formatHandoffNote omits the waiting label when nobody is waited on", () => {
