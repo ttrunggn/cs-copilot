@@ -1,1 +1,124 @@
-ZXhwb3J0IHR5cGUgQWlUYXNrID0gImRyYWZ0IiB8ICJ2ZXJpZnkiIHwgImhhbmRvZmYiIHwgImNsYXNzaWZ5IiB8ICJ0cmFuc2xhdGUiIHwgImxlYXJuIiB8ICJjYXNlX3N1bW1hcnkiIHwgInNlbnRpbWVudCIgfCAiZW1iZWQiOwoKZXhwb3J0IGNsYXNzIEFpVW5hdmFpbGFibGUgZXh0ZW5kcyBFcnJvciB7CiAgcmVhZG9ubHkgY29kZSA9ICJBSV9VTkFWQUlMQUJMRSI7CiAgY29uc3RydWN0b3IobWVzc2FnZSA9ICJU4bqldCBj4bqjIG1vZGVsIEFJIMSR4buBdSBs4buXaSBob+G6t2MgaOG6v3QgcXVvdGEiKSB7CiAgICBzdXBlcihtZXNzYWdlKTsKICB9Cn0KCi8qKiBBSSB0cuG6oyBs4budaSBuaMawbmcgbuG7mWkgZHVuZyBraMO0bmcgZMO5bmcgxJHGsOG7o2MgKHLhu5duZywgSlNPTiBo4buPbmcpLiBLaMOhYyB24bubaSBo4bq/dCBxdW90YS4gKi8KZXhwb3J0IGNsYXNzIEFpQmFkT3V0cHV0IGV4dGVuZHMgRXJyb3IgewogIHJlYWRvbmx5IGNvZGUgPSAiQUlfQkFEX09VVFBVVCI7CiAgY29uc3RydWN0b3IobWVzc2FnZSA9ICJBSSB0cuG6oyBr4bq/dCBxdeG6oyBraMO0bmcgZMO5bmcgxJHGsOG7o2MiKSB7CiAgICBzdXBlcihtZXNzYWdlKTsKICB9Cn0KCmV4cG9ydCBpbnRlcmZhY2UgQWlTdG9yZSB7CiAgZ2V0TW9kZWxzKHRhc2s6IEFpVGFzayk6IFByb21pc2U8c3RyaW5nW10+OwogIGxvZ1VzYWdlKG1vZGVsOiBzdHJpbmcsIHRhc2s6IEFpVGFzaywgaXM0Mjk6IGJvb2xlYW4pOiBQcm9taXNlPHZvaWQ+Owp9CgpleHBvcnQgaW50ZXJmYWNlIEFpIHsKICBnZW5lcmF0ZSgKICAgIHRhc2s6IEV4Y2x1ZGU8QWlUYXNrLCAiZW1iZWQiPiwKICAgIHByb21wdDogc3RyaW5nLAogICAgb3B0cz86IHsgc2NoZW1hPzogUmVjb3JkPHN0cmluZywgdW5rbm93bj4gfSwKICApOiBQcm9taXNlPHsgdGV4dDogc3RyaW5nOyBtb2RlbDogc3RyaW5nIH0+OwogIGVtYmVkKHRleHRzOiBzdHJpbmdbXSwga2luZDogImRvY3VtZW50IiB8ICJxdWVyeSIpOiBQcm9taXNlPG51bWJlcltdW10+Owp9Cgpjb25zdCBCQVNFID0gImh0dHBzOi8vZ2VuZXJhdGl2ZWxhbmd1YWdlLmdvb2dsZWFwaXMuY29tL3YxYmV0YS9tb2RlbHMiOwpjb25zdCBFTUJFRF9CQVRDSCA9IDEwMDsKY29uc3QgRU1CRURfRElNID0gNzY4OwoKLyoqIEtleSBi4buLIHRodSBo4buTaS9zYWk6IHRo4butIGtleSBr4bq/IHRp4bq/cCAoxJHhu5VpIG1vZGVsIGtow7RuZyBnacO6cCDEkcaw4bujYykuICovCmZ1bmN0aW9uIGJhZEtleShzdGF0dXM6IG51bWJlciwgZGV0YWlsOiBzdHJpbmcpOiBib29sZWFuIHsKICByZXR1cm4gc3RhdHVzID09PSA0MDEgfHwgc3RhdHVzID09PSA0MDMgfHwgKHN0YXR1cyA9PT0gNDAwICYmIGRldGFpbC5pbmNsdWRlcygiQVBJX0tFWV9JTlZBTElEIikpOwp9CgovKiogTOG7l2kgxJHDoW5nIHRo4butIG1vZGVsIGvhur8gdGnhur9wOiBo4bq/dCBxdW90YSwgbW9kZWwga2jDtG5nIHThu5NuIHThuqFpLCBs4buXaSBwaMOtYSBHb29nbGUuICovCmZ1bmN0aW9uIHJldHJ5YWJsZShzdGF0dXM6IG51bWJlcik6IGJvb2xlYW4gewogIHJldHVybiBzdGF0dXMgPT09IDQyOSB8fCBzdGF0dXMgPT09IDQwNCB8fCBzdGF0dXMgPj0gNTAwOwp9CgovKiogTmhp4buBdSBBUEkga2V5IChmcmVlIHRpZXIpOiBrZXkgaOG6v3QgcXVvdGEgKDQyOSkgdGjDrCB4b2F5IHNhbmcga2V5IGvhur8gdGnhur9wLCBrZXkgduG7q2EgY2jhuqF5IMSRxrDhu6NjIHRo4butIHRyxrDhu5tjIOG7nyBs4bqnbiBzYXUuICovCmV4cG9ydCBmdW5jdGlvbiBjcmVhdGVHZW1pbmkob3B0czogeyBhcGlLZXlzOiBzdHJpbmdbXTsgc3RvcmU6IEFpU3RvcmU7IGZldGNoPzogdHlwZW9mIGZldGNoIH0pOiBBaSB7CiAgY29uc3QgZG9GZXRjaCA9IG9wdHMuZmV0Y2ggPz8gZmV0Y2g7CiAgY29uc3Qga2V5cyA9IG9wdHMuYXBpS2V5cy5maWx0ZXIoKGspID0+IGsudHJpbSgpKTsKICBpZiAoIWtleXMubGVuZ3RoKSB0aHJvdyBuZXcgRXJyb3IoIlRoaeG6v3UgR2VtaW5pIEFQSSBrZXkiKTsKICBsZXQgcHJlZmVycmVkID0gMDsKCiAgYXN5bmMgZnVuY3Rpb24gbG9nKG1vZGVsOiBzdHJpbmcsIHRhc2s6IEFpVGFzaywgaXM0Mjk6IGJvb2xlYW4pIHsKICAgIHRyeSB7CiAgICAgIGF3YWl0IG9wdHMuc3RvcmUubG9nVXNhZ2UobW9kZWwsIHRhc2ssIGlzNDI5KTsKICAgIH0gY2F0Y2ggKGUpIHsKICAgICAgY29uc29sZS5lcnJvcigiYWkgdXNhZ2UgbG9nIGZhaWxlZCIsIGUpOwogICAgfQogIH0KCiAgLyoqCiAgICogVGjhu60gbOG6p24gbMaw4bujdCB04burbmcgbW9kZWwgY+G7p2EgdGFzay4gVHJvbmcgbeG7mXQgbW9kZWw6IDQyOSBob+G6t2Mga2V5IHNhaS9i4buLIHRodSBo4buTaSDihpIga2V5IGvhur8gdGnhur9wOyA0MDQvNXh4L2zhu5dpIG3huqFuZyDihpIgbW9kZWwga+G6vyB0aeG6v3AKICAgKiAoxJHhu5VpIGtleSBraMO0bmcgZ2nDunAgxJHGsOG7o2MpLiBUcuG6oyBKU09OIHJlc3BvbnNlIMSR4bqndSB0acOqbiB0aMOgbmggY8O0bmcuCiAgICovCiAgYXN5bmMgZnVuY3Rpb24gY2FsbCh0YXNrOiBBaVRhc2ssIG1ldGhvZDogc3RyaW5nLCBib2R5OiAobW9kZWw6IHN0cmluZykgPT4gdW5rbm93bik6IFByb21pc2U8eyBqc29uOiBhbnk7IG1vZGVsOiBzdHJpbmcgfT4gewogICAgZm9yIChjb25zdCBtb2RlbCBvZiBhd2FpdCBvcHRzLnN0b3JlLmdldE1vZGVscyh0YXNrKSkgewogICAgICBmb3IgKGxldCBuID0gMDsgbiA8IGtleXMubGVuZ3RoOyBuKyspIHsKICAgICAgICBjb25zdCBrID0gKHByZWZlcnJlZCArIG4pICUga2V5cy5sZW5ndGg7CiAgICAgICAgbGV0IHJlczogUmVzcG9uc2U7CiAgICAgICAgdHJ5IHsKICAgICAgICAgIHJlcyA9IGF3YWl0IGRvRmV0Y2goYCR7QkFTRX0vJHttb2RlbH06JHttZXRob2R9YCwgewogICAgICAgICAgICBtZXRob2Q6ICJQT1NUIiwKICAgICAgICAgICAgaGVhZGVyczogeyAiY29udGVudC10eXBlIjogImFwcGxpY2F0aW9uL2pzb24iLCAieC1nb29nLWFwaS1rZXkiOiBrZXlzW2tdIH0sCiAgICAgICAgICAgIGJvZHk6IEpTT04uc3RyaW5naWZ5KGJvZHkobW9kZWwpKSwKICAgICAgICAgIH0pOwogICAgICAgIH0gY2F0Y2ggewogICAgICAgICAgYXdhaXQgbG9nKG1vZGVsLCB0YXNrLCBmYWxzZSk7CiAgICAgICAgICBicmVhazsKICAgICAgICB9CiAgICAgICAgYXdhaXQgbG9nKG1vZGVsLCB0YXNrLCByZXMuc3RhdHVzID09PSA0MjkpOwogICAgICAgIGlmIChyZXMub2spIHsKICAgICAgICAgIHByZWZlcnJlZCA9IGs7CiAgICAgICAgICByZXR1cm4geyBqc29uOiBhd2FpdCByZXMuanNvbigpLCBtb2RlbCB9OwogICAgICAgIH0KICAgICAgICBjb25zdCBkZXRhaWwgPSBhd2FpdCByZXMudGV4dCgpLmNhdGNoKCgpID0+ICIiKTsKICAgICAgICBpZiAocmVzLnN0YXR1cyA9PT0gNDI5IHx8IGJhZEtleShyZXMuc3RhdHVzLCBkZXRhaWwpKSBjb250aW51ZTsKICAgICAgICBpZiAoIXJldHJ5YWJsZShyZXMuc3RhdHVzKSkgdGhyb3cgbmV3IEVycm9yKGBHZW1pbmkgJHttb2RlbH0gJHtyZXMuc3RhdHVzfTogJHtkZXRhaWwuc2xpY2UoMCwgMzAwKX1gKTsKICAgICAgICBicmVhazsKICAgICAgfQogICAgfQogICAgdGhyb3cgbmV3IEFpVW5hdmFpbGFibGUoKTsKICB9CgogIHJldHVybiB7CiAgICBhc3luYyBnZW5lcmF0ZSh0YXNrLCBwcm9tcHQsIG8gPSB7fSkgewogICAgICBjb25zdCB7IGpzb24sIG1vZGVsIH0gPSBhd2FpdCBjYWxsKHRhc2ssICJnZW5lcmF0ZUNvbnRlbnQiLCAoKSA9PiAoewogICAgICAgIGNvbnRlbnRzOiBbeyByb2xlOiAidXNlciIsIHBhcnRzOiBbeyB0ZXh0OiBwcm9tcHQgfV0gfV0sCiAgICAgICAgLi4uKG8uc2NoZW1hID8geyBnZW5lcmF0aW9uQ29uZmlnOiB7IHJlc3BvbnNlTWltZVR5cGU6ICJhcHBsaWNhdGlvbi9qc29uIiwgcmVzcG9uc2VTY2hlbWE6IG8uc2NoZW1hIH0gfSA6IHt9KSwKICAgICAgfSkpOwogICAgICBjb25zdCBwYXJ0czogeyB0ZXh0Pzogc3RyaW5nOyB0aG91Z2h0PzogYm9vbGVhbiB9W10gPSBqc29uPy5jYW5kaWRhdGVzPy5bMF0/LmNvbnRlbnQ/LnBhcnRzID8/IFtdOwogICAgICByZXR1cm4geyB0ZXh0OiBwYXJ0cy5maWx0ZXIoKHApID0+ICFwLnRob3VnaHQpLm1hcCgocCkgPT4gcC50ZXh0ID8/ICIiKS5qb2luKCIiKSwgbW9kZWwgfTsKICAgIH0sCgogICAgYXN5bmMgZW1iZWQodGV4dHMsIGtpbmQpIHsKICAgICAgY29uc3QgdGFza1R5cGUgPSBraW5kID09PSAicXVlcnkiID8gIlJFVFJJRVZBTF9RVUVSWSIgOiAiUkVUUklFVkFMX0RPQ1VNRU5UIjsKICAgICAgY29uc3Qgb3V0OiBudW1iZXJbXVtdID0gW107CiAgICAgIGZvciAobGV0IGkgPSAwOyBpIDwgdGV4dHMubGVuZ3RoOyBpICs9IEVNQkVEX0JBVENIKSB7CiAgICAgICAgY29uc3QgYmF0Y2ggPSB0ZXh0cy5zbGljZShpLCBpICsgRU1CRURfQkFUQ0gpOwogICAgICAgIGNvbnN0IHsganNvbiB9ID0gYXdhaXQgY2FsbCgiZW1iZWQiLCAiYmF0Y2hFbWJlZENvbnRlbnRzIiwgKG1vZGVsKSA9PiAoewogICAgICAgICAgcmVxdWVzdHM6IGJhdGNoLm1hcCgodGV4dCkgPT4gKHsKICAgICAgICAgICAgbW9kZWw6IGBtb2RlbHMvJHttb2RlbH1gLAogICAgICAgICAgICBjb250ZW50OiB7IHBhcnRzOiBbeyB0ZXh0IH1dIH0sCiAgICAgICAgICAgIHRhc2tUeXBlLAogICAgICAgICAgICBvdXRwdXREaW1lbnNpb25hbGl0eTogRU1CRURfRElNLAogICAgICAgICAgfSkpLAogICAgICAgIH0pKTsKICAgICAgICBjb25zdCB2ZWN0b3JzOiB7IHZhbHVlczogbnVtYmVyW10gfVtdID0ganNvbj8uZW1iZWRkaW5ncyA/PyBbXTsKICAgICAgICBpZiAodmVjdG9ycy5sZW5ndGggIT09IGJhdGNoLmxlbmd0aCkgdGhyb3cgbmV3IEVycm9yKCJHZW1pbmkgZW1iZWQgdHLhuqMgdGhp4bq/dSB2ZWN0b3IiKTsKICAgICAgICBvdXQucHVzaCguLi52ZWN0b3JzLm1hcCgodikgPT4gdi52YWx1ZXMpKTsKICAgICAgfQogICAgICByZXR1cm4gb3V0OwogICAgfSwKICB9Owp9Cg==
+export type AiTask = "draft" | "verify" | "handoff" | "classify" | "translate" | "learn" | "case_summary" | "sentiment" | "embed";
+
+export class AiUnavailable extends Error {
+  readonly code = "AI_UNAVAILABLE";
+  constructor(message = "Tất cả model AI đều lỗi hoặc hết quota") {
+    super(message);
+  }
+}
+
+/** AI trả lời nhưng nội dung không dùng được (rỗng, JSON hỏng). Khác với hết quota. */
+export class AiBadOutput extends Error {
+  readonly code = "AI_BAD_OUTPUT";
+  constructor(message = "AI trả kết quả không dùng được") {
+    super(message);
+  }
+}
+
+export interface AiStore {
+  getModels(task: AiTask): Promise<string[]>;
+  logUsage(model: string, task: AiTask, is429: boolean): Promise<void>;
+}
+
+export interface Ai {
+  generate(
+    task: Exclude<AiTask, "embed">,
+    prompt: string,
+    opts?: { schema?: Record<string, unknown> },
+  ): Promise<{ text: string; model: string }>;
+  embed(texts: string[], kind: "document" | "query"): Promise<number[][]>;
+}
+
+const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const EMBED_BATCH = 100;
+const EMBED_DIM = 768;
+
+/** Key bị thu hồi/sai: thử key kế tiếp (đổi model không giúp được). */
+function badKey(status: number, detail: string): boolean {
+  return status === 401 || status === 403 || (status === 400 && detail.includes("API_KEY_INVALID"));
+}
+
+/** Lỗi đáng thử model kế tiếp: hết quota, model không tồn tại, lỗi phía Google. */
+function retryable(status: number): boolean {
+  return status === 429 || status === 404 || status >= 500;
+}
+
+/** Nhiều API key (free tier): key hết quota (429) thì xoay sang key kế tiếp, key vừa chạy được thử trước ở lần sau. */
+export function createGemini(opts: { apiKeys: string[]; store: AiStore; fetch?: typeof fetch }): Ai {
+  const doFetch = opts.fetch ?? fetch;
+  const keys = opts.apiKeys.filter((k) => k.trim());
+  if (!keys.length) throw new Error("Thiếu Gemini API key");
+  let preferred = 0;
+
+  async function log(model: string, task: AiTask, is429: boolean) {
+    try {
+      await opts.store.logUsage(model, task, is429);
+    } catch (e) {
+      console.error("ai usage log failed", e);
+    }
+  }
+
+  /**
+   * Thử lần lượt từng model của task. Trong một model: 429 hoặc key sai/bị thu hồi → key kế tiếp; 404/5xx/lỗi mạng → model kế tiếp
+   * (đổi key không giúp được). Trả JSON response đầu tiên thành công.
+   */
+  async function call(task: AiTask, method: string, body: (model: string) => unknown): Promise<{ json: any; model: string }> {
+    for (const model of await opts.store.getModels(task)) {
+      for (let n = 0; n < keys.length; n++) {
+        const k = (preferred + n) % keys.length;
+        let res: Response;
+        try {
+          res = await doFetch(`${BASE}/${model}:${method}`, {
+            method: "POST",
+            headers: { "content-type": "application/json", "x-goog-api-key": keys[k] },
+            body: JSON.stringify(body(model)),
+          });
+        } catch {
+          await log(model, task, false);
+          break;
+        }
+        await log(model, task, res.status === 429);
+        if (res.ok) {
+          preferred = k;
+          return { json: await res.json(), model };
+        }
+        const detail = await res.text().catch(() => "");
+        if (res.status === 429 || badKey(res.status, detail)) continue;
+        if (!retryable(res.status)) throw new Error(`Gemini ${model} ${res.status}: ${detail.slice(0, 300)}`);
+        break;
+      }
+    }
+    throw new AiUnavailable();
+  }
+
+  return {
+    async generate(task, prompt, o = {}) {
+      const { json, model } = await call(task, "generateContent", () => ({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        ...(o.schema ? { generationConfig: { responseMimeType: "application/json", responseSchema: o.schema } } : {}),
+      }));
+      const parts: { text?: string; thought?: boolean }[] = json?.candidates?.[0]?.content?.parts ?? [];
+      return { text: parts.filter((p) => !p.thought).map((p) => p.text ?? "").join(""), model };
+    },
+
+    async embed(texts, kind) {
+      const taskType = kind === "query" ? "RETRIEVAL_QUERY" : "RETRIEVAL_DOCUMENT";
+      const out: number[][] = [];
+      for (let i = 0; i < texts.length; i += EMBED_BATCH) {
+        const batch = texts.slice(i, i + EMBED_BATCH);
+        const { json } = await call("embed", "batchEmbedContents", (model) => ({
+          requests: batch.map((text) => ({
+            model: `models/${model}`,
+            content: { parts: [{ text }] },
+            taskType,
+            outputDimensionality: EMBED_DIM,
+          })),
+        }));
+        const vectors: { values: number[] }[] = json?.embeddings ?? [];
+        if (vectors.length !== batch.length) throw new Error("Gemini embed trả thiếu vector");
+        out.push(...vectors.map((v) => v.values));
+      }
+      return out;
+    },
+  };
+}
