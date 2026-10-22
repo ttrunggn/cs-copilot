@@ -8,6 +8,7 @@ import {
   formatHandoffNote,
   handoffPrompt,
   neutralize,
+  parseDraftTone,
   parseHandoff,
   parseJson,
   parseTopic,
@@ -72,6 +73,31 @@ Deno.test("draftPrompt asks to answer each issue in order, respects bot replies,
 
 Deno.test("draftPrompt omits helpdesk section when none", () => {
   assertEquals(draftPrompt({ ...draftInput, helpdesk: [] }).includes("[H1]"), false);
+});
+
+Deno.test("draftPrompt ưu tiên ý của CS hơn ngữ cảnh chat khi có hint", () => {
+  const p = draftPrompt({ ...draftInput, hint: "lỗi 502, chờ dev, mai trả lời khách" });
+  assertEquals(p.includes("take priority over the conversation context"), true);
+  assertEquals(p.includes("<agent-points>\nlỗi 502, chờ dev, mai trả lời khách\n</agent-points>"), true);
+  // Không có hint thì không có mục này.
+  assertEquals(draftPrompt(draftInput).includes("<agent-points>"), false);
+  assertEquals(draftPrompt({ ...draftInput, hint: "   " }).includes("<agent-points>"), false);
+});
+
+Deno.test("draftPrompt thêm chỉ dẫn giọng văn theo tone CS chọn, default thì không", () => {
+  assertEquals(draftPrompt({ ...draftInput, tone: "friendly" }).includes("warmer and softer"), true);
+  assertEquals(draftPrompt({ ...draftInput, tone: "formal" }).includes("more formal and polite"), true);
+  assertEquals(draftPrompt({ ...draftInput, tone: "concise" }).includes("as short as possible"), true);
+  assertEquals(draftPrompt({ ...draftInput, tone: "default" }).includes("Tone adjustment"), false);
+  assertEquals(draftPrompt(draftInput).includes("Tone adjustment"), false);
+});
+
+Deno.test("parseDraftTone chỉ nhận 4 giá trị hợp lệ", () => {
+  assertEquals(parseDraftTone("friendly"), "friendly");
+  assertEquals(parseDraftTone("concise"), "concise");
+  assertEquals(parseDraftTone("shouty"), "default");
+  assertEquals(parseDraftTone(undefined), "default");
+  assertEquals(parseDraftTone(42), "default");
 });
 
 Deno.test("verifyPrompt asks for Vietnamese reasons and ignores CS markers", () => {
