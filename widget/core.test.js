@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toDraftViewModel, toViewModel } from "./core.js";
+import { countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -108,9 +108,32 @@ Deno.test("mapError 503 AI_UNAVAILABLE → retry with quota message", () => {
 
 Deno.test("toDraftViewModel badges for verified/unverified/no helpdesk", () => {
   const base = { draft: "Hi", warnings: [], verified: true, helpdesk_matches: 2 };
-  assertEquals(toDraftViewModel(base).badge, "Đã đối chiếu helpdesk");
+  assertEquals(toDraftViewModel(base).badge, "✓ 2 ý có nguồn helpdesk");
   assertEquals(toDraftViewModel({ ...base, verified: false }).badge, "Chưa đối chiếu helpdesk");
   assertEquals(toDraftViewModel({ ...base, helpdesk_matches: 0 }).badge, "Không có bài helpdesk liên quan");
+});
+
+Deno.test("toDraftViewModel badge đếm theo sources thật, bỏ link không phải https", () => {
+  const vm = toDraftViewModel({
+    draft: "Hi", warnings: [], verified: true, helpdesk_matches: 9,
+    sources: [
+      { title: "Bài A", url: "https://help.transcy.io/a" },
+      { title: "Bài B", url: "https://help.transcy.io/b" },
+      { title: "Xấu", url: "javascript:alert(1)" },
+    ],
+  });
+  assertEquals(vm.badge, "✓ 2 ý có nguồn helpdesk");
+  assertEquals(vm.sources, [
+    { title: "Bài A", url: "https://help.transcy.io/a" },
+    { title: "Bài B", url: "https://help.transcy.io/b" },
+  ]);
+});
+
+Deno.test("countPlaceholders đếm các chỗ [[CS: …]]", () => {
+  assertEquals(countPlaceholders("A [[CS: kiểm tra gói]] B [[CS: link]]"), 2);
+  assertEquals(countPlaceholders("không có chỗ trống"), 0);
+  assertEquals(countPlaceholders(""), 0);
+  assertEquals(countPlaceholders(null), 0);
 });
 
 Deno.test("toDraftViewModel accepts latest_draft shape and maps warnings", () => {
@@ -155,6 +178,43 @@ Deno.test("mapError 503 AI_BAD_OUTPUT → retry with server message", () => {
 Deno.test("toDraftViewModel shows how old the draft is", () => {
   const vm = toDraftViewModel({ content: "x", warnings: [], verified: true, helpdesk_matches: 1, created_at: "2026-10-16T09:50:00Z" }, NOW);
   assertEquals(vm.age, "10 phút trước");
+});
+
+Deno.test("toViewModel exposes topic label and conversation state for chips/CSAT gating", () => {
+  const vm = toViewModel({ ...CHECK, conversation_state: "resolved" }, NOW);
+  assertEquals(vm.topicLabel, "Billing");
+  assertEquals(vm.conversationState, "resolved");
+  assertEquals(toViewModel({ ...CHECK, topic: null, topic_label: null }, NOW).topicLabel, null);
+  assertEquals(toViewModel(CHECK, NOW).conversationState, null);
+});
+
+Deno.test("toStorefrontViewModel: chưa nối nguồn → empty; loading/error/missing-domain tách riêng", () => {
+  assertEquals(toStorefrontViewModel(null, NOW), { kind: "empty" });
+  assertEquals(toStorefrontViewModel({ status: "loading" }, NOW), { kind: "loading" });
+  assertEquals(toStorefrontViewModel({ status: "error" }, NOW), { kind: "error" });
+  assertEquals(toStorefrontViewModel({ status: "ok", store: null }, NOW), { kind: "missing-domain" });
+});
+
+Deno.test("toStorefrontViewModel: results gom lỗi đã xác nhận + tín hiệu chưa xác minh + cờ cũ", () => {
+  const vm = toStorefrontViewModel({
+    status: "ok",
+    store: "store-abc.myshopify.com",
+    scannedAt: "2026-10-16T09:00:00Z",
+    isStale: true,
+    confirmed: [
+      { level: "critical", title: "Lộ mã template (thẻ <tc>) trên trang", meta: "ko-kr · thấy 2 lần · nên gửi dev" },
+      { level: "new", title: "Mất hình", meta: "fr-fr · đã xác nhận" },
+    ],
+    unverified: [{ title: "Chiều cao trang nhảy", meta: "fr-fr · cần xác minh" }],
+  }, NOW);
+  assertEquals(vm.kind, "results");
+  assertEquals(vm.confirmedCount, 2);
+  assertEquals(vm.unverifiedCount, 1);
+  assertEquals(vm.isStale, true);
+  assertEquals(vm.scannedLabel, "1 giờ trước");
+  assertEquals(vm.confirmed[0].chip, "Nghiêm trọng");
+  assertEquals(vm.confirmed[0].chipClass, "critical");
+  assertEquals(vm.confirmed[1].chip, "Mới");
 });
 
 Deno.test("toJiraViewModel shows status, NEW badge and the latest new comment", async () => {

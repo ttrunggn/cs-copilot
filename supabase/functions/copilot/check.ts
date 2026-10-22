@@ -14,6 +14,8 @@ export interface CheckResult {
   topic_label: string | null;
   profile_source: ProfileSource;
   profile_name: string;
+  /** Trạng thái Crisp của conversation (unresolved | resolved | pending…); widget dùng để chỉ cảnh báo CSAT khi chat chưa đóng. */
+  conversation_state: string | null;
   needs_reply: boolean;
   unanswered: string[];
   pending_messages: { text: string; bot_replied: boolean }[];
@@ -60,6 +62,7 @@ export async function runCheck(
     topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
     profile_source: source,
     profile_name: operator?.display_name ?? operatorId,
+    conversation_state: conv.state,
     needs_reply: unanswered.length > 0,
     unanswered,
     pending_messages: pendingMessages,

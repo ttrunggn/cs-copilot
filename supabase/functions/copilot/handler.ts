@@ -2,6 +2,7 @@ import { authorize, authorizeWidget, HttpError } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput, AiUnavailable } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
+import { type DraftTone, parseDraftTone } from "../_shared/prompts.ts";
 import { runAnalyze } from "./analyze.ts";
 import { runCheck } from "./check.ts";
 import { runSurvey } from "./survey.ts";
@@ -25,7 +26,13 @@ export interface CopilotRequest {
   force: boolean;
   crisp_token: string;
   operator_id: string;
+  /** Ý CS gõ thêm cho draft (chỉ action generate dùng). Trần 500 ký tự. */
+  hint: string;
+  /** Giọng văn CS chọn cho draft; không hợp lệ → default. */
+  tone: DraftTone;
 }
+
+export const HINT_MAX_CHARS = 500;
 
 export interface Deps {
   db: Db;
@@ -52,6 +59,8 @@ function parseRequest(body: unknown): CopilotRequest {
     force: b.force === true || b.force === "1",
     crisp_token: str("crisp_token"),
     operator_id: str("operator_id"),
+    hint: str("hint").slice(0, HINT_MAX_CHARS),
+    tone: parseDraftTone(b.tone),
   };
 }
 

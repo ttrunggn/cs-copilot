@@ -70,6 +70,20 @@ export function pickVariant(variants: Variant[], rand: () => number = Math.rando
 
 // ---------- draft ----------
 
+/** Giọng văn CS chọn thêm cho draft: chỉnh cách chuyển tải như Layer 2, không đổi sự kiện/xưng hô/chữ ký. */
+export type DraftTone = "default" | "friendly" | "formal" | "concise";
+export const DRAFT_TONES: DraftTone[] = ["default", "friendly", "formal", "concise"];
+
+export function parseDraftTone(v: unknown): DraftTone {
+  return DRAFT_TONES.includes(v as DraftTone) ? (v as DraftTone) : "default";
+}
+
+const TONE_GUIDANCE: Record<Exclude<DraftTone, "default">, string> = {
+  friendly: "Sound warmer and softer than usual: a little more personal warmth, gentle phrasing, still professional and never gushing.",
+  formal: "Sound more formal and polite than usual: complete sentences, courteous phrasing, no contractions, no casual words.",
+  concise: "Be as short as possible: cut pleasantries and filler, keep only the facts and the next step the customer needs.",
+};
+
 function helpdeskBlock(chunks: HelpdeskChunk[]): string {
   return chunks.map((c, i) => `[H${i + 1}] ${neutralize(c.title)} — ${c.url}\n${neutralize(c.text)}`).join("\n\n");
 }
@@ -83,6 +97,8 @@ export function draftPrompt(i: {
   variantNotes: string | null;
   jira?: string;
   sentiment?: Sentiment | null;
+  hint?: string;
+  tone?: DraftTone;
 }): string {
   const p = i.profile;
   const parts = [
@@ -115,6 +131,19 @@ export function draftPrompt(i: {
   if (i.sentiment && i.sentiment.confidence >= 0.4) {
     const g = sentimentGuidance(i.sentiment);
     if (g) parts.push(`Customer's current mood: ${i.sentiment.mood} (urgency ${i.sentiment.urgency}).\n${g}`);
+  }
+  // Ý của CS gõ thêm: ưu tiên hơn ngữ cảnh chat — CS là người nắm tình hình thật.
+  // Vẫn là dữ liệu (không phải chỉ dẫn hệ thống): neutralize như mọi nội dung khác.
+  const hint = (i.hint ?? "").trim();
+  if (hint) {
+    parts.push(
+      "The agent added their own points for this reply. These points take priority over the conversation context: " +
+        "cover them first and build the reply around them, even where they differ from what the chat suggests.\n" +
+        `<agent-points>\n${neutralize(hint)}\n</agent-points>`,
+    );
+  }
+  if (i.tone && i.tone !== "default") {
+    parts.push(`Tone adjustment requested by the agent (delivery only — never change facts, pronouns or the sign-off): ${TONE_GUIDANCE[i.tone]}`);
   }
   const samples = p.sample_messages.slice(0, 8);
   if (samples.length) {

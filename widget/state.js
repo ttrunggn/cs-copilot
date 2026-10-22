@@ -12,7 +12,13 @@ export const state = {
   draftPlacement: "", // inserted | copied
   knowledgeOpen: false, // UI scaffold: sẽ nối FAQ search sau
   sentiment: null, // phân tích tâm trạng mới nhất (check/analyze/generate trả về)
+  sentimentMsgCount: 0, // số tin của khách mà analyze vừa tính sentiment trên đó (0 = chưa biết)
   csat: null, // { sent, sent_at } — trạng thái survey của conversation đang mở
+  csatError: false, // lần gửi survey gần nhất lỗi → panel CSAT hiện "Không gửi được / Thử lại"
+  hint: "", // ý CS gõ thêm cho draft (gửi kèm generate)
+  tone: "default", // giọng văn CS chọn cho draft: default | friendly | formal | concise
+  draftEditing: false, // đang sửa draft trực tiếp trong panel
+  storefront: null, // dữ liệu Storefront Watch thô; null = chưa nối nguồn (panel hiện trạng thái trống)
   busy: "",
   bridge: "checking", // checking | missing | outdated | ready
   bridgeProbe: null,

@@ -1,27 +1,76 @@
 :root {
   color-scheme: dark;
+  /* Design tokens (tokens.css) — nguồn chuẩn cho panel. */
   --bg: #141519;
-  --surface: #1b1d23;
-  --surface-raised: #22252c;
-  --surface-ai: #121a26;
-  --input: #0f1013;
-  --fg: #eceef2;
-  --muted: #9aa1af;
-  --line: #2b2f38;
-  --accent: #3566e0;
+  --card: #1b1d23;
+  --card-ai: #121a26;
+  --border: #2b2f38;
+  --text: #eceef2;
+  --text-muted: #9aa1af;
+  --primary: #3566e0;
+  --link: #8db0ff;
+  --warn: #f2b84b;
+  --error: #ff8a80;
+  --success: #5ed3a0;
+  --ai: #b08cff;
+  --surface-inset: #0f1013;
+  --bubble: #22252c;
+  --warn-bg: #2a2112;
+  --warn-border: #5a4520;
+  --error-border: #7a3a35;
+  --csat: #e8334f;
+  --highlight-bg: #f2b84b;
+  --highlight-text: #2a1a00;
+  --note-bg: #fff1b3;
+  --note-text: #2a2000;
+  --note-muted: #7a4a00;
+  /* Tên cũ của stylesheet — alias về token để class hiện có không đổi hành vi. */
+  --surface: var(--card);
+  --surface-raised: var(--bubble);
+  --surface-ai: var(--card-ai);
+  --input: var(--surface-inset);
+  --fg: var(--text);
+  --muted: var(--text-muted);
+  --line: var(--border);
+  --accent: var(--primary);
   --accent-hover: #4777ed;
   --accent-soft: #182b23;
-  --accent-fg: #5ed3a0;
-  --link: #8db0ff;
-  --warn-bg: #2a2112;
-  --warn-line: #5a4520;
-  --warn-fg: #f2b84b;
-  --note-bg: #fff1b3;
-  --note-line: #fff1b3;
-  --note-fg: #2a2000;
-  --danger: #ff8a80;
+  --accent-fg: var(--success);
+  --warn-line: var(--warn-border);
+  --warn-fg: var(--warn);
+  --note-line: var(--note-bg);
+  --note-fg: var(--note-text);
+  --danger: var(--error);
   --danger-bg: #2b1719;
-  --danger-line: #7a3a35;
+  --danger-line: var(--error-border);
+}
+
+/* Bản sáng theo hệ điều hành (tokens.css). Crisp báo theme qua ?theme= thì khối
+   [data-theme] ở cuối file thắng nhờ specificity cao hơn. */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --card-ai: #f1f5ff;
+    --border: #dde1e8;
+    --text: #1a1d23;
+    --text-muted: #5c6472;
+    --primary: #2f5dd0;
+    --link: #2250c0;
+    --warn: #7a4a00;
+    --error: #b3261e;
+    --success: #14673a;
+    --ai: #6b43d6;
+    --surface-inset: #ffffff;
+    --bubble: #eef1f5;
+    --warn-bg: #fff4d6;
+    --warn-border: #e5c176;
+    --error-border: #e5a49d;
+    --accent-hover: #2756cb;
+    --accent-soft: #e8f0eb;
+    --danger-bg: #fbe4df;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -77,10 +126,62 @@ button:disabled { opacity: .55; cursor: default; }
 .field::placeholder { color: var(--muted); opacity: 1; }
 .field:disabled { opacity: 1; cursor: not-allowed; }
 .field-static { min-height: auto; color: var(--muted); }
-.knowledge-card, .tech-card { gap: 10px; }
+.knowledge-card { gap: 10px; }
 .csat-panel { display: grid; gap: 10px; padding: 14px 0 0; border-top: 1px solid var(--line); }
-.csat-button { border-color: #e8334f; background: #e8334f; color: #fff; }
+.csat-button { border-color: var(--csat); background: var(--csat); color: #fff; }
 .csat-button:disabled { opacity: .5; }
+.csat-sent { display: grid; gap: 3px; }
+.csat-error { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--error-border); border-radius: 14px; background: var(--surface); }
+.csat-error > b { color: var(--error); }
+
+/* Chip/pill dưới header (Ý định…) */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--text); }
+.chip b { font-weight: 700; }
+
+/* Thẻ tâm trạng: nhãn mood tô màu theo mood + điểm N/100 + thanh điểm 6px */
+.mood-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mood-label { font-size: 18px; font-weight: 700; }
+.score-num { font-size: 18px; font-weight: 700; }
+.mood-frustrated { color: var(--warn); }
+.mood-confused { color: var(--ai); }
+.mood-neutral { color: var(--text-muted); }
+.mood-satisfied, .mood-happy { color: var(--success); }
+.score-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.score-fill { height: 100%; border-radius: 3px; }
+.mood-bg-frustrated { background: var(--warn); }
+.mood-bg-confused { background: var(--ai); }
+.mood-bg-neutral { background: var(--text-muted); }
+.mood-bg-satisfied, .mood-bg-happy { background: var(--success); }
+
+/* Card Tóm tắt (AI) */
+.ai-mark { color: var(--ai); }
+.summary-card { gap: 9px; }
+.summary-note { line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
+.summary-actions { justify-content: flex-start; gap: 10px; }
+
+/* Draft: chọn giọng văn + sửa tại chỗ + nguồn */
+.tone-select { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; background: var(--input); color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
+.draft-hint { min-height: 52px; }
+.draft-editor { display: grid; gap: 8px; }
+.draft-edit { min-height: 150px; }
+.draft-sources { font-size: 12px; overflow-wrap: anywhere; }
+.draft-insert { flex: 1; }
+.suggestion-preview { overflow-wrap: anywhere; }
+
+/* Storefront Watch */
+.card.storefront-strip { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 10px; }
+.link-text { color: var(--link); font-size: 13px; font-weight: 600; }
+.error-text { color: var(--error); }
+.success-text { color: var(--success); }
+.storefront-card { gap: 10px; }
+.error-card { border-color: var(--error-border); }
+.sf-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.sf-chip { flex: none; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.sf-chip.critical { color: var(--error); border-color: var(--error); }
+.sf-chip.confirmed { color: var(--warn); border-color: var(--warn); }
+.sf-chip.new { color: var(--link); border-color: var(--link); }
+.sf-collapsed { border-top: 1px solid var(--line); padding-top: 8px; }
 
 .meta-section { display: grid; gap: 5px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
@@ -96,7 +197,7 @@ button:disabled { opacity: .55; cursor: default; }
 .is-ok { color: var(--accent-fg); }
 .is-warn { color: var(--warn-fg); }
 .draft { padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
-mark.todo { padding: 0 4px; border-radius: 4px; background: var(--warn-fg); color: #2a1a00; font-weight: 750; }
+mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg); color: var(--highlight-text); font-weight: 750; }
 .warn, .warning-item, .notice-card { padding: 10px 12px; border: 1px solid var(--warn-line); border-radius: 9px; background: var(--warn-bg); color: var(--warn-fg); }
 .warn { font-weight: 700; }
 .warnings { display: grid; gap: 7px; }
@@ -145,6 +246,21 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--warn-fg); colo
 /* Theo token light trong PDF gốc; dark là mặc định vì Crisp đang chạy dark mode. */
 :root[data-theme="light"] {
     color-scheme: light;
+    /* Token names — để primitive mới (chip/mood/storefront) cũng sáng theo. */
+    --card: #fffefa;
+    --card-ai: #f3f7ff;
+    --border: #dedacd;
+    --text: #292821;
+    --text-muted: #716f65;
+    --primary: #3566e0;
+    --warn: #845100;
+    --error: #b52b21;
+    --success: #267253;
+    --ai: #6b43d6;
+    --surface-inset: #ffffff;
+    --bubble: #f0ede4;
+    --warn-border: #e5c176;
+    --error-border: #e5a49d;
     --bg: #fbfaf6;
     --surface: #fffefa;
     --surface-raised: #f0ede4;
