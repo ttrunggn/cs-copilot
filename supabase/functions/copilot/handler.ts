@@ -1,1 +1,90 @@
-aW1wb3J0IHsgYXV0aG9yaXplLCBhdXRob3JpemVXaWRnZXQsIEh0dHBFcnJvciB9IGZyb20gIi4uL19zaGFyZWQvYXV0aC50cyI7CmltcG9ydCB0eXBlIHsgRGIgfSBmcm9tICIuLi9fc2hhcmVkL2RiLnRzIjsKaW1wb3J0IHsgdHlwZSBBaSwgQWlCYWRPdXRwdXQsIEFpVW5hdmFpbGFibGUgfSBmcm9tICIuLi9fc2hhcmVkL2dlbWluaS50cyI7CmltcG9ydCB0eXBlIHsgTjhuIH0gZnJvbSAiLi4vX3NoYXJlZC9uOG4udHMiOwppbXBvcnQgeyBydW5BbmFseXplIH0gZnJvbSAiLi9hbmFseXplLnRzIjsKaW1wb3J0IHsgcnVuQ2hlY2sgfSBmcm9tICIuL2NoZWNrLnRzIjsKaW1wb3J0IHsgcnVuU3VydmV5IH0gZnJvbSAiLi9zdXJ2ZXkudHMiOwppbXBvcnQgeyBydW5HZW5lcmF0ZSB9IGZyb20gIi4vZ2VuZXJhdGUudHMiOwppbXBvcnQgeyBydW5IYW5kb2ZmIH0gZnJvbSAiLi9oYW5kb2ZmLnRzIjsKCmV4cG9ydCB0eXBlIHsgQ2hlY2tSZXN1bHQgfSBmcm9tICIuL2NoZWNrLnRzIjsKZXhwb3J0IHR5cGUgeyBHZW5lcmF0ZVJlc3VsdCB9IGZyb20gIi4vZ2VuZXJhdGUudHMiOwpleHBvcnQgdHlwZSB7IEhhbmRvZmZSZXN1bHQgfSBmcm9tICIuL2hhbmRvZmYudHMiOwoKY29uc3QgQUNUSU9OUyA9IFsiY2hlY2siLCAiaGFuZG9mZiIsICJnZW5lcmF0ZSIsICJhbmFseXplIiwgInN1cnZleSJdIGFzIGNvbnN0Owp0eXBlIEFjdGlvbiA9IHR5cGVvZiBBQ1RJT05TW251bWJlcl07Ci8vIHNlc3Npb25faWQvd2Vic2l0ZV9pZCDEkWkgdsOgbyBVUkwgQ3Jpc3Ag4bufIHBow61hIG44biBuw6puIHBo4bqjaSDEkcO6bmcgxJHhu4tuaCBk4bqhbmcgQ3Jpc3AuCmNvbnN0IFNFU1NJT05fSUQgPSAvXnNlc3Npb25fW1x3LV0rJC87CmNvbnN0IFdFQlNJVEVfSUQgPSAvXltcdy1dKyQvOwoKZXhwb3J0IGludGVyZmFjZSBDb3BpbG90UmVxdWVzdCB7CiAgd2Vic2l0ZV9pZDogc3RyaW5nOwogIHNlc3Npb25faWQ6IHN0cmluZzsKICBhY3Rpb246IEFjdGlvbjsKICBmb3JjZTogYm9vbGVhbjsKICBjcmlzcF90b2tlbjogc3RyaW5nOwogIG9wZXJhdG9yX2lkOiBzdHJpbmc7Cn0KCmV4cG9ydCBpbnRlcmZhY2UgRGVwcyB7CiAgZGI6IERiOwogIG44bjogTjhuOwogIGFpOiBBaTsKICAvKiogVmnhu4djIG7hu4FuIHNhdSByZXNwb25zZSAocmVmcmVzaCBjaG8gxJHGsOG7nW5nIMSR4buNYyBuaGFuaCk7IHbhuq9uZyBt4bq3dCB0aMOsIGNo4bqheSDEkeG7k25nIGLhu5kuICovCiAgYmFja2dyb3VuZD86ICh0YXNrOiBQcm9taXNlPHVua25vd24+KSA9PiB2b2lkOwogIG5vdz86ICgpID0+IG51bWJlcjsKfQoKZnVuY3Rpb24gcGFyc2VSZXF1ZXN0KGJvZHk6IHVua25vd24pOiBDb3BpbG90UmVxdWVzdCB7CiAgaWYgKHR5cGVvZiBib2R5ICE9PSAib2JqZWN0IiB8fCBib2R5ID09PSBudWxsKSB0aHJvdyBuZXcgSHR0cEVycm9yKDQwMCwgIkJvZHkgcGjhuqNpIGzDoCBKU09OIG9iamVjdCIpOwogIGNvbnN0IGIgPSBib2R5IGFzIFJlY29yZDxzdHJpbmcsIHVua25vd24+OwogIGNvbnN0IHN0ciA9IChrOiBzdHJpbmcpID0+ICh0eXBlb2YgYltrXSA9PT0gInN0cmluZyIgPyAoYltrXSBhcyBzdHJpbmcpLnRyaW0oKSA6ICIiKTsKICBjb25zdCBhY3Rpb24gPSBzdHIoImFjdGlvbiIpIGFzIEFjdGlvbjsKICBpZiAoIUFDVElPTlMuaW5jbHVkZXMoYWN0aW9uKSkgdGhyb3cgbmV3IEh0dHBFcnJvcig0MDAsIGBhY3Rpb24ga2jDtG5nIGjhu6NwIGzhu4c6ICR7c3RyKCJhY3Rpb24iKX1gKTsKICBpZiAoIXN0cigic2Vzc2lvbl9pZCIpKSB0aHJvdyBuZXcgSHR0cEVycm9yKDQwMCwgIlRoaeG6v3Ugc2Vzc2lvbl9pZCIpOwogIGlmICghU0VTU0lPTl9JRC50ZXN0KHN0cigic2Vzc2lvbl9pZCIpKSkgdGhyb3cgbmV3IEh0dHBFcnJvcig0MDAsICJzZXNzaW9uX2lkIGtow7RuZyBo4bujcCBs4buHIik7CiAgaWYgKHN0cigid2Vic2l0ZV9pZCIpICYmICFXRUJTSVRFX0lELnRlc3Qoc3RyKCJ3ZWJzaXRlX2lkIikpKSB0aHJvdyBuZXcgSHR0cEVycm9yKDQwMCwgIndlYnNpdGVfaWQga2jDtG5nIGjhu6NwIGzhu4ciKTsKICByZXR1cm4gewogICAgd2Vic2l0ZV9pZDogc3RyKCJ3ZWJzaXRlX2lkIiksCiAgICBzZXNzaW9uX2lkOiBzdHIoInNlc3Npb25faWQiKSwKICAgIGFjdGlvbiwKICAgIGZvcmNlOiBiLmZvcmNlID09PSB0cnVlIHx8IGIuZm9yY2UgPT09ICIxIiwKICAgIGNyaXNwX3Rva2VuOiBzdHIoImNyaXNwX3Rva2VuIiksCiAgICBvcGVyYXRvcl9pZDogc3RyKCJvcGVyYXRvcl9pZCIpLAogIH07Cn0KCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBoYW5kbGUoYm9keTogdW5rbm93biwgdG9rZW46IHN0cmluZywgZGVwczogRGVwcyk6IFByb21pc2U8eyBzdGF0dXM6IG51bWJlcjsgYm9keTogdW5rbm93biB9PiB7CiAgdHJ5IHsKICAgIGNvbnN0IHJlcSA9IHBhcnNlUmVxdWVzdChib2R5KTsKICAgIC8vIFRva2VuIGPDoSBuaMOibiAoY3VybC90b29saW5nKSBob+G6t2Mgd2lkZ2V0IHRyb25nIENyaXNwICh0b2tlbiB3ZWJzaXRlICsgb3BlcmF0b3IgdOG7qyBTREspLgogICAgY29uc3QgeyB3b3Jrc3BhY2U6IHdzLCBvcGVyYXRvcklkIH0gPSB0b2tlbgogICAgICA/IGF3YWl0IGF1dGhvcml6ZShkZXBzLmRiLCB7IHdlYnNpdGVfaWQ6IHJlcS53ZWJzaXRlX2lkLCB0b2tlbiB9KQogICAgICA6IGF3YWl0IGF1dGhvcml6ZVdpZGdldChkZXBzLmRiLCByZXEpOwogICAgc3dpdGNoIChyZXEuYWN0aW9uKSB7CiAgICAgIGNhc2UgImNoZWNrIjoKICAgICAgICByZXR1cm4geyBzdGF0dXM6IDIwMCwgYm9keTogYXdhaXQgcnVuQ2hlY2socmVxLCB3cywgb3BlcmF0b3JJZCwgZGVwcykgfTsKICAgICAgY2FzZSAiaGFuZG9mZiI6CiAgICAgICAgcmV0dXJuIHsgc3RhdHVzOiAyMDAsIGJvZHk6IGF3YWl0IHJ1bkhhbmRvZmYocmVxLCB3cywgb3BlcmF0b3JJZCwgZGVwcykgfTsKICAgICAgY2FzZSAiZ2VuZXJhdGUiOgogICAgICAgIHJldHVybiB7IHN0YXR1czogMjAwLCBib2R5OiBhd2FpdCBydW5HZW5lcmF0ZShyZXEsIHdzLCBvcGVyYXRvcklkLCBkZXBzKSB9OwogICAgICBjYXNlICJhbmFseXplIjoKICAgICAgICByZXR1cm4geyBzdGF0dXM6IDIwMCwgYm9keTogYXdhaXQgcnVuQW5hbHl6ZShyZXEsIGRlcHMpIH07CiAgICAgIGNhc2UgInN1cnZleSI6CiAgICAgICAgcmV0dXJuIHsgc3RhdHVzOiAyMDAsIGJvZHk6IGF3YWl0IHJ1blN1cnZleShyZXEsIG9wZXJhdG9ySWQsIGRlcHMpIH07CiAgICB9CiAgfSBjYXRjaCAoZSkgewogICAgaWYgKGUgaW5zdGFuY2VvZiBIdHRwRXJyb3IpIHJldHVybiB7IHN0YXR1czogZS5zdGF0dXMsIGJvZHk6IHsgZXJyb3I6IGUubWVzc2FnZSB9IH07CiAgICBpZiAoZSBpbnN0YW5jZW9mIEFpQmFkT3V0cHV0KSB7CiAgICAgIGNvbnNvbGUuZXJyb3IoImNvcGlsb3QgYWkgYmFkIG91dHB1dCIsIGUubWVzc2FnZSk7CiAgICAgIHJldHVybiB7IHN0YXR1czogNTAzLCBib2R5OiB7IGVycm9yOiAiQUkgdHLhuqMga+G6v3QgcXXhuqMga2jDtG5nIGTDuW5nIMSRxrDhu6NjLCBi4bqlbSBs4bqhaSB0aOG7rSIsIGNvZGU6ICJBSV9CQURfT1VUUFVUIiB9IH07CiAgICB9CiAgICBpZiAoZSBpbnN0YW5jZW9mIEFpVW5hdmFpbGFibGUpIHsKICAgICAgY29uc29sZS5lcnJvcigiY29waWxvdCBhaSB1bmF2YWlsYWJsZSIsIGUubWVzc2FnZSk7CiAgICAgIHJldHVybiB7IHN0YXR1czogNTAzLCBib2R5OiB7IGVycm9yOiAiQUkgxJFhbmcgaOG6v3QgcXVvdGEgaG/hurdjIGzhu5dpLCB0aOG7rSBs4bqhaSBzYXUiLCBjb2RlOiAiQUlfVU5BVkFJTEFCTEUiIH0gfTsKICAgIH0KICAgIGNvbnNvbGUuZXJyb3IoImNvcGlsb3QgZXJyb3IiLCBlKTsKICAgIHJldHVybiB7IHN0YXR1czogNTAwLCBib2R5OiB7IGVycm9yOiAiTOG7l2kgaOG7hyB0aOG7kW5nLCB0aOG7rSBs4bqhaSBzYXUiIH0gfTsKICB9Cn0K
+import { authorize, authorizeWidget, HttpError } from "../_shared/auth.ts";
+import type { Db } from "../_shared/db.ts";
+import { type Ai, AiBadOutput, AiUnavailable } from "../_shared/gemini.ts";
+import type { N8n } from "../_shared/n8n.ts";
+import { runAnalyze } from "./analyze.ts";
+import { runCheck } from "./check.ts";
+import { runSurvey } from "./survey.ts";
+import { runGenerate } from "./generate.ts";
+import { runHandoff } from "./handoff.ts";
+
+export type { CheckResult } from "./check.ts";
+export type { GenerateResult } from "./generate.ts";
+export type { HandoffResult } from "./handoff.ts";
+
+const ACTIONS = ["check", "handoff", "generate", "analyze", "survey"] as const;
+type Action = typeof ACTIONS[number];
+// session_id/website_id đi vào URL Crisp ở phía n8n nên phải đúng định dạng Crisp.
+const SESSION_ID = /^session_[\w-]+$/;
+const WEBSITE_ID = /^[\w-]+$/;
+
+export interface CopilotRequest {
+  website_id: string;
+  session_id: string;
+  action: Action;
+  force: boolean;
+  crisp_token: string;
+  operator_id: string;
+}
+
+export interface Deps {
+  db: Db;
+  n8n: N8n;
+  ai: Ai;
+  /** Việc nền sau response (refresh cho đường đọc nhanh); vắng mặt thì chạy đồng bộ. */
+  background?: (task: Promise<unknown>) => void;
+  now?: () => number;
+}
+
+function parseRequest(body: unknown): CopilotRequest {
+  if (typeof body !== "object" || body === null) throw new HttpError(400, "Body phải là JSON object");
+  const b = body as Record<string, unknown>;
+  const str = (k: string) => (typeof b[k] === "string" ? (b[k] as string).trim() : "");
+  const action = str("action") as Action;
+  if (!ACTIONS.includes(action)) throw new HttpError(400, `action không hợp lệ: ${str("action")}`);
+  if (!str("session_id")) throw new HttpError(400, "Thiếu session_id");
+  if (!SESSION_ID.test(str("session_id"))) throw new HttpError(400, "session_id không hợp lệ");
+  if (str("website_id") && !WEBSITE_ID.test(str("website_id"))) throw new HttpError(400, "website_id không hợp lệ");
+  return {
+    website_id: str("website_id"),
+    session_id: str("session_id"),
+    action,
+    force: b.force === true || b.force === "1",
+    crisp_token: str("crisp_token"),
+    operator_id: str("operator_id"),
+  };
+}
+
+export async function handle(body: unknown, token: string, deps: Deps): Promise<{ status: number; body: unknown }> {
+  try {
+    const req = parseRequest(body);
+    // Token cá nhân (curl/tooling) hoặc widget trong Crisp (token website + operator từ SDK).
+    const { workspace: ws, operatorId } = token
+      ? await authorize(deps.db, { website_id: req.website_id, token })
+      : await authorizeWidget(deps.db, req);
+    switch (req.action) {
+      case "check":
+        return { status: 200, body: await runCheck(req, ws, operatorId, deps) };
+      case "handoff":
+        return { status: 200, body: await runHandoff(req, ws, operatorId, deps) };
+      case "generate":
+        return { status: 200, body: await runGenerate(req, ws, operatorId, deps) };
+      case "analyze":
+        return { status: 200, body: await runAnalyze(req, deps) };
+      case "survey":
+        return { status: 200, body: await runSurvey(req, operatorId, deps) };
+    }
+  } catch (e) {
+    if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };
+    if (e instanceof AiBadOutput) {
+      console.error("copilot ai bad output", e.message);
+      return { status: 503, body: { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" } };
+    }
+    if (e instanceof AiUnavailable) {
+      console.error("copilot ai unavailable", e.message);
+      return { status: 503, body: { error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE" } };
+    }
+    console.error("copilot error", e);
+    return { status: 500, body: { error: "Lỗi hệ thống, thử lại sau" } };
+  }
+}
