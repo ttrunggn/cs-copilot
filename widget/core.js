@@ -139,6 +139,20 @@ export function toDraftViewModel(out, now = Date.now()) {
   };
 }
 
+/** Kết quả ask (Hỏi tài liệu) → dữ liệu hiển thị. Link nguồn chỉ nhận https, như draft. */
+export function toAskViewModel(out) {
+  const sources = (Array.isArray(out?.sources) ? out.sources : [])
+    .filter((s) => s && typeof s.title === "string" && typeof s.url === "string" && HTTPS_URL.test(s.url))
+    .map((s) => ({ title: s.title, url: s.url }));
+  const answer = typeof out?.answer === "string" ? out.answer.trim() : "";
+  return { found: out?.found === true && answer !== "", answer, sources };
+}
+
+/** Đáp án tài liệu → ý của CS cho generate ("Soạn thành tin trả lời khách"). Cắt đúng trần hint phía server (500 ký tự) để panel hiện gì thì AI nhận nấy. */
+export function askAnswerToHint(answer) {
+  return String(answer ?? "").trim().slice(0, 500);
+}
+
 /** Trạng thái note handoff: chỉ báo "đã đăng trước đó" khi note thật sự đã lên Crisp. */
 export function handoffStatus(h) {
   if (!h.posted) return "Chưa đăng được note, copy giúp";
