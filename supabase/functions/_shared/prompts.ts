@@ -322,6 +322,48 @@ const STATE_LABEL: Record<HandoffState, string> = {
 };
 const WAITING_LABEL: Record<WaitingOn, string> = { customer: "khách", tech: "tech", cs: "CS", none: "" };
 
+// ---------- ask (Hỏi tài liệu) ----------
+
+export const ASK_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    answered: { type: "BOOLEAN" },
+    answer: { type: "STRING" },
+  },
+  required: ["answered", "answer"],
+};
+
+/**
+ * Trả lời câu hỏi của CS CHỈ từ các bài helpdesk đã truy hồi. Không có căn cứ
+ * trong bài thì answered = false — panel hiện "không tìm thấy", tuyệt đối
+ * không đoán chính sách/số liệu/thời hạn ngoài bài.
+ */
+export function askPrompt(question: string, helpdesk: HelpdeskChunk[]): string {
+  return [
+    "A support agent is asking an internal documentation question. Answer it using ONLY the help center articles below.",
+    "Rules:",
+    "- Answer in the same language as the question.",
+    "- Be concise. When the articles describe a procedure, answer as short numbered steps in order.",
+    "- Never invent policies, prices, numbers, timeframes or links that are not in the articles.",
+    '- If the articles do not actually answer the question, return {"answered": false, "answer": ""} instead of guessing.',
+    'Return JSON {"answered": true, "answer": "<the answer>"} when the articles do answer it.',
+    DATA_ONLY,
+    `<question>\n${neutralize(question)}\n</question>`,
+    `<helpdesk>\n${helpdeskBlock(helpdesk)}\n</helpdesk>`,
+  ].join("\n\n");
+}
+
+/** Output hỏng/không JSON hoặc answered khác true → coi như chưa trả lời được, không hiện đáp án thiếu căn cứ. */
+export function parseAskAnswer(text: string): { answered: boolean; answer: string } {
+  try {
+    const r = parseJson<{ answered?: unknown; answer?: unknown }>(text);
+    const answer = typeof r.answer === "string" ? r.answer.trim() : "";
+    return r.answered === true && answer ? { answered: true, answer } : { answered: false, answer: "" };
+  } catch {
+    return { answered: false, answer: "" };
+  }
+}
+
 /** Note ngắn: 1 dòng tóm tắt, mỗi vấn đề 1 dòng (trạng thái + làm gì cụ thể), 1 dòng bước tiếp theo. */
 export function formatHandoffNote(h: HandoffFields, operatorName: string): string {
   const waiting = WAITING_LABEL[h.waiting_on];
