@@ -52,6 +52,7 @@ export interface ConversationRow {
   state: string | null;
   last_customer_at: string | null;
   last_human_operator_at: string | null;
+  updated_at: string | null; // lần cuối ingest/refresh chạm vào bản ghi, dùng đo độ tươi cho đường đọc nhanh
 }
 
 export interface HelpdeskChunk {
