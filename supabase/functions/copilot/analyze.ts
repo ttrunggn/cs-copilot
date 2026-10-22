@@ -1,1 +1,66 @@
-aW1wb3J0IHsgc2hhMjU2SGV4IH0gZnJvbSAiLi4vX3NoYXJlZC9hdXRoLnRzIjsKaW1wb3J0IHsgaHVtYW5UcmFuc2NyaXB0IH0gZnJvbSAiLi4vX3NoYXJlZC9jb250ZXh0LnRzIjsKaW1wb3J0IHR5cGUgeyBEYiB9IGZyb20gIi4uL19zaGFyZWQvZGIudHMiOwppbXBvcnQgeyB0eXBlIEFpIH0gZnJvbSAiLi4vX3NoYXJlZC9nZW1pbmkudHMiOwppbXBvcnQgeyBwYXJzZVNlbnRpbWVudCwgU0VOVElNRU5UX1NDSEVNQSwgdHlwZSBTZW50aW1lbnQsIHNlbnRpbWVudFByb21wdCB9IGZyb20gIi4uL19zaGFyZWQvc2VudGltZW50LnRzIjsKaW1wb3J0IHR5cGUgeyBNZXNzYWdlUm93IH0gZnJvbSAiLi4vX3NoYXJlZC90eXBlcy50cyI7CmltcG9ydCB7IHR5cGUgTG9hZERlcHMsIGxvYWRDb252ZXJzYXRpb25GYXN0IH0gZnJvbSAiLi9sb2FkLnRzIjsKCmV4cG9ydCBpbnRlcmZhY2UgQW5hbHl6ZVJlc3VsdCB7CiAgYWN0aW9uOiAiYW5hbHl6ZSI7CiAgc2VudGltZW50OiBTZW50aW1lbnQgfCBudWxsOwogIGNhY2hlZDogYm9vbGVhbjsKfQoKLyoqIEThuqV1IHbDom4gdGF5IGNo4buJIHThu6sgdGluIGPhu6dhIGtow6FjaDogbW9vZCDEkeG7lWkga2hpIGtow6FjaCBuaOG6r24gdGjDqm0sIGtow7RuZyDEkeG7lWkga2hpIENTIHRy4bqjIGzhu51pLiAqLwpleHBvcnQgZnVuY3Rpb24gc2VudGltZW50RmluZ2VycHJpbnQobWVzc2FnZXM6IE1lc3NhZ2VSb3dbXSk6IFByb21pc2U8c3RyaW5nPiB7CiAgY29uc3QgYm9keSA9IEpTT04uc3RyaW5naWZ5KAogICAgbWVzc2FnZXMuZmlsdGVyKChtKSA9PiBtLmZyb20gPT09ICJ1c2VyIikubWFwKChtKSA9PiBbbS5jcmVhdGVkX2F0LCBtLmNvbnRlbnRdKSwKICApOwogIHJldHVybiBzaGEyNTZIZXgoYHNlbnRpbWVudHwke2JvZHl9YCk7Cn0KCi8qKgogKiBTZW50aW1lbnQgaGnhu4duIHThuqFpIGPhu6dhIGNvbnZlcnNhdGlvbjogY8OzIGNhY2hlIGto4bubcCBk4bqldSB2w6JuIHRheSB0aMOsIGTDuW5nIGzhuqFpLAogKiBraMO0bmcgdGjDrCBn4buNaSBBSSBy4buTaSBsxrB1LiBM4buXaSBBSSDihpIgdHLhuqMgYuG6o24gY2FjaGUgY8WpIChu4bq/dSBjw7MpIGhv4bq3YyBudWxsLAogKiBraMO0bmcgYmFvIGdp4budIGzDoG0gaOG7j25nIGx14buTbmcgY2jDrW5oIChjaGVjay9nZW5lcmF0ZSkuCiAqLwpleHBvcnQgYXN5bmMgZnVuY3Rpb24gcmVzb2x2ZVNlbnRpbWVudCgKICBkZXBzOiB7IGRiOiBEYjsgYWk6IEFpIH0sCiAgd2Vic2l0ZUlkOiBzdHJpbmcsCiAgc2Vzc2lvbklkOiBzdHJpbmcsCiAgbWVzc2FnZXM6IE1lc3NhZ2VSb3dbXSwKICBmb3JjZSA9IGZhbHNlLAopOiBQcm9taXNlPHsgc2VudGltZW50OiBTZW50aW1lbnQgfCBudWxsOyBjYWNoZWQ6IGJvb2xlYW4gfT4gewogIGNvbnN0IGNhY2hlZCA9IGF3YWl0IGRlcHMuZGIuZ2V0U2VudGltZW50KHdlYnNpdGVJZCwgc2Vzc2lvbklkKS5jYXRjaCgoKSA9PiBudWxsKTsKICBjb25zdCBzdHJpcCA9IChzOiBTZW50aW1lbnQgJiB7IGlucHV0X2ZwOiBzdHJpbmcgfSk6IFNlbnRpbWVudCA9PiB7CiAgICBjb25zdCB7IGlucHV0X2ZwOiBfZnAsIC4uLnJlc3QgfSA9IHM7CiAgICByZXR1cm4gcmVzdDsKICB9OwogIGlmICghbWVzc2FnZXMuc29tZSgobSkgPT4gbS5mcm9tID09PSAidXNlciIgJiYgbS50eXBlID09PSAidGV4dCIpKSB7CiAgICByZXR1cm4geyBzZW50aW1lbnQ6IGNhY2hlZCA/IHN0cmlwKGNhY2hlZCkgOiBudWxsLCBjYWNoZWQ6IEJvb2xlYW4oY2FjaGVkKSB9OwogIH0KICBjb25zdCBmcCA9IGF3YWl0IHNlbnRpbWVudEZpbmdlcnByaW50KG1lc3NhZ2VzKTsKICBpZiAoIWZvcmNlICYmIGNhY2hlZCAmJiBjYWNoZWQuaW5wdXRfZnAgPT09IGZwKSByZXR1cm4geyBzZW50aW1lbnQ6IHN0cmlwKGNhY2hlZCksIGNhY2hlZDogdHJ1ZSB9OwogIHRyeSB7CiAgICBjb25zdCB0cmFuc2NyaXB0ID0gaHVtYW5UcmFuc2NyaXB0KG1lc3NhZ2VzLCA0MCwgdHJ1ZSk7CiAgICBjb25zdCB7IHRleHQsIG1vZGVsIH0gPSBhd2FpdCBkZXBzLmFpLmdlbmVyYXRlKCJzZW50aW1lbnQiLCBzZW50aW1lbnRQcm9tcHQodHJhbnNjcmlwdCksIHsgc2NoZW1hOiBTRU5USU1FTlRfU0NIRU1BIH0pOwogICAgY29uc3Qgc2VudGltZW50ID0gcGFyc2VTZW50aW1lbnQodGV4dCk7CiAgICBhd2FpdCBkZXBzLmRiLnNhdmVTZW50aW1lbnQoeyAuLi5zZW50aW1lbnQsIHdlYnNpdGVfaWQ6IHdlYnNpdGVJZCwgc2Vzc2lvbl9pZDogc2Vzc2lvbklkLCBpbnB1dF9mcDogZnAsIG1vZGVsIH0pLmNhdGNoKCgpID0+IHt9KTsKICAgIHJldHVybiB7IHNlbnRpbWVudCwgY2FjaGVkOiBmYWxzZSB9OwogIH0gY2F0Y2ggKGUpIHsKICAgIGNvbnNvbGUuZXJyb3IoInNlbnRpbWVudCBmYWlsZWQiLCBlKTsKICAgIHJldHVybiB7IHNlbnRpbWVudDogY2FjaGVkID8gc3RyaXAoY2FjaGVkKSA6IG51bGwsIGNhY2hlZDogQm9vbGVhbihjYWNoZWQpIH07CiAgfQp9CgovKiogQWN0aW9uIGFuYWx5emU6IENTIGLhuqVtICJQaMOibiB0w61jaCIgdHJvbmcgcGFuZWwgw50gxJHhu4tuaCAmIFTDom0gdHLhuqFuZy4gKi8KZXhwb3J0IGFzeW5jIGZ1bmN0aW9uIHJ1bkFuYWx5emUoCiAgcmVxOiB7IHdlYnNpdGVfaWQ6IHN0cmluZzsgc2Vzc2lvbl9pZDogc3RyaW5nOyBmb3JjZTogYm9vbGVhbiB9LAogIGRlcHM6IExvYWREZXBzICYgeyBhaTogQWkgfSwKKTogUHJvbWlzZTxBbmFseXplUmVzdWx0PiB7CiAgY29uc3QgeyBjb252LCBtZXNzYWdlcyB9ID0gYXdhaXQgbG9hZENvbnZlcnNhdGlvbkZhc3QoZGVwcywgcmVxLndlYnNpdGVfaWQsIHJlcS5zZXNzaW9uX2lkKTsKICB2b2lkIGNvbnY7CiAgY29uc3QgeyBzZW50aW1lbnQsIGNhY2hlZCB9ID0gYXdhaXQgcmVzb2x2ZVNlbnRpbWVudChkZXBzLCByZXEud2Vic2l0ZV9pZCwgcmVxLnNlc3Npb25faWQsIG1lc3NhZ2VzLCByZXEuZm9yY2UpOwogIHJldHVybiB7IGFjdGlvbjogImFuYWx5emUiLCBzZW50aW1lbnQsIGNhY2hlZCB9Owp9Cg==
+import { sha256Hex } from "../_shared/auth.ts";
+import { humanTranscript } from "../_shared/context.ts";
+import type { Db } from "../_shared/db.ts";
+import { type Ai } from "../_shared/gemini.ts";
+import { parseSentiment, SENTIMENT_SCHEMA, type Sentiment, sentimentPrompt } from "../_shared/sentiment.ts";
+import type { MessageRow } from "../_shared/types.ts";
+import { type LoadDeps, loadConversationFast } from "./load.ts";
+
+export interface AnalyzeResult {
+  action: "analyze";
+  sentiment: Sentiment | null;
+  cached: boolean;
+}
+
+/** Dấu vân tay chỉ từ tin của khách: mood đổi khi khách nhắn thêm, không đổi khi CS trả lời. */
+export function sentimentFingerprint(messages: MessageRow[]): Promise<string> {
+  const body = JSON.stringify(
+    messages.filter((m) => m.from === "user").map((m) => [m.created_at, m.content]),
+  );
+  return sha256Hex(`sentiment|${body}`);
+}
+
+/**
+ * Sentiment hiện tại của conversation: có cache khớp dấu vân tay thì dùng lại,
+ * không thì gọi AI rồi lưu. Lỗi AI → trả bản cache cũ (nếu có) hoặc null,
+ * không bao giờ làm hỏng luồng chính (check/generate).
+ */
+export async function resolveSentiment(
+  deps: { db: Db; ai: Ai },
+  websiteId: string,
+  sessionId: string,
+  messages: MessageRow[],
+  force = false,
+): Promise<{ sentiment: Sentiment | null; cached: boolean }> {
+  const cached = await deps.db.getSentiment(websiteId, sessionId).catch(() => null);
+  const strip = (s: Sentiment & { input_fp: string }): Sentiment => {
+    const { input_fp: _fp, ...rest } = s;
+    return rest;
+  };
+  if (!messages.some((m) => m.from === "user" && m.type === "text")) {
+    return { sentiment: cached ? strip(cached) : null, cached: Boolean(cached) };
+  }
+  const fp = await sentimentFingerprint(messages);
+  if (!force && cached && cached.input_fp === fp) return { sentiment: strip(cached), cached: true };
+  try {
+    const transcript = humanTranscript(messages, 40, true);
+    const { text, model } = await deps.ai.generate("sentiment", sentimentPrompt(transcript), { schema: SENTIMENT_SCHEMA });
+    const sentiment = parseSentiment(text);
+    await deps.db.saveSentiment({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model }).catch(() => {});
+    return { sentiment, cached: false };
+  } catch (e) {
+    console.error("sentiment failed", e);
+    return { sentiment: cached ? strip(cached) : null, cached: Boolean(cached) };
+  }
+}
+
+/** Action analyze: CS bấm "Phân tích" trong panel Ý định & Tâm trạng. */
+export async function runAnalyze(
+  req: { website_id: string; session_id: string; force: boolean },
+  deps: LoadDeps & { ai: Ai },
+): Promise<AnalyzeResult> {
+  const { conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
+  void conv;
+  const { sentiment, cached } = await resolveSentiment(deps, req.website_id, req.session_id, messages, req.force);
+  return { action: "analyze", sentiment, cached };
+}

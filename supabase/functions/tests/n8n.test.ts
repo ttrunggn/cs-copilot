@@ -1,1 +1,85 @@
-aW1wb3J0IHsgYXNzZXJ0RXF1YWxzIH0gZnJvbSAianNyOkBzdGQvYXNzZXJ0QDEiOwppbXBvcnQgeyBjcmVhdGVOOG4sIERFRkFVTFRfUkVGUkVTSF9USU1FT1VUX01TIH0gZnJvbSAiLi4vX3NoYXJlZC9uOG4udHMiOwoKdHlwZSBDYWxsID0geyB1cmw6IHN0cmluZzsgaW5pdDogUmVxdWVzdEluaXQgfTsKCmZ1bmN0aW9uIHJlY29yZGVyKHJlc3BvbnNlOiAoKSA9PiBQcm9taXNlPFJlc3BvbnNlPikgewogIGNvbnN0IGNhbGxzOiBDYWxsW10gPSBbXTsKICBjb25zdCBmID0gKChpbnB1dDogc3RyaW5nIHwgVVJMIHwgUmVxdWVzdCwgaW5pdD86IFJlcXVlc3RJbml0KSA9PiB7CiAgICBjYWxscy5wdXNoKHsgdXJsOiBTdHJpbmcoaW5wdXQpLCBpbml0OiBpbml0ID8/IHt9IH0pOwogICAgcmV0dXJuIHJlc3BvbnNlKCk7CiAgfSkgYXMgdHlwZW9mIGZldGNoOwogIHJldHVybiB7IGNhbGxzLCBmIH07Cn0KCkRlbm8udGVzdCgicmVmcmVzaCBvayAtPiBzdGFsZSBmYWxzZSwgc2VuZHMgc2VjcmV0IGFuZCBpZHMiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBjYWxscywgZiB9ID0gcmVjb3JkZXIoKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG5ldyBSZXNwb25zZSgneyJvayI6dHJ1ZX0nLCB7IHN0YXR1czogMjAwIH0pKSk7CiAgY29uc3QgbjhuID0gY3JlYXRlTjhuKHsgYmFzZVVybDogImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vayIsIHNlY3JldDogImsiLCBmZXRjaDogZiB9KTsKICBhc3NlcnRFcXVhbHMoYXdhaXQgbjhuLnJlZnJlc2hDb252ZXJzYXRpb24oIndzMSIsICJzZXNzaW9uXzEiKSwgeyBzdGFsZTogZmFsc2UgfSk7CiAgYXNzZXJ0RXF1YWxzKGNhbGxzWzBdLnVybCwgImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vay9jb3BpbG90LXJlZnJlc2giKTsKICBhc3NlcnRFcXVhbHMoKGNhbGxzWzBdLmluaXQuaGVhZGVycyBhcyBSZWNvcmQ8c3RyaW5nLCBzdHJpbmc+KVsieC1jb3BpbG90LXNlY3JldCJdLCAiayIpOwogIGFzc2VydEVxdWFscyhKU09OLnBhcnNlKGNhbGxzWzBdLmluaXQuYm9keSBhcyBzdHJpbmcpLCB7IHdlYnNpdGVfaWQ6ICJ3czEiLCBzZXNzaW9uX2lkOiAic2Vzc2lvbl8xIiB9KTsKfSk7CgpEZW5vLnRlc3QoInJlZnJlc2ggbm9uLTJ4eCAtPiBzdGFsZSB0cnVlIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZiB9ID0gcmVjb3JkZXIoKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG5ldyBSZXNwb25zZSgiZXJyIiwgeyBzdGF0dXM6IDUwMCB9KSkpOwogIGNvbnN0IG44biA9IGNyZWF0ZU44bih7IGJhc2VVcmw6ICJodHRwczovL244bi50ZXN0L3dlYmhvb2siLCBzZWNyZXQ6ICJrIiwgZmV0Y2g6IGYgfSk7CiAgYXNzZXJ0RXF1YWxzKGF3YWl0IG44bi5yZWZyZXNoQ29udmVyc2F0aW9uKCJ3czEiLCAic2Vzc2lvbl8xIiksIHsgc3RhbGU6IHRydWUgfSk7Cn0pOwoKRGVuby50ZXN0KCJyZWZyZXNoIGhhbmcgLT4gc3RhbGUgdHJ1ZSBhZnRlciB0aW1lb3V0IiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGhhbmdpbmcgPSAoKF91OiBzdHJpbmcgfCBVUkwgfCBSZXF1ZXN0LCBpbml0PzogUmVxdWVzdEluaXQpID0+CiAgICBuZXcgUHJvbWlzZTxSZXNwb25zZT4oKF8sIHJlamVjdCkgPT4KICAgICAgaW5pdD8uc2lnbmFsPy5hZGRFdmVudExpc3RlbmVyKCJhYm9ydCIsICgpID0+IHJlamVjdChuZXcgRE9NRXhjZXB0aW9uKCJhYm9ydGVkIiwgIkFib3J0RXJyb3IiKSkpCiAgICApKSBhcyB0eXBlb2YgZmV0Y2g7CiAgY29uc3QgbjhuID0gY3JlYXRlTjhuKHsgYmFzZVVybDogImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vayIsIHNlY3JldDogImsiLCBmZXRjaDogaGFuZ2luZywgcmVmcmVzaFRpbWVvdXRNczogNTAgfSk7CiAgY29uc3QgdDAgPSBEYXRlLm5vdygpOwogIGFzc2VydEVxdWFscyhhd2FpdCBuOG4ucmVmcmVzaENvbnZlcnNhdGlvbigid3MxIiwgInNlc3Npb25fMSIpLCB7IHN0YWxlOiB0cnVlIH0pOwogIGFzc2VydEVxdWFscyhEYXRlLm5vdygpIC0gdDAgPCAxMDAwLCB0cnVlKTsKfSk7CgpEZW5vLnRlc3QoInBvc3ROb3RlIHByZWZpeGVzIHJvYm90IG9uY2UgYW5kIHJldHVybnMgb2siLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBjYWxscywgZiB9ID0gcmVjb3JkZXIoKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG5ldyBSZXNwb25zZSgneyJvayI6dHJ1ZX0nLCB7IHN0YXR1czogMjAwIH0pKSk7CiAgY29uc3QgbjhuID0gY3JlYXRlTjhuKHsgYmFzZVVybDogImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vayIsIHNlY3JldDogImsiLCBmZXRjaDogZiB9KTsKICBhc3NlcnRFcXVhbHMoYXdhaXQgbjhuLnBvc3ROb3RlKCJ3czEiLCAic2Vzc2lvbl8xIiwgIlTDs20gdOG6r3QiKSwgdHJ1ZSk7CiAgYXNzZXJ0RXF1YWxzKGF3YWl0IG44bi5wb3N0Tm90ZSgid3MxIiwgInNlc3Npb25fMSIsICLwn6SWIMSQw6MgY8OzIiksIHRydWUpOwogIGFzc2VydEVxdWFscyhjYWxsc1swXS51cmwsICJodHRwczovL244bi50ZXN0L3dlYmhvb2svY29waWxvdC1wb3N0LW5vdGUiKTsKICBhc3NlcnRFcXVhbHMoSlNPTi5wYXJzZShjYWxsc1swXS5pbml0LmJvZHkgYXMgc3RyaW5nKS5jb250ZW50LCAi8J+kliBUw7NtIHThuq90Iik7CiAgYXNzZXJ0RXF1YWxzKEpTT04ucGFyc2UoY2FsbHNbMV0uaW5pdC5ib2R5IGFzIHN0cmluZykuY29udGVudCwgIvCfpJYgxJDDoyBjw7MiKTsKfSk7CgpEZW5vLnRlc3QoInBvc3ROb3RlIG5ldHdvcmsgZXJyb3IgLT4gZmFsc2UiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBmIH0gPSByZWNvcmRlcigoKSA9PiBQcm9taXNlLnJlamVjdChuZXcgVHlwZUVycm9yKCJuZXR3b3JrIikpKTsKICBjb25zdCBuOG4gPSBjcmVhdGVOOG4oeyBiYXNlVXJsOiAiaHR0cHM6Ly9uOG4udGVzdC93ZWJob29rIiwgc2VjcmV0OiAiayIsIGZldGNoOiBmIH0pOwogIGFzc2VydEVxdWFscyhhd2FpdCBuOG4ucG9zdE5vdGUoIndzMSIsICJzZXNzaW9uXzEiLCAieCIpLCBmYWxzZSk7Cn0pOwoKRGVuby50ZXN0KCJyZWZyZXNoIDIwMCB3aXRoIGVtcHR5IGJvZHkgKG44biB3b3JrZmxvdyBlcnJvcmVkKSAtPiBzdGFsZSB0cnVlIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZiB9ID0gcmVjb3JkZXIoKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG5ldyBSZXNwb25zZSgiIiwgeyBzdGF0dXM6IDIwMCB9KSkpOwogIGNvbnN0IG44biA9IGNyZWF0ZU44bih7IGJhc2VVcmw6ICJodHRwczovL244bi50ZXN0L3dlYmhvb2siLCBzZWNyZXQ6ICJrIiwgZmV0Y2g6IGYgfSk7CiAgYXNzZXJ0RXF1YWxzKGF3YWl0IG44bi5yZWZyZXNoQ29udmVyc2F0aW9uKCJ3czEiLCAic2Vzc2lvbl8xIiksIHsgc3RhbGU6IHRydWUgfSk7Cn0pOwoKRGVuby50ZXN0KCJwb3N0Tm90ZSAyMDAgd2l0aCBlbXB0eSBib2R5IChuOG4gd29ya2Zsb3cgZXJyb3JlZCkgLT4gZmFsc2UiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBmIH0gPSByZWNvcmRlcigoKSA9PiBQcm9taXNlLnJlc29sdmUobmV3IFJlc3BvbnNlKCIiLCB7IHN0YXR1czogMjAwIH0pKSk7CiAgY29uc3QgbjhuID0gY3JlYXRlTjhuKHsgYmFzZVVybDogImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vayIsIHNlY3JldDogImsiLCBmZXRjaDogZiB9KTsKICBhc3NlcnRFcXVhbHMoYXdhaXQgbjhuLnBvc3ROb3RlKCJ3czEiLCAic2Vzc2lvbl8xIiwgIngiKSwgZmFsc2UpOwp9KTsKCkRlbm8udGVzdCgiZGVmYXVsdCByZWZyZXNoIHRpbWVvdXQgaXMgNXMgKG44biByZWZyZXNoIHRha2VzIH4zcyBpbiBwcm9kdWN0aW9uKSIsICgpID0+IHsKICBhc3NlcnRFcXVhbHMoREVGQVVMVF9SRUZSRVNIX1RJTUVPVVRfTVMsIDUwMDApOwp9KTsKCkRlbm8udGVzdCgic2VuZFN1cnZleSBvayBraGkgd29ya2Zsb3cgdHLhuqMgc3RhdHVzIG9rLCBn4butaSBrw6htIGFnZW50X25hbWUiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBjYWxscywgZiB9ID0gcmVjb3JkZXIoKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG5ldyBSZXNwb25zZSgneyJzdGF0dXMiOiJvayJ9JywgeyBzdGF0dXM6IDIwMCB9KSkpOwogIGNvbnN0IG44biA9IGNyZWF0ZU44bih7IGJhc2VVcmw6ICJodHRwczovL244bi50ZXN0L3dlYmhvb2siLCBzZWNyZXQ6ICJrIiwgZmV0Y2g6IGYgfSk7CiAgYXNzZXJ0RXF1YWxzKGF3YWl0IG44bi5zZW5kU3VydmV5KCJ3czEiLCAic2Vzc2lvbl8xIiwgIkxhbiBOZ3V5ZW4iKSwgdHJ1ZSk7CiAgYXNzZXJ0RXF1YWxzKGNhbGxzWzBdLnVybCwgImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vay9zZW5kLXN1cnZleSIpOwogIGFzc2VydEVxdWFscyhKU09OLnBhcnNlKGNhbGxzWzBdLmluaXQuYm9keSBhcyBzdHJpbmcpLCB7IHdlYnNpdGVfaWQ6ICJ3czEiLCBzZXNzaW9uX2lkOiAic2Vzc2lvbl8xIiwgYWdlbnRfbmFtZTogIkxhbiBOZ3V5ZW4iIH0pOwp9KTsKCkRlbm8udGVzdCgic2VuZFN1cnZleSBmYWxzZSBraGkgd29ya2Zsb3cgdHLhuqMgbOG7l2kiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBmIH0gPSByZWNvcmRlcigoKSA9PiBQcm9taXNlLnJlc29sdmUobmV3IFJlc3BvbnNlKCd7InN0YXR1cyI6ImVycm9yIn0nLCB7IHN0YXR1czogMjAwIH0pKSk7CiAgY29uc3QgbjhuID0gY3JlYXRlTjhuKHsgYmFzZVVybDogImh0dHBzOi8vbjhuLnRlc3Qvd2ViaG9vayIsIHNlY3JldDogImsiLCBmZXRjaDogZiB9KTsKICBhc3NlcnRFcXVhbHMoYXdhaXQgbjhuLnNlbmRTdXJ2ZXkoIndzMSIsICJzZXNzaW9uXzEiLCAiIiksIGZhbHNlKTsKfSk7Cg==
+import { assertEquals } from "jsr:@std/assert@1";
+import { createN8n, DEFAULT_REFRESH_TIMEOUT_MS } from "../_shared/n8n.ts";
+
+type Call = { url: string; init: RequestInit };
+
+function recorder(response: () => Promise<Response>) {
+  const calls: Call[] = [];
+  const f = ((input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), init: init ?? {} });
+    return response();
+  }) as typeof fetch;
+  return { calls, f };
+}
+
+Deno.test("refresh ok -> stale false, sends secret and ids", async () => {
+  const { calls, f } = recorder(() => Promise.resolve(new Response('{"ok":true}', { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.refreshConversation("ws1", "session_1"), { stale: false });
+  assertEquals(calls[0].url, "https://n8n.test/webhook/copilot-refresh");
+  assertEquals((calls[0].init.headers as Record<string, string>)["x-copilot-secret"], "k");
+  assertEquals(JSON.parse(calls[0].init.body as string), { website_id: "ws1", session_id: "session_1" });
+});
+
+Deno.test("refresh non-2xx -> stale true", async () => {
+  const { f } = recorder(() => Promise.resolve(new Response("err", { status: 500 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.refreshConversation("ws1", "session_1"), { stale: true });
+});
+
+Deno.test("refresh hang -> stale true after timeout", async () => {
+  const hanging = ((_u: string | URL | Request, init?: RequestInit) =>
+    new Promise<Response>((_, reject) =>
+      init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")))
+    )) as typeof fetch;
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: hanging, refreshTimeoutMs: 50 });
+  const t0 = Date.now();
+  assertEquals(await n8n.refreshConversation("ws1", "session_1"), { stale: true });
+  assertEquals(Date.now() - t0 < 1000, true);
+});
+
+Deno.test("postNote prefixes robot once and returns ok", async () => {
+  const { calls, f } = recorder(() => Promise.resolve(new Response('{"ok":true}', { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.postNote("ws1", "session_1", "Tóm tắt"), true);
+  assertEquals(await n8n.postNote("ws1", "session_1", "🤖 Đã có"), true);
+  assertEquals(calls[0].url, "https://n8n.test/webhook/copilot-post-note");
+  assertEquals(JSON.parse(calls[0].init.body as string).content, "🤖 Tóm tắt");
+  assertEquals(JSON.parse(calls[1].init.body as string).content, "🤖 Đã có");
+});
+
+Deno.test("postNote network error -> false", async () => {
+  const { f } = recorder(() => Promise.reject(new TypeError("network")));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.postNote("ws1", "session_1", "x"), false);
+});
+
+Deno.test("refresh 200 with empty body (n8n workflow errored) -> stale true", async () => {
+  const { f } = recorder(() => Promise.resolve(new Response("", { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.refreshConversation("ws1", "session_1"), { stale: true });
+});
+
+Deno.test("postNote 200 with empty body (n8n workflow errored) -> false", async () => {
+  const { f } = recorder(() => Promise.resolve(new Response("", { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.postNote("ws1", "session_1", "x"), false);
+});
+
+Deno.test("default refresh timeout is 5s (n8n refresh takes ~3s in production)", () => {
+  assertEquals(DEFAULT_REFRESH_TIMEOUT_MS, 5000);
+});
+
+Deno.test("sendSurvey ok khi workflow trả status ok, gửi kèm agent_name", async () => {
+  const { calls, f } = recorder(() => Promise.resolve(new Response('{"status":"ok"}', { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.sendSurvey("ws1", "session_1", "Lan Nguyen"), true);
+  assertEquals(calls[0].url, "https://n8n.test/webhook/send-survey");
+  assertEquals(JSON.parse(calls[0].init.body as string), { website_id: "ws1", session_id: "session_1", agent_name: "Lan Nguyen" });
+});
+
+Deno.test("sendSurvey false khi workflow trả lỗi", async () => {
+  const { f } = recorder(() => Promise.resolve(new Response('{"status":"error"}', { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  assertEquals(await n8n.sendSurvey("ws1", "session_1", ""), false);
+});

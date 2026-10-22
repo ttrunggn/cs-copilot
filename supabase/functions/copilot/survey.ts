@@ -1,1 +1,30 @@
-aW1wb3J0IHR5cGUgeyBEYiB9IGZyb20gIi4uL19zaGFyZWQvZGIudHMiOwppbXBvcnQgdHlwZSB7IE44biB9IGZyb20gIi4uL19zaGFyZWQvbjhuLnRzIjsKCmV4cG9ydCBpbnRlcmZhY2UgU3VydmV5UmVzdWx0IHsKICBhY3Rpb246ICJzdXJ2ZXkiOwogIHNlbnQ6IGJvb2xlYW47CiAgYWxyZWFkeTogYm9vbGVhbjsKICBzZW50X2F0OiBzdHJpbmcgfCBudWxsOwp9CgovKioKICogR+G7rWkgQ1NBVCBzdXJ2ZXkgdsOgbyBjb252ZXJzYXRpb24gcXVhIHdlYmhvb2sgc2VuZC1zdXJ2ZXkgY+G7p2Egd29ya2Zsb3cKICogc3VydmV5IHRyw6puIG44biAoZ2F0ZSBnaeG7ryBDcmlzcCBwbHVnaW4ga2V5IOKAlCBFZGdlIEZ1bmN0aW9uIGtow7RuZyBjaOG6oW0ga2V5KS4KICogxJDDoyBn4butaSBy4buTaSB0aMOsIGtow7RuZyBn4butaSBs4bqhaTogdHLhuqMgdHLhuqFuZyB0aMOhaSBjxakgxJHhu4MgcGFuZWwgaGnhu4duICLEkcOjIGfhu61pIi4KICovCmV4cG9ydCBhc3luYyBmdW5jdGlvbiBydW5TdXJ2ZXkoCiAgcmVxOiB7IHdlYnNpdGVfaWQ6IHN0cmluZzsgc2Vzc2lvbl9pZDogc3RyaW5nIH0sCiAgb3BlcmF0b3JJZDogc3RyaW5nLAogIGRlcHM6IHsgZGI6IERiOyBuOG46IE44biB9LAopOiBQcm9taXNlPFN1cnZleVJlc3VsdD4gewogIGNvbnN0IGV4aXN0aW5nID0gYXdhaXQgZGVwcy5kYi5nZXRDc2F0U2VuZChyZXEud2Vic2l0ZV9pZCwgcmVxLnNlc3Npb25faWQpOwogIGlmIChleGlzdGluZykgcmV0dXJuIHsgYWN0aW9uOiAic3VydmV5Iiwgc2VudDogdHJ1ZSwgYWxyZWFkeTogdHJ1ZSwgc2VudF9hdDogZXhpc3Rpbmcuc2VudF9hdCB9OwoKICBjb25zdCBvcGVyYXRvciA9IGF3YWl0IGRlcHMuZGIuZ2V0T3BlcmF0b3Iob3BlcmF0b3JJZCkuY2F0Y2goKCkgPT4gbnVsbCk7CiAgY29uc3Qgc2VudCA9IGF3YWl0IGRlcHMubjhuLnNlbmRTdXJ2ZXkocmVxLndlYnNpdGVfaWQsIHJlcS5zZXNzaW9uX2lkLCBvcGVyYXRvcj8uZGlzcGxheV9uYW1lID8/ICIiKTsKICBpZiAoIXNlbnQpIHJldHVybiB7IGFjdGlvbjogInN1cnZleSIsIHNlbnQ6IGZhbHNlLCBhbHJlYWR5OiBmYWxzZSwgc2VudF9hdDogbnVsbCB9OwoKICBjb25zdCByb3cgPSBhd2FpdCBkZXBzLmRiLnJlY29yZENzYXRTZW5kKHJlcS53ZWJzaXRlX2lkLCByZXEuc2Vzc2lvbl9pZCwgb3BlcmF0b3JJZCk7CiAgcmV0dXJuIHsgYWN0aW9uOiAic3VydmV5Iiwgc2VudDogdHJ1ZSwgYWxyZWFkeTogZmFsc2UsIHNlbnRfYXQ6IHJvdz8uc2VudF9hdCA/PyBuZXcgRGF0ZSgpLnRvSVNPU3RyaW5nKCkgfTsKfQo=
+import type { Db } from "../_shared/db.ts";
+import type { N8n } from "../_shared/n8n.ts";
+
+export interface SurveyResult {
+  action: "survey";
+  sent: boolean;
+  already: boolean;
+  sent_at: string | null;
+}
+
+/**
+ * Gửi CSAT survey vào conversation qua webhook send-survey của workflow
+ * survey trên n8n (gate giữ Crisp plugin key — Edge Function không chạm key).
+ * Đã gửi rồi thì không gửi lại: trả trạng thái cũ để panel hiện "đã gửi".
+ */
+export async function runSurvey(
+  req: { website_id: string; session_id: string },
+  operatorId: string,
+  deps: { db: Db; n8n: N8n },
+): Promise<SurveyResult> {
+  const existing = await deps.db.getCsatSend(req.website_id, req.session_id);
+  if (existing) return { action: "survey", sent: true, already: true, sent_at: existing.sent_at };
+
+  const operator = await deps.db.getOperator(operatorId).catch(() => null);
+  const sent = await deps.n8n.sendSurvey(req.website_id, req.session_id, operator?.display_name ?? "");
+  if (!sent) return { action: "survey", sent: false, already: false, sent_at: null };
+
+  const row = await deps.db.recordCsatSend(req.website_id, req.session_id, operatorId);
+  return { action: "survey", sent: true, already: false, sent_at: row?.sent_at ?? new Date().toISOString() };
+}

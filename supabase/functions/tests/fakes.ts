@@ -1,1 +1,118 @@
-Ly8gRGVwZW5kZW5jeSBnaeG6oyBkw7luZyBjaHVuZyBjaG8gdGVzdCBoYW5kbGVyL2hhbmRvZmYvZ2VuZXJhdGUuCmltcG9ydCB7IHNoYTI1NkhleCB9IGZyb20gIi4uL19zaGFyZWQvYXV0aC50cyI7CmltcG9ydCB0eXBlIHsgRGIgfSBmcm9tICIuLi9fc2hhcmVkL2RiLnRzIjsKaW1wb3J0IHR5cGUgeyBBaSwgQWlUYXNrIH0gZnJvbSAiLi4vX3NoYXJlZC9nZW1pbmkudHMiOwppbXBvcnQgdHlwZSB7IE44biB9IGZyb20gIi4uL19zaGFyZWQvbjhuLnRzIjsKaW1wb3J0IHR5cGUgeyBDb252ZXJzYXRpb25Sb3csIE1lc3NhZ2VSb3csIE5ld091dHB1dCwgT3V0cHV0Um93LCBXb3Jrc3BhY2UgfSBmcm9tICIuLi9fc2hhcmVkL3R5cGVzLnRzIjsKCmV4cG9ydCBjb25zdCBUT0tFTiA9ICJ0b2stbGFuIjsKZXhwb3J0IGNvbnN0IFRPS0VOX0hBU0ggPSBhd2FpdCBzaGEyNTZIZXgoVE9LRU4pOwoKZXhwb3J0IGNvbnN0IFdTOiBXb3Jrc3BhY2UgPSB7CiAgd2Vic2l0ZV9pZDogIndzMSIsCiAgbmFtZTogIkFwcCBBIiwKICB0b3BpY3M6IFsKICAgIHsga2V5OiAiYmlsbGluZyIsIGxhYmVsOiAiVGhhbmggdG/DoW4gJiBnw7NpIiwgc2VnbWVudHM6IFsiYmlsbGluZyJdIH0sCiAgICB7IGtleTogInRyYW5zbGF0aW9uIiwgbGFiZWw6ICJE4buLY2ggbuG7mWkgZHVuZyIsIHNlZ21lbnRzOiBbXSB9LAogIF0sCiAgZGVmYXVsdF9wcm9maWxlOiB7fSwKfTsKCmV4cG9ydCBjb25zdCBDT05WOiBDb252ZXJzYXRpb25Sb3cgPSB7CiAgd2Vic2l0ZV9pZDogIndzMSIsCiAgc2Vzc2lvbl9pZDogInNlc3Npb25fMSIsCiAgY3VzdG9tZXJfZW1haWw6ICJrQHguaW8iLAogIGN1c3RvbWVyX25hbWU6ICJLaMOhY2giLAogIHRvcGljOiAiYmlsbGluZyIsCiAgdG9waWNfc291cmNlOiAic2VnbWVudCIsCiAgc3RhdGU6ICJ1bnJlc29sdmVkIiwKICBsYXN0X2N1c3RvbWVyX2F0OiAiMjAyNi0xMC0xNVQwMzowMzowMCswMDowMCIsCiAgbGFzdF9odW1hbl9vcGVyYXRvcl9hdDogIjIwMjYtMTAtMTVUMDM6MDI6MDArMDA6MDAiLAogIHVwZGF0ZWRfYXQ6ICIyMDI2LTEwLTE1VDAzOjAzOjAwKzAwOjAwIiwKfTsKCmxldCBpZCA9IDEwMDsKZXhwb3J0IGZ1bmN0aW9uIG1zZyhmcm9tOiAidXNlciIgfCAib3BlcmF0b3IiLCBjb250ZW50OiBzdHJpbmcsIG1pbnV0ZTogbnVtYmVyLCBleHRyYTogUGFydGlhbDxNZXNzYWdlUm93PiA9IHt9KTogTWVzc2FnZVJvdyB7CiAgcmV0dXJuIHsKICAgIGlkOiBpZCsrLAogICAgY29udGVudF9lbjogbnVsbCwKICAgIGZyb20sCiAgICB0eXBlOiAidGV4dCIsCiAgICBpc19ib3Q6IGZhbHNlLAogICAgY29udGVudCwKICAgIGNyZWF0ZWRfYXQ6IGAyMDI2LTEwLTE1VDAzOiR7U3RyaW5nKG1pbnV0ZSkucGFkU3RhcnQoMiwgIjAiKX06MDArMDA6MDBgLAogICAgb3BlcmF0b3JfbmFtZTogZnJvbSA9PT0gIm9wZXJhdG9yIiA/ICJMYW4iIDogbnVsbCwKICAgIC4uLmV4dHJhLAogIH07Cn0KCmV4cG9ydCB0eXBlIEFpUmVwbHkgPSBzdHJpbmcgfCBFcnJvcjsKCi8qKiBBSSBnaeG6ozogdHLhuqMgbOG7nWkgdGhlbyB0YXNrLCBnaGkgbOG6oWkgcHJvbXB0IHThu6tuZyBs4bqnbiBn4buNaS4gKi8KZXhwb3J0IGZ1bmN0aW9uIGZha2VBaShyZXBsaWVzOiBQYXJ0aWFsPFJlY29yZDxBaVRhc2ssIEFpUmVwbHkgfCAoKHByb21wdDogc3RyaW5nKSA9PiBBaVJlcGx5KT4+LCBlbWJlZGRpbmc6IG51bWJlcltdIHwgRXJyb3IgPSBbMC4xXSkgewogIGNvbnN0IGNhbGxzOiB7IHRhc2s6IEFpVGFzazsgcHJvbXB0OiBzdHJpbmcgfVtdID0gW107CiAgY29uc3QgYWk6IEFpID0gewogICAgZ2VuZXJhdGUodGFzaywgcHJvbXB0KSB7CiAgICAgIGNhbGxzLnB1c2goeyB0YXNrLCBwcm9tcHQgfSk7CiAgICAgIGNvbnN0IHIgPSByZXBsaWVzW3Rhc2tdOwogICAgICBjb25zdCB2ID0gdHlwZW9mIHIgPT09ICJmdW5jdGlvbiIgPyByKHByb21wdCkgOiByOwogICAgICBpZiAodiA9PT0gdW5kZWZpbmVkKSByZXR1cm4gUHJvbWlzZS5yZWplY3QobmV3IEVycm9yKGB1bmV4cGVjdGVkIGFpIHRhc2sgJHt0YXNrfWApKTsKICAgICAgcmV0dXJuIHYgaW5zdGFuY2VvZiBFcnJvciA/IFByb21pc2UucmVqZWN0KHYpIDogUHJvbWlzZS5yZXNvbHZlKHsgdGV4dDogdiwgbW9kZWw6ICJtLXRlc3QiIH0pOwogICAgfSwKICAgIGVtYmVkKHRleHRzKSB7CiAgICAgIGNhbGxzLnB1c2goeyB0YXNrOiAiZW1iZWQiLCBwcm9tcHQ6IHRleHRzLmpvaW4oIlxuIikgfSk7CiAgICAgIHJldHVybiBlbWJlZGRpbmcgaW5zdGFuY2VvZiBFcnJvciA/IFByb21pc2UucmVqZWN0KGVtYmVkZGluZykgOiBQcm9taXNlLnJlc29sdmUodGV4dHMubWFwKCgpID0+IGVtYmVkZGluZykpOwogICAgfSwKICB9OwogIHJldHVybiB7IGFpLCBjYWxscyB9Owp9CgpleHBvcnQgZnVuY3Rpb24gbWFrZURlcHMob3B0czogewogIGRiPzogUGFydGlhbDxEYj47CiAgbWVzc2FnZXM/OiBNZXNzYWdlUm93W107CiAgYWk/OiBBaTsKICBzdGFsZT86IGJvb2xlYW47CiAgcG9zdE9rPzogYm9vbGVhbjsKICBjYWNoZWQ/OiBPdXRwdXRSb3cgfCBudWxsOwp9ID0ge30pIHsKICBjb25zdCBvdmVyOiBQYXJ0aWFsPERiPiA9IG9wdHMuZGIgPz8ge307CiAgY29uc3QgaW5zZXJ0ZWQ6IE5ld091dHB1dFtdID0gW107CiAgY29uc3Qgbm90ZXM6IHN0cmluZ1tdID0gW107CiAgY29uc3QgZGI6IERiID0gewogICAgZ2V0V29ya3NwYWNlOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoV1MpLAogICAgZ2V0V2lkZ2V0VG9rZW5IYXNoOiAoKSA9PiBQcm9taXNlLnJlc29sdmUobnVsbCksCiAgICBnZXRPcGVyYXRvcklkQnlUb2tlbkhhc2g6IChoKSA9PiBQcm9taXNlLnJlc29sdmUoaCA9PT0gVE9LRU5fSEFTSCA/ICJvcC1sYW4iIDogbnVsbCksCiAgICBpc09wZXJhdG9yTWVtYmVyOiAoKSA9PiBQcm9taXNlLnJlc29sdmUodHJ1ZSksCiAgICBnZXRDb252ZXJzYXRpb246ICgpID0+IFByb21pc2UucmVzb2x2ZShDT05WKSwKICAgIGdldE1lc3NhZ2VzOiAoKSA9PiBQcm9taXNlLnJlc29sdmUob3B0cy5tZXNzYWdlcyA/PyBbbXNnKCJ1c2VyIiwgImEiLCAxKSwgbXNnKCJvcGVyYXRvciIsICJiIiwgMiksIG1zZygidXNlciIsICJjIiwgMyldKSwKICAgIHNhdmVUcmFuc2xhdGlvbnM6ICgpID0+IFByb21pc2UucmVzb2x2ZSgpLAogICAgZ2V0UHJvZmlsZXM6ICgpID0+IFByb21pc2UucmVzb2x2ZShbXSksCiAgICBnZXRPcGVyYXRvcjogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKHsgZGlzcGxheV9uYW1lOiAiTGFuIE5ndXllbiIgfSksCiAgICBmaW5kQ2FjaGVkT3V0cHV0OiAoKSA9PiBQcm9taXNlLnJlc29sdmUob3B0cy5jYWNoZWQgPz8gbnVsbCksCiAgICBpbnNlcnRPdXRwdXQ6IChyb3cpID0+IHsKICAgICAgaW5zZXJ0ZWQucHVzaChyb3cpOwogICAgICByZXR1cm4gUHJvbWlzZS5yZXNvbHZlKDQyKTsKICAgIH0sCiAgICBtYXJrUG9zdGVkOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoKSwKICAgIGdldExhdGVzdERyYWZ0OiAoKSA9PiBQcm9taXNlLnJlc29sdmUobnVsbCksCiAgICBzZXRBaVRvcGljOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoKSwKICAgIG1hdGNoSGVscGRlc2s6ICgpID0+IFByb21pc2UucmVzb2x2ZShbXSksCiAgICBtYXRjaENhc2VzOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoW10pLAogICAgZ2V0VmFyaWFudHM6ICgpID0+IFByb21pc2UucmVzb2x2ZShbXSksCiAgICBnZXRKaXJhUm93czogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKFtdKSwKICAgIGdldFNlbnRpbWVudDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG51bGwpLAogICAgc2F2ZVNlbnRpbWVudDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKCksCiAgICBnZXRDc2F0U2VuZDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG51bGwpLAogICAgcmVjb3JkQ3NhdFNlbmQ6ICgpID0+IFByb21pc2UucmVzb2x2ZSh7IHNlbnRfYXQ6ICIyMDI2LTEwLTE1VDAzOjA1OjAwKzAwOjAwIiB9KSwKICAgIC4uLm92ZXIsCiAgfTsKICBjb25zdCBuOG46IE44biA9IHsKICAgIHJlZnJlc2hDb252ZXJzYXRpb246ICgpID0+IFByb21pc2UucmVzb2x2ZSh7IHN0YWxlOiBvcHRzLnN0YWxlID8/IGZhbHNlIH0pLAogICAgc2VuZFN1cnZleTogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKHRydWUpLAogICAgcG9zdE5vdGU6IChfdywgX3MsIGNvbnRlbnQpID0+IHsKICAgICAgbm90ZXMucHVzaChjb250ZW50KTsKICAgICAgcmV0dXJuIFByb21pc2UucmVzb2x2ZShvcHRzLnBvc3RPayA/PyB0cnVlKTsKICAgIH0sCiAgfTsKICByZXR1cm4geyBkZXBzOiB7IGRiLCBuOG4sIGFpOiBvcHRzLmFpID8/IGZha2VBaSh7fSkuYWkgfSwgaW5zZXJ0ZWQsIG5vdGVzIH07Cn0K
+// Dependency giả dùng chung cho test handler/handoff/generate.
+import { sha256Hex } from "../_shared/auth.ts";
+import type { Db } from "../_shared/db.ts";
+import type { Ai, AiTask } from "../_shared/gemini.ts";
+import type { N8n } from "../_shared/n8n.ts";
+import type { ConversationRow, MessageRow, NewOutput, OutputRow, Workspace } from "../_shared/types.ts";
+
+export const TOKEN = "tok-lan";
+export const TOKEN_HASH = await sha256Hex(TOKEN);
+
+export const WS: Workspace = {
+  website_id: "ws1",
+  name: "App A",
+  topics: [
+    { key: "billing", label: "Thanh toán & gói", segments: ["billing"] },
+    { key: "translation", label: "Dịch nội dung", segments: [] },
+  ],
+  default_profile: {},
+};
+
+export const CONV: ConversationRow = {
+  website_id: "ws1",
+  session_id: "session_1",
+  customer_email: "k@x.io",
+  customer_name: "Khách",
+  topic: "billing",
+  topic_source: "segment",
+  state: "unresolved",
+  last_customer_at: "2026-10-15T03:03:00+00:00",
+  last_human_operator_at: "2026-10-15T03:02:00+00:00",
+  updated_at: "2026-10-15T03:03:00+00:00",
+};
+
+let id = 100;
+export function msg(from: "user" | "operator", content: string, minute: number, extra: Partial<MessageRow> = {}): MessageRow {
+  return {
+    id: id++,
+    content_en: null,
+    from,
+    type: "text",
+    is_bot: false,
+    content,
+    created_at: `2026-10-15T03:${String(minute).padStart(2, "0")}:00+00:00`,
+    operator_name: from === "operator" ? "Lan" : null,
+    ...extra,
+  };
+}
+
+export type AiReply = string | Error;
+
+/** AI giả: trả lời theo task, ghi lại prompt từng lần gọi. */
+export function fakeAi(replies: Partial<Record<AiTask, AiReply | ((prompt: string) => AiReply)>>, embedding: number[] | Error = [0.1]) {
+  const calls: { task: AiTask; prompt: string }[] = [];
+  const ai: Ai = {
+    generate(task, prompt) {
+      calls.push({ task, prompt });
+      const r = replies[task];
+      const v = typeof r === "function" ? r(prompt) : r;
+      if (v === undefined) return Promise.reject(new Error(`unexpected ai task ${task}`));
+      return v instanceof Error ? Promise.reject(v) : Promise.resolve({ text: v, model: "m-test" });
+    },
+    embed(texts) {
+      calls.push({ task: "embed", prompt: texts.join("\n") });
+      return embedding instanceof Error ? Promise.reject(embedding) : Promise.resolve(texts.map(() => embedding));
+    },
+  };
+  return { ai, calls };
+}
+
+export function makeDeps(opts: {
+  db?: Partial<Db>;
+  messages?: MessageRow[];
+  ai?: Ai;
+  stale?: boolean;
+  postOk?: boolean;
+  cached?: OutputRow | null;
+} = {}) {
+  const over: Partial<Db> = opts.db ?? {};
+  const inserted: NewOutput[] = [];
+  const notes: string[] = [];
+  const db: Db = {
+    getWorkspace: () => Promise.resolve(WS),
+    getWidgetTokenHash: () => Promise.resolve(null),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
+    isOperatorMember: () => Promise.resolve(true),
+    getConversation: () => Promise.resolve(CONV),
+    getMessages: () => Promise.resolve(opts.messages ?? [msg("user", "a", 1), msg("operator", "b", 2), msg("user", "c", 3)]),
+    saveTranslations: () => Promise.resolve(),
+    getProfiles: () => Promise.resolve([]),
+    getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
+    findCachedOutput: () => Promise.resolve(opts.cached ?? null),
+    insertOutput: (row) => {
+      inserted.push(row);
+      return Promise.resolve(42);
+    },
+    markPosted: () => Promise.resolve(),
+    getLatestDraft: () => Promise.resolve(null),
+    setAiTopic: () => Promise.resolve(),
+    matchHelpdesk: () => Promise.resolve([]),
+    matchCases: () => Promise.resolve([]),
+    getVariants: () => Promise.resolve([]),
+    getJiraRows: () => Promise.resolve([]),
+    getSentiment: () => Promise.resolve(null),
+    saveSentiment: () => Promise.resolve(),
+    getCsatSend: () => Promise.resolve(null),
+    recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
+    ...over,
+  };
+  const n8n: N8n = {
+    refreshConversation: () => Promise.resolve({ stale: opts.stale ?? false }),
+    sendSurvey: () => Promise.resolve(true),
+    postNote: (_w, _s, content) => {
+      notes.push(content);
+      return Promise.resolve(opts.postOk ?? true);
+    },
+  };
+  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, notes };
+}

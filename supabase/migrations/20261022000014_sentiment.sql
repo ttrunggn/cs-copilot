@@ -1,1 +1,24 @@
-LS0gU2VudGltZW50L21vb2QgY+G7p2Ega2jDoWNoIHRoZW8gdOG7q25nIGNvbnZlcnNhdGlvbiwgdMOtbmggdHJvbmcgRWRnZSBGdW5jdGlvbgotLSAodGhheSB3ZWJob29rIGFuYWx5emUtbW9vZCBj4bunYSB3b3JrZmxvdyBzdXJ2ZXkgdHLDqm4gbjhuKS4KLS0gQ2FjaGUgdGhlbyBpbnB1dF9mcCAoZOG6pXUgdsOibiB0YXkgdGluIG5o4bqvbik6IHRpbiBt4bubaSB0aMOsIGZwIMSR4buVaSwgdOG7sSB0w61uaCBs4bqhaS4KCmluc2VydCBpbnRvIHB1YmxpYy5haV9jb25maWcgKHRhc2ssIG1vZGVscykgdmFsdWVzCiAgKCdzZW50aW1lbnQnLCBhcnJheVsnZ2VtaW5pLTMuNS1mbGFzaC1saXRlJywnZ2VtaW5pLTMuMS1mbGFzaC1saXRlJywnZ2VtaW5pLTIuNS1mbGFzaCddKQpvbiBjb25mbGljdCAodGFzaykgZG8gbm90aGluZzsKCmNyZWF0ZSB0YWJsZSBwdWJsaWMuY29udmVyc2F0aW9uX3NlbnRpbWVudCAoCiAgd2Vic2l0ZV9pZCB0ZXh0IG5vdCBudWxsIHJlZmVyZW5jZXMgcHVibGljLndvcmtzcGFjZXMgb24gZGVsZXRlIGNhc2NhZGUsCiAgc2Vzc2lvbl9pZCB0ZXh0IG5vdCBudWxsLAogIGlucHV0X2ZwIHRleHQgbm90IG51bGwsCiAgc2NvcmUgaW50IG5vdCBudWxsIGNoZWNrIChzY29yZSBiZXR3ZWVuIDAgYW5kIDEwMCksCiAgbW9vZCB0ZXh0IG5vdCBudWxsIGNoZWNrIChtb29kIGluICgnZnJ1c3RyYXRlZCcsJ2NvbmZ1c2VkJywnbmV1dHJhbCcsJ3NhdGlzZmllZCcsJ2hhcHB5JykpLAogIHVyZ2VuY3kgdGV4dCBub3QgbnVsbCBjaGVjayAodXJnZW5jeSBpbiAoJ2xvdycsJ21lZGl1bScsJ2hpZ2gnKSksCiAgY29uZmlkZW5jZSBudW1lcmljIG5vdCBudWxsIGRlZmF1bHQgMC41LAogIHN1bW1hcnkgdGV4dCBub3QgbnVsbCBkZWZhdWx0ICcnLAogIHNpZ25hbHMganNvbmIgbm90IG51bGwgZGVmYXVsdCAnW10nOjpqc29uYiwKICBtb2RlbCB0ZXh0LAogIHVwZGF0ZWRfYXQgdGltZXN0YW1wdHogbm90IG51bGwgZGVmYXVsdCBub3coKSwKICBwcmltYXJ5IGtleSAod2Vic2l0ZV9pZCwgc2Vzc2lvbl9pZCkKKTsKCmFsdGVyIHRhYmxlIHB1YmxpYy5jb252ZXJzYXRpb25fc2VudGltZW50IGVuYWJsZSByb3cgbGV2ZWwgc2VjdXJpdHk7Cg==
+-- Sentiment/mood của khách theo từng conversation, tính trong Edge Function
+-- (thay webhook analyze-mood của workflow survey trên n8n).
+-- Cache theo input_fp (dấu vân tay tin nhắn): tin mới thì fp đổi, tự tính lại.
+
+insert into public.ai_config (task, models) values
+  ('sentiment', array['gemini-3.5-flash-lite','gemini-3.1-flash-lite','gemini-2.5-flash'])
+on conflict (task) do nothing;
+
+create table public.conversation_sentiment (
+  website_id text not null references public.workspaces on delete cascade,
+  session_id text not null,
+  input_fp text not null,
+  score int not null check (score between 0 and 100),
+  mood text not null check (mood in ('frustrated','confused','neutral','satisfied','happy')),
+  urgency text not null check (urgency in ('low','medium','high')),
+  confidence numeric not null default 0.5,
+  summary text not null default '',
+  signals jsonb not null default '[]'::jsonb,
+  model text,
+  updated_at timestamptz not null default now(),
+  primary key (website_id, session_id)
+);
+
+alter table public.conversation_sentiment enable row level security;

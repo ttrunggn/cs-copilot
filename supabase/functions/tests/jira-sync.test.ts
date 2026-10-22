@@ -1,1 +1,101 @@
-aW1wb3J0IHsgYXNzZXJ0RXF1YWxzIH0gZnJvbSAianNyOkBzdGQvYXNzZXJ0QDEiOwppbXBvcnQgeyBoYW5kbGVKaXJhU3luYywgdHlwZSBKaXJhU3RvcmUgfSBmcm9tICIuLi9qaXJhLXN5bmMvaGFuZGxlci50cyI7CmltcG9ydCB0eXBlIHsgSmlyYUlzc3VlLCBKaXJhTGluayB9IGZyb20gIi4uL19zaGFyZWQvamlyYS50cyI7Cgpjb25zdCBTRUNSRVQgPSAicyIucmVwZWF0KDQwKTsKY29uc3QgYWRmID0gKHRleHQ6IHN0cmluZykgPT4gKHsgdHlwZTogImRvYyIsIGNvbnRlbnQ6IFt7IHR5cGU6ICJwYXJhZ3JhcGgiLCBjb250ZW50OiBbeyB0eXBlOiAidGV4dCIsIHRleHQgfV0gfV0gfSk7CmNvbnN0IHJhdyA9IChzdGF0dXM6IHN0cmluZywgY2F0OiBzdHJpbmcsIGNvbW1lbnRzOiB7IGlkOiBzdHJpbmc7IHdobzogc3RyaW5nOyB0ZXh0OiBzdHJpbmc7IGF0OiBzdHJpbmcgfVtdKSA9PiAoewogIGtleTogIlROVC0xIiwKICBmaWVsZHM6IHsKICAgIHN1bW1hcnk6ICJCdWciLAogICAgc3RhdHVzOiB7IG5hbWU6IHN0YXR1cywgc3RhdHVzQ2F0ZWdvcnk6IHsga2V5OiBjYXQgfSB9LAogICAgdXBkYXRlZDogIjIwMjYtMTAtMTlUMDM6MDA6MDAuMDAwKzA3MDAiLAogICAgY29tbWVudDogeyBjb21tZW50czogY29tbWVudHMubWFwKChjKSA9PiAoeyBpZDogYy5pZCwgYXV0aG9yOiB7IGRpc3BsYXlOYW1lOiBjLndobyB9LCBib2R5OiBhZGYoYy50ZXh0KSwgY3JlYXRlZDogYy5hdCB9KSkgfSwKICB9LAp9KTsKY29uc3QgbGluayA9IChvdmVyOiBQYXJ0aWFsPEppcmFMaW5rICYgeyBhdXRvX25vdGU6IGJvb2xlYW4gfT4gPSB7fSkgPT4gKHsKICB3ZWJzaXRlX2lkOiAid3MxIiwgc2Vzc2lvbl9pZDogInNlc3Npb25fMSIsIGlzc3VlX2tleTogIlROVC0xIiwgdXJsOiAiaHR0cHM6Ly94LmF0bGFzc2lhbi5uZXQvYnJvd3NlL1ROVC0xIiwKICBzaWxlbnRfYmFzZWxpbmU6IGZhbHNlLCBsYXN0X3NlZW5fc3RhdHVzOiBudWxsLCBsYXN0X3NlZW5fY29tbWVudF9hdDogbnVsbCwgYXV0b19ub3RlOiB0cnVlLCAuLi5vdmVyLAp9KTsKCmZ1bmN0aW9uIGZha2VzKGxpbmtzOiBSZXR1cm5UeXBlPHR5cGVvZiBsaW5rPltdLCBwb3N0T2sgPSB0cnVlKSB7CiAgY29uc3Qgc2F2ZWQ6IEppcmFJc3N1ZVtdID0gW107CiAgY29uc3QgdXBkYXRlczogeyBzZXNzaW9uX2lkOiBzdHJpbmc7IHBhdGNoOiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiB9W10gPSBbXTsKICBjb25zdCBub3Rlczogc3RyaW5nW10gPSBbXTsKICBjb25zdCBzdG9yZTogSmlyYVN0b3JlID0gewogICAgY3NOYW1lczogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKFsiQW5uYSBUcmFuIl0pLAogICAgc2F2ZUlzc3VlOiAoaSkgPT4gKHNhdmVkLnB1c2goaSksIFByb21pc2UucmVzb2x2ZSgpKSwKICAgIGxpbmtzRm9yOiAoKSA9PiBQcm9taXNlLnJlc29sdmUobGlua3MpLAogICAgdXBkYXRlTGluazogKGwsIHBhdGNoKSA9PiAodXBkYXRlcy5wdXNoKHsgc2Vzc2lvbl9pZDogbC5zZXNzaW9uX2lkLCBwYXRjaCB9KSwgUHJvbWlzZS5yZXNvbHZlKCkpLAogIH07CiAgY29uc3QgbjhuID0gewogICAgcmVmcmVzaENvbnZlcnNhdGlvbjogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKHsgc3RhbGU6IGZhbHNlIH0pLAogICAgcG9zdE5vdGU6IChfdzogc3RyaW5nLCBfczogc3RyaW5nLCBjOiBzdHJpbmcpID0+IChub3Rlcy5wdXNoKGMpLCBQcm9taXNlLnJlc29sdmUocG9zdE9rKSksCiAgICBzZW5kU3VydmV5OiAoKSA9PiBQcm9taXNlLnJlc29sdmUodHJ1ZSksCiAgfTsKICByZXR1cm4geyBzdG9yZSwgbjhuLCBzYXZlZCwgdXBkYXRlcywgbm90ZXMgfTsKfQoKY29uc3QgQzEgPSB7IGlkOiAiMSIsIHdobzogIkRldiBNaW5oIiwgdGV4dDogIkludmVzdGlnYXRpbmciLCBhdDogIjIwMjYtMTAtMTlUMDE6MDA6MDAuMDAwKzA3MDAiIH07CmNvbnN0IEMyID0geyBpZDogIjIiLCB3aG86ICJEZXYgTWluaCIsIHRleHQ6ICJGaXhlZCIsIGF0OiAiMjAyNi0xMC0xOVQwMjowMDowMC4wMDArMDcwMCIgfTsKCkRlbm8udGVzdCgiamlyYS1zeW5jIHJlamVjdHMgYSB3cm9uZyBzZWNyZXQiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgZiA9IGZha2VzKFtdKTsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlSmlyYVN5bmMoIm5vcGUiLCB7IGlzc3VlczogW10gfSwgeyBzdG9yZTogZi5zdG9yZSwgbjhuOiBmLm44biwgc2VjcmV0OiBTRUNSRVQgfSk7CiAgYXNzZXJ0RXF1YWxzKHIuc3RhdHVzLCA0MDEpOwp9KTsKCkRlbm8udGVzdCgiZmlyc3Qgc3luYyBvZiBhIHBhc3RlZCBsaW5rIHBvc3RzIHRoZSBmb2xsb3cgbm90ZSBhbmQgcmVjb3JkcyB0aGUgYmFzZWxpbmUiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgZiA9IGZha2VzKFtsaW5rKCldKTsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlSmlyYVN5bmMoU0VDUkVULCB7IGlzc3VlczogW3JhdygiUGVuZGluZyBEZXYiLCAiaW5kZXRlcm1pbmF0ZSIsIFtDMV0pXSB9LCB7IHN0b3JlOiBmLnN0b3JlLCBuOG46IGYubjhuLCBzZWNyZXQ6IFNFQ1JFVCB9KTsKICBhc3NlcnRFcXVhbHMoci5ib2R5LCB7IGlzc3VlczogMSwgbm90ZXM6IDEgfSk7CiAgYXNzZXJ0RXF1YWxzKGYuc2F2ZWRbMF0uaXNzdWVfa2V5LCAiVE5ULTEiKTsKICBhc3NlcnRFcXVhbHMoZi5ub3Rlc1swXS5zdGFydHNXaXRoKCLwn5SXIMSQw6MgdGhlbyBkw7VpIEppcmEgwrcgVE5ULTEiKSwgdHJ1ZSk7CiAgYXNzZXJ0RXF1YWxzKGYudXBkYXRlc1swXS5wYXRjaC5sYXN0X3NlZW5fc3RhdHVzLCAiUGVuZGluZyBEZXYiKTsKICBhc3NlcnRFcXVhbHModHlwZW9mIGYudXBkYXRlc1swXS5wYXRjaC5sYXN0X25vdGlmaWVkX2F0LCAic3RyaW5nIik7Cn0pOwoKRGVuby50ZXN0KCJzaWxlbnQgYmFzZWxpbmUgcmVjb3JkcyBzdGF0ZSB3aXRob3V0IHBvc3RpbmciLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgZiA9IGZha2VzKFtsaW5rKHsgc2lsZW50X2Jhc2VsaW5lOiB0cnVlIH0pXSk7CiAgYXdhaXQgaGFuZGxlSmlyYVN5bmMoU0VDUkVULCB7IGlzc3VlczogW3JhdygiUGVuZGluZyBEZXYiLCAiaW5kZXRlcm1pbmF0ZSIsIFtDMV0pXSB9LCB7IHN0b3JlOiBmLnN0b3JlLCBuOG46IGYubjhuLCBzZWNyZXQ6IFNFQ1JFVCB9KTsKICBhc3NlcnRFcXVhbHMoZi5ub3RlcywgW10pOwogIGFzc2VydEVxdWFscyhmLnVwZGF0ZXNbMF0ucGF0Y2gubGFzdF9zZWVuX3N0YXR1cywgIlBlbmRpbmcgRGV2Iik7Cn0pOwoKRGVuby50ZXN0KCJuZXcgdGVjaCBjb21tZW50IHBvc3RzIGFuIHVwZGF0ZTsgbm90aGluZyBuZXcgcG9zdHMgbm90aGluZyIsIGFzeW5jICgpID0+IHsKICBjb25zdCBzZWVuID0geyBsYXN0X3NlZW5fc3RhdHVzOiAiUGVuZGluZyBEZXYiLCBsYXN0X3NlZW5fY29tbWVudF9hdDogIjIwMjYtMTAtMThUMTg6MDA6MDAuMDAwWiIgfTsKICBjb25zdCBmID0gZmFrZXMoW2xpbmsoc2VlbildKTsKICBhd2FpdCBoYW5kbGVKaXJhU3luYyhTRUNSRVQsIHsgaXNzdWVzOiBbcmF3KCJQZW5kaW5nIERldiIsICJpbmRldGVybWluYXRlIiwgW0MxLCBDMl0pXSB9LCB7IHN0b3JlOiBmLnN0b3JlLCBuOG46IGYubjhuLCBzZWNyZXQ6IFNFQ1JFVCB9KTsKICBhc3NlcnRFcXVhbHMoZi5ub3Rlcy5sZW5ndGgsIDEpOwogIGFzc2VydEVxdWFscyhmLm5vdGVzWzBdLmluY2x1ZGVzKCLigKIgW1RlY2hdIERldiBNaW5oIiksIHRydWUpOwogIGNvbnN0IGcgPSBmYWtlcyhbbGluayh7IGxhc3Rfc2Vlbl9zdGF0dXM6ICJQZW5kaW5nIERldiIsIGxhc3Rfc2Vlbl9jb21tZW50X2F0OiAiMjAyNi0xMC0xOFQxOTowMDowMC4wMDBaIiB9KV0pOwogIGF3YWl0IGhhbmRsZUppcmFTeW5jKFNFQ1JFVCwgeyBpc3N1ZXM6IFtyYXcoIlBlbmRpbmcgRGV2IiwgImluZGV0ZXJtaW5hdGUiLCBbQzEsIEMyXSldIH0sIHsgc3RvcmU6IGcuc3RvcmUsIG44bjogZy5uOG4sIHNlY3JldDogU0VDUkVUIH0pOwogIGFzc2VydEVxdWFscyhnLm5vdGVzLCBbXSk7Cn0pOwoKRGVuby50ZXN0KCJkb25lIHRpY2tldCBwb3N0cyBhIGZpbmFsIG5vdGUgYW5kIHN0b3BzIHRyYWNraW5nIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGYgPSBmYWtlcyhbbGluayh7IGxhc3Rfc2Vlbl9zdGF0dXM6ICJQZW5kaW5nIERldiIsIGxhc3Rfc2Vlbl9jb21tZW50X2F0OiAiMjAyNi0xMC0xOFQxOTowMDowMC4wMDBaIiB9KV0pOwogIGF3YWl0IGhhbmRsZUppcmFTeW5jKFNFQ1JFVCwgeyBpc3N1ZXM6IFtyYXcoIkRvbmUiLCAiZG9uZSIsIFtDMSwgQzJdKV0gfSwgeyBzdG9yZTogZi5zdG9yZSwgbjhuOiBmLm44biwgc2VjcmV0OiBTRUNSRVQgfSk7CiAgYXNzZXJ0RXF1YWxzKGYubm90ZXNbMF0uaW5jbHVkZXMoIlRpY2tldCDEkcOjIHhvbmcsIG5n4burbmcgdGhlbyBkw7VpLiIpLCB0cnVlKTsKICBhc3NlcnRFcXVhbHMoZi51cGRhdGVzWzBdLnBhdGNoLmFjdGl2ZSwgZmFsc2UpOwp9KTsKCkRlbm8udGVzdCgiZmFpbGVkIG5vdGUgcG9zdCBrZWVwcyB0aGUgb2xkIGJhc2VsaW5lIHNvIHRoZSB1cGRhdGUgaXMgcmV0cmllZCIsIGFzeW5jICgpID0+IHsKICBjb25zdCBmID0gZmFrZXMoW2xpbmsoeyBsYXN0X3NlZW5fc3RhdHVzOiAiVG8gRG8iLCBsYXN0X3NlZW5fY29tbWVudF9hdDogIjIwMjYtMTAtMThUMTg6MDA6MDAuMDAwWiIgfSldLCBmYWxzZSk7CiAgY29uc3QgciA9IGF3YWl0IGhhbmRsZUppcmFTeW5jKFNFQ1JFVCwgeyBpc3N1ZXM6IFtyYXcoIlBlbmRpbmcgRGV2IiwgImluZGV0ZXJtaW5hdGUiLCBbQzFdKV0gfSwgeyBzdG9yZTogZi5zdG9yZSwgbjhuOiBmLm44biwgc2VjcmV0OiBTRUNSRVQgfSk7CiAgYXNzZXJ0RXF1YWxzKHIuYm9keSwgeyBpc3N1ZXM6IDEsIG5vdGVzOiAwIH0pOwogIGFzc2VydEVxdWFscyhmLnVwZGF0ZXMsIFtdKTsKfSk7CgpEZW5vLnRlc3QoIndvcmtzcGFjZSB3aXRoIGF1dG8tbm90ZSBvZmYgYWR2YW5jZXMgdGhlIGJhc2VsaW5lIHNpbGVudGx5IiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGYgPSBmYWtlcyhbbGluayh7IGF1dG9fbm90ZTogZmFsc2UsIGxhc3Rfc2Vlbl9zdGF0dXM6ICJUbyBEbyIsIGxhc3Rfc2Vlbl9jb21tZW50X2F0OiAiMjAyNi0xMC0xOFQxODowMDowMC4wMDBaIiB9KV0pOwogIGF3YWl0IGhhbmRsZUppcmFTeW5jKFNFQ1JFVCwgeyBpc3N1ZXM6IFtyYXcoIlBlbmRpbmcgRGV2IiwgImluZGV0ZXJtaW5hdGUiLCBbQzFdKV0gfSwgeyBzdG9yZTogZi5zdG9yZSwgbjhuOiBmLm44biwgc2VjcmV0OiBTRUNSRVQgfSk7CiAgYXNzZXJ0RXF1YWxzKGYubm90ZXMsIFtdKTsKICBhc3NlcnRFcXVhbHMoZi51cGRhdGVzWzBdLnBhdGNoLmxhc3Rfc2Vlbl9zdGF0dXMsICJQZW5kaW5nIERldiIpOwp9KTsKCkRlbm8udGVzdCgibWFsZm9ybWVkIGlzc3VlcyBpbiB0aGUgcGF5bG9hZCBhcmUgc2tpcHBlZCIsIGFzeW5jICgpID0+IHsKICBjb25zdCBmID0gZmFrZXMoW10pOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGVKaXJhU3luYyhTRUNSRVQsIHsgaXNzdWVzOiBbbnVsbCwgeyBub2tleTogMSB9LCAieCJdIH0sIHsgc3RvcmU6IGYuc3RvcmUsIG44bjogZi5uOG4sIHNlY3JldDogU0VDUkVUIH0pOwogIGFzc2VydEVxdWFscyhyLmJvZHksIHsgaXNzdWVzOiAwLCBub3RlczogMCB9KTsKfSk7Cg==
+import { assertEquals } from "jsr:@std/assert@1";
+import { handleJiraSync, type JiraStore } from "../jira-sync/handler.ts";
+import type { JiraIssue, JiraLink } from "../_shared/jira.ts";
+
+const SECRET = "s".repeat(40);
+const adf = (text: string) => ({ type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text }] }] });
+const raw = (status: string, cat: string, comments: { id: string; who: string; text: string; at: string }[]) => ({
+  key: "TNT-1",
+  fields: {
+    summary: "Bug",
+    status: { name: status, statusCategory: { key: cat } },
+    updated: "2026-10-19T03:00:00.000+0700",
+    comment: { comments: comments.map((c) => ({ id: c.id, author: { displayName: c.who }, body: adf(c.text), created: c.at })) },
+  },
+});
+const link = (over: Partial<JiraLink & { auto_note: boolean }> = {}) => ({
+  website_id: "ws1", session_id: "session_1", issue_key: "TNT-1", url: "https://x.atlassian.net/browse/TNT-1",
+  silent_baseline: false, last_seen_status: null, last_seen_comment_at: null, auto_note: true, ...over,
+});
+
+function fakes(links: ReturnType<typeof link>[], postOk = true) {
+  const saved: JiraIssue[] = [];
+  const updates: { session_id: string; patch: Record<string, unknown> }[] = [];
+  const notes: string[] = [];
+  const store: JiraStore = {
+    csNames: () => Promise.resolve(["Anna Tran"]),
+    saveIssue: (i) => (saved.push(i), Promise.resolve()),
+    linksFor: () => Promise.resolve(links),
+    updateLink: (l, patch) => (updates.push({ session_id: l.session_id, patch }), Promise.resolve()),
+  };
+  const n8n = {
+    refreshConversation: () => Promise.resolve({ stale: false }),
+    postNote: (_w: string, _s: string, c: string) => (notes.push(c), Promise.resolve(postOk)),
+    sendSurvey: () => Promise.resolve(true),
+  };
+  return { store, n8n, saved, updates, notes };
+}
+
+const C1 = { id: "1", who: "Dev Minh", text: "Investigating", at: "2026-10-19T01:00:00.000+0700" };
+const C2 = { id: "2", who: "Dev Minh", text: "Fixed", at: "2026-10-19T02:00:00.000+0700" };
+
+Deno.test("jira-sync rejects a wrong secret", async () => {
+  const f = fakes([]);
+  const r = await handleJiraSync("nope", { issues: [] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(r.status, 401);
+});
+
+Deno.test("first sync of a pasted link posts the follow note and records the baseline", async () => {
+  const f = fakes([link()]);
+  const r = await handleJiraSync(SECRET, { issues: [raw("Pending Dev", "indeterminate", [C1])] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(r.body, { issues: 1, notes: 1 });
+  assertEquals(f.saved[0].issue_key, "TNT-1");
+  assertEquals(f.notes[0].startsWith("🔗 Đã theo dõi Jira · TNT-1"), true);
+  assertEquals(f.updates[0].patch.last_seen_status, "Pending Dev");
+  assertEquals(typeof f.updates[0].patch.last_notified_at, "string");
+});
+
+Deno.test("silent baseline records state without posting", async () => {
+  const f = fakes([link({ silent_baseline: true })]);
+  await handleJiraSync(SECRET, { issues: [raw("Pending Dev", "indeterminate", [C1])] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(f.notes, []);
+  assertEquals(f.updates[0].patch.last_seen_status, "Pending Dev");
+});
+
+Deno.test("new tech comment posts an update; nothing new posts nothing", async () => {
+  const seen = { last_seen_status: "Pending Dev", last_seen_comment_at: "2026-10-18T18:00:00.000Z" };
+  const f = fakes([link(seen)]);
+  await handleJiraSync(SECRET, { issues: [raw("Pending Dev", "indeterminate", [C1, C2])] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(f.notes.length, 1);
+  assertEquals(f.notes[0].includes("• [Tech] Dev Minh"), true);
+  const g = fakes([link({ last_seen_status: "Pending Dev", last_seen_comment_at: "2026-10-18T19:00:00.000Z" })]);
+  await handleJiraSync(SECRET, { issues: [raw("Pending Dev", "indeterminate", [C1, C2])] }, { store: g.store, n8n: g.n8n, secret: SECRET });
+  assertEquals(g.notes, []);
+});
+
+Deno.test("done ticket posts a final note and stops tracking", async () => {
+  const f = fakes([link({ last_seen_status: "Pending Dev", last_seen_comment_at: "2026-10-18T19:00:00.000Z" })]);
+  await handleJiraSync(SECRET, { issues: [raw("Done", "done", [C1, C2])] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(f.notes[0].includes("Ticket đã xong, ngừng theo dõi."), true);
+  assertEquals(f.updates[0].patch.active, false);
+});
+
+Deno.test("failed note post keeps the old baseline so the update is retried", async () => {
+  const f = fakes([link({ last_seen_status: "To Do", last_seen_comment_at: "2026-10-18T18:00:00.000Z" })], false);
+  const r = await handleJiraSync(SECRET, { issues: [raw("Pending Dev", "indeterminate", [C1])] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(r.body, { issues: 1, notes: 0 });
+  assertEquals(f.updates, []);
+});
+
+Deno.test("workspace with auto-note off advances the baseline silently", async () => {
+  const f = fakes([link({ auto_note: false, last_seen_status: "To Do", last_seen_comment_at: "2026-10-18T18:00:00.000Z" })]);
+  await handleJiraSync(SECRET, { issues: [raw("Pending Dev", "indeterminate", [C1])] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(f.notes, []);
+  assertEquals(f.updates[0].patch.last_seen_status, "Pending Dev");
+});
+
+Deno.test("malformed issues in the payload are skipped", async () => {
+  const f = fakes([]);
+  const r = await handleJiraSync(SECRET, { issues: [null, { nokey: 1 }, "x"] }, { store: f.store, n8n: f.n8n, secret: SECRET });
+  assertEquals(r.body, { issues: 0, notes: 0 });
+});

@@ -1,1 +1,92 @@
-aW1wb3J0IHsgdW5hbnN3ZXJlZEN1c3RvbWVyTWVzc2FnZXMgfSBmcm9tICIuLi9fc2hhcmVkL2NvbnRleHQudHMiOwppbXBvcnQgeyB0eXBlIENvbnZlcnNhdGlvbkppcmEsIGppcmFGb3JDb252ZXJzYXRpb24gfSBmcm9tICIuLi9fc2hhcmVkL2ppcmEudHMiOwppbXBvcnQgdHlwZSB7IERiIH0gZnJvbSAiLi4vX3NoYXJlZC9kYi50cyI7CmltcG9ydCB7IHR5cGUgUHJvZmlsZVNvdXJjZSwgcmVzb2x2ZVByb2ZpbGUgfSBmcm9tICIuLi9fc2hhcmVkL3Byb2ZpbGUudHMiOwppbXBvcnQgdHlwZSB7IFNlbnRpbWVudCB9IGZyb20gIi4uL19zaGFyZWQvc2VudGltZW50LnRzIjsKaW1wb3J0IHR5cGUgeyBXYXJuaW5nLCBXb3Jrc3BhY2UgfSBmcm9tICIuLi9fc2hhcmVkL3R5cGVzLnRzIjsKaW1wb3J0IHsgdHlwZSBMb2FkRGVwcywgbG9hZENvbnZlcnNhdGlvbkZhc3QgfSBmcm9tICIuL2xvYWQudHMiOwoKZXhwb3J0IGludGVyZmFjZSBDaGVja1Jlc3VsdCB7CiAgYWN0aW9uOiAiY2hlY2siOwogIHN0YWxlOiBib29sZWFuOwogIHdvcmtzcGFjZTogc3RyaW5nOwogIHRvcGljOiBzdHJpbmcgfCBudWxsOwogIHRvcGljX2xhYmVsOiBzdHJpbmcgfCBudWxsOwogIHByb2ZpbGVfc291cmNlOiBQcm9maWxlU291cmNlOwogIHByb2ZpbGVfbmFtZTogc3RyaW5nOwogIG5lZWRzX3JlcGx5OiBib29sZWFuOwogIHVuYW5zd2VyZWQ6IHN0cmluZ1tdOwogIHBlbmRpbmdfbWVzc2FnZXM6IHsgdGV4dDogc3RyaW5nOyBib3RfcmVwbGllZDogYm9vbGVhbiB9W107CiAgYm90X3JlcGxpZWRfY291bnQ6IG51bWJlcjsKICBsYXN0X2N1c3RvbWVyX2F0OiBzdHJpbmcgfCBudWxsOwogIGxhc3RfaHVtYW5fb3BlcmF0b3JfYXQ6IHN0cmluZyB8IG51bGw7CiAgamlyYTogQ29udmVyc2F0aW9uSmlyYVtdOwogIHNlbnRpbWVudDogU2VudGltZW50IHwgbnVsbDsKICBjc2F0OiB7IHNlbnQ6IGJvb2xlYW47IHNlbnRfYXQ6IHN0cmluZyB8IG51bGwgfTsKICBsYXRlc3RfZHJhZnQ6IHsKICAgIG91dHB1dF9pZDogbnVtYmVyOwogICAgY29udGVudDogc3RyaW5nOwogICAgd2FybmluZ3M6IFdhcm5pbmdbXTsKICAgIHZlcmlmaWVkOiBib29sZWFuIHwgbnVsbDsKICAgIGhlbHBkZXNrX21hdGNoZXM6IG51bWJlciB8IG51bGw7CiAgICBjcmVhdGVkX2F0OiBzdHJpbmc7CiAgfSB8IG51bGw7Cn0KCi8qKiBLaMO0bmcgZ+G7jWkgQUk6IHRpbiBjaOG7nSB0cuG6oyBs4budaSwgdG9waWMsIHByb2ZpbGUgc+G6vSBkw7luZy4gSGnhu4NuIHRo4buLIG5ndXnDqm4gdsSDbiB0aW4ga2jDoWNoLiAqLwpleHBvcnQgYXN5bmMgZnVuY3Rpb24gcnVuQ2hlY2soCiAgcmVxOiB7IHdlYnNpdGVfaWQ6IHN0cmluZzsgc2Vzc2lvbl9pZDogc3RyaW5nIH0sCiAgd3M6IFdvcmtzcGFjZSwKICBvcGVyYXRvcklkOiBzdHJpbmcsCiAgZGVwczogTG9hZERlcHMsCik6IFByb21pc2U8Q2hlY2tSZXN1bHQ+IHsKICBjb25zdCB7IHN0YWxlLCBjb252LCBtZXNzYWdlcyB9ID0gYXdhaXQgbG9hZENvbnZlcnNhdGlvbkZhc3QoZGVwcywgcmVxLndlYnNpdGVfaWQsIHJlcS5zZXNzaW9uX2lkKTsKICBjb25zdCBbcHJvZmlsZXMsIG9wZXJhdG9yLCBsYXRlc3QsIGppcmFSb3dzLCBzZW50aW1lbnRSb3csIGNzYXRTZW5kXSA9IGF3YWl0IFByb21pc2UuYWxsKFsKICAgIGRlcHMuZGIuZ2V0UHJvZmlsZXMob3BlcmF0b3JJZCwgcmVxLndlYnNpdGVfaWQpLAogICAgZGVwcy5kYi5nZXRPcGVyYXRvcihvcGVyYXRvcklkKSwKICAgIGRlcHMuZGIuZ2V0TGF0ZXN0RHJhZnQocmVxLndlYnNpdGVfaWQsIHJlcS5zZXNzaW9uX2lkLCBvcGVyYXRvcklkKSwKICAgIGRlcHMuZGIuZ2V0SmlyYVJvd3MocmVxLndlYnNpdGVfaWQsIHJlcS5zZXNzaW9uX2lkKSwKICAgIGRlcHMuZGIuZ2V0U2VudGltZW50KHJlcS53ZWJzaXRlX2lkLCByZXEuc2Vzc2lvbl9pZCkuY2F0Y2goKCkgPT4gbnVsbCksCiAgICBkZXBzLmRiLmdldENzYXRTZW5kKHJlcS53ZWJzaXRlX2lkLCByZXEuc2Vzc2lvbl9pZCkuY2F0Y2goKCkgPT4gbnVsbCksCiAgXSk7CiAgY29uc3QgdW5hbnN3ZXJlZCA9IHVuYW5zd2VyZWRDdXN0b21lck1lc3NhZ2VzKG1lc3NhZ2VzKTsKICBjb25zdCBwZW5kaW5nTWVzc2FnZXMgPSBwZW5kaW5nQ3VzdG9tZXJNZXNzYWdlcyhtZXNzYWdlcyk7CiAgY29uc3QgeyBzb3VyY2UgfSA9IHJlc29sdmVQcm9maWxlKHByb2ZpbGVzLCBjb252LnRvcGljLCB3cy5kZWZhdWx0X3Byb2ZpbGUpOwogIHJldHVybiB7CiAgICBhY3Rpb246ICJjaGVjayIsCiAgICBzdGFsZSwKICAgIHdvcmtzcGFjZTogd3MubmFtZSwKICAgIHRvcGljOiBjb252LnRvcGljLAogICAgdG9waWNfbGFiZWw6IHdzLnRvcGljcy5maW5kKCh0KSA9PiB0LmtleSA9PT0gY29udi50b3BpYyk/LmxhYmVsID8/IG51bGwsCiAgICBwcm9maWxlX3NvdXJjZTogc291cmNlLAogICAgcHJvZmlsZV9uYW1lOiBvcGVyYXRvcj8uZGlzcGxheV9uYW1lID8/IG9wZXJhdG9ySWQsCiAgICBuZWVkc19yZXBseTogdW5hbnN3ZXJlZC5sZW5ndGggPiAwLAogICAgdW5hbnN3ZXJlZCwKICAgIHBlbmRpbmdfbWVzc2FnZXM6IHBlbmRpbmdNZXNzYWdlcywKICAgIGJvdF9yZXBsaWVkX2NvdW50OiBwZW5kaW5nTWVzc2FnZXMuZmlsdGVyKChtKSA9PiBtLmJvdF9yZXBsaWVkKS5sZW5ndGgsCiAgICBsYXN0X2N1c3RvbWVyX2F0OiBjb252Lmxhc3RfY3VzdG9tZXJfYXQsCiAgICBsYXN0X2h1bWFuX29wZXJhdG9yX2F0OiBjb252Lmxhc3RfaHVtYW5fb3BlcmF0b3JfYXQsCiAgICBqaXJhOiBqaXJhRm9yQ29udmVyc2F0aW9uKGppcmFSb3dzLCBjb252Lmxhc3RfaHVtYW5fb3BlcmF0b3JfYXQpLAogICAgc2VudGltZW50OiBzZW50aW1lbnRSb3cgPyAoKHsgaW5wdXRfZnA6IF9mcCwgLi4ucmVzdCB9KSA9PiByZXN0KShzZW50aW1lbnRSb3cpIDogbnVsbCwKICAgIGNzYXQ6IHsgc2VudDogQm9vbGVhbihjc2F0U2VuZCksIHNlbnRfYXQ6IGNzYXRTZW5kPy5zZW50X2F0ID8/IG51bGwgfSwKICAgIC8vIERyYWZ0IHZp4bq/dCB0csaw4bubYyB0aW4ga2jDoWNoIG3hu5tpIG5o4bqldCBsw6AgY+G7p2EgbMaw4bujdCB0csaw4bubYzoga2jDtG5nIGhp4buHbiDEkeG7gyB0csOhbmggIsSQaeG7gW4gbOG6oWkiIG5o4bqnbS4KICAgIGxhdGVzdF9kcmFmdDogbGF0ZXN0ICYmICghY29udi5sYXN0X2N1c3RvbWVyX2F0IHx8IERhdGUucGFyc2UobGF0ZXN0LmNyZWF0ZWRfYXQpID49IERhdGUucGFyc2UoY29udi5sYXN0X2N1c3RvbWVyX2F0KSkKICAgICAgPyB7IG91dHB1dF9pZDogbGF0ZXN0LmlkLCBjb250ZW50OiBsYXRlc3QuY29udGVudCwgd2FybmluZ3M6IGxhdGVzdC53YXJuaW5ncywgdmVyaWZpZWQ6IGxhdGVzdC52ZXJpZmllZCwgaGVscGRlc2tfbWF0Y2hlczogbGF0ZXN0LmhlbHBkZXNrX21hdGNoZXMsIGNyZWF0ZWRfYXQ6IGxhdGVzdC5jcmVhdGVkX2F0IH0KICAgICAgOiBudWxsLAogIH07Cn0KCi8qKiBUaW4ga2jDoWNoIGNo4budIENTOyDEkcOhbmggZOG6pXUgcmnDqm5nIG7hur91IEJvdCDEkcOjIGfhu61pIGPDonUgdHLhuqMgbOG7nWkgc2F1IHRpbiDEkcOzLiAqLwpmdW5jdGlvbiBwZW5kaW5nQ3VzdG9tZXJNZXNzYWdlcyhtZXNzYWdlczogQXdhaXRlZDxSZXR1cm5UeXBlPERiWyJnZXRNZXNzYWdlcyJdPj4pIHsKICBjb25zdCBvcmRlcmVkID0gWy4uLm1lc3NhZ2VzXS5zb3J0KChhLCBiKSA9PiBEYXRlLnBhcnNlKGEuY3JlYXRlZF9hdCkgLSBEYXRlLnBhcnNlKGIuY3JlYXRlZF9hdCkpOwogIGNvbnN0IGxhc3RIdW1hblJlcGx5ID0gb3JkZXJlZC5yZWR1Y2UoKGxhc3QsIG0sIGkpID0+CiAgICBtLmZyb20gPT09ICJvcGVyYXRvciIgJiYgIW0uaXNfYm90ICYmIG0udHlwZSAhPT0gIm5vdGUiICYmIG0udHlwZSAhPT0gImV2ZW50IiA/IGkgOiBsYXN0LCAtMSk7CiAgY29uc3QgcGVuZGluZyA9IG9yZGVyZWQuc2xpY2UobGFzdEh1bWFuUmVwbHkgKyAxKTsKICBjb25zdCBjdXN0b21lckluZGljZXMgPSBwZW5kaW5nLmZsYXRNYXAoKG0sIGkpID0+IG0uZnJvbSA9PT0gInVzZXIiICYmIG0udHlwZSAhPT0gIm5vdGUiICYmIG0udHlwZSAhPT0gImV2ZW50IiA/IFtpXSA6IFtdKTsKICByZXR1cm4gY3VzdG9tZXJJbmRpY2VzLm1hcCgoaW5kZXgsIGkpID0+IHsKICAgIGNvbnN0IGVuZCA9IGN1c3RvbWVySW5kaWNlc1tpICsgMV0gPz8gcGVuZGluZy5sZW5ndGg7CiAgICBjb25zdCBib3RSZXBsaWVkID0gcGVuZGluZy5zbGljZShpbmRleCArIDEsIGVuZCkuc29tZSgobSkgPT4gbS5mcm9tID09PSAib3BlcmF0b3IiICYmIG0uaXNfYm90ICYmIG0udHlwZSA9PT0gInRleHQiKTsKICAgIGNvbnN0IGN1c3RvbWVyID0gcGVuZGluZ1tpbmRleF07CiAgICByZXR1cm4geyB0ZXh0OiBjdXN0b21lci5jb250ZW50LCBib3RfcmVwbGllZDogYm90UmVwbGllZCB9OwogIH0pOwp9Cg==
+import { unansweredCustomerMessages } from "../_shared/context.ts";
+import { type ConversationJira, jiraForConversation } from "../_shared/jira.ts";
+import type { Db } from "../_shared/db.ts";
+import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
+import type { Sentiment } from "../_shared/sentiment.ts";
+import type { Warning, Workspace } from "../_shared/types.ts";
+import { type LoadDeps, loadConversationFast } from "./load.ts";
+
+export interface CheckResult {
+  action: "check";
+  stale: boolean;
+  workspace: string;
+  topic: string | null;
+  topic_label: string | null;
+  profile_source: ProfileSource;
+  profile_name: string;
+  needs_reply: boolean;
+  unanswered: string[];
+  pending_messages: { text: string; bot_replied: boolean }[];
+  bot_replied_count: number;
+  last_customer_at: string | null;
+  last_human_operator_at: string | null;
+  jira: ConversationJira[];
+  sentiment: Sentiment | null;
+  csat: { sent: boolean; sent_at: string | null };
+  latest_draft: {
+    output_id: number;
+    content: string;
+    warnings: Warning[];
+    verified: boolean | null;
+    helpdesk_matches: number | null;
+    created_at: string;
+  } | null;
+}
+
+/** Không gọi AI: tin chờ trả lời, topic, profile sẽ dùng. Hiển thị nguyên văn tin khách. */
+export async function runCheck(
+  req: { website_id: string; session_id: string },
+  ws: Workspace,
+  operatorId: string,
+  deps: LoadDeps,
+): Promise<CheckResult> {
+  const { stale, conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
+  const [profiles, operator, latest, jiraRows, sentimentRow, csatSend] = await Promise.all([
+    deps.db.getProfiles(operatorId, req.website_id),
+    deps.db.getOperator(operatorId),
+    deps.db.getLatestDraft(req.website_id, req.session_id, operatorId),
+    deps.db.getJiraRows(req.website_id, req.session_id),
+    deps.db.getSentiment(req.website_id, req.session_id).catch(() => null),
+    deps.db.getCsatSend(req.website_id, req.session_id).catch(() => null),
+  ]);
+  const unanswered = unansweredCustomerMessages(messages);
+  const pendingMessages = pendingCustomerMessages(messages);
+  const { source } = resolveProfile(profiles, conv.topic, ws.default_profile);
+  return {
+    action: "check",
+    stale,
+    workspace: ws.name,
+    topic: conv.topic,
+    topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
+    profile_source: source,
+    profile_name: operator?.display_name ?? operatorId,
+    needs_reply: unanswered.length > 0,
+    unanswered,
+    pending_messages: pendingMessages,
+    bot_replied_count: pendingMessages.filter((m) => m.bot_replied).length,
+    last_customer_at: conv.last_customer_at,
+    last_human_operator_at: conv.last_human_operator_at,
+    jira: jiraForConversation(jiraRows, conv.last_human_operator_at),
+    sentiment: sentimentRow ? (({ input_fp: _fp, ...rest }) => rest)(sentimentRow) : null,
+    csat: { sent: Boolean(csatSend), sent_at: csatSend?.sent_at ?? null },
+    // Draft viết trước tin khách mới nhất là của lượt trước: không hiện để tránh "Điền lại" nhầm.
+    latest_draft: latest && (!conv.last_customer_at || Date.parse(latest.created_at) >= Date.parse(conv.last_customer_at))
+      ? { output_id: latest.id, content: latest.content, warnings: latest.warnings, verified: latest.verified, helpdesk_matches: latest.helpdesk_matches, created_at: latest.created_at }
+      : null,
+  };
+}
+
+/** Tin khách chờ CS; đánh dấu riêng nếu Bot đã gửi câu trả lời sau tin đó. */
+function pendingCustomerMessages(messages: Awaited<ReturnType<Db["getMessages"]>>) {
+  const ordered = [...messages].sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+  const lastHumanReply = ordered.reduce((last, m, i) =>
+    m.from === "operator" && !m.is_bot && m.type !== "note" && m.type !== "event" ? i : last, -1);
+  const pending = ordered.slice(lastHumanReply + 1);
+  const customerIndices = pending.flatMap((m, i) => m.from === "user" && m.type !== "note" && m.type !== "event" ? [i] : []);
+  return customerIndices.map((index, i) => {
+    const end = customerIndices[i + 1] ?? pending.length;
+    const botReplied = pending.slice(index + 1, end).some((m) => m.from === "operator" && m.is_bot && m.type === "text");
+    const customer = pending[index];
+    return { text: customer.content, bot_replied: botReplied };
+  });
+}
