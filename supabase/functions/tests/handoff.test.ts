@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
 import { AiUnavailable } from "../_shared/gemini.ts";
+import type { ProfileRow } from "../_shared/types.ts";
 import { fakeAi, makeDeps, msg, TOKEN } from "./fakes.ts";
 
 const REQ = { website_id: "ws1", session_id: "session_1", action: "handoff" };
@@ -144,6 +145,65 @@ Deno.test("unreadable handoff says AI_BAD_OUTPUT, not quota", async () => {
   const { deps } = makeDeps({ ai });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.body, { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" });
+});
+
+const NOTE_FMT_ROW: ProfileRow = {
+  crisp_user_id: "op-lan",
+  website_id: "ws1",
+  topic: "_all",
+  conversations_used: 12,
+  learned_at: "2026-10-14T00:00:00Z",
+  manual_override: null,
+  note_format: {
+    language: "en",
+    header: "Handoff — {name}",
+    sections: [
+      { field: "issues", label: "Issues raised:" },
+      { field: "summary", label: "Why:" },
+      { field: "next_step", label: "Next:" },
+    ],
+    line_style: "bullets",
+    state_style: "text",
+    sign_off: "— {name}",
+    notes_used: 6,
+  },
+};
+
+Deno.test("handoff renders in the CS's learned note format and records profile_used", async () => {
+  const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const { deps, inserted, notes } = makeDeps({ ai, db: { getProfiles: () => Promise.resolve([NOTE_FMT_ROW]) } });
+  const r = await handle(REQ, TOKEN, deps);
+  const body = r.body as { note: string; posted: boolean };
+  assertEquals(body.note, [
+    "Handoff — Lan Nguyen",
+    "Issues raised:",
+    "- Switcher không hiện trên mobile — Chờ tech: đã gửi ticket",
+    "- Đổi sang gói annual — Xong: đã đổi",
+    "- Dịch theme mới — Chưa xử lý: chưa trả lời",
+    "Why: Khách cần sửa switcher và đổi gói",
+    "Next: (waiting on tech) Báo khách khi tech fix",
+    "— Lan Nguyen",
+  ].join("\n"));
+  assertEquals(notes, [body.note]);
+  assertEquals(inserted[0].profile_used, "all");
+  assertEquals(inserted[0].content, body.note);
+});
+
+Deno.test("handoff without a learned note format keeps the fixed template and records profile_used default", async () => {
+  const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const { deps, inserted } = makeDeps({ ai });
+  await handle(REQ, TOKEN, deps);
+  assertEquals(inserted[0].profile_used, "default");
+  assertEquals((inserted[0].content as string).startsWith("📋 Handoff — Lan Nguyen\n"), true);
+});
+
+Deno.test("handoff ignores a note format learned from too few notes", async () => {
+  const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const thin: ProfileRow = { ...NOTE_FMT_ROW, note_format: { ...NOTE_FMT_ROW.note_format!, notes_used: 2 } };
+  const { deps, inserted } = makeDeps({ ai, db: { getProfiles: () => Promise.resolve([thin]) } });
+  await handle(REQ, TOKEN, deps);
+  assertEquals(inserted[0].profile_used, "default");
+  assertEquals((inserted[0].content as string).startsWith("📋 Handoff — Lan Nguyen\n"), true);
 });
 
 Deno.test("handoff prompt includes the linked Jira tickets", async () => {
