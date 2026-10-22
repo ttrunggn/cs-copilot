@@ -1,4 +1,4 @@
-import { countPlaceholders, describeShape, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, mapError, operatorIdFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -12,7 +12,7 @@ const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
 const extension = createExtensionClient(render);
-const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, saveDraftEdit, toggleDraftEdit, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
+const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, saveDraftEdit, toggleDraftEdit, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
 
 /** Lưu bản draft CS vừa sửa tại chỗ (null = huỷ sửa). Đếm lại chỗ [[CS: …]] theo bản mới. */
 function saveDraftEdit(text) {
@@ -133,6 +133,41 @@ async function onSurvey() {
   render();
 }
 
+/** Hỏi tài liệu (board 3): gửi câu hỏi lên action ask, kết quả vào state.askResult. */
+async function onAsk() {
+  const question = state.askQuestion.trim();
+  if (!question) {
+    state.notice = "Hãy nhập câu hỏi để tìm trong tài liệu.";
+    render();
+    return;
+  }
+  state.busy = "Đang tìm tài liệu…";
+  state.notice = "";
+  render();
+  try {
+    const out = await call("ask", { question });
+    state.askResult = { question, ...toAskViewModel(out) };
+  } catch (e) {
+    if (!e.stale) state.notice = e.message ?? "Không tìm được tài liệu, thử lại sau";
+  }
+  state.busy = "";
+  render();
+}
+
+/** Đáp án tài liệu → ý của CS trong draft panel, rồi generate như bấm Soạn tin. */
+function onAskCompose(answer) {
+  state.hint = askAnswerToHint(answer);
+  onGenerate(false);
+}
+
+/** "Thử từ khoá khác": xoá câu hỏi + kết quả cũ và đặt lại con trỏ vào ô nhập. */
+function onAskRetry() {
+  state.askQuestion = "";
+  state.askResult = null;
+  render();
+  document.querySelector(".knowledge-card .field")?.focus();
+}
+
 async function onHandoff(force) {
   state.busy = "Đang viết handoff…";
   state.notice = "";
@@ -178,7 +213,7 @@ function render() {
       el("button", { className: "button-secondary private-button", textContent: state.busy.startsWith("Đang viết") ? "Đang viết private note…" : "🔒  Private note", disabled, onclick: () => onHandoff(false) }),
       el("button", { className: "button-secondary knowledge-button", textContent: "Hỏi tài liệu", onclick: () => ((state.knowledgeOpen = !state.knowledgeOpen), render()) }),
     ]),
-    knowledgePanel(),
+    knowledgePanel(handlers),
     state.busy ? el("div", { className: "loading-card" }, [
       el("p", { className: "muted", textContent: state.busy }),
       el("div", { className: "skeleton" }, [el("i"), el("i"), el("i")]),
@@ -228,6 +263,8 @@ async function load() {
     state.csatError = false;
     state.handoff = null;
     state.knowledgeOpen = false;
+    state.askQuestion = "";
+    state.askResult = null;
     state.choice = false;
     state.draftPlacement = "";
     state.draftEditing = false;
