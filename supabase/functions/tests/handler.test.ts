@@ -1,1 +1,156 @@
-aW1wb3J0IHsgYXNzZXJ0RXF1YWxzIH0gZnJvbSAianNyOkBzdGQvYXNzZXJ0QDEiOwppbXBvcnQgeyBoYW5kbGUgfSBmcm9tICIuLi9jb3BpbG90L2hhbmRsZXIudHMiOwppbXBvcnQgeyBzaGEyNTZIZXggfSBmcm9tICIuLi9fc2hhcmVkL2F1dGgudHMiOwppbXBvcnQgdHlwZSB7IERiIH0gZnJvbSAiLi4vX3NoYXJlZC9kYi50cyI7CmltcG9ydCB0eXBlIHsgTjhuIH0gZnJvbSAiLi4vX3NoYXJlZC9uOG4udHMiOwppbXBvcnQgeyBmYWtlQWkgfSBmcm9tICIuL2Zha2VzLnRzIjsKaW1wb3J0IHR5cGUgeyBDb252ZXJzYXRpb25Sb3csIE1lc3NhZ2VSb3csIFByb2ZpbGVSb3csIFdvcmtzcGFjZSB9IGZyb20gIi4uL19zaGFyZWQvdHlwZXMudHMiOwoKY29uc3QgV1M6IFdvcmtzcGFjZSA9IHsKICB3ZWJzaXRlX2lkOiAid3MxIiwKICBuYW1lOiAiQXBwIEEiLAogIHRvcGljczogW3sga2V5OiAiYmlsbGluZyIsIGxhYmVsOiAiQmlsbGluZyIsIHNlZ21lbnRzOiBbImJpbGxpbmciXSB9XSwKICBkZWZhdWx0X3Byb2ZpbGU6IHt9LAp9Owpjb25zdCBDT05WOiBDb252ZXJzYXRpb25Sb3cgPSB7CiAgd2Vic2l0ZV9pZDogIndzMSIsCiAgc2Vzc2lvbl9pZDogInNlc3Npb25fMSIsCiAgY3VzdG9tZXJfZW1haWw6ICJrQHguaW8iLAogIGN1c3RvbWVyX25hbWU6ICJLaMOhY2giLAogIHRvcGljOiAiYmlsbGluZyIsCiAgdG9waWNfc291cmNlOiAic2VnbWVudCIsCiAgc3RhdGU6ICJ1bnJlc29sdmVkIiwKICBsYXN0X2N1c3RvbWVyX2F0OiAiMjAyNi0xMC0xNVQwMzowMzowMCswMDowMCIsCiAgbGFzdF9odW1hbl9vcGVyYXRvcl9hdDogIjIwMjYtMTAtMTVUMDM6MDI6MDArMDA6MDAiLAogIHVwZGF0ZWRfYXQ6ICIyMDI2LTEwLTE1VDAzOjAzOjAwKzAwOjAwIiwKfTsKY29uc3QgTVNHUzogTWVzc2FnZVJvd1tdID0gWwogIHsgaWQ6IDEsIGNvbnRlbnRfZW46IG51bGwsIGZyb206ICJ1c2VyIiwgdHlwZTogInRleHQiLCBpc19ib3Q6IGZhbHNlLCBjb250ZW50OiAiYSIsIGNyZWF0ZWRfYXQ6ICIyMDI2LTEwLTE1VDAzOjAxOjAwKzAwOjAwIiwgb3BlcmF0b3JfbmFtZTogbnVsbCB9LAogIHsgaWQ6IDIsIGNvbnRlbnRfZW46IG51bGwsIGZyb206ICJvcGVyYXRvciIsIHR5cGU6ICJ0ZXh0IiwgaXNfYm90OiBmYWxzZSwgY29udGVudDogImIiLCBjcmVhdGVkX2F0OiAiMjAyNi0xMC0xNVQwMzowMjowMCswMDowMCIsIG9wZXJhdG9yX25hbWU6ICJMYW4iIH0sCiAgeyBpZDogMywgY29udGVudF9lbjogbnVsbCwgZnJvbTogInVzZXIiLCB0eXBlOiAidGV4dCIsIGlzX2JvdDogZmFsc2UsIGNvbnRlbnQ6ICJjIiwgY3JlYXRlZF9hdDogIjIwMjYtMTAtMTVUMDM6MDM6MDArMDA6MDAiLCBvcGVyYXRvcl9uYW1lOiBudWxsIH0sCl07CmNvbnN0IFBST0ZJTEVTOiBQcm9maWxlUm93W10gPSBbCiAgeyBjcmlzcF91c2VyX2lkOiAib3AtbGFuIiwgd2Vic2l0ZV9pZDogIndzMSIsIHRvcGljOiAiYmlsbGluZyIsIHRvbmU6ICJjaGkgdGnhur90IiwgY29udmVyc2F0aW9uc191c2VkOiA5LCBsZWFybmVkX2F0OiBudWxsLCBtYW51YWxfb3ZlcnJpZGU6IG51bGwgfSwKXTsKCmNvbnN0IFRPS0VOID0gInRvay1sYW4iOwpjb25zdCBUT0tFTl9IQVNIID0gYXdhaXQgc2hhMjU2SGV4KFRPS0VOKTsKY29uc3QgQ1JJU1BfVE9LRU4gPSAiMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1NTU1IjsKY29uc3QgV0lER0VUX0hBU0ggPSBhd2FpdCBzaGEyNTZIZXgoQ1JJU1BfVE9LRU4pOwoKZnVuY3Rpb24gZGVwcyhvdmVyOiBQYXJ0aWFsPERiPiA9IHt9LCBzdGFsZSA9IGZhbHNlKSB7CiAgY29uc3QgZGI6IERiID0gewogICAgZ2V0V29ya3NwYWNlOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoV1MpLAogICAgZ2V0V2lkZ2V0VG9rZW5IYXNoOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoV0lER0VUX0hBU0gpLAogICAgZ2V0T3BlcmF0b3JJZEJ5VG9rZW5IYXNoOiAoaCkgPT4gUHJvbWlzZS5yZXNvbHZlKGggPT09IFRPS0VOX0hBU0ggPyAib3AtbGFuIiA6IG51bGwpLAogICAgaXNPcGVyYXRvck1lbWJlcjogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKHRydWUpLAogICAgZ2V0Q29udmVyc2F0aW9uOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoQ09OViksCiAgICBnZXRNZXNzYWdlczogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKE1TR1MpLAogICAgc2F2ZVRyYW5zbGF0aW9uczogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKCksCiAgICBnZXRQcm9maWxlczogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKFBST0ZJTEVTKSwKICAgIGdldE9wZXJhdG9yOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoeyBkaXNwbGF5X25hbWU6ICJMYW4gTmd1eWVuIiB9KSwKICAgIGZpbmRDYWNoZWRPdXRwdXQ6ICgpID0+IFByb21pc2UucmVzb2x2ZShudWxsKSwKICAgIGluc2VydE91dHB1dDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKDEpLAogICAgbWFya1Bvc3RlZDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKCksCiAgICBnZXRMYXRlc3REcmFmdDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG51bGwpLAogICAgc2V0QWlUb3BpYzogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKCksCiAgICBtYXRjaEhlbHBkZXNrOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoW10pLAogICAgbWF0Y2hDYXNlczogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKFtdKSwKICAgIGdldFZhcmlhbnRzOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoW10pLAogICAgZ2V0SmlyYVJvd3M6ICgpID0+IFByb21pc2UucmVzb2x2ZShbXSksCiAgICBnZXRTZW50aW1lbnQ6ICgpID0+IFByb21pc2UucmVzb2x2ZShudWxsKSwKICAgIHNhdmVTZW50aW1lbnQ6ICgpID0+IFByb21pc2UucmVzb2x2ZSgpLAogICAgZ2V0Q3NhdFNlbmQ6ICgpID0+IFByb21pc2UucmVzb2x2ZShudWxsKSwKICAgIHJlY29yZENzYXRTZW5kOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoeyBzZW50X2F0OiAiMjAyNi0xMC0xNVQwMzowNTowMCswMDowMCIgfSksCiAgICAuLi5vdmVyLAogIH07CiAgY29uc3QgbjhuOiBOOG4gPSB7CiAgICByZWZyZXNoQ29udmVyc2F0aW9uOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoeyBzdGFsZSB9KSwKICAgIHBvc3ROb3RlOiAoKSA9PiBQcm9taXNlLnJlc29sdmUodHJ1ZSksCiAgICBzZW5kU3VydmV5OiAoKSA9PiBQcm9taXNlLnJlc29sdmUodHJ1ZSksCiAgfTsKICByZXR1cm4geyBkYiwgbjhuLCBhaTogZmFrZUFpKHt9KS5haSB9Owp9Cgpjb25zdCBSRVEgPSB7IHdlYnNpdGVfaWQ6ICJ3czEiLCBzZXNzaW9uX2lkOiAic2Vzc2lvbl8xIiwgYWN0aW9uOiAiY2hlY2siIH07CgpEZW5vLnRlc3QoImNoZWNrIHJldHVybnMgdW5hbnN3ZXJlZCwgdG9waWMgYW5kIHByb2ZpbGUiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgciA9IGF3YWl0IGhhbmRsZShSRVEsIFRPS0VOLCBkZXBzKCkpOwogIGFzc2VydEVxdWFscyhyLnN0YXR1cywgMjAwKTsKICBhc3NlcnRFcXVhbHMoci5ib2R5LCB7CiAgICBhY3Rpb246ICJjaGVjayIsCiAgICBzdGFsZTogZmFsc2UsCiAgICB3b3Jrc3BhY2U6ICJBcHAgQSIsCiAgICB0b3BpYzogImJpbGxpbmciLAogICAgdG9waWNfbGFiZWw6ICJCaWxsaW5nIiwKICAgIHByb2ZpbGVfc291cmNlOiAidG9waWMiLAogICAgcHJvZmlsZV9uYW1lOiAiTGFuIE5ndXllbiIsCiAgICBuZWVkc19yZXBseTogdHJ1ZSwKICAgIHVuYW5zd2VyZWQ6IFsiYyJdLAogICAgcGVuZGluZ19tZXNzYWdlczogW3sgdGV4dDogImMiLCBib3RfcmVwbGllZDogZmFsc2UgfV0sCiAgICBib3RfcmVwbGllZF9jb3VudDogMCwKICAgIGxhc3RfY3VzdG9tZXJfYXQ6IENPTlYubGFzdF9jdXN0b21lcl9hdCwKICAgIGxhc3RfaHVtYW5fb3BlcmF0b3JfYXQ6IENPTlYubGFzdF9odW1hbl9vcGVyYXRvcl9hdCwKICAgIGppcmE6IFtdLAogICAgc2VudGltZW50OiBudWxsLAogICAgY3NhdDogeyBzZW50OiBmYWxzZSwgc2VudF9hdDogbnVsbCB9LAogICAgbGF0ZXN0X2RyYWZ0OiBudWxsLAogIH0pOwp9KTsKCkRlbm8udGVzdCgiY2hlY2sgcGFzc2VzIHRocm91Z2ggc3RhbGUgZmxhZyIsIGFzeW5jICgpID0+IHsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlKFJFUSwgVE9LRU4sIGRlcHMoe30sIHRydWUpKTsKICBhc3NlcnRFcXVhbHMoKHIuYm9keSBhcyB7IHN0YWxlOiBib29sZWFuIH0pLnN0YWxlLCB0cnVlKTsKfSk7CgpEZW5vLnRlc3QoInVua25vd24gYWN0aW9uIC0+IDQwMCIsIGFzeW5jICgpID0+IHsKICBhc3NlcnRFcXVhbHMoKGF3YWl0IGhhbmRsZSh7IC4uLlJFUSwgYWN0aW9uOiAiZGVsZXRlIiB9LCBUT0tFTiwgZGVwcygpKSkuc3RhdHVzLCA0MDApOwp9KTsKCkRlbm8udGVzdCgibWlzc2luZyBzZXNzaW9uX2lkIC0+IDQwMCIsIGFzeW5jICgpID0+IHsKICBhc3NlcnRFcXVhbHMoKGF3YWl0IGhhbmRsZSh7IC4uLlJFUSwgc2Vzc2lvbl9pZDogIiIgfSwgVE9LRU4sIGRlcHMoKSkpLnN0YXR1cywgNDAwKTsKfSk7CgpEZW5vLnRlc3QoIm5vbi1vYmplY3QgYm9keSAtPiA0MDAiLCBhc3luYyAoKSA9PiB7CiAgYXNzZXJ0RXF1YWxzKChhd2FpdCBoYW5kbGUoIm5vcGUiLCBUT0tFTiwgZGVwcygpKSkuc3RhdHVzLCA0MDApOwp9KTsKCkRlbm8udGVzdCgiY29udmVyc2F0aW9uIG5vdCBpbiBEQiAtPiA0MDQiLCBhc3luYyAoKSA9PiB7CiAgYXNzZXJ0RXF1YWxzKChhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcyh7IGdldENvbnZlcnNhdGlvbjogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG51bGwpIH0pKSkuc3RhdHVzLCA0MDQpOwp9KTsKCkRlbm8udGVzdCgiYmFkIHRva2VuIC0+IDQwMSIsIGFzeW5jICgpID0+IHsKICBhc3NlcnRFcXVhbHMoKGF3YWl0IGhhbmRsZShSRVEsICJ3cm9uZyEiLCBkZXBzKCkpKS5zdGF0dXMsIDQwMSk7Cn0pOwoKRGVuby50ZXN0KCJ1bmV4cGVjdGVkIGVycm9yIC0+IDUwMCB3aXRob3V0IGxlYWtpbmcgZGV0YWlscyIsIGFzeW5jICgpID0+IHsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlKFJFUSwgVE9LRU4sIGRlcHMoeyBnZXRNZXNzYWdlczogKCkgPT4gUHJvbWlzZS5yZWplY3QobmV3IEVycm9yKCJkYiBwYXNzd29yZD14eXoiKSkgfSkpOwogIGFzc2VydEVxdWFscyhyLnN0YXR1cywgNTAwKTsKICBhc3NlcnRFcXVhbHMoci5ib2R5LCB7IGVycm9yOiAiTOG7l2kgaOG7hyB0aOG7kW5nLCB0aOG7rSBs4bqhaSBzYXUiIH0pOwp9KTsKCkRlbm8udGVzdCgibWFsZm9ybWVkIHNlc3Npb25faWQgaXMgcmVqZWN0ZWQgYmVmb3JlIHJlYWNoaW5nIG44biIsIGFzeW5jICgpID0+IHsKICBsZXQgcmVmcmVzaGVkID0gZmFsc2U7CiAgY29uc3QgZCA9IGRlcHMoKTsKICBkLm44bi5yZWZyZXNoQ29udmVyc2F0aW9uID0gKCkgPT4gewogICAgcmVmcmVzaGVkID0gdHJ1ZTsKICAgIHJldHVybiBQcm9taXNlLnJlc29sdmUoeyBzdGFsZTogZmFsc2UgfSk7CiAgfTsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlKHsgLi4uUkVRLCBzZXNzaW9uX2lkOiAic2Vzc2lvbl8xLy4uLy4uL29wZXJhdG9ycyIgfSwgVE9LRU4sIGQpOwogIGFzc2VydEVxdWFscyhyLnN0YXR1cywgNDAwKTsKICBhc3NlcnRFcXVhbHMocmVmcmVzaGVkLCBmYWxzZSk7Cn0pOwoKRGVuby50ZXN0KCJtYWxmb3JtZWQgd2Vic2l0ZV9pZCAtPiA0MDAiLCBhc3luYyAoKSA9PiB7CiAgYXNzZXJ0RXF1YWxzKChhd2FpdCBoYW5kbGUoeyAuLi5SRVEsIHdlYnNpdGVfaWQ6ICJ3czE/eD0xIiB9LCBUT0tFTiwgZGVwcygpKSkuc3RhdHVzLCA0MDApOwp9KTsKCkRlbm8udGVzdCgid2lkZ2V0IHJlcXVlc3QgKG5vIHBlcnNvbmFsIHRva2VuKSBhdXRoZW50aWNhdGVzIHdpdGggQ3Jpc3AgdG9rZW4gKyBvcGVyYXRvcl9pZCIsIGFzeW5jICgpID0+IHsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlKHsgLi4uUkVRLCBjcmlzcF90b2tlbjogQ1JJU1BfVE9LRU4sIG9wZXJhdG9yX2lkOiAib3AtbGFuIiB9LCAiIiwgZGVwcygpKTsKICBhc3NlcnRFcXVhbHMoci5zdGF0dXMsIDIwMCk7CiAgYXNzZXJ0RXF1YWxzKChyLmJvZHkgYXMgeyBwcm9maWxlX25hbWU6IHN0cmluZyB9KS5wcm9maWxlX25hbWUsICJMYW4gTmd1eWVuIik7Cn0pOwoKRGVuby50ZXN0KCJ3aWRnZXQgcmVxdWVzdCB3aXRoIGZvcmdlZCBDcmlzcCB0b2tlbiAtPiA0MDEiLCBhc3luYyAoKSA9PiB7CiAgYXNzZXJ0RXF1YWxzKChhd2FpdCBoYW5kbGUoeyAuLi5SRVEsIGNyaXNwX3Rva2VuOiAiZm9yZ2VkIiwgb3BlcmF0b3JfaWQ6ICJvcC1sYW4iIH0sICIiLCBkZXBzKCkpKS5zdGF0dXMsIDQwMSk7Cn0pOwo=
+import { assertEquals } from "jsr:@std/assert@1";
+import { handle } from "../copilot/handler.ts";
+import { sha256Hex } from "../_shared/auth.ts";
+import type { Db } from "../_shared/db.ts";
+import type { N8n } from "../_shared/n8n.ts";
+import { fakeAi } from "./fakes.ts";
+import type { ConversationRow, MessageRow, ProfileRow, Workspace } from "../_shared/types.ts";
+
+const WS: Workspace = {
+  website_id: "ws1",
+  name: "App A",
+  topics: [{ key: "billing", label: "Billing", segments: ["billing"] }],
+  default_profile: {},
+};
+const CONV: ConversationRow = {
+  website_id: "ws1",
+  session_id: "session_1",
+  customer_email: "k@x.io",
+  customer_name: "Khách",
+  topic: "billing",
+  topic_source: "segment",
+  state: "unresolved",
+  last_customer_at: "2026-10-15T03:03:00+00:00",
+  last_human_operator_at: "2026-10-15T03:02:00+00:00",
+  updated_at: "2026-10-15T03:03:00+00:00",
+};
+const MSGS: MessageRow[] = [
+  { id: 1, content_en: null, from: "user", type: "text", is_bot: false, content: "a", created_at: "2026-10-15T03:01:00+00:00", operator_name: null },
+  { id: 2, content_en: null, from: "operator", type: "text", is_bot: false, content: "b", created_at: "2026-10-15T03:02:00+00:00", operator_name: "Lan" },
+  { id: 3, content_en: null, from: "user", type: "text", is_bot: false, content: "c", created_at: "2026-10-15T03:03:00+00:00", operator_name: null },
+];
+const PROFILES: ProfileRow[] = [
+  { crisp_user_id: "op-lan", website_id: "ws1", topic: "billing", tone: "chi tiết", conversations_used: 9, learned_at: null, manual_override: null },
+];
+
+const TOKEN = "tok-lan";
+const TOKEN_HASH = await sha256Hex(TOKEN);
+const CRISP_TOKEN = "11111111-2222-3333-4444-555555555555";
+const WIDGET_HASH = await sha256Hex(CRISP_TOKEN);
+
+function deps(over: Partial<Db> = {}, stale = false) {
+  const db: Db = {
+    getWorkspace: () => Promise.resolve(WS),
+    getWidgetTokenHash: () => Promise.resolve(WIDGET_HASH),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
+    isOperatorMember: () => Promise.resolve(true),
+    getConversation: () => Promise.resolve(CONV),
+    getMessages: () => Promise.resolve(MSGS),
+    saveTranslations: () => Promise.resolve(),
+    getProfiles: () => Promise.resolve(PROFILES),
+    getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
+    findCachedOutput: () => Promise.resolve(null),
+    insertOutput: () => Promise.resolve(1),
+    markPosted: () => Promise.resolve(),
+    getLatestDraft: () => Promise.resolve(null),
+    setAiTopic: () => Promise.resolve(),
+    matchHelpdesk: () => Promise.resolve([]),
+    matchCases: () => Promise.resolve([]),
+    getVariants: () => Promise.resolve([]),
+    getJiraRows: () => Promise.resolve([]),
+    getSentiment: () => Promise.resolve(null),
+    saveSentiment: () => Promise.resolve(),
+    getCsatSend: () => Promise.resolve(null),
+    recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
+    ...over,
+  };
+  const n8n: N8n = {
+    refreshConversation: () => Promise.resolve({ stale }),
+    postNote: () => Promise.resolve(true),
+    sendSurvey: () => Promise.resolve(true),
+  };
+  return { db, n8n, ai: fakeAi({}).ai };
+}
+
+const REQ = { website_id: "ws1", session_id: "session_1", action: "check" };
+
+Deno.test("check returns unanswered, topic and profile", async () => {
+  const r = await handle(REQ, TOKEN, deps());
+  assertEquals(r.status, 200);
+  assertEquals(r.body, {
+    action: "check",
+    stale: false,
+    workspace: "App A",
+    topic: "billing",
+    topic_label: "Billing",
+    profile_source: "topic",
+    profile_name: "Lan Nguyen",
+    needs_reply: true,
+    unanswered: ["c"],
+    pending_messages: [{ text: "c", bot_replied: false }],
+    bot_replied_count: 0,
+    last_customer_at: CONV.last_customer_at,
+    last_human_operator_at: CONV.last_human_operator_at,
+    jira: [],
+    sentiment: null,
+    csat: { sent: false, sent_at: null },
+    latest_draft: null,
+  });
+});
+
+Deno.test("check passes through stale flag", async () => {
+  const r = await handle(REQ, TOKEN, deps({}, true));
+  assertEquals((r.body as { stale: boolean }).stale, true);
+});
+
+Deno.test("unknown action -> 400", async () => {
+  assertEquals((await handle({ ...REQ, action: "delete" }, TOKEN, deps())).status, 400);
+});
+
+Deno.test("missing session_id -> 400", async () => {
+  assertEquals((await handle({ ...REQ, session_id: "" }, TOKEN, deps())).status, 400);
+});
+
+Deno.test("non-object body -> 400", async () => {
+  assertEquals((await handle("nope", TOKEN, deps())).status, 400);
+});
+
+Deno.test("conversation not in DB -> 404", async () => {
+  assertEquals((await handle(REQ, TOKEN, deps({ getConversation: () => Promise.resolve(null) }))).status, 404);
+});
+
+Deno.test("bad token -> 401", async () => {
+  assertEquals((await handle(REQ, "wrong!", deps())).status, 401);
+});
+
+Deno.test("unexpected error -> 500 without leaking details", async () => {
+  const r = await handle(REQ, TOKEN, deps({ getMessages: () => Promise.reject(new Error("db password=xyz")) }));
+  assertEquals(r.status, 500);
+  assertEquals(r.body, { error: "Lỗi hệ thống, thử lại sau" });
+});
+
+Deno.test("malformed session_id is rejected before reaching n8n", async () => {
+  let refreshed = false;
+  const d = deps();
+  d.n8n.refreshConversation = () => {
+    refreshed = true;
+    return Promise.resolve({ stale: false });
+  };
+  const r = await handle({ ...REQ, session_id: "session_1/../../operators" }, TOKEN, d);
+  assertEquals(r.status, 400);
+  assertEquals(refreshed, false);
+});
+
+Deno.test("malformed website_id -> 400", async () => {
+  assertEquals((await handle({ ...REQ, website_id: "ws1?x=1" }, TOKEN, deps())).status, 400);
+});
+
+Deno.test("widget request (no personal token) authenticates with Crisp token + operator_id", async () => {
+  const r = await handle({ ...REQ, crisp_token: CRISP_TOKEN, operator_id: "op-lan" }, "", deps());
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { profile_name: string }).profile_name, "Lan Nguyen");
+});
+
+Deno.test("widget request with forged Crisp token -> 401", async () => {
+  assertEquals((await handle({ ...REQ, crisp_token: "forged", operator_id: "op-lan" }, "", deps())).status, 401);
+});
