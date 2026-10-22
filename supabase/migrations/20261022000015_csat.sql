@@ -1,1 +1,13 @@
-LS0gVHLhuqFuZyB0aMOhaSDEkcOjIGfhu61pIENTQVQgc3VydmV5IGNobyB04burbmcgY29udmVyc2F0aW9uLCDEkeG7gyBwYW5lbCBraMO0bmcgZ+G7rWkgdHLDuW5nCi0tIHbDoCBoaeG7h24gxJHGsOG7o2MgIsSRw6MgZ+G7rWkgbMO6YyBuw6BvLCBi4bufaSBhaSIuIFZp4buHYyBn4butaSB0aOG6rXQgduG6q24gcXVhIHdlYmhvb2sKLS0gc2VuZC1zdXJ2ZXkgY+G7p2Egd29ya2Zsb3cgc3VydmV5IHRyw6puIG44biAobjhuIGzDoG0gZ2F0ZSwgZ2nhu68gcGx1Z2luIGtleSkuCgpjcmVhdGUgdGFibGUgcHVibGljLmNzYXRfc3VydmV5X3NlbmRzICgKICB3ZWJzaXRlX2lkIHRleHQgbm90IG51bGwgcmVmZXJlbmNlcyBwdWJsaWMud29ya3NwYWNlcyBvbiBkZWxldGUgY2FzY2FkZSwKICBzZXNzaW9uX2lkIHRleHQgbm90IG51bGwsCiAgc2VudF9ieSB0ZXh0IG5vdCBudWxsLAogIHNlbnRfYXQgdGltZXN0YW1wdHogbm90IG51bGwgZGVmYXVsdCBub3coKSwKICBwcmltYXJ5IGtleSAod2Vic2l0ZV9pZCwgc2Vzc2lvbl9pZCkKKTsKCmFsdGVyIHRhYmxlIHB1YmxpYy5jc2F0X3N1cnZleV9zZW5kcyBlbmFibGUgcm93IGxldmVsIHNlY3VyaXR5Owo=
+-- Trạng thái đã gửi CSAT survey cho từng conversation, để panel không gửi trùng
+-- và hiện được "đã gửi lúc nào, bởi ai". Việc gửi thật vẫn qua webhook
+-- send-survey của workflow survey trên n8n (n8n làm gate, giữ plugin key).
+
+create table public.csat_survey_sends (
+  website_id text not null references public.workspaces on delete cascade,
+  session_id text not null,
+  sent_by text not null,
+  sent_at timestamptz not null default now(),
+  primary key (website_id, session_id)
+);
+
+alter table public.csat_survey_sends enable row level security;
