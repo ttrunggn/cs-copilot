@@ -1,10 +1,9 @@
 import { unansweredCustomerMessages } from "../_shared/context.ts";
 import { type ConversationJira, jiraForConversation } from "../_shared/jira.ts";
 import type { Db } from "../_shared/db.ts";
-import type { N8n } from "../_shared/n8n.ts";
 import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 import type { Warning, Workspace } from "../_shared/types.ts";
-import { loadConversation } from "./load.ts";
+import { type LoadDeps, loadConversationFast } from "./load.ts";
 
 export interface CheckResult {
   action: "check";
@@ -36,9 +35,9 @@ export async function runCheck(
   req: { website_id: string; session_id: string },
   ws: Workspace,
   operatorId: string,
-  deps: { db: Db; n8n: N8n },
+  deps: LoadDeps,
 ): Promise<CheckResult> {
-  const { stale, conv, messages } = await loadConversation(deps, req.website_id, req.session_id);
+  const { stale, conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
   const [profiles, operator, latest, jiraRows] = await Promise.all([
     deps.db.getProfiles(operatorId, req.website_id),
     deps.db.getOperator(operatorId),

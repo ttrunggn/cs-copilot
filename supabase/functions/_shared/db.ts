@@ -58,7 +58,7 @@ export function createDb(sb: SupabaseClient): Db {
     },
     async getConversation(websiteId, sessionId) {
       const { data, error } = await sb.from("conversations")
-        .select("website_id,session_id,customer_email,customer_name,topic,topic_source,state,last_customer_at,last_human_operator_at")
+        .select("website_id,session_id,customer_email,customer_name,topic,topic_source,state,last_customer_at,last_human_operator_at,updated_at")
         .eq("website_id", websiteId).eq("session_id", sessionId).maybeSingle();
       if (error) throw error;
       return data as ConversationRow | null;

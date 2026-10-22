@@ -113,9 +113,12 @@ export async function runGenerate(
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
   // Giữ reply text của bot trong context để CS không lặp lại hoặc phủ định điều khách vừa được thông báo.
   const transcript = humanTranscript(messages, 40, true);
-  const topic = await resolveTopic(deps, ws, req.website_id, req.session_id, conv.topic, transcript);
+  // Phân loại topic và tìm helpdesk/case độc lập nhau: chạy song song thay vì nối tiếp để rút ngắn generate.
+  const [topic, found] = await Promise.all([
+    resolveTopic(deps, ws, req.website_id, req.session_id, conv.topic, transcript),
+    retrieve(deps, req.website_id, messages),
+  ]);
   const { profile, source } = resolveProfile(profiles, topic, ws.default_profile);
-  const found = await retrieve(deps, req.website_id, messages);
   const variant = pickVariant(await deps.db.getVariants("draft"));
   const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
 

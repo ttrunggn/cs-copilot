@@ -29,6 +29,11 @@ Deno.serve(async (req) => {
   } catch {
     return json(400, { error: "Body không phải JSON" });
   }
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai });
+  const background = (task: Promise<unknown>) => {
+    const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    if (rt?.waitUntil) rt.waitUntil(task);
+    else void task;
+  };
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background });
   return json(r.status, r.body);
 });
