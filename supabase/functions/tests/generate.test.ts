@@ -1,1 +1,213 @@
-aW1wb3J0IHsgYXNzZXJ0RXF1YWxzIH0gZnJvbSAianNyOkBzdGQvYXNzZXJ0QDEiOwppbXBvcnQgeyBoYW5kbGUgfSBmcm9tICIuLi9jb3BpbG90L2hhbmRsZXIudHMiOwppbXBvcnQgeyBBaVVuYXZhaWxhYmxlIH0gZnJvbSAiLi4vX3NoYXJlZC9nZW1pbmkudHMiOwppbXBvcnQgdHlwZSB7IEhlbHBkZXNrQ2h1bmssIE91dHB1dFJvdyB9IGZyb20gIi4uL19zaGFyZWQvdHlwZXMudHMiOwppbXBvcnQgeyBDT05WLCBmYWtlQWksIG1ha2VEZXBzLCBtc2csIFRPS0VOIH0gZnJvbSAiLi9mYWtlcy50cyI7Cgpjb25zdCBSRVEgPSB7IHdlYnNpdGVfaWQ6ICJ3czEiLCBzZXNzaW9uX2lkOiAic2Vzc2lvbl8xIiwgYWN0aW9uOiAiZ2VuZXJhdGUiIH07CmNvbnN0IEhEOiBIZWxwZGVza0NodW5rID0geyB0aXRsZTogIkN1cnJlbmN5IiwgdXJsOiAiaHR0cHM6Ly9oZWxwLnRyYW5zY3kuaW8vZW4vYXJ0aWNsZS9jdXJyZW5jeSIsIHRleHQ6ICJFbmFibGUgYXV0byBjdXJyZW5jeS4iLCBzaW1pbGFyaXR5OiAwLjggfTsKY29uc3QgV0FSTiA9IEpTT04uc3RyaW5naWZ5KHsgd2FybmluZ3M6IFt7IGNsYWltOiAiQ3VycmVuY3kgaXMgYXV0b21hdGljLiIsIHJlYXNvbjogIkLDoGkgdmnhur90IG7Ds2kgcGjhuqNpIGLhuq10IiwgYXJ0aWNsZV91cmw6IEhELnVybCB9XSB9KTsKCmZ1bmN0aW9uIHNldHVwKG86IHsgaGVscGRlc2s/OiBIZWxwZGVza0NodW5rW107IGFpPzogUmV0dXJuVHlwZTx0eXBlb2YgZmFrZUFpPjsgY2FjaGVkPzogT3V0cHV0Um93IHwgbnVsbDsgdG9waWM/OiBzdHJpbmcgfCBudWxsIH0gPSB7fSkgewogIGNvbnN0IGYgPSBvLmFpID8/IGZha2VBaSh7IGRyYWZ0OiAiQ3VycmVuY3kgaXMgYXV0b21hdGljLiIsIHZlcmlmeTogV0FSTiB9KTsKICBjb25zdCB0b3BpY3M6IFtzdHJpbmcsIHN0cmluZywgc3RyaW5nXVtdID0gW107CiAgY29uc3QgbSA9IG1ha2VEZXBzKHsKICAgIGFpOiBmLmFpLAogICAgY2FjaGVkOiBvLmNhY2hlZCwKICAgIGRiOiB7CiAgICAgIGdldENvbnZlcnNhdGlvbjogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKHsgLi4uQ09OViwgdG9waWM6IG8udG9waWMgPT09IHVuZGVmaW5lZCA/IENPTlYudG9waWMgOiBvLnRvcGljIH0pLAogICAgICBtYXRjaEhlbHBkZXNrOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoby5oZWxwZGVzayA/PyBbSERdKSwKICAgICAgc2V0QWlUb3BpYzogKHcsIHMsIHQpID0+ICh0b3BpY3MucHVzaChbdywgcywgdF0pLCBQcm9taXNlLnJlc29sdmUoKSksCiAgICB9LAogIH0pOwogIHJldHVybiB7IC4uLm0sIGNhbGxzOiBmLmNhbGxzLCB0b3BpY3MgfTsKfQoKRGVuby50ZXN0KCJnZW5lcmF0ZSByZXR1cm5zIGRyYWZ0LCB3YXJuaW5ncyBhbmQgc3RvcmVzIG91dHB1dCIsIGFzeW5jICgpID0+IHsKICBjb25zdCB7IGRlcHMsIGluc2VydGVkIH0gPSBzZXR1cCgpOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcyk7CiAgYXNzZXJ0RXF1YWxzKHIuc3RhdHVzLCAyMDApOwogIGFzc2VydEVxdWFscyhyLmJvZHksIHsKICAgIGFjdGlvbjogImdlbmVyYXRlIiwKICAgIHN0YWxlOiBmYWxzZSwKICAgIGNhY2hlZDogZmFsc2UsCiAgICBvdXRwdXRfaWQ6IDQyLAogICAgZHJhZnQ6ICJDdXJyZW5jeSBpcyBhdXRvbWF0aWMuIiwKICAgIHdhcm5pbmdzOiBbeyBjbGFpbTogIkN1cnJlbmN5IGlzIGF1dG9tYXRpYy4iLCByZWFzb246ICJCw6BpIHZp4bq/dCBuw7NpIHBo4bqjaSBi4bqtdCIsIGFydGljbGVfdXJsOiBIRC51cmwgfV0sCiAgICB2ZXJpZmllZDogdHJ1ZSwKICAgIGhlbHBkZXNrX21hdGNoZXM6IDEsCiAgICB0b3BpYzogImJpbGxpbmciLAogICAgdG9waWNfbGFiZWw6ICJUaGFuaCB0b8OhbiAmIGfDs2kiLAogICAgcHJvZmlsZV9zb3VyY2U6ICJkZWZhdWx0IiwKICAgIHByb21wdF92ZXJzaW9uOiAiZHJhZnQtdjEiLAogICAgc2VudGltZW50OiBudWxsLAogIH0pOwogIGFzc2VydEVxdWFscyhpbnNlcnRlZFswXS5raW5kLCAiZHJhZnQiKTsKICBhc3NlcnRFcXVhbHMoaW5zZXJ0ZWRbMF0ucHJvbXB0X3ZlcnNpb24sICJkcmFmdC12MSIpOwogIGFzc2VydEVxdWFscyhpbnNlcnRlZFswXS5oZWxwZGVza19tYXRjaGVzLCAxKTsKICBhc3NlcnRFcXVhbHMoaW5zZXJ0ZWRbMF0ucHJvZmlsZV91c2VkLCAiZGVmYXVsdCIpOwogIGFzc2VydEVxdWFscyhpbnNlcnRlZFswXS5pbnB1dF9mcC5sZW5ndGgsIDY0KTsKfSk7CgpEZW5vLnRlc3QoImRyYWZ0IHByb21wdCBjYXJyaWVzIHRoZSBhZ2VudCdzIGxhc3QgbWVzc2FnZXMgc28gdGhlIHJlcGx5IGNvbnRpbnVlcyB0aGVpciBmbG93IiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZGVwcywgY2FsbHMgfSA9IHNldHVwKCk7CiAgYXdhaXQgaGFuZGxlKFJFUSwgVE9LRU4sIGRlcHMpOwogIGNvbnN0IHAgPSBjYWxscy5maW5kKChjKSA9PiBjLnRhc2sgPT09ICJkcmFmdCIpIS5wcm9tcHQ7CiAgYXNzZXJ0RXF1YWxzKHAuaW5jbHVkZXMoIkFnZW50IChMYW4pOiBiIiksIHRydWUpOwogIGFzc2VydEVxdWFscyhwLmluY2x1ZGVzKCJEbyBub3QgZ3JlZXQgYWdhaW4iKSwgdHJ1ZSk7Cn0pOwoKRGVuby50ZXN0KCJkcmFmdCBwcm9tcHQga2VlcHMgdGhlIGJvdCdzIGN1c3RvbWVyLWZhY2luZyBhbnN3ZXIgZm9yIGEgaHVtYW4gdGFrZW92ZXIiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBkZXBzLCBjYWxscyB9ID0gc2V0dXAoKTsKICBkZXBzLmRiLmdldE1lc3NhZ2VzID0gKCkgPT4gUHJvbWlzZS5yZXNvbHZlKFsKICAgIG1zZygidXNlciIsICJEbyB5b3Uga2VlcCBiYWNrdXBzPyIsIDEpLAogICAgbXNnKCJvcGVyYXRvciIsICJTdWNjZXNzZnVsIHRyYW5zbGF0aW9ucyBhcmUgc2F2ZWQgaW4gVHJhbnNsYXRpb24gSGlzdG9yeS4iLCAyLCB7IGlzX2JvdDogdHJ1ZSwgb3BlcmF0b3JfbmFtZTogIk1hcnkiIH0pLAogIF0pOwogIGF3YWl0IGhhbmRsZShSRVEsIFRPS0VOLCBkZXBzKTsKICBjb25zdCBwID0gY2FsbHMuZmluZCgoYykgPT4gYy50YXNrID09PSAiZHJhZnQiKSEucHJvbXB0OwogIGFzc2VydEVxdWFscyhwLmluY2x1ZGVzKCJCb3QgKE1hcnkpOiBTdWNjZXNzZnVsIHRyYW5zbGF0aW9ucyBhcmUgc2F2ZWQgaW4gVHJhbnNsYXRpb24gSGlzdG9yeS4iKSwgdHJ1ZSk7Cn0pOwoKRGVuby50ZXN0KCJnZW5lcmF0ZSB1c2VzIGNvbnRlbnRfZW4gaW4gcHJvbXB0IiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGYgPSBmYWtlQWkoewogICAgdHJhbnNsYXRlOiBKU09OLnN0cmluZ2lmeSh7IGl0ZW1zOiBbeyBpOiAwLCBlbjogIk15IGN1cnJlbmN5IGRvZXMgbm90IGNoYW5nZSIgfV0gfSksCiAgICBkcmFmdDogIm9rIiwKICAgIHZlcmlmeTogJ3sid2FybmluZ3MiOltdfScsCiAgfSk7CiAgY29uc3QgbSA9IG1ha2VEZXBzKHsgYWk6IGYuYWksIG1lc3NhZ2VzOiBbbXNnKCJ1c2VyIiwgIk1hIGRldmlzZSBuZSBjaGFuZ2UgcGFzIGR1IHRvdXQiLCAxKV0sIGRiOiB7IG1hdGNoSGVscGRlc2s6ICgpID0+IFByb21pc2UucmVzb2x2ZShbSERdKSB9IH0pOwogIGF3YWl0IGhhbmRsZShSRVEsIFRPS0VOLCBtLmRlcHMpOwogIGNvbnN0IGRyYWZ0ID0gZi5jYWxscy5maW5kKChjKSA9PiBjLnRhc2sgPT09ICJkcmFmdCIpIS5wcm9tcHQ7CiAgYXNzZXJ0RXF1YWxzKGRyYWZ0LmluY2x1ZGVzKCJNeSBjdXJyZW5jeSBkb2VzIG5vdCBjaGFuZ2UiKSwgdHJ1ZSk7CiAgYXNzZXJ0RXF1YWxzKGRyYWZ0LmluY2x1ZGVzKCJNYSBkZXZpc2UiKSwgZmFsc2UpOwogIGFzc2VydEVxdWFscyhmLmNhbGxzLmZpbmQoKGMpID0+IGMudGFzayA9PT0gImVtYmVkIikhLnByb21wdCwgIk15IGN1cnJlbmN5IGRvZXMgbm90IGNoYW5nZSIpOwp9KTsKCkRlbm8udGVzdCgiZ2VuZXJhdGUgY2xhc3NpZmllcyBtaXNzaW5nIHRvcGljIGFuZCBzYXZlcyBpdCIsIGFzeW5jICgpID0+IHsKICBjb25zdCBmID0gZmFrZUFpKHsgY2xhc3NpZnk6ICd7InRvcGljIjoidHJhbnNsYXRpb24ifScsIGRyYWZ0OiAib2siLCB2ZXJpZnk6ICd7Indhcm5pbmdzIjpbXX0nIH0pOwogIGNvbnN0IHsgZGVwcywgdG9waWNzIH0gPSBzZXR1cCh7IGFpOiBmLCB0b3BpYzogbnVsbCB9KTsKICBjb25zdCBib2R5ID0gKGF3YWl0IGhhbmRsZShSRVEsIFRPS0VOLCBkZXBzKSkuYm9keSBhcyB7IHRvcGljOiBzdHJpbmcgfTsKICBhc3NlcnRFcXVhbHMoYm9keS50b3BpYywgInRyYW5zbGF0aW9uIik7CiAgYXNzZXJ0RXF1YWxzKHRvcGljcywgW1sid3MxIiwgInNlc3Npb25fMSIsICJ0cmFuc2xhdGlvbiJdXSk7Cn0pOwoKRGVuby50ZXN0KCJnZW5lcmF0ZSBjb250aW51ZXMgd2l0aG91dCB0b3BpYyB3aGVuIGNsYXNzaWZ5IGZhaWxzIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGYgPSBmYWtlQWkoeyBjbGFzc2lmeTogbmV3IEFpVW5hdmFpbGFibGUoKSwgZHJhZnQ6ICJvayIsIHZlcmlmeTogJ3sid2FybmluZ3MiOltdfScgfSk7CiAgY29uc3QgeyBkZXBzLCB0b3BpY3MgfSA9IHNldHVwKHsgYWk6IGYsIHRvcGljOiBudWxsIH0pOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcyk7CiAgYXNzZXJ0RXF1YWxzKHIuc3RhdHVzLCAyMDApOwogIGFzc2VydEVxdWFscygoci5ib2R5IGFzIHsgdG9waWM6IHN0cmluZyB8IG51bGwgfSkudG9waWMsIG51bGwpOwogIGFzc2VydEVxdWFscyh0b3BpY3MsIFtdKTsKfSk7CgpEZW5vLnRlc3QoImdlbmVyYXRlIHNraXBzIHZlcmlmeSB3aGVuIG5vIGhlbHBkZXNrIGNodW5rIHBhc3NlcyB0aHJlc2hvbGQiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBkZXBzLCBjYWxscyB9ID0gc2V0dXAoeyBoZWxwZGVzazogW3sgLi4uSEQsIHNpbWlsYXJpdHk6IDAuMyB9XSB9KTsKICBjb25zdCBib2R5ID0gKGF3YWl0IGhhbmRsZShSRVEsIFRPS0VOLCBkZXBzKSkuYm9keSBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKICBhc3NlcnRFcXVhbHMoY2FsbHMuc29tZSgoYykgPT4gYy50YXNrID09PSAidmVyaWZ5IiksIGZhbHNlKTsKICBhc3NlcnRFcXVhbHMoY2FsbHMuZmluZCgoYykgPT4gYy50YXNrID09PSAiZHJhZnQiKSEucHJvbXB0LmluY2x1ZGVzKCJbSDFdIiksIGZhbHNlKTsKICBhc3NlcnRFcXVhbHMoW2JvZHkuaGVscGRlc2tfbWF0Y2hlcywgYm9keS52ZXJpZmllZCwgYm9keS53YXJuaW5nc10sIFswLCB0cnVlLCBbXV0pOwp9KTsKCkRlbm8udGVzdCgidmVyaWZ5IHBhcnNlIGZhaWx1cmUgcmV0dXJucyBkcmFmdCB1bnZlcmlmaWVkIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZGVwcyB9ID0gc2V0dXAoeyBhaTogZmFrZUFpKHsgZHJhZnQ6ICJIZWxsbyIsIHZlcmlmeTogIm5vcGUiIH0pIH0pOwogIGNvbnN0IGJvZHkgPSAoYXdhaXQgaGFuZGxlKFJFUSwgVE9LRU4sIGRlcHMpKS5ib2R5IGFzIFJlY29yZDxzdHJpbmcsIHVua25vd24+OwogIGFzc2VydEVxdWFscyhbYm9keS5kcmFmdCwgYm9keS52ZXJpZmllZCwgYm9keS53YXJuaW5nc10sIFsiSGVsbG8iLCBmYWxzZSwgW11dKTsKfSk7CgpEZW5vLnRlc3QoInNlY29uZCBnZW5lcmF0ZSB3aXRoIHNhbWUgaW5wdXQgcmV0dXJucyBjYWNoZWQgb3V0cHV0IiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGNhY2hlZDogT3V0cHV0Um93ID0gewogICAgaWQ6IDksIGtpbmQ6ICJkcmFmdCIsIGNvbnRlbnQ6ICJjYWNoZWQgZHJhZnQiLCB3YXJuaW5nczogW10sIHZlcmlmaWVkOiB0cnVlLCBoZWxwZGVza19tYXRjaGVzOiAyLAogICAgdG9waWM6ICJiaWxsaW5nIiwgcHJvbXB0X3ZlcnNpb246ICJkcmFmdC12MSIsIHBvc3RlZDogbnVsbCwgY3JlYXRlZF9hdDogIjIwMjYtMTAtMTVUMDM6MDU6MDArMDA6MDAiLAogIH07CiAgY29uc3QgeyBkZXBzLCBjYWxscyB9ID0gc2V0dXAoeyBjYWNoZWQgfSk7CiAgY29uc3QgYm9keSA9IChhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcykpLmJvZHkgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj47CiAgYXNzZXJ0RXF1YWxzKFtib2R5LmNhY2hlZCwgYm9keS5vdXRwdXRfaWQsIGJvZHkuZHJhZnQsIGJvZHkuaGVscGRlc2tfbWF0Y2hlc10sIFt0cnVlLCA5LCAiY2FjaGVkIGRyYWZ0IiwgMl0pOwogIGFzc2VydEVxdWFscyhjYWxscy5maWx0ZXIoKGMpID0+IGMudGFzayA9PT0gImRyYWZ0IikubGVuZ3RoLCAwKTsKfSk7CgpEZW5vLnRlc3QoImZvcmNlIGJ5cGFzc2VzIGNhY2hlIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGNhY2hlZDogT3V0cHV0Um93ID0gewogICAgaWQ6IDksIGtpbmQ6ICJkcmFmdCIsIGNvbnRlbnQ6ICJjYWNoZWQiLCB3YXJuaW5nczogW10sIHZlcmlmaWVkOiB0cnVlLCBoZWxwZGVza19tYXRjaGVzOiAwLAogICAgdG9waWM6IG51bGwsIHByb21wdF92ZXJzaW9uOiAiZHJhZnQtdjEiLCBwb3N0ZWQ6IG51bGwsIGNyZWF0ZWRfYXQ6ICIyMDI2LTEwLTE1VDAzOjA1OjAwKzAwOjAwIiwKICB9OwogIGNvbnN0IHsgZGVwcyB9ID0gc2V0dXAoeyBjYWNoZWQgfSk7CiAgY29uc3QgYm9keSA9IChhd2FpdCBoYW5kbGUoeyAuLi5SRVEsIGZvcmNlOiB0cnVlIH0sIFRPS0VOLCBkZXBzKSkuYm9keSBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKICBhc3NlcnRFcXVhbHMoYm9keS5jYWNoZWQsIGZhbHNlKTsKfSk7CgpEZW5vLnRlc3QoIkFJIHVuYXZhaWxhYmxlIG9uIGRyYWZ0IHJldHVybnMgNTAzIEFJX1VOQVZBSUxBQkxFIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZGVwcywgaW5zZXJ0ZWQgfSA9IHNldHVwKHsgYWk6IGZha2VBaSh7IGRyYWZ0OiBuZXcgQWlVbmF2YWlsYWJsZSgpIH0pIH0pOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcyk7CiAgYXNzZXJ0RXF1YWxzKHIuc3RhdHVzLCA1MDMpOwogIGFzc2VydEVxdWFscygoci5ib2R5IGFzIHsgY29kZTogc3RyaW5nIH0pLmNvZGUsICJBSV9VTkFWQUlMQUJMRSIpOwogIGFzc2VydEVxdWFscyhpbnNlcnRlZCwgW10pOwp9KTsKCkRlbm8udGVzdCgiZ2VuZXJhdGUgc3RpbGwgd29ya3Mgd2hlbiBlbWJlZCBmYWlscyIsIGFzeW5jICgpID0+IHsKICBjb25zdCBmID0gZmFrZUFpKHsgZHJhZnQ6ICJvayIgfSwgbmV3IEVycm9yKCJlbWJlZCBkb3duIikpOwogIGNvbnN0IHsgZGVwcyB9ID0gc2V0dXAoeyBhaTogZiB9KTsKICBjb25zdCBib2R5ID0gKGF3YWl0IGhhbmRsZShSRVEsIFRPS0VOLCBkZXBzKSkuYm9keSBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKICBhc3NlcnRFcXVhbHMoW2JvZHkuZHJhZnQsIGJvZHkuaGVscGRlc2tfbWF0Y2hlcywgYm9keS52ZXJpZmllZF0sIFsib2siLCAwLCBmYWxzZV0pOwp9KTsKCkRlbm8udGVzdCgiY2hlY2sgcmV0dXJucyBsYXRlc3RfZHJhZnQiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgbGF0ZXN0OiBPdXRwdXRSb3cgPSB7CiAgICBpZDogNSwga2luZDogImRyYWZ0IiwgY29udGVudDogImxhc3QgZHJhZnQiLCB3YXJuaW5nczogW10sIHZlcmlmaWVkOiBmYWxzZSwgaGVscGRlc2tfbWF0Y2hlczogMCwKICAgIHRvcGljOiBudWxsLCBwcm9tcHRfdmVyc2lvbjogImRyYWZ0LXYxIiwgcG9zdGVkOiBudWxsLCBjcmVhdGVkX2F0OiAiMjAyNi0xMC0xNVQwMzowNjowMCswMDowMCIsCiAgfTsKICBjb25zdCBtID0gbWFrZURlcHMoeyBkYjogeyBnZXRMYXRlc3REcmFmdDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKGxhdGVzdCkgfSB9KTsKICBjb25zdCBib2R5ID0gKGF3YWl0IGhhbmRsZSh7IC4uLlJFUSwgYWN0aW9uOiAiY2hlY2siIH0sIFRPS0VOLCBtLmRlcHMpKS5ib2R5IGFzIHsgbGF0ZXN0X2RyYWZ0OiB1bmtub3duIH07CiAgYXNzZXJ0RXF1YWxzKGJvZHkubGF0ZXN0X2RyYWZ0LCB7IG91dHB1dF9pZDogNSwgY29udGVudDogImxhc3QgZHJhZnQiLCB3YXJuaW5nczogW10sIHZlcmlmaWVkOiBmYWxzZSwgaGVscGRlc2tfbWF0Y2hlczogMCwgY3JlYXRlZF9hdDogbGF0ZXN0LmNyZWF0ZWRfYXQgfSk7Cn0pOwoKRGVuby50ZXN0KCJvZmYtdG9waWMgaGVscGRlc2sgY2h1bmtzIGFyb3VuZCAwLjUy4oCTMC42IHNpbWlsYXJpdHkgYXJlIG5vdCB1c2VkIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZGVwcywgY2FsbHMgfSA9IHNldHVwKHsgaGVscGRlc2s6IFt7IC4uLkhELCBzaW1pbGFyaXR5OiAwLjYgfV0gfSk7CiAgY29uc3QgYm9keSA9IChhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcykpLmJvZHkgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj47CiAgYXNzZXJ0RXF1YWxzKGJvZHkuaGVscGRlc2tfbWF0Y2hlcywgMCk7CiAgYXNzZXJ0RXF1YWxzKGNhbGxzLnNvbWUoKGMpID0+IGMudGFzayA9PT0gInZlcmlmeSIpLCBmYWxzZSk7Cn0pOwoKRGVuby50ZXN0KCJlbXB0eSBBSSBkcmFmdCBpcyBub3Qgc2F2ZWQgb3IgY2FjaGVkIGFuZCByZXR1cm5zIEFJX0JBRF9PVVRQVVQiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBkZXBzLCBpbnNlcnRlZCB9ID0gc2V0dXAoeyBhaTogZmFrZUFpKHsgZHJhZnQ6ICIgICAiIH0pIH0pOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgZGVwcyk7CiAgYXNzZXJ0RXF1YWxzKHIuc3RhdHVzLCA1MDMpOwogIGFzc2VydEVxdWFscyhyLmJvZHksIHsgZXJyb3I6ICJBSSB0cuG6oyBr4bq/dCBxdeG6oyBraMO0bmcgZMO5bmcgxJHGsOG7o2MsIGLhuqVtIGzhuqFpIHRo4butIiwgY29kZTogIkFJX0JBRF9PVVRQVVQiIH0pOwogIGFzc2VydEVxdWFscyhpbnNlcnRlZCwgW10pOwp9KTsKCkRlbm8udGVzdCgiY2hlY2sgaGlkZXMgYSBsYXRlc3QgZHJhZnQgd3JpdHRlbiBiZWZvcmUgdGhlIG5ld2VzdCBjdXN0b21lciBtZXNzYWdlIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IG9sZDogT3V0cHV0Um93ID0gewogICAgaWQ6IDUsIGtpbmQ6ICJkcmFmdCIsIGNvbnRlbnQ6ICJvbGQgdHVybiIsIHdhcm5pbmdzOiBbXSwgdmVyaWZpZWQ6IHRydWUsIGhlbHBkZXNrX21hdGNoZXM6IDEsCiAgICB0b3BpYzogbnVsbCwgcHJvbXB0X3ZlcnNpb246ICJkcmFmdC12MSIsIHBvc3RlZDogbnVsbCwgY3JlYXRlZF9hdDogIjIwMjYtMTAtMTVUMDM6MDI6MzArMDA6MDAiLCAvLyB0csaw4bubYyBsYXN0X2N1c3RvbWVyX2F0IDAzOjAzCiAgfTsKICBjb25zdCBtID0gbWFrZURlcHMoeyBkYjogeyBnZXRMYXRlc3REcmFmdDogKCkgPT4gUHJvbWlzZS5yZXNvbHZlKG9sZCkgfSB9KTsKICBjb25zdCBib2R5ID0gKGF3YWl0IGhhbmRsZSh7IC4uLlJFUSwgYWN0aW9uOiAiY2hlY2siIH0sIFRPS0VOLCBtLmRlcHMpKS5ib2R5IGFzIHsgbGF0ZXN0X2RyYWZ0OiB1bmtub3duIH07CiAgYXNzZXJ0RXF1YWxzKGJvZHkubGF0ZXN0X2RyYWZ0LCBudWxsKTsKfSk7Cgpjb25zdCBKSVJBX1JPV1MgPSBbewogIGxpbms6IHsKICAgIHdlYnNpdGVfaWQ6ICJ3czEiLCBzZXNzaW9uX2lkOiAic2Vzc2lvbl8xIiwgaXNzdWVfa2V5OiAiVE5ULTkxODQiLCB1cmw6ICJodHRwczovL2ZpcmVncm91cC5hdGxhc3NpYW4ubmV0L2Jyb3dzZS9UTlQtOTE4NCIsCiAgICBzaWxlbnRfYmFzZWxpbmU6IGZhbHNlLCBsYXN0X3NlZW5fc3RhdHVzOiAiUGVuZGluZyBEZXYiLCBsYXN0X3NlZW5fY29tbWVudF9hdDogbnVsbCwKICB9LAogIGlzc3VlOiB7CiAgICBpc3N1ZV9rZXk6ICJUTlQtOTE4NCIsIHN1bW1hcnk6ICJTd2l0Y2hlciBtaXNzaW5nIiwgc3RhdHVzOiAiUGVuZGluZyBEZXYiLCBzdGF0dXNfY2F0ZWdvcnk6ICJpbmRldGVybWluYXRlIiwgYXNzaWduZWU6IG51bGwsCiAgICB1cGRhdGVkX2F0OiBudWxsLCBzdGF0dXNfY2hhbmdlZF9hdDogbnVsbCwKICAgIGNvbW1lbnRzOiBbeyBpZDogIjIiLCBhdXRob3I6ICJEZXYgTWluaCIsIHJvbGU6ICJ0ZWNoIiBhcyBjb25zdCwgYm9keV90ZXh0OiAiRml4ZWQsIGRlcGxveWluZyB0b21vcnJvdyIsIGNyZWF0ZWRfYXQ6ICIyMDI2LTEwLTE1VDAzOjEwOjAwLjAwMFoiIH1dLAogIH0sCn1dOwoKRGVuby50ZXN0KCJjaGVjayBsaXN0cyBsaW5rZWQgSmlyYSB0aWNrZXRzIHdpdGggYSBORVcgZmxhZyBmb3IgdGVjaCBuZXdzIGFmdGVyIHRoZSBsYXN0IGFnZW50IHJlcGx5IiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IG0gPSBtYWtlRGVwcyh7IGRiOiB7IGdldEppcmFSb3dzOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoSklSQV9ST1dTKSB9IH0pOwogIGNvbnN0IGJvZHkgPSAoYXdhaXQgaGFuZGxlKHsgLi4uUkVRLCBhY3Rpb246ICJjaGVjayIgfSwgVE9LRU4sIG0uZGVwcykpLmJvZHkgYXMgeyBqaXJhOiB7IGlzc3VlX2tleTogc3RyaW5nOyBpc19uZXc6IGJvb2xlYW4gfVtdIH07CiAgYXNzZXJ0RXF1YWxzKGJvZHkuamlyYS5tYXAoKGopID0+IFtqLmlzc3VlX2tleSwgai5pc19uZXddKSwgW1siVE5ULTkxODQiLCB0cnVlXV0pOwp9KTsKCkRlbm8udGVzdCgiZHJhZnQgcHJvbXB0IGNhcnJpZXMgSmlyYSBjb250ZXh0IHNvIHRoZSByZXBseSBjYW4gcmVsYXkgdGVjaCB1cGRhdGVzIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IGYgPSBmYWtlQWkoeyBkcmFmdDogIm9rIiwgdmVyaWZ5OiAneyJ3YXJuaW5ncyI6W119JyB9KTsKICBjb25zdCBtID0gbWFrZURlcHMoeyBhaTogZi5haSwgZGI6IHsgZ2V0SmlyYVJvd3M6ICgpID0+IFByb21pc2UucmVzb2x2ZShKSVJBX1JPV1MpLCBtYXRjaEhlbHBkZXNrOiAoKSA9PiBQcm9taXNlLnJlc29sdmUoW0hEXSkgfSB9KTsKICBhd2FpdCBoYW5kbGUoUkVRLCBUT0tFTiwgbS5kZXBzKTsKICBjb25zdCBwID0gZi5jYWxscy5maW5kKChjKSA9PiBjLnRhc2sgPT09ICJkcmFmdCIpIS5wcm9tcHQ7CiAgYXNzZXJ0RXF1YWxzKHAuaW5jbHVkZXMoIlROVC05MTg0IChQZW5kaW5nIERldik6IFN3aXRjaGVyIG1pc3NpbmciKSwgdHJ1ZSk7CiAgYXNzZXJ0RXF1YWxzKHAuaW5jbHVkZXMoIlt0ZWNoXSBEZXYgTWluaDogRml4ZWQsIGRlcGxveWluZyB0b21vcnJvdyIpLCB0cnVlKTsKICBhc3NlcnRFcXVhbHMocC5pbmNsdWRlcygibmV2ZXIgcGFzdGUgdGlja2V0IGxpbmtzIiksIHRydWUpOwp9KTsK
+import { assertEquals } from "jsr:@std/assert@1";
+import { handle } from "../copilot/handler.ts";
+import { AiUnavailable } from "../_shared/gemini.ts";
+import type { HelpdeskChunk, OutputRow } from "../_shared/types.ts";
+import { CONV, fakeAi, makeDeps, msg, TOKEN } from "./fakes.ts";
+
+const REQ = { website_id: "ws1", session_id: "session_1", action: "generate" };
+const HD: HelpdeskChunk = { title: "Currency", url: "https://help.transcy.io/en/article/currency", text: "Enable auto currency.", similarity: 0.8 };
+const WARN = JSON.stringify({ warnings: [{ claim: "Currency is automatic.", reason: "Bài viết nói phải bật", article_url: HD.url }] });
+
+function setup(o: { helpdesk?: HelpdeskChunk[]; ai?: ReturnType<typeof fakeAi>; cached?: OutputRow | null; topic?: string | null } = {}) {
+  const f = o.ai ?? fakeAi({ draft: "Currency is automatic.", verify: WARN });
+  const topics: [string, string, string][] = [];
+  const m = makeDeps({
+    ai: f.ai,
+    cached: o.cached,
+    db: {
+      getConversation: () => Promise.resolve({ ...CONV, topic: o.topic === undefined ? CONV.topic : o.topic }),
+      matchHelpdesk: () => Promise.resolve(o.helpdesk ?? [HD]),
+      setAiTopic: (w, s, t) => (topics.push([w, s, t]), Promise.resolve()),
+    },
+  });
+  return { ...m, calls: f.calls, topics };
+}
+
+Deno.test("generate returns draft, warnings and stores output", async () => {
+  const { deps, inserted } = setup();
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(r.body, {
+    action: "generate",
+    stale: false,
+    cached: false,
+    output_id: 42,
+    draft: "Currency is automatic.",
+    warnings: [{ claim: "Currency is automatic.", reason: "Bài viết nói phải bật", article_url: HD.url }],
+    verified: true,
+    helpdesk_matches: 1,
+    topic: "billing",
+    topic_label: "Thanh toán & gói",
+    profile_source: "default",
+    prompt_version: "draft-v1",
+    sentiment: null,
+  });
+  assertEquals(inserted[0].kind, "draft");
+  assertEquals(inserted[0].prompt_version, "draft-v1");
+  assertEquals(inserted[0].helpdesk_matches, 1);
+  assertEquals(inserted[0].profile_used, "default");
+  assertEquals(inserted[0].input_fp.length, 64);
+});
+
+Deno.test("draft prompt carries the agent's last messages so the reply continues their flow", async () => {
+  const { deps, calls } = setup();
+  await handle(REQ, TOKEN, deps);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("Agent (Lan): b"), true);
+  assertEquals(p.includes("Do not greet again"), true);
+});
+
+Deno.test("draft prompt keeps the bot's customer-facing answer for a human takeover", async () => {
+  const { deps, calls } = setup();
+  deps.db.getMessages = () => Promise.resolve([
+    msg("user", "Do you keep backups?", 1),
+    msg("operator", "Successful translations are saved in Translation History.", 2, { is_bot: true, operator_name: "Mary" }),
+  ]);
+  await handle(REQ, TOKEN, deps);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("Bot (Mary): Successful translations are saved in Translation History."), true);
+});
+
+Deno.test("generate uses content_en in prompt", async () => {
+  const f = fakeAi({
+    translate: JSON.stringify({ items: [{ i: 0, en: "My currency does not change" }] }),
+    draft: "ok",
+    verify: '{"warnings":[]}',
+  });
+  const m = makeDeps({ ai: f.ai, messages: [msg("user", "Ma devise ne change pas du tout", 1)], db: { matchHelpdesk: () => Promise.resolve([HD]) } });
+  await handle(REQ, TOKEN, m.deps);
+  const draft = f.calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(draft.includes("My currency does not change"), true);
+  assertEquals(draft.includes("Ma devise"), false);
+  assertEquals(f.calls.find((c) => c.task === "embed")!.prompt, "My currency does not change");
+});
+
+Deno.test("generate classifies missing topic and saves it", async () => {
+  const f = fakeAi({ classify: '{"topic":"translation"}', draft: "ok", verify: '{"warnings":[]}' });
+  const { deps, topics } = setup({ ai: f, topic: null });
+  const body = (await handle(REQ, TOKEN, deps)).body as { topic: string };
+  assertEquals(body.topic, "translation");
+  assertEquals(topics, [["ws1", "session_1", "translation"]]);
+});
+
+Deno.test("generate continues without topic when classify fails", async () => {
+  const f = fakeAi({ classify: new AiUnavailable(), draft: "ok", verify: '{"warnings":[]}' });
+  const { deps, topics } = setup({ ai: f, topic: null });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { topic: string | null }).topic, null);
+  assertEquals(topics, []);
+});
+
+Deno.test("generate skips verify when no helpdesk chunk passes threshold", async () => {
+  const { deps, calls } = setup({ helpdesk: [{ ...HD, similarity: 0.3 }] });
+  const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals(calls.some((c) => c.task === "verify"), false);
+  assertEquals(calls.find((c) => c.task === "draft")!.prompt.includes("[H1]"), false);
+  assertEquals([body.helpdesk_matches, body.verified, body.warnings], [0, true, []]);
+});
+
+Deno.test("verify parse failure returns draft unverified", async () => {
+  const { deps } = setup({ ai: fakeAi({ draft: "Hello", verify: "nope" }) });
+  const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals([body.draft, body.verified, body.warnings], ["Hello", false, []]);
+});
+
+Deno.test("second generate with same input returns cached output", async () => {
+  const cached: OutputRow = {
+    id: 9, kind: "draft", content: "cached draft", warnings: [], verified: true, helpdesk_matches: 2,
+    topic: "billing", prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:05:00+00:00",
+  };
+  const { deps, calls } = setup({ cached });
+  const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals([body.cached, body.output_id, body.draft, body.helpdesk_matches], [true, 9, "cached draft", 2]);
+  assertEquals(calls.filter((c) => c.task === "draft").length, 0);
+});
+
+Deno.test("force bypasses cache", async () => {
+  const cached: OutputRow = {
+    id: 9, kind: "draft", content: "cached", warnings: [], verified: true, helpdesk_matches: 0,
+    topic: null, prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:05:00+00:00",
+  };
+  const { deps } = setup({ cached });
+  const body = (await handle({ ...REQ, force: true }, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals(body.cached, false);
+});
+
+Deno.test("AI unavailable on draft returns 503 AI_UNAVAILABLE", async () => {
+  const { deps, inserted } = setup({ ai: fakeAi({ draft: new AiUnavailable() }) });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 503);
+  assertEquals((r.body as { code: string }).code, "AI_UNAVAILABLE");
+  assertEquals(inserted, []);
+});
+
+Deno.test("generate still works when embed fails", async () => {
+  const f = fakeAi({ draft: "ok" }, new Error("embed down"));
+  const { deps } = setup({ ai: f });
+  const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals([body.draft, body.helpdesk_matches, body.verified], ["ok", 0, false]);
+});
+
+Deno.test("check returns latest_draft", async () => {
+  const latest: OutputRow = {
+    id: 5, kind: "draft", content: "last draft", warnings: [], verified: false, helpdesk_matches: 0,
+    topic: null, prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:06:00+00:00",
+  };
+  const m = makeDeps({ db: { getLatestDraft: () => Promise.resolve(latest) } });
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };
+  assertEquals(body.latest_draft, { output_id: 5, content: "last draft", warnings: [], verified: false, helpdesk_matches: 0, created_at: latest.created_at });
+});
+
+Deno.test("off-topic helpdesk chunks around 0.52–0.6 similarity are not used", async () => {
+  const { deps, calls } = setup({ helpdesk: [{ ...HD, similarity: 0.6 }] });
+  const body = (await handle(REQ, TOKEN, deps)).body as Record<string, unknown>;
+  assertEquals(body.helpdesk_matches, 0);
+  assertEquals(calls.some((c) => c.task === "verify"), false);
+});
+
+Deno.test("empty AI draft is not saved or cached and returns AI_BAD_OUTPUT", async () => {
+  const { deps, inserted } = setup({ ai: fakeAi({ draft: "   " }) });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 503);
+  assertEquals(r.body, { error: "AI trả kết quả không dùng được, bấm lại thử", code: "AI_BAD_OUTPUT" });
+  assertEquals(inserted, []);
+});
+
+Deno.test("check hides a latest draft written before the newest customer message", async () => {
+  const old: OutputRow = {
+    id: 5, kind: "draft", content: "old turn", warnings: [], verified: true, helpdesk_matches: 1,
+    topic: null, prompt_version: "draft-v1", posted: null, created_at: "2026-10-15T03:02:30+00:00", // trước last_customer_at 03:03
+  };
+  const m = makeDeps({ db: { getLatestDraft: () => Promise.resolve(old) } });
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { latest_draft: unknown };
+  assertEquals(body.latest_draft, null);
+});
+
+const JIRA_ROWS = [{
+  link: {
+    website_id: "ws1", session_id: "session_1", issue_key: "TNT-9184", url: "https://firegroup.atlassian.net/browse/TNT-9184",
+    silent_baseline: false, last_seen_status: "Pending Dev", last_seen_comment_at: null,
+  },
+  issue: {
+    issue_key: "TNT-9184", summary: "Switcher missing", status: "Pending Dev", status_category: "indeterminate", assignee: null,
+    updated_at: null, status_changed_at: null,
+    comments: [{ id: "2", author: "Dev Minh", role: "tech" as const, body_text: "Fixed, deploying tomorrow", created_at: "2026-10-15T03:10:00.000Z" }],
+  },
+}];
+
+Deno.test("check lists linked Jira tickets with a NEW flag for tech news after the last agent reply", async () => {
+  const m = makeDeps({ db: { getJiraRows: () => Promise.resolve(JIRA_ROWS) } });
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { jira: { issue_key: string; is_new: boolean }[] };
+  assertEquals(body.jira.map((j) => [j.issue_key, j.is_new]), [["TNT-9184", true]]);
+});
+
+Deno.test("draft prompt carries Jira context so the reply can relay tech updates", async () => {
+  const f = fakeAi({ draft: "ok", verify: '{"warnings":[]}' });
+  const m = makeDeps({ ai: f.ai, db: { getJiraRows: () => Promise.resolve(JIRA_ROWS), matchHelpdesk: () => Promise.resolve([HD]) } });
+  await handle(REQ, TOKEN, m.deps);
+  const p = f.calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("TNT-9184 (Pending Dev): Switcher missing"), true);
+  assertEquals(p.includes("[tech] Dev Minh: Fixed, deploying tomorrow"), true);
+  assertEquals(p.includes("never paste ticket links"), true);
+});
