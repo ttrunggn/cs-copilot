@@ -1,1 +1,19 @@
-Ly8gVHLhuqFuZyB0aMOhaSBkw7luZyBjaHVuZyBj4bunYSB3aWRnZXQuIFRyxrDhu5tjIMSRw6J5IGzDoCBjw6FjIGJp4bq/biBgbGV0YCBy4budaSDhu58gxJHhuqd1IGFwcC5qczsKLy8gZ29tIHbDoG8gbeG7mXQgb2JqZWN0IMSR4buDIGV4dGVuc2lvbi1jbGllbnQuanMgdsOgIHBhbmVscy5qcyBjw7luZyDEkeG7jWMvZ2hpIMSRxrDhu6NjCi8vIG3DoCBraMO0bmcgY+G6p24gaW1wb3J0IHbDsm5nIHbhu4EgYXBwLmpzLgpleHBvcnQgY29uc3Qgc3RhdGUgPSB7CiAgb3BlcmF0b3JJZDogIiIsCiAgY2hlY2s6IG51bGwsIC8vIGvhur90IHF14bqjIGNoZWNrIGfhuqduIG5o4bqldAogIGRyYWZ0OiBudWxsLCAvLyB7IG91dHB1dF9pZCwgc2Vzc2lvbl9pZCwgdm0gfSDigJQgZ+G6r24gduG7m2kgY2hhdCDEkcOjIHNv4bqhbgogIHNob3duU2Vzc2lvbjogIiIsIC8vIGNoYXQgxJFhbmcgaGnhu4NuIHRo4buLOyDEkeG7lWkgY2hhdCB0aMOsIHhvw6EgZHJhZnQvaGFuZG9mZiBjxakKICBoYW5kb2ZmOiBudWxsLCAvLyB7IG5vdGUsIHBvc3RlZCwgY2FjaGVkIH0KICBub3RpY2U6ICIiLCAvLyBkw7JuZyB0cuG6oW5nIHRow6FpIGTGsOG7m2kgZHJhZnQvaGFuZG9mZgogIGNob2ljZTogZmFsc2UsIC8vIMSRYW5nIGjhu49pIFRoYXkgdGjhur8gLyBDaMOobiBjdeG7kWkgLyBIdeG7twogIGRyYWZ0UGxhY2VtZW50OiAiIiwgLy8gaW5zZXJ0ZWQgfCBjb3BpZWQKICBrbm93bGVkZ2VPcGVuOiBmYWxzZSwgLy8gVUkgc2NhZmZvbGQ6IHPhur0gbuG7kWkgRkFRIHNlYXJjaCBzYXUKICBzZW50aW1lbnQ6IG51bGwsIC8vIHBow6JuIHTDrWNoIHTDom0gdHLhuqFuZyBt4bubaSBuaOG6pXQgKGNoZWNrL2FuYWx5emUvZ2VuZXJhdGUgdHLhuqMgduG7gSkKICBjc2F0OiBudWxsLCAvLyB7IHNlbnQsIHNlbnRfYXQgfSDigJQgdHLhuqFuZyB0aMOhaSBzdXJ2ZXkgY+G7p2EgY29udmVyc2F0aW9uIMSRYW5nIG3hu58KICBidXN5OiAiIiwKICBicmlkZ2U6ICJjaGVja2luZyIsIC8vIGNoZWNraW5nIHwgbWlzc2luZyB8IG91dGRhdGVkIHwgcmVhZHkKICBicmlkZ2VQcm9iZTogbnVsbCwKfTsK
+// Trạng thái dùng chung của widget. Trước đây là các biến `let` rời ở đầu app.js;
+// gom vào một object để extension-client.js và panels.js cùng đọc/ghi được
+// mà không cần import vòng về app.js.
+export const state = {
+  operatorId: "",
+  check: null, // kết quả check gần nhất
+  draft: null, // { output_id, session_id, vm } — gắn với chat đã soạn
+  shownSession: "", // chat đang hiển thị; đổi chat thì xoá draft/handoff cũ
+  handoff: null, // { note, posted, cached }
+  notice: "", // dòng trạng thái dưới draft/handoff
+  choice: false, // đang hỏi Thay thế / Chèn cuối / Huỷ
+  draftPlacement: "", // inserted | copied
+  knowledgeOpen: false, // UI scaffold: sẽ nối FAQ search sau
+  sentiment: null, // phân tích tâm trạng mới nhất (check/analyze/generate trả về)
+  csat: null, // { sent, sent_at } — trạng thái survey của conversation đang mở
+  busy: "",
+  bridge: "checking", // checking | missing | outdated | ready
+  bridgeProbe: null,
+};
