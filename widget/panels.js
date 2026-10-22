@@ -246,18 +246,63 @@ export function summaryPanel({ copy, onHandoff }) {
   ]);
 }
 
-/** Các khối dưới đây là UI scaffold theo SPEC v1; chưa gọi API để không giả dữ liệu. */
-
-export function knowledgePanel() {
+/**
+ * Panel Hỏi tài liệu (board 3): CS gõ câu hỏi → action ask trả lời CHỈ từ
+ * helpdesk, kèm nguồn. Không có nguồn thì hiện thẻ cảnh báo "không tìm thấy"
+ * — không đoán chính sách. "Soạn thành tin trả lời khách" đưa đáp án thành
+ * ý của CS (state.hint) rồi chạy generate như thường.
+ * "Ghi private note hỏi quản lý" dùng lại luồng handoff sẵn có (tạo + đăng
+ * private note từ đoạn chat), không nhét thêm nội dung gì vào note.
+ */
+export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandoff }) {
   if (!state.knowledgeOpen) return null;
-  return el("section", { className: "card ai-card knowledge-card future-card" }, [
+  const r = state.askResult;
+  const busy = state.busy.startsWith("Đang tìm tài liệu");
+  const input = el("textarea", {
+    className: "field",
+    rows: 3,
+    placeholder: "Nhập câu hỏi hoặc vấn đề của khách…",
+    value: state.askQuestion,
+    oninput: (e) => { state.askQuestion = e.target.value; },
+    onkeydown: (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        onAsk();
+      }
+    },
+  });
+  return el("section", { className: "card ai-card knowledge-card" }, [
     el("div", {}, [
       el("h2", { textContent: "Hỏi tài liệu" }),
       el("p", { className: "subtitle", textContent: "Tìm trong FAQ nội bộ, trả lời kèm nguồn" }),
     ]),
-    el("textarea", { className: "field", rows: 3, placeholder: "Nhập câu hỏi hoặc vấn đề của khách…", disabled: true }),
-    el("p", { className: "muted", textContent: "Tìm kiếm tài liệu sẽ được nối ở bước tiếp theo; không có nguồn thì panel sẽ không đoán chính sách." }),
-    el("button", { className: "button-primary", textContent: "Tìm trong tài liệu", disabled: true }),
+    input,
+    el("button", { className: "button-primary", textContent: busy ? "Đang tìm…" : "Tìm trong tài liệu", disabled: busy, onclick: () => onAsk() }),
+    r ? el("div", { className: "ask-question", textContent: r.question }) : null,
+    r && r.found ? el("div", { className: "ask-answer-block" }, [
+      el("div", { className: "ask-answer", textContent: r.answer }),
+      r.sources.length ? el("p", { className: "muted ask-sources" }, [
+        document.createTextNode("Nguồn: "),
+        ...r.sources.flatMap((s, i) => [
+          i ? document.createTextNode(" · ") : null,
+          el("a", { href: s.url, target: "_blank", rel: "noopener noreferrer", textContent: s.title }),
+        ]),
+      ]) : null,
+      el("div", { className: "row" }, [
+        el("button", { className: "button-secondary", textContent: "Copy", onclick: () => copy(r.answer) }),
+        el("button", { className: "button-primary", textContent: "Soạn thành tin trả lời khách", disabled: Boolean(state.busy), onclick: () => onAskCompose(r.answer) }),
+      ]),
+    ]) : null,
+    r && !r.found ? el("div", { className: "ask-notfound" }, [
+      el("div", { className: "warn" }, [
+        el("b", { textContent: "Mình không tìm thấy bài nào nói về việc này." }),
+        el("p", { textContent: "Không có nguồn thì mình không đoán chính sách." }),
+      ]),
+      el("div", { className: "row" }, [
+        el("button", { className: "button-secondary", textContent: "Thử từ khoá khác", onclick: () => onAskRetry() }),
+        el("button", { className: "button-secondary", textContent: "Ghi private note hỏi quản lý", disabled: Boolean(state.busy), onclick: () => onHandoff(false) }),
+      ]),
+    ]) : null,
   ]);
 }
 
