@@ -74,6 +74,8 @@ export function toViewModel(check, now) {
     pendingCount: count,
     hiddenPendingCount: Math.max(0, count - visibleMessages.length),
     botRepliedCount: check.bot_replied_count ?? visibleMessages.filter((m) => m.botReplied).length,
+    topicLabel: check.topic_label ?? check.topic ?? null,
+    conversationState: check.conversation_state ?? null,
     metaRows: [
       { label: "Topic", value: check.topic_label ?? check.topic ?? "Chưa xác định" },
       { label: "Giọng văn", value: `${check.profile_name} (${SOURCE_LABEL[check.profile_source] ?? check.profile_source})` },
@@ -103,20 +105,32 @@ export function describeShape(data) {
 
 const HTTPS_URL = /^https:\/\//;
 
+/** Số chỗ [[CS: …]] CS phải tự điền trong draft. */
+export function countPlaceholders(text) {
+  return (String(text ?? "").match(/\[\[CS:[^\]]*\]\]/g) ?? []).length;
+}
+
 /** Draft từ generate hoặc latest_draft của check → dữ liệu hiển thị. Link cảnh báo chỉ nhận https. */
 export function toDraftViewModel(out, now = Date.now()) {
   const text = out.draft ?? out.content ?? "";
+  // Badge chỉ đếm ý có nguồn thật: ưu tiên mảng sources backend trả về (bài đã đưa vào prompt),
+  // bản cache/latest_draft không có sources thì dùng helpdesk_matches đã lưu.
+  const sources = (Array.isArray(out.sources) ? out.sources : [])
+    .filter((s) => s && typeof s.title === "string" && typeof s.url === "string" && HTTPS_URL.test(s.url))
+    .map((s) => ({ title: s.title, url: s.url }));
+  const sourcedCount = sources.length || out.helpdesk_matches || 0;
   const badge = out.verified !== true
     ? "Chưa đối chiếu helpdesk"
-    : out.helpdesk_matches === 0
+    : sourcedCount === 0
     ? "Không có bài helpdesk liên quan"
-    : "Đã đối chiếu helpdesk";
+    : `✓ ${sourcedCount} ý có nguồn helpdesk`;
   return {
     text,
     age: out.created_at ? timeAgo(out.created_at, now) : null,
-    todos: (text.match(/\[\[CS:[^\]]*\]\]/g) ?? []).length,
+    todos: countPlaceholders(text),
     badge,
     verified: out.verified === true,
+    sources,
     warnings: (out.warnings ?? []).map((w) => ({
       claim: w.claim,
       reason: w.reason,
@@ -141,6 +155,41 @@ const INSERT_MESSAGES = {
 
 export function insertResultMessage(status) {
   return INSERT_MESSAGES[status] ?? INSERT_MESSAGES.composer_not_found;
+}
+
+const SF_LEVELS = {
+  critical: { label: "Nghiêm trọng", cls: "critical" },
+  confirmed: { label: "Đã xác nhận", cls: "confirmed" },
+  new: { label: "Mới", cls: "new" },
+};
+
+/**
+ * Storefront Watch → view model cho panel (board 7) và strip ở board 1.
+ * Chưa có nguồn dữ liệu: state.storefront = null → kind "empty" (panel hiện trạng thái
+ * chưa có dữ liệu, strip không hiện). Khi nối nguồn thật chỉ cần đổ dữ liệu thô vào state:
+ * { status: "loading"|"ok"|"error", store, scannedAt, confirmed: [{level,title,meta}],
+ *   unverified: [{title,meta}], isStale }.
+ */
+export function toStorefrontViewModel(sf, now = Date.now()) {
+  if (!sf) return { kind: "empty" };
+  if (sf.status === "loading") return { kind: "loading" };
+  if (sf.status === "error") return { kind: "error" };
+  if (!sf.store) return { kind: "missing-domain" };
+  const confirmed = (sf.confirmed ?? []).map((d) => {
+    const lv = SF_LEVELS[d.level] ?? SF_LEVELS.confirmed;
+    return { chip: lv.label, chipClass: lv.cls, title: d.title ?? "", meta: d.meta ?? "" };
+  });
+  const unverified = (sf.unverified ?? []).map((d) => ({ title: d.title ?? "", meta: d.meta ?? "" }));
+  return {
+    kind: "results",
+    store: sf.store,
+    scannedLabel: sf.scannedAt ? timeAgo(sf.scannedAt, now) : null,
+    confirmed,
+    confirmedCount: confirmed.length,
+    unverified,
+    unverifiedCount: unverified.length,
+    isStale: Boolean(sf.isStale),
+  };
 }
 
 /** Ticket Jira của chat: tiêu đề + badge MỚI + các tin mới kể từ lần CS trả lời gần nhất. Link chỉ nhận https. */
