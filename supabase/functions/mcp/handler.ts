@@ -1,1 +1,160 @@
-Ly8gQ+G7lW5nIE1DUCAoTW9kZWwgQ29udGV4dCBQcm90b2NvbCkgY2hvIENTIENvcGlsb3QuCi8vCi8vIE3hu58gNSBhY3Rpb24gc+G6tW4gY8OzIGPhu6dhIGNvcGlsb3QgdGjDoG5oIE1DUCB0b29scyDEkeG7gyBjw6FjIEFJIGNsaWVudCBu4buZaSBi4buZCi8vIChjaGF0Ym90IHRyYWluZXIsIGFnZW50IGtow6FjLCBNQ1AgSW5zcGVjdG9y4oCmKSBn4buNaSDEkcaw4bujYyBtw6Aga2jDtG5nIHBo4bqjaSBiaeG6v3QKLy8gUkVTVCBu4buZaSBi4buZLiBLaMO0bmcgY2jhu6lhIGxvZ2ljIG5naGnhu4dwIHbhu6UgbeG7m2k6IHRvb2xzL2NhbGwgdeG7tyB0aMOhYyB0aOG6s25nIGNobwovLyBoYW5kbGVyIGPhu6dhIGNvcGlsb3QgbsOqbiBhdXRoICh0b2tlbiBDUyBjw6EgbmjDom4pLCB2YWxpZGF0ZSB2w6AgaMOgbmggdmkgZ2nhu68KLy8gbmd1ecOqbiBuaMawIHdpZGdldCDEkWFuZyBkw7luZy4KLy8KLy8gR2lhbyB0aOG7qWM6IEpTT04tUlBDIDIuMCBxdWEgSFRUUCBQT1NUIChTdHJlYW1hYmxlIEhUVFAsIHN0YXRlbGVzcykuCi8vIE1ldGhvZCBo4buXIHRy4bujOiBpbml0aWFsaXplLCBwaW5nLCB0b29scy9saXN0LCB0b29scy9jYWxsLiBOb3RpZmljYXRpb24KLy8gKHRoaeG6v3UgaWQpIMSRxrDhu6NjIGNo4bqlcCBuaOG6rW4gdsOgIGtow7RuZyB0cuG6oyBu4buZaSBkdW5nIChIVFRQIDIwMiDhu58gdOG6p25nIGluZGV4KS4KaW1wb3J0IHsgdHlwZSBEZXBzLCBoYW5kbGUgYXMgY29waWxvdEhhbmRsZSB9IGZyb20gIi4uL2NvcGlsb3QvaGFuZGxlci50cyI7CgpleHBvcnQgY29uc3QgUFJPVE9DT0xfVkVSU0lPTiA9ICIyMDI1LTAzLTI2IjsKZXhwb3J0IGNvbnN0IFNFUlZFUl9JTkZPID0geyBuYW1lOiAiY3MtY29waWxvdCIsIHZlcnNpb246ICIxLjAuMCIgfTsKCmNvbnN0IElEX1BST1BTID0gewogIHdlYnNpdGVfaWQ6IHsgdHlwZTogInN0cmluZyIsIGRlc2NyaXB0aW9uOiAiQ3Jpc3Agd2Vic2l0ZV9pZCBj4bunYSB3b3Jrc3BhY2UiIH0sCiAgc2Vzc2lvbl9pZDogeyB0eXBlOiAic3RyaW5nIiwgZGVzY3JpcHRpb246ICJDcmlzcCBzZXNzaW9uX2lkIGPhu6dhIGNvbnZlcnNhdGlvbiwgZOG6oW5nIHNlc3Npb25f4oCmIiB9LAp9Owpjb25zdCBGT1JDRV9QUk9QID0gewogIGZvcmNlOiB7IHR5cGU6ICJib29sZWFuIiwgZGVzY3JpcHRpb246ICJ0cnVlID0gdMOtbmggbOG6oWkgdOG7qyDEkeG6p3UsIGLhu48gcXVhIGNhY2hlIiB9LAp9OwoKZXhwb3J0IGNvbnN0IFRPT0xTID0gWwogIHsKICAgIG5hbWU6ICJjb3BpbG90X2NoZWNrX2NvbnZlcnNhdGlvbiIsCiAgICBkZXNjcmlwdGlvbjoKICAgICAgIsSQ4buNYyB0cuG6oW5nIHRow6FpIG3hu5l0IGNvbnZlcnNhdGlvbiBDcmlzcDogdGluIGtow6FjaCBjaMawYSB0cuG6oyBs4budaSwgdG9waWMsIGdp4buNbmcgQ1Mgc+G6vSBkw7luZywgdGlja2V0IEppcmEgbGnDqm4gcXVhbiwgc2VudGltZW50IMSRw6MgY2FjaGUgdsOgIHRy4bqhbmcgdGjDoWkgQ1NBVCBzdXJ2ZXkuIENo4buJIMSR4buNYywga2jDtG5nIGfhu41pIEFJLiIsCiAgICBpbnB1dFNjaGVtYTogeyB0eXBlOiAib2JqZWN0IiwgcHJvcGVydGllczogeyAuLi5JRF9QUk9QUyB9LCByZXF1aXJlZDogWyJ3ZWJzaXRlX2lkIiwgInNlc3Npb25faWQiXSB9LAogICAgYW5ub3RhdGlvbnM6IHsgcmVhZE9ubHlIaW50OiB0cnVlIH0sCiAgfSwKICB7CiAgICBuYW1lOiAiY29waWxvdF9nZW5lcmF0ZV9kcmFmdCIsCiAgICBkZXNjcmlwdGlvbjoKICAgICAgIlNv4bqhbiBkcmFmdCB0cuG6oyBs4budaSBraMOhY2ggdGhlbyBnaeG7jW5nIGPhu6dhIENTIMSRYW5nIMSRxINuZyBuaOG6rXAgKHRva2VuKSwgxJHDoyDEkeG7kWkgY2hp4bq/dSBoZWxwZGVzayB2w6AgY2jhu4luaCB0aGVvIHTDom0gdHLhuqFuZyBraMOhY2ggKHNlbnRpbWVudCBMYXllciAyKS4gVHLhuqMgZHJhZnQga8OobSBj4bqjbmggYsOhbyBj4bqnbiBraeG7g20gdHJhOyBLSMOUTkcgdOG7sSBn4butaSBjaG8ga2jDoWNoLiIsCiAgICBpbnB1dFNjaGVtYTogeyB0eXBlOiAib2JqZWN0IiwgcHJvcGVydGllczogeyAuLi5JRF9QUk9QUywgLi4uRk9SQ0VfUFJPUCB9LCByZXF1aXJlZDogWyJ3ZWJzaXRlX2lkIiwgInNlc3Npb25faWQiXSB9LAogICAgYW5ub3RhdGlvbnM6IHsgcmVhZE9ubHlIaW50OiBmYWxzZSwgZGVzdHJ1Y3RpdmVIaW50OiBmYWxzZSB9LAogIH0sCiAgewogICAgbmFtZTogImNvcGlsb3RfYW5hbHl6ZV9zZW50aW1lbnQiLAogICAgZGVzY3JpcHRpb246CiAgICAgICJQaMOibiB0w61jaCB0w6JtIHRy4bqhbmcga2jDoWNoIHThu6sgxJFv4bqhbiBjaGF0OiDEkWnhu4NtIDAtMTAwLCBtb29kIChmcnVzdHJhdGVkL2NvbmZ1c2VkL25ldXRyYWwvc2F0aXNmaWVkL2hhcHB5KSwgdXJnZW5jeSAobG93L21lZGl1bS9oaWdoKSB2w6AgxJHhu5kgdGluIGPhuq15LiBL4bq/dCBxdeG6oyDEkcaw4bujYyBjYWNoZSB0aGVvIHRpbiBuaOG6r24gY+G7p2Ega2jDoWNoLiIsCiAgICBpbnB1dFNjaGVtYTogeyB0eXBlOiAib2JqZWN0IiwgcHJvcGVydGllczogeyAuLi5JRF9QUk9QUywgLi4uRk9SQ0VfUFJPUCB9LCByZXF1aXJlZDogWyJ3ZWJzaXRlX2lkIiwgInNlc3Npb25faWQiXSB9LAogICAgYW5ub3RhdGlvbnM6IHsgcmVhZE9ubHlIaW50OiBmYWxzZSwgZGVzdHJ1Y3RpdmVIaW50OiBmYWxzZSB9LAogIH0sCiAgewogICAgbmFtZTogImNvcGlsb3RfaGFuZG9mZl9ub3RlIiwKICAgIGRlc2NyaXB0aW9uOgogICAgICAiVOG6oW8gcHJpdmF0ZSBub3RlIGLDoG4gZ2lhbyAoaGFuZG9mZikgY2hvIGNvbnZlcnNhdGlvbiB2w6AgxJHEg25nIHbDoG8gQ3Jpc3AgcXVhIG44bi4gQ8OzIHNpZGUtZWZmZWN0IHRo4bqtdCB0cm9uZyBDcmlzcCBuw6puIGNo4buJIGfhu41pIGtoaSBDUyB5w6p1IGPhuqd1LiIsCiAgICBpbnB1dFNjaGVtYTogeyB0eXBlOiAib2JqZWN0IiwgcHJvcGVydGllczogeyAuLi5JRF9QUk9QUywgLi4uRk9SQ0VfUFJPUCB9LCByZXF1aXJlZDogWyJ3ZWJzaXRlX2lkIiwgInNlc3Npb25faWQiXSB9LAogICAgYW5ub3RhdGlvbnM6IHsgcmVhZE9ubHlIaW50OiBmYWxzZSwgZGVzdHJ1Y3RpdmVIaW50OiBmYWxzZSB9LAogIH0sCiAgewogICAgbmFtZTogImNvcGlsb3Rfc2VuZF9jc2F0X3N1cnZleSIsCiAgICBkZXNjcmlwdGlvbjoKICAgICAgIkfhu61pIENTQVQgc3VydmV5IChwaWNrZXIgNCBs4buxYSBjaOG7jW4pIHbDoG8gY29udmVyc2F0aW9uIGNobyBraMOhY2ggcXVhIG44biBnYXRlLiBTZXJ2ZXIgY2jhu5FuZyBn4butaSB0csO5bmc6IGNvbnZlcnNhdGlvbiDEkcOjIGfhu61pIHLhu5NpIHPhur0gdHLhuqMgYWxyZWFkeT10cnVlIHRoYXkgdsOsIGfhu61pIGzhuqFpLiIsCiAgICBpbnB1dFNjaGVtYTogeyB0eXBlOiAib2JqZWN0IiwgcHJvcGVydGllczogeyAuLi5JRF9QUk9QUyB9LCByZXF1aXJlZDogWyJ3ZWJzaXRlX2lkIiwgInNlc3Npb25faWQiXSB9LAogICAgYW5ub3RhdGlvbnM6IHsgcmVhZE9ubHlIaW50OiBmYWxzZSwgZGVzdHJ1Y3RpdmVIaW50OiBmYWxzZSB9LAogIH0sCl0gYXMgY29uc3Q7Cgpjb25zdCBUT09MX0FDVElPTlM6IFJlY29yZDxzdHJpbmcsIHN0cmluZz4gPSB7CiAgY29waWxvdF9jaGVja19jb252ZXJzYXRpb246ICJjaGVjayIsCiAgY29waWxvdF9nZW5lcmF0ZV9kcmFmdDogImdlbmVyYXRlIiwKICBjb3BpbG90X2FuYWx5emVfc2VudGltZW50OiAiYW5hbHl6ZSIsCiAgY29waWxvdF9oYW5kb2ZmX25vdGU6ICJoYW5kb2ZmIiwKICBjb3BpbG90X3NlbmRfY3NhdF9zdXJ2ZXk6ICJzdXJ2ZXkiLAp9OwoKaW50ZXJmYWNlIFJwY1JlcXVlc3QgewogIGpzb25ycGM/OiBzdHJpbmc7CiAgaWQ/OiBzdHJpbmcgfCBudW1iZXIgfCBudWxsOwogIG1ldGhvZD86IHN0cmluZzsKICBwYXJhbXM/OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKfQoKY29uc3QgcmVzdWx0ID0gKGlkOiBScGNSZXF1ZXN0WyJpZCJdLCB2YWx1ZTogdW5rbm93bikgPT4gKHsganNvbnJwYzogIjIuMCIsIGlkOiBpZCA/PyBudWxsLCByZXN1bHQ6IHZhbHVlIH0pOwpjb25zdCBmYWlsdXJlID0gKGlkOiBScGNSZXF1ZXN0WyJpZCJdLCBjb2RlOiBudW1iZXIsIG1lc3NhZ2U6IHN0cmluZykgPT4gKHsganNvbnJwYzogIjIuMCIsIGlkOiBpZCA/PyBudWxsLCBlcnJvcjogeyBjb2RlLCBtZXNzYWdlIH0gfSk7Cgphc3luYyBmdW5jdGlvbiBjYWxsVG9vbChyZXE6IFJwY1JlcXVlc3QsIHRva2VuOiBzdHJpbmcsIGRlcHM6IERlcHMpOiBQcm9taXNlPHVua25vd24+IHsKICBjb25zdCBuYW1lID0gdHlwZW9mIHJlcS5wYXJhbXM/Lm5hbWUgPT09ICJzdHJpbmciID8gcmVxLnBhcmFtcy5uYW1lIDogIiI7CiAgY29uc3QgYWN0aW9uID0gVE9PTF9BQ1RJT05TW25hbWVdOwogIGlmICghYWN0aW9uKSByZXR1cm4gZmFpbHVyZShyZXEuaWQsIC0zMjYwMiwgYFRvb2wga2jDtG5nIHThu5NuIHThuqFpOiAke25hbWUgfHwgIih0aGnhur91IG5hbWUpIn1gKTsKICBjb25zdCBhcmdzID0gKHJlcS5wYXJhbXM/LmFyZ3VtZW50cyA/PyB7fSkgYXMgUmVjb3JkPHN0cmluZywgdW5rbm93bj47CiAgY29uc3Qgc3RyID0gKGs6IHN0cmluZykgPT4gKHR5cGVvZiBhcmdzW2tdID09PSAic3RyaW5nIiA/IChhcmdzW2tdIGFzIHN0cmluZykgOiAiIik7CiAgaWYgKCFzdHIoIndlYnNpdGVfaWQiKSB8fCAhc3RyKCJzZXNzaW9uX2lkIikpIHsKICAgIHJldHVybiBmYWlsdXJlKHJlcS5pZCwgLTMyNjAyLCAiVGhp4bq/dSB3ZWJzaXRlX2lkIGhv4bq3YyBzZXNzaW9uX2lkIik7CiAgfQogIGNvbnN0IHIgPSBhd2FpdCBjb3BpbG90SGFuZGxlKAogICAgeyB3ZWJzaXRlX2lkOiBzdHIoIndlYnNpdGVfaWQiKSwgc2Vzc2lvbl9pZDogc3RyKCJzZXNzaW9uX2lkIiksIGFjdGlvbiwgZm9yY2U6IGFyZ3MuZm9yY2UgPT09IHRydWUgfSwKICAgIHRva2VuLAogICAgZGVwcywKICApOwogIGlmIChyLnN0YXR1cyA+PSA0MDApIHsKICAgIGNvbnN0IG1lc3NhZ2UgPSAoci5ib2R5IGFzIHsgZXJyb3I/OiBzdHJpbmcgfSk/LmVycm9yID8/IGBjb3BpbG90IHRy4bqjIGzhu5dpICR7ci5zdGF0dXN9YDsKICAgIC8vIEzhu5dpIG5naGnhu4dwIHbhu6UgY+G7p2EgdG9vbCAoaOG6v3QgcXVvdGEsIGtow7RuZyB0w6xtIHRo4bqleSBjb252ZXJzYXRpb27igKYpIMSRaSB2w6BvCiAgICAvLyBjb250ZW50IHbhu5tpIGlzRXJyb3IgxJHhu4MgY2xpZW50IGhp4buDbiB0aOG7iyBjaG8gbmfGsOG7nWkgZMO5bmcsIGtow7RuZyBwaOG6o2kgbOG7l2kgZ2lhbyB0aOG7qWMuCiAgICByZXR1cm4gcmVzdWx0KHJlcS5pZCwgeyBjb250ZW50OiBbeyB0eXBlOiAidGV4dCIsIHRleHQ6IG1lc3NhZ2UgfV0sIGlzRXJyb3I6IHRydWUgfSk7CiAgfQogIHJldHVybiByZXN1bHQocmVxLmlkLCB7CiAgICBjb250ZW50OiBbeyB0eXBlOiAidGV4dCIsIHRleHQ6IEpTT04uc3RyaW5naWZ5KHIuYm9keSwgbnVsbCwgMikgfV0sCiAgICBzdHJ1Y3R1cmVkQ29udGVudDogci5ib2R5LAogICAgaXNFcnJvcjogZmFsc2UsCiAgfSk7Cn0KCmFzeW5jIGZ1bmN0aW9uIGRpc3BhdGNoKHJlcTogUnBjUmVxdWVzdCwgdG9rZW46IHN0cmluZywgZGVwczogRGVwcyk6IFByb21pc2U8dW5rbm93bj4gewogIHN3aXRjaCAocmVxLm1ldGhvZCkgewogICAgY2FzZSAiaW5pdGlhbGl6ZSI6IHsKICAgICAgY29uc3QgY2xpZW50VmVyc2lvbiA9IHR5cGVvZiByZXEucGFyYW1zPy5wcm90b2NvbFZlcnNpb24gPT09ICJzdHJpbmciID8gcmVxLnBhcmFtcy5wcm90b2NvbFZlcnNpb24gOiBQUk9UT0NPTF9WRVJTSU9OOwogICAgICByZXR1cm4gcmVzdWx0KHJlcS5pZCwgewogICAgICAgIHByb3RvY29sVmVyc2lvbjogY2xpZW50VmVyc2lvbiwKICAgICAgICBjYXBhYmlsaXRpZXM6IHsgdG9vbHM6IHt9IH0sCiAgICAgICAgc2VydmVySW5mbzogU0VSVkVSX0lORk8sCiAgICAgIH0pOwogICAgfQogICAgY2FzZSAicGluZyI6CiAgICAgIHJldHVybiByZXN1bHQocmVxLmlkLCB7fSk7CiAgICBjYXNlICJ0b29scy9saXN0IjoKICAgICAgcmV0dXJuIHJlc3VsdChyZXEuaWQsIHsgdG9vbHM6IFRPT0xTIH0pOwogICAgY2FzZSAidG9vbHMvY2FsbCI6CiAgICAgIHJldHVybiBhd2FpdCBjYWxsVG9vbChyZXEsIHRva2VuLCBkZXBzKTsKICAgIGRlZmF1bHQ6CiAgICAgIHJldHVybiBmYWlsdXJlKHJlcS5pZCwgLTMyNjAxLCBgTWV0aG9kIGtow7RuZyBo4buXIHRy4bujOiAke3JlcS5tZXRob2QgPz8gIih0aGnhur91IG1ldGhvZCkifWApOwogIH0KfQoKLyoqCiAqIFjhu60gbMO9IG3hu5l0IGJvZHkgSlNPTi1SUEMgKMSRxqFuIGzhursgaG/hurdjIGJhdGNoKS4gVHLhuqMgbnVsbCBraGkgdG/DoG4gYuG7mSBsw6AKICogbm90aWZpY2F0aW9uIOKAlCB04bqnbmcgSFRUUCDEkcOhcCAyMDIga2jDtG5nIG7hu5lpIGR1bmcgdGhlbyDEkeG6t2MgdOG6oyBNQ1AuCiAqLwpleHBvcnQgYXN5bmMgZnVuY3Rpb24gaGFuZGxlUnBjKGJvZHk6IHVua25vd24sIHRva2VuOiBzdHJpbmcsIGRlcHM6IERlcHMpOiBQcm9taXNlPHsgc3RhdHVzOiBudW1iZXI7IGJvZHk6IHVua25vd24gfT4gewogIGlmIChBcnJheS5pc0FycmF5KGJvZHkpKSB7CiAgICBjb25zdCBvdXQ6IHVua25vd25bXSA9IFtdOwogICAgZm9yIChjb25zdCBpdGVtIG9mIGJvZHkpIHsKICAgICAgY29uc3QgciA9IGF3YWl0IGhhbmRsZVJwYyhpdGVtLCB0b2tlbiwgZGVwcyk7CiAgICAgIGlmIChyLmJvZHkgIT09IG51bGwpIG91dC5wdXNoKHIuYm9keSk7CiAgICB9CiAgICByZXR1cm4gb3V0Lmxlbmd0aCA/IHsgc3RhdHVzOiAyMDAsIGJvZHk6IG91dCB9IDogeyBzdGF0dXM6IDIwMiwgYm9keTogbnVsbCB9OwogIH0KICBpZiAodHlwZW9mIGJvZHkgIT09ICJvYmplY3QiIHx8IGJvZHkgPT09IG51bGwpIHsKICAgIHJldHVybiB7IHN0YXR1czogNDAwLCBib2R5OiBmYWlsdXJlKG51bGwsIC0zMjYwMCwgIkJvZHkgcGjhuqNpIGzDoCBKU09OLVJQQyBvYmplY3QiKSB9OwogIH0KICBjb25zdCByZXEgPSBib2R5IGFzIFJwY1JlcXVlc3Q7CiAgY29uc3QgaXNOb3RpZmljYXRpb24gPSByZXEuaWQgPT09IHVuZGVmaW5lZCB8fCAodHlwZW9mIHJlcS5tZXRob2QgPT09ICJzdHJpbmciICYmIHJlcS5tZXRob2Quc3RhcnRzV2l0aCgibm90aWZpY2F0aW9ucy8iKSk7CiAgaWYgKGlzTm90aWZpY2F0aW9uKSB7CiAgICAvLyBOb3RpZmljYXRpb24ga2jDtG5nIGPDsyByZXNwb25zZTsgbOG7l2kgdHJvbmcgbm90aWZpY2F0aW9uIGPFqW5nIG514buRdCB0aGVvIMSR4bq3YyB04bqjLgogICAgdHJ5IHsKICAgICAgYXdhaXQgZGlzcGF0Y2gocmVxLCB0b2tlbiwgZGVwcyk7CiAgICB9IGNhdGNoIHsgLyogYuG7jyBxdWEgKi8gfQogICAgcmV0dXJuIHsgc3RhdHVzOiAyMDIsIGJvZHk6IG51bGwgfTsKICB9CiAgdHJ5IHsKICAgIHJldHVybiB7IHN0YXR1czogMjAwLCBib2R5OiBhd2FpdCBkaXNwYXRjaChyZXEsIHRva2VuLCBkZXBzKSB9OwogIH0gY2F0Y2ggKGUpIHsKICAgIGNvbnNvbGUuZXJyb3IoIm1jcCBlcnJvciIsIGUpOwogICAgcmV0dXJuIHsgc3RhdHVzOiAyMDAsIGJvZHk6IGZhaWx1cmUocmVxLmlkLCAtMzI2MDMsICJM4buXaSBu4buZaSBi4buZIGPhu5VuZyBNQ1AiKSB9OwogIH0KfQo=
+// Cổng MCP (Model Context Protocol) cho CS Copilot.
+//
+// Mở 5 action sẵn có của copilot thành MCP tools để các AI client nội bộ
+// (chatbot trainer, agent khác, MCP Inspector…) gọi được mà không phải biết
+// REST nội bộ. Không chứa logic nghiệp vụ mới: tools/call uỷ thác thẳng cho
+// handler của copilot nên auth (token CS cá nhân), validate và hành vi giữ
+// nguyên như widget đang dùng.
+//
+// Giao thức: JSON-RPC 2.0 qua HTTP POST (Streamable HTTP, stateless).
+// Method hỗ trợ: initialize, ping, tools/list, tools/call. Notification
+// (thiếu id) được chấp nhận và không trả nội dung (HTTP 202 ở tầng index).
+import { type Deps, handle as copilotHandle } from "../copilot/handler.ts";
+
+export const PROTOCOL_VERSION = "2025-03-26";
+export const SERVER_INFO = { name: "cs-copilot", version: "1.0.0" };
+
+const ID_PROPS = {
+  website_id: { type: "string", description: "Crisp website_id của workspace" },
+  session_id: { type: "string", description: "Crisp session_id của conversation, dạng session_…" },
+};
+const FORCE_PROP = {
+  force: { type: "boolean", description: "true = tính lại từ đầu, bỏ qua cache" },
+};
+
+export const TOOLS = [
+  {
+    name: "copilot_check_conversation",
+    description:
+      "Đọc trạng thái một conversation Crisp: tin khách chưa trả lời, topic, giọng CS sẽ dùng, ticket Jira liên quan, sentiment đã cache và trạng thái CSAT survey. Chỉ đọc, không gọi AI.",
+    inputSchema: { type: "object", properties: { ...ID_PROPS }, required: ["website_id", "session_id"] },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "copilot_generate_draft",
+    description:
+      "Soạn draft trả lời khách theo giọng của CS đang đăng nhập (token), đã đối chiếu helpdesk và chỉnh theo tâm trạng khách (sentiment Layer 2). Trả draft kèm cảnh báo cần kiểm tra; KHÔNG tự gửi cho khách.",
+    inputSchema: { type: "object", properties: { ...ID_PROPS, ...FORCE_PROP }, required: ["website_id", "session_id"] },
+    annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: "copilot_analyze_sentiment",
+    description:
+      "Phân tích tâm trạng khách từ đoạn chat: điểm 0-100, mood (frustrated/confused/neutral/satisfied/happy), urgency (low/medium/high) và độ tin cậy. Kết quả được cache theo tin nhắn của khách.",
+    inputSchema: { type: "object", properties: { ...ID_PROPS, ...FORCE_PROP }, required: ["website_id", "session_id"] },
+    annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: "copilot_handoff_note",
+    description:
+      "Tạo private note bàn giao (handoff) cho conversation và đăng vào Crisp qua n8n. Có side-effect thật trong Crisp nên chỉ gọi khi CS yêu cầu.",
+    inputSchema: { type: "object", properties: { ...ID_PROPS, ...FORCE_PROP }, required: ["website_id", "session_id"] },
+    annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: "copilot_send_csat_survey",
+    description:
+      "Gửi CSAT survey (picker 4 lựa chọn) vào conversation cho khách qua n8n gate. Server chống gửi trùng: conversation đã gửi rồi sẽ trả already=true thay vì gửi lại.",
+    inputSchema: { type: "object", properties: { ...ID_PROPS }, required: ["website_id", "session_id"] },
+    annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+] as const;
+
+const TOOL_ACTIONS: Record<string, string> = {
+  copilot_check_conversation: "check",
+  copilot_generate_draft: "generate",
+  copilot_analyze_sentiment: "analyze",
+  copilot_handoff_note: "handoff",
+  copilot_send_csat_survey: "survey",
+};
+
+interface RpcRequest {
+  jsonrpc?: string;
+  id?: string | number | null;
+  method?: string;
+  params?: Record<string, unknown>;
+}
+
+const result = (id: RpcRequest["id"], value: unknown) => ({ jsonrpc: "2.0", id: id ?? null, result: value });
+const failure = (id: RpcRequest["id"], code: number, message: string) => ({ jsonrpc: "2.0", id: id ?? null, error: { code, message } });
+
+async function callTool(req: RpcRequest, token: string, deps: Deps): Promise<unknown> {
+  const name = typeof req.params?.name === "string" ? req.params.name : "";
+  const action = TOOL_ACTIONS[name];
+  if (!action) return failure(req.id, -32602, `Tool không tồn tại: ${name || "(thiếu name)"}`);
+  const args = (req.params?.arguments ?? {}) as Record<string, unknown>;
+  const str = (k: string) => (typeof args[k] === "string" ? (args[k] as string) : "");
+  if (!str("website_id") || !str("session_id")) {
+    return failure(req.id, -32602, "Thiếu website_id hoặc session_id");
+  }
+  const r = await copilotHandle(
+    { website_id: str("website_id"), session_id: str("session_id"), action, force: args.force === true },
+    token,
+    deps,
+  );
+  if (r.status >= 400) {
+    const message = (r.body as { error?: string })?.error ?? `copilot trả lỗi ${r.status}`;
+    // Lỗi nghiệp vụ của tool (hết quota, không tìm thấy conversation…) đi vào
+    // content với isError để client hiển thị cho người dùng, không phải lỗi giao thức.
+    return result(req.id, { content: [{ type: "text", text: message }], isError: true });
+  }
+  return result(req.id, {
+    content: [{ type: "text", text: JSON.stringify(r.body, null, 2) }],
+    structuredContent: r.body,
+    isError: false,
+  });
+}
+
+async function dispatch(req: RpcRequest, token: string, deps: Deps): Promise<unknown> {
+  switch (req.method) {
+    case "initialize": {
+      const clientVersion = typeof req.params?.protocolVersion === "string" ? req.params.protocolVersion : PROTOCOL_VERSION;
+      return result(req.id, {
+        protocolVersion: clientVersion,
+        capabilities: { tools: {} },
+        serverInfo: SERVER_INFO,
+      });
+    }
+    case "ping":
+      return result(req.id, {});
+    case "tools/list":
+      return result(req.id, { tools: TOOLS });
+    case "tools/call":
+      return await callTool(req, token, deps);
+    default:
+      return failure(req.id, -32601, `Method không hỗ trợ: ${req.method ?? "(thiếu method)"}`);
+  }
+}
+
+/**
+ * Xử lý một body JSON-RPC (đơn lẻ hoặc batch). Trả null khi toàn bộ là
+ * notification — tầng HTTP đáp 202 không nội dung theo đặc tả MCP.
+ */
+export async function handleRpc(body: unknown, token: string, deps: Deps): Promise<{ status: number; body: unknown }> {
+  if (Array.isArray(body)) {
+    const out: unknown[] = [];
+    for (const item of body) {
+      const r = await handleRpc(item, token, deps);
+      if (r.body !== null) out.push(r.body);
+    }
+    return out.length ? { status: 200, body: out } : { status: 202, body: null };
+  }
+  if (typeof body !== "object" || body === null) {
+    return { status: 400, body: failure(null, -32600, "Body phải là JSON-RPC object") };
+  }
+  const req = body as RpcRequest;
+  const isNotification = req.id === undefined || (typeof req.method === "string" && req.method.startsWith("notifications/"));
+  if (isNotification) {
+    // Notification không có response; lỗi trong notification cũng nuốt theo đặc tả.
+    try {
+      await dispatch(req, token, deps);
+    } catch { /* bỏ qua */ }
+    return { status: 202, body: null };
+  }
+  try {
+    return { status: 200, body: await dispatch(req, token, deps) };
+  } catch (e) {
+    console.error("mcp error", e);
+    return { status: 200, body: failure(req.id, -32603, "Lỗi nội bộ cổng MCP") };
+  }
+}
