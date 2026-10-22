@@ -1,1 +1,43 @@
-aW1wb3J0IHsgY3JlYXRlQ2xpZW50IH0gZnJvbSAibnBtOkBzdXBhYmFzZS9zdXBhYmFzZS1qc0AyIjsKaW1wb3J0IHsgY3JlYXRlQWlTdG9yZSwgY3JlYXRlRGIgfSBmcm9tICIuLi9fc2hhcmVkL2RiLnRzIjsKaW1wb3J0IHsgY3JlYXRlR2VtaW5pIH0gZnJvbSAiLi4vX3NoYXJlZC9nZW1pbmkudHMiOwppbXBvcnQgeyBjcmVhdGVOOG4gfSBmcm9tICIuLi9fc2hhcmVkL244bi50cyI7CmltcG9ydCB7IGhhbmRsZVJwYyB9IGZyb20gIi4vaGFuZGxlci50cyI7CgovLyBD4buVbmcgTUNQIGNobyBDUyBDb3BpbG90IOKAlCBjw7luZyBkZXBzIHbhu5tpIGZ1bmN0aW9uIGNvcGlsb3QsIGtow6FjIGdpYW8gdGjhu6ljLgovLyBDbGllbnQgZ+G7rWkgdG9rZW4gQ1MgY8OhIG5ow6JuIHF1YSBoZWFkZXIgeC1jb3BpbG90LXRva2VuIGhv4bq3YyBBdXRob3JpemF0aW9uOiBCZWFyZXIuCmNvbnN0IENPUlMgPSB7CiAgImFjY2Vzcy1jb250cm9sLWFsbG93LW9yaWdpbiI6ICIqIiwKICAiYWNjZXNzLWNvbnRyb2wtYWxsb3ctaGVhZGVycyI6ICJjb250ZW50LXR5cGUsIHgtY29waWxvdC10b2tlbiwgYXV0aG9yaXphdGlvbiwgbWNwLXByb3RvY29sLXZlcnNpb24iLAogICJhY2Nlc3MtY29udHJvbC1hbGxvdy1tZXRob2RzIjogIlBPU1QsIE9QVElPTlMiLAp9OwoKZnVuY3Rpb24ganNvbihzdGF0dXM6IG51bWJlciwgYm9keTogdW5rbm93bik6IFJlc3BvbnNlIHsKICBpZiAoYm9keSA9PT0gbnVsbCkgcmV0dXJuIG5ldyBSZXNwb25zZShudWxsLCB7IHN0YXR1cywgaGVhZGVyczogQ09SUyB9KTsKICByZXR1cm4gbmV3IFJlc3BvbnNlKEpTT04uc3RyaW5naWZ5KGJvZHkpLCB7IHN0YXR1cywgaGVhZGVyczogeyAuLi5DT1JTLCAiY29udGVudC10eXBlIjogImFwcGxpY2F0aW9uL2pzb24iIH0gfSk7Cn0KCmNvbnN0IHNiID0gY3JlYXRlQ2xpZW50KERlbm8uZW52LmdldCgiU1VQQUJBU0VfVVJMIikhLCBEZW5vLmVudi5nZXQoIlNVUEFCQVNFX1NFUlZJQ0VfUk9MRV9LRVkiKSEpOwpjb25zdCBkYiA9IGNyZWF0ZURiKHNiKTsKY29uc3QgYWkgPSBjcmVhdGVHZW1pbmkoeyBhcGlLZXlzOiAoRGVuby5lbnYuZ2V0KCJHRU1JTklfQVBJX0tFWVMiKSA/PyBEZW5vLmVudi5nZXQoIkdFTUlOSV9BUElfS0VZIikgPz8gIiIpLnNwbGl0KCIsIiksIHN0b3JlOiBjcmVhdGVBaVN0b3JlKHNiKSB9KTsKY29uc3QgbjhuID0gY3JlYXRlTjhuKHsgYmFzZVVybDogRGVuby5lbnYuZ2V0KCJOOE5fV0VCSE9PS19CQVNFIikhLCBzZWNyZXQ6IERlbm8uZW52LmdldCgiTjhOX1NIQVJFRF9TRUNSRVQiKSEgfSk7CgpEZW5vLnNlcnZlKGFzeW5jIChyZXEpID0+IHsKICBpZiAocmVxLm1ldGhvZCA9PT0gIk9QVElPTlMiKSByZXR1cm4gbmV3IFJlc3BvbnNlKG51bGwsIHsgaGVhZGVyczogQ09SUyB9KTsKICBpZiAocmVxLm1ldGhvZCAhPT0gIlBPU1QiKSByZXR1cm4ganNvbig0MDUsIHsgZXJyb3I6ICJDaOG7iSBo4buXIHRy4bujIFBPU1QgKE1DUCBTdHJlYW1hYmxlIEhUVFApIiB9KTsKICBsZXQgYm9keTogdW5rbm93bjsKICB0cnkgewogICAgYm9keSA9IGF3YWl0IHJlcS5qc29uKCk7CiAgfSBjYXRjaCB7CiAgICByZXR1cm4ganNvbig0MDAsIHsganNvbnJwYzogIjIuMCIsIGlkOiBudWxsLCBlcnJvcjogeyBjb2RlOiAtMzI3MDAsIG1lc3NhZ2U6ICJCb2R5IGtow7RuZyBwaOG6o2kgSlNPTiIgfSB9KTsKICB9CiAgY29uc3QgYmVhcmVyID0gcmVxLmhlYWRlcnMuZ2V0KCJhdXRob3JpemF0aW9uIik/LnJlcGxhY2UoL15CZWFyZXJccysvaSwgIiIpID8/ICIiOwogIGNvbnN0IHRva2VuID0gcmVxLmhlYWRlcnMuZ2V0KCJ4LWNvcGlsb3QtdG9rZW4iKSA/PyBiZWFyZXI7CiAgY29uc3QgYmFja2dyb3VuZCA9ICh0YXNrOiBQcm9taXNlPHVua25vd24+KSA9PiB7CiAgICBjb25zdCBydCA9IChnbG9iYWxUaGlzIGFzIHsgRWRnZVJ1bnRpbWU/OiB7IHdhaXRVbnRpbD86IChwOiBQcm9taXNlPHVua25vd24+KSA9PiB2b2lkIH0gfSkuRWRnZVJ1bnRpbWU7CiAgICBpZiAocnQ/LndhaXRVbnRpbCkgcnQud2FpdFVudGlsKHRhc2spOwogICAgZWxzZSB2b2lkIHRhc2s7CiAgfTsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlUnBjKGJvZHksIHRva2VuLCB7IGRiLCBuOG4sIGFpLCBiYWNrZ3JvdW5kIH0pOwogIHJldHVybiBqc29uKHIuc3RhdHVzLCByLmJvZHkpOwp9KTsK
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { createAiStore, createDb } from "../_shared/db.ts";
+import { createGemini } from "../_shared/gemini.ts";
+import { createN8n } from "../_shared/n8n.ts";
+import { handleRpc } from "./handler.ts";
+
+// Cổng MCP cho CS Copilot — cùng deps với function copilot, khác giao thức.
+// Client gửi token CS cá nhân qua header x-copilot-token hoặc Authorization: Bearer.
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-headers": "content-type, x-copilot-token, authorization, mcp-protocol-version",
+  "access-control-allow-methods": "POST, OPTIONS",
+};
+
+function json(status: number, body: unknown): Response {
+  if (body === null) return new Response(null, { status, headers: CORS });
+  return new Response(JSON.stringify(body), { status, headers: { ...CORS, "content-type": "application/json" } });
+}
+
+const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const db = createDb(sb);
+const ai = createGemini({ apiKeys: (Deno.env.get("GEMINI_API_KEYS") ?? Deno.env.get("GEMINI_API_KEY") ?? "").split(","), store: createAiStore(sb) });
+const n8n = createN8n({ baseUrl: Deno.env.get("N8N_WEBHOOK_BASE")!, secret: Deno.env.get("N8N_SHARED_SECRET")! });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  if (req.method !== "POST") return json(405, { error: "Chỉ hỗ trợ POST (MCP Streamable HTTP)" });
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return json(400, { jsonrpc: "2.0", id: null, error: { code: -32700, message: "Body không phải JSON" } });
+  }
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const token = req.headers.get("x-copilot-token") ?? bearer;
+  const background = (task: Promise<unknown>) => {
+    const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    if (rt?.waitUntil) rt.waitUntil(task);
+    else void task;
+  };
+  const r = await handleRpc(body, token, { db, n8n, ai, background });
+  return json(r.status, r.body);
+});
