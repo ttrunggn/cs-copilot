@@ -28,6 +28,7 @@ export const CONV: ConversationRow = {
   state: "unresolved",
   last_customer_at: "2026-10-15T03:03:00+00:00",
   last_human_operator_at: "2026-10-15T03:02:00+00:00",
+  updated_at: "2026-10-15T03:03:00+00:00",
 };
 
 let id = 100;
