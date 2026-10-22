@@ -36,6 +36,7 @@ Deno.test("generate returns draft, warnings and stores output", async () => {
     warnings: [{ claim: "Currency is automatic.", reason: "Bài viết nói phải bật", article_url: HD.url }],
     verified: true,
     helpdesk_matches: 1,
+    sources: [{ title: HD.title, url: HD.url }],
     topic: "billing",
     topic_label: "Thanh toán & gói",
     profile_source: "default",
@@ -47,6 +48,27 @@ Deno.test("generate returns draft, warnings and stores output", async () => {
   assertEquals(inserted[0].helpdesk_matches, 1);
   assertEquals(inserted[0].profile_used, "default");
   assertEquals(inserted[0].input_fp.length, 64);
+});
+
+Deno.test("generate đưa ý của CS và giọng văn đã chọn vào draft prompt", async () => {
+  const { deps, calls } = setup();
+  const r = await handle({ ...REQ, hint: "khách cần link bài viết, đừng hứa thời gian hoàn tiền", tone: "concise" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("take priority over the conversation context"), true);
+  assertEquals(p.includes("khách cần link bài viết, đừng hứa thời gian hoàn tiền"), true);
+  assertEquals(p.includes("Tone adjustment requested by the agent"), true);
+  assertEquals(p.includes("as short as possible"), true);
+});
+
+Deno.test("generate bỏ qua tone không hợp lệ và cắt hint ở 500 ký tự", async () => {
+  const { deps, calls } = setup();
+  const r = await handle({ ...REQ, hint: "x".repeat(600), tone: "shouty" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("Tone adjustment requested by the agent"), false);
+  assertEquals(p.includes("x".repeat(500)), true);
+  assertEquals(p.includes("x".repeat(501)), false);
 });
 
 Deno.test("draft prompt carries the agent's last messages so the reply continues their flow", async () => {
