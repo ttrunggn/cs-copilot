@@ -1,3 +1,4 @@
+import { sha256Hex } from "../_shared/auth.ts";
 import { humanTranscript, inputFingerprint, latestCustomerQuery } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
@@ -6,6 +7,7 @@ import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 import {
   classifyPrompt,
   classifySchema,
+  type DraftTone,
   draftPrompt,
   parseTopic,
   parseWarnings,
@@ -35,6 +37,8 @@ export interface GenerateResult {
   warnings: Warning[];
   verified: boolean;
   helpdesk_matches: number;
+  /** Bài helpdesk thật sự đã đưa vào prompt (title + url) — badge "N ý có nguồn" đếm theo mảng này. Bản cache không lưu title nên trả []. */
+  sources: { title: string; url: string }[];
   topic: string | null;
   topic_label: string | null;
   profile_source: ProfileSource;
@@ -89,7 +93,7 @@ async function verify(deps: Deps, draft: string, helpdesk: HelpdeskChunk[]): Pro
 }
 
 export async function runGenerate(
-  req: { website_id: string; session_id: string; force: boolean },
+  req: { website_id: string; session_id: string; force: boolean; hint?: string; tone?: DraftTone },
   ws: Workspace,
   operatorId: string,
   deps: Deps,
@@ -97,7 +101,11 @@ export async function runGenerate(
   const { stale, conv, messages: raw } = await loadConversation(deps, req.website_id, req.session_id);
   const label = (key: string | null) => ws.topics.find((t) => t.key === key)?.label ?? null;
   const profiles = await deps.db.getProfiles(operatorId, req.website_id);
-  const inputFp = await inputFingerprint("draft", operatorId, raw);
+  const hint = (req.hint ?? "").trim();
+  const tone: DraftTone = req.tone ?? "default";
+  // Hint/giọng văn đổi thì draft phải khác: trộn vào dấu vân tay để cache không trả bản soạn không có ý của CS.
+  const baseFp = await inputFingerprint("draft", operatorId, raw);
+  const inputFp = hint || tone !== "default" ? await sha256Hex(`${baseFp}|hint:${hint}|tone:${tone}`) : baseFp;
 
   if (!req.force) {
     const hit = await deps.db.findCachedOutput({
@@ -106,7 +114,7 @@ export async function runGenerate(
     if (hit) {
       return {
         action: "generate", stale, cached: true, output_id: hit.id, draft: hit.content, warnings: hit.warnings,
-        verified: hit.verified ?? false, helpdesk_matches: hit.helpdesk_matches ?? 0, topic: hit.topic,
+        verified: hit.verified ?? false, helpdesk_matches: hit.helpdesk_matches ?? 0, sources: [], topic: hit.topic,
         topic_label: label(hit.topic), profile_source: resolveProfile(profiles, hit.topic, ws.default_profile).source,
         prompt_version: hit.prompt_version ?? "", sentiment: null,
       };
@@ -135,6 +143,8 @@ export async function runGenerate(
     variantNotes: variant.template_notes,
     jira,
     sentiment: mood.sentiment,
+    hint,
+    tone,
   }));
   const draft = text.trim();
   // Draft rỗng (bị chặn an toàn, model không trả gì) thì không lưu, không cache 24h.
@@ -160,7 +170,8 @@ export async function runGenerate(
   });
   return {
     action: "generate", stale, cached: false, output_id: outputId, draft, warnings: checked.warnings,
-    verified: checked.verified, helpdesk_matches: found.helpdesk.length, topic, topic_label: label(topic),
+    verified: checked.verified, helpdesk_matches: found.helpdesk.length,
+    sources: found.helpdesk.map((c) => ({ title: c.title, url: c.url })), topic, topic_label: label(topic),
     profile_source: source, prompt_version: variant.prompt_version, sentiment: mood.sentiment,
   };
 }
