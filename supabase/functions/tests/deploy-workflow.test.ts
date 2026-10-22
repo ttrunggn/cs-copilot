@@ -18,7 +18,7 @@ Deno.test("deploy workflow deploys every Edge Function", async () => {
 
 Deno.test("deploy workflow runs the tests first and keeps secrets out of the file", () => {
   assert(yml.includes("deno task test"));
-  assert(yml.includes("needs: test"));
+  assert(yml.includes("needs: [changes, test]")); // mỗi job deploy phải qua test (và biết job nào có thay đổi)
   assert(yml.includes("secrets.SUPABASE_ACCESS_TOKEN"));
   assert(!/sbp_[0-9a-f]{10,}/.test(yml));
   for (const line of yml.split("\n").filter((l) => l.includes("functions deploy"))) assert(line.includes("--no-verify-jwt"), line);
