@@ -1,1 +1,142 @@
-Ly8gUGjDom4gdMOtY2ggdMOibSB0cuG6oW5nIGtow6FjaCDigJQgdGhheSBi4bqjbiBrZXl3b3JkIHRyb25nIHdvcmtmbG93IHN1cnZleSBjxakuCi8vCi8vIELDoGkgaOG7jWMgdOG7qyBi4bqjbiBjxakgKG44biBhbmFseXplLW1vb2QpOiBrZXl3b3JkIGLhuq90IGNodeG7l2kgY29uIGtow7RuZyBoaeG7g3UgcGjhu6cKLy8gxJHhu4tuaCAoIm5vdCByZXNvbHZlZCIgduG6q24gK8SRaeG7g20gcmVzb2x2ZWQpLCBuaMOjbiBzdXkgdOG7qyDEkWnhu4NtIG7Dqm4gInVyZ2VudCIKLy8ga2jDtG5nIGJhbyBnaeG7nSBoaeG7h24sIGPDtG5nIHRo4bupYyB0cuG7mW4gxJFp4buDbSBsw6Agc+G7kSB0YXkga2jDtG5nIGhp4buHdSBjaHXhuqluLgovLyBC4bqjbiBuw6B5OiBBSSBsw6Agbmd14buTbiBjaMOtbmggduG7m2kgcnVicmljICsgdsOtIGThu6UgbeG6q3U7IG1vb2QgdsOgIHVyZ2VuY3kgbMOgIEhBSQovLyB0cuG7pWMgxJHhu5ljIGzhuq1wOyBjw7MgY29uZmlkZW5jZSDEkeG7gyBuxqFpIGTDuW5nIHThu7EgcXV54bq/dCBjw7MgdGluIGhheSBraMO0bmcuCmltcG9ydCB7IERBVEFfT05MWSwgbmV1dHJhbGl6ZSwgcGFyc2VKc29uIH0gZnJvbSAiLi9wcm9tcHRzLnRzIjsKCmV4cG9ydCB0eXBlIE1vb2QgPSAiZnJ1c3RyYXRlZCIgfCAiY29uZnVzZWQiIHwgIm5ldXRyYWwiIHwgInNhdGlzZmllZCIgfCAiaGFwcHkiOwpleHBvcnQgdHlwZSBVcmdlbmN5ID0gImxvdyIgfCAibWVkaXVtIiB8ICJoaWdoIjsKCmV4cG9ydCBpbnRlcmZhY2UgU2VudGltZW50IHsKICBzY29yZTogbnVtYmVyOyAvLyAwLTEwMCwgdHLhuqFuZyB0aMOhaSBoaeG7h24gdOG6oWkgY+G7p2Ega2jDoWNoIChjdeG7kWkgaOG7mWkgdGhv4bqhaSkKICBtb29kOiBNb29kOwogIHVyZ2VuY3k6IFVyZ2VuY3k7CiAgY29uZmlkZW5jZTogbnVtYmVyOyAvLyAwLTEKICBzdW1tYXJ5OiBzdHJpbmc7IC8vIHRp4bq/bmcgVmnhu4d0LCB04buRaSDEkWEgfjE1IHThu6sKICBzaWduYWxzOiBzdHJpbmdbXTsKfQoKY29uc3QgTU9PRFM6IE1vb2RbXSA9IFsiZnJ1c3RyYXRlZCIsICJjb25mdXNlZCIsICJuZXV0cmFsIiwgInNhdGlzZmllZCIsICJoYXBweSJdOwpjb25zdCBVUkdFTkNJRVM6IFVyZ2VuY3lbXSA9IFsibG93IiwgIm1lZGl1bSIsICJoaWdoIl07CgpleHBvcnQgY29uc3QgU0VOVElNRU5UX1NDSEVNQSA9IHsKICB0eXBlOiAiT0JKRUNUIiwKICBwcm9wZXJ0aWVzOiB7CiAgICBzY29yZTogeyB0eXBlOiAiSU5URUdFUiIgfSwKICAgIG1vb2Q6IHsgdHlwZTogIlNUUklORyIsIGVudW06IE1PT0RTIH0sCiAgICB1cmdlbmN5OiB7IHR5cGU6ICJTVFJJTkciLCBlbnVtOiBVUkdFTkNJRVMgfSwKICAgIGNvbmZpZGVuY2U6IHsgdHlwZTogIk5VTUJFUiIgfSwKICAgIHN1bW1hcnk6IHsgdHlwZTogIlNUUklORyIgfSwKICAgIHNpZ25hbHM6IHsgdHlwZTogIkFSUkFZIiwgaXRlbXM6IHsgdHlwZTogIlNUUklORyIgfSB9LAogIH0sCiAgcmVxdWlyZWQ6IFsic2NvcmUiLCAibW9vZCIsICJ1cmdlbmN5IiwgImNvbmZpZGVuY2UiLCAic3VtbWFyeSIsICJzaWduYWxzIl0sCn07CgpleHBvcnQgZnVuY3Rpb24gc2VudGltZW50UHJvbXB0KHRyYW5zY3JpcHQ6IHN0cmluZyk6IHN0cmluZyB7CiAgcmV0dXJuIFsKICAgICJBbmFseXplIHRoZSBDVVNUT01FUidzIGN1cnJlbnQgZW1vdGlvbmFsIHN0YXRlIGF0IHRoZSBFTkQgb2YgdGhpcyBzdXBwb3J0IGNvbnZlcnNhdGlvbiBmb3IgYSBTaG9waWZ5IGFwcCAoc3RvcmUgdHJhbnNsYXRpb24pLiAiICsKICAgICAgIkFnZW50IGFuZCBCb3QgbGluZXMgYXJlIGNvbnRleHQgb25seSDigJQgbmV2ZXIgc2NvcmUgdGhlIGFnZW50J3MgbW9vZC4gVGhlIGN1c3RvbWVyIG1heSB3cml0ZSBpbiBhbnkgbGFuZ3VhZ2U7IGp1ZGdlIG1lYW5pbmcsIG5vdCBrZXl3b3Jkcy4iLAogICAgWwogICAgICAiU2NvcmUgYW5jaG9ycyAoMC0xMDAsIHRoZSBjdXN0b21lcidzIHN0YXRlIHJpZ2h0IG5vdywgbGF0ZXN0IG1lc3NhZ2VzIHdlaWdoIG1vc3QpOiIsCiAgICAgICItIDUtMjU6IGFuZ3J5IG9yIHRocmVhdGVuaW5nIOKAlCByZWZ1bmQvY2hhcmdlYmFjayBkZW1hbmRzLCBpbnN1bHRzLCBjaHVybiB0aHJlYXRzIHN0aWxsIHN0YW5kaW5nIGF0IHRoZSBlbmQuIiwKICAgICAgIi0gMjYtNDI6IGZydXN0cmF0ZWQg4oCUIHByb2JsZW0gdW5yZXNvbHZlZCwgcmVwZWF0aW5nIHRoZW1zZWx2ZXMsIHdhaXRpbmcgdG9vIGxvbmcsIGRpc2FwcG9pbnRtZW50IHVuYWRkcmVzc2VkLiIsCiAgICAgICItIDQzLTU3OiBuZXV0cmFsIG9yIHVuY2xlYXIg4oCUIHB1cmVseSBmYWN0dWFsIGV4Y2hhbmdlLCBvciB0b28gbGl0dGxlIHNpZ25hbC4iLAogICAgICAiLSA1OC03NDogc2F0aXNmaWVkIOKAlCBpc3N1ZSByZXNvbHZlZCBvciBwcm9ncmVzc2luZyB3ZWxsLCBwb2xpdGUgY2xvc2luZy4iLAogICAgICAiLSA3NS05NTogaGFwcHkg4oCUIGV4cGxpY2l0IHRoYW5rcywgcHJhaXNlLCBvciBkZWxpZ2h0IGF0IHRoZSBlbmQuIiwKICAgICAgIk5lZ2F0aW9uIGZsaXBzIG1lYW5pbmc6IFwic3RpbGwgbm90IHJlc29sdmVkXCIgaXMgZnJ1c3RyYXRlZCwgbm90IHJlc29sdmVkLiBTYXJjYXNtIGNvdW50cyBieSBpbnRlbnQsIG5vdCBsaXRlcmFsIHdvcmRzLiIsCiAgICAgICJBIGNvbnZlcnNhdGlvbiB0aGF0IHN0YXJ0ZWQgYW5ncnkgYnV0IGVuZGVkIHdpdGggdGhhbmtzIGlzIHNhdGlzZmllZC9oYXBweSDigJQgc2NvcmUgd2hlcmUgaXQgRU5ERUQuIiwKICAgIF0uam9pbigiXG4iKSwKICAgIFsKICAgICAgInVyZ2VuY3kgaXMgYSBTRVBBUkFURSBheGlzIGZyb20gbW9vZCAoYSBjYWxtIGN1c3RvbWVyIGNhbiBiZSB1cmdlbnQpOiIsCiAgICAgICItIGhpZ2g6IGJ1c2luZXNzIGJsb2NrZWQgKHN0b3JlIGJyb2tlbiBiZWZvcmUgYSBsYXVuY2gvc2FsZSksIGV4cGxpY2l0IGRlYWRsaW5lLCBtb25leSBiZWluZyBsb3N0IG5vdy4iLAogICAgICAiLSBtZWRpdW06IHdvcmsgaXMgc2xvd2VkLCB3YWl0aW5nIG5vdGljZWFibHksIG5lZWRzIGFuIGFuc3dlciB0byBwcm9jZWVkLiIsCiAgICAgICItIGxvdzogZ2VuZXJhbCBxdWVzdGlvbiwgbm8gdGltZSBwcmVzc3VyZS4iLAogICAgXS5qb2luKCJcbiIpLAogICAgImNvbmZpZGVuY2U6IDAtMSDigJQgbG93IHdoZW4gdGhlcmUgYXJlIGZldyBjdXN0b21lciBtZXNzYWdlcywgbWl4ZWQgc2lnbmFscywgb3IgaGVhdnkgc2FyY2FzbS9hbWJpZ3VpdHkuIiwKICAgICJzdW1tYXJ5OiBpbiBWaWV0bmFtZXNlLCBhdCBtb3N0IDE1IHdvcmRzLCB0aGUgY3VzdG9tZXIncyBmaW5hbCBzdGF0ZSBhbmQgd2h5LiBzaWduYWxzOiB1cCB0byAzIHNob3J0IGV2aWRlbmNlIHBocmFzZXMgKHF1b3RlIG9yIHBhcmFwaHJhc2UgdGhlIGRlY2lzaXZlIGN1c3RvbWVyIHdvcmRzKS4iLAogICAgIkV4YW1wbGVzOiBjdXN0b21lciBlbmRzIFwic3RpbGwgbm90IHdvcmtpbmcgYWZ0ZXIgMyBkYXlzLCBteSBzdG9yZSBsYXVuY2ggaXMgdG9tb3Jyb3dcIiDihpIgc2NvcmUgfjI1LCBtb29kIGZydXN0cmF0ZWQsIHVyZ2VuY3kgaGlnaC4gIiArCiAgICAgICJDdXN0b21lciBlbmRzIFwieWEgZnVuY2lvbmEsIG11Y2hhcyBncmFjaWFzIVwiIOKGkiBzY29yZSB+ODAsIG1vb2QgaGFwcHksIHVyZ2VuY3kgbG93LiAiICsKICAgICAgIkN1c3RvbWVyIGFza3MgXCJob3cgZG8gSSB0cmFuc2xhdGUgdGhlIGNoZWNrb3V0IHBhZ2U/XCIgd2l0aCBubyBlbW90aW9uIOKGkiBzY29yZSB+NTAsIG1vb2QgbmV1dHJhbCwgdXJnZW5jeSBsb3cuIiwKICAgIGBSZXR1cm4gSlNPTiB7InNjb3JlIjo8aW50PiwibW9vZCI6IjxvbmUgb2YgJHtNT09EUy5qb2luKCJ8Iil9PiIsInVyZ2VuY3kiOiI8b25lIG9mICR7VVJHRU5DSUVTLmpvaW4oInwiKX0+IiwiY29uZmlkZW5jZSI6PDAtMT4sInN1bW1hcnkiOiI8VmlldG5hbWVzZT4iLCJzaWduYWxzIjpbIi4uLiJdfS4gJHtEQVRBX09OTFl9YCwKICAgIGA8Y29udmVyc2F0aW9uPlxuJHtuZXV0cmFsaXplKHRyYW5zY3JpcHQpfVxuPC9jb252ZXJzYXRpb24+YCwKICBdLmpvaW4oIlxuXG4iKTsKfQoKY29uc3QgY2xhbXAgPSAodjogbnVtYmVyLCBsbzogbnVtYmVyLCBoaTogbnVtYmVyKSA9PiBNYXRoLm1pbihoaSwgTWF0aC5tYXgobG8sIHYpKTsKCi8qKiBDaHXhuqluIGhvw6Egb3V0cHV0IEFJOiB0aGnhur91L3NhaSB0csaw4budbmcgdGjDrCBzdXkgdOG7qyDEkWnhu4NtIG5oxrAgYuG6o25nIG5lbywga2jDtG5nIG7DqW0gbOG7l2kuICovCmV4cG9ydCBmdW5jdGlvbiBwYXJzZVNlbnRpbWVudCh0ZXh0OiBzdHJpbmcpOiBTZW50aW1lbnQgewogIGxldCByOiBQYXJ0aWFsPFNlbnRpbWVudD4gPSB7fTsKICB0cnkgewogICAgciA9IHBhcnNlSnNvbjxQYXJ0aWFsPFNlbnRpbWVudD4+KHRleHQpOwogIH0gY2F0Y2ggewogICAgciA9IHt9OyAvLyBBSSB0cuG6oyByw6FjIOKGkiBkw7luZyBi4bqjbmcgbmVvIHbhu5tpIMSRaeG7g20gdHJ1bmcgdMOtbmggdGhheSB2w6wgbsOpbSBs4buXaQogIH0KICBjb25zdCBzY29yZSA9IGNsYW1wKE1hdGgucm91bmQodHlwZW9mIHIuc2NvcmUgPT09ICJudW1iZXIiID8gci5zY29yZSA6IDUwKSwgMCwgMTAwKTsKICBjb25zdCBtb29kOiBNb29kID0gTU9PRFMuaW5jbHVkZXMoci5tb29kIGFzIE1vb2QpCiAgICA/IChyLm1vb2QgYXMgTW9vZCkKICAgIDogc2NvcmUgPD0gNDIKICAgID8gImZydXN0cmF0ZWQiCiAgICA6IHNjb3JlIDw9IDU3CiAgICA/ICJuZXV0cmFsIgogICAgOiBzY29yZSA8PSA3NAogICAgPyAic2F0aXNmaWVkIgogICAgOiAiaGFwcHkiOwogIHJldHVybiB7CiAgICBzY29yZSwKICAgIG1vb2QsCiAgICB1cmdlbmN5OiBVUkdFTkNJRVMuaW5jbHVkZXMoci51cmdlbmN5IGFzIFVyZ2VuY3kpID8gKHIudXJnZW5jeSBhcyBVcmdlbmN5KSA6ICJsb3ciLAogICAgY29uZmlkZW5jZTogY2xhbXAodHlwZW9mIHIuY29uZmlkZW5jZSA9PT0gIm51bWJlciIgPyByLmNvbmZpZGVuY2UgOiAwLjUsIDAsIDEpLAogICAgc3VtbWFyeTogdHlwZW9mIHIuc3VtbWFyeSA9PT0gInN0cmluZyIgPyByLnN1bW1hcnkudHJpbSgpLnNsaWNlKDAsIDIwMCkgOiAiIiwKICAgIHNpZ25hbHM6IChBcnJheS5pc0FycmF5KHIuc2lnbmFscykgPyByLnNpZ25hbHMgOiBbXSkuZmlsdGVyKChzKSA9PiB0eXBlb2YgcyA9PT0gInN0cmluZyIpLnNsaWNlKDAsIDMpLAogIH07Cn0KCmV4cG9ydCBjb25zdCBNT09EX0VNT0pJOiBSZWNvcmQ8TW9vZCwgc3RyaW5nPiA9IHsKICBmcnVzdHJhdGVkOiAi8J+YpCIsCiAgY29uZnVzZWQ6ICLwn5iVIiwKICBuZXV0cmFsOiAi8J+YkCIsCiAgc2F0aXNmaWVkOiAi8J+YiiIsCiAgaGFwcHk6ICLwn5iEIiwKfTsKCmV4cG9ydCBjb25zdCBNT09EX0xBQkVMOiBSZWNvcmQ8TW9vZCwgc3RyaW5nPiA9IHsKICBmcnVzdHJhdGVkOiAixJBhbmcgYuG7sWMgLyBjaMawYSBow6BpIGzDsm5nIiwKICBjb25mdXNlZDogIsSQYW5nIGLhu5FpIHLhu5FpIiwKICBuZXV0cmFsOiAiVHJ1bmcgdMOtbmgiLAogIHNhdGlzZmllZDogIkjDoGkgbMOybmciLAogIGhhcHB5OiAiUuG6pXQgdnVpIiwKfTsKCi8qKgogKiBM4bubcCAyIGPhu6dhIGRyYWZ0OiDEkWnhu4F1IGNo4buJbmggQ8OBQ0ggY2h1eeG7g24gdOG6o2kgdGhlbyBtb29kIGPhu6dhIGtow6FjaC4KICogQ2jhu4kgY2jhu4luaCBuaOG7i3AvxJHhu5kg4bqlbS90aOG7qSB04buxIMawdSB0acOqbiDigJQga2jDtG5nIMSR4buVaSBz4buxIGtp4buHbiwga2jDtG5nIMSR4bulbmcgeMawbmcgaMO0LAogKiBjaOG7ryBrw70gaGF5IGdp4buNbmcgZ+G7kWMgKExheWVyIDEpIGPhu6dhIENTLgogKi8KZXhwb3J0IGZ1bmN0aW9uIHNlbnRpbWVudEd1aWRhbmNlKHM6IFNlbnRpbWVudCk6IHN0cmluZyB7CiAgY29uc3QgbGluZXM6IHN0cmluZ1tdID0gW107CiAgaWYgKHMubW9vZCA9PT0gImZydXN0cmF0ZWQiIHx8IHMudXJnZW5jeSA9PT0gImhpZ2giKSB7CiAgICBsaW5lcy5wdXNoKAogICAgICAiVGhlIGN1c3RvbWVyIGlzIGZydXN0cmF0ZWQgYW5kL29yIHRoaXMgaXMgdXJnZW50LiBEZWxpdmVyeSBhZGp1c3RtZW50cyAob3ZlcnJpZGUgdGhlIHN0eWxlIGRlZmF1bHRzIHdoZXJlIHRoZXkgY29uZmxpY3QpOiIsCiAgICAgICItIE9wZW4gYnkgYWNrbm93bGVkZ2luZyB0aGVpciBzcGVjaWZpYyBwcm9ibGVtIGluIG9uZSBwbGFpbiBsaW5lIOKAlCBubyBjaGVlcmZ1bCBvcGVuZXIsIG5vIGVtb2ppIGFueXdoZXJlLCBubyB0aGFua3MtZm9yLXJlYWNoaW5nLW91dC4iLAogICAgICAiLSBCZSBzaG9ydCBhbmQgY29uY3JldGU6IHdoYXQgaGFwcGVucyBuZXh0IGFuZCB0aGUgZXhhY3QgaW5mby9hY3Rpb24gbmVlZGVkLiBJZiBhIHRpbWVmcmFtZSBpcyBub3Qgc3RhdGVkIGluIHRoZSBjb252ZXJzYXRpb24gb3IgaGVscCBjZW50ZXIsIGRvIG5vdCBpbnZlbnQgb25lIOKAlCB1c2UgYSBbW0NTOiDigKZdXSBjaGVjayBmb3IgaXQuIiwKICAgICAgIi0gTmV2ZXIgYXNrIGZvciBhIHJldmlldywgcmF0aW5nLCB1cGdyYWRlIG9yIGFueXRoaW5nIHByb21vdGlvbmFsIGluIHRoaXMgc3RhdGUuIiwKICAgICk7CiAgfSBlbHNlIGlmIChzLm1vb2QgPT09ICJjb25mdXNlZCIpIHsKICAgIGxpbmVzLnB1c2goCiAgICAgICJUaGUgY3VzdG9tZXIgc2VlbXMgY29uZnVzZWQuIERlbGl2ZXJ5IGFkanVzdG1lbnRzOiIsCiAgICAgICItIEV4cGxhaW4gc3RlcCBieSBzdGVwLCBudW1iZXJlZCwgb25lIGFjdGlvbiBwZXIgc3RlcDsgZGVmaW5lIGFueSBwcm9kdWN0IHRlcm0gaW4gcGxhaW4gd29yZHMgdGhlIGZpcnN0IHRpbWUgaXQgYXBwZWFycy4iLAogICAgICAiLSBFbmQgYnkgYXNraW5nIHRoZW0gdG8gY29uZmlybSB0aGUgc3RlcCB0aGV5IGFyZSBzdHVjayBvbiwgcmF0aGVyIHRoYW4gYSBnZW5lcmljIFwibGV0IG1lIGtub3dcIi4iLAogICAgKTsKICB9IGVsc2UgaWYgKHMubW9vZCA9PT0gInNhdGlzZmllZCIgfHwgcy5tb29kID09PSAiaGFwcHkiKSB7CiAgICBsaW5lcy5wdXNoKAogICAgICAiVGhlIGN1c3RvbWVyIGlzIGluIGEgZ29vZCBtb29kLiBEZWxpdmVyeSBhZGp1c3RtZW50czoiLAogICAgICAiLSBBIHdhcm1lciwgbGlnaHRlciB0b25lIGlzIHdlbGNvbWU7IGtlZXAgdGhlIGFnZW50J3Mgb3duIHNpZ25hdHVyZSBhbmQgcHJvbm91biBjaG9pY2VzIHVuY2hhbmdlZC4iLAogICAgICAiLSBPbmUgYnJpZWYgZnJpZW5kbHkgY2xvc2luZyBsaW5lIGlzIGZpbmU7IGRvIG5vdCB0dXJuIHRoZSByZXBseSBpbnRvIG1hcmtldGluZy4iLAogICAgKTsKICB9CiAgcmV0dXJuIGxpbmVzLmpvaW4oIlxuIik7Cn0K
+// Phân tích tâm trạng khách — thay bản keyword trong workflow survey cũ.
+//
+// Bài học từ bản cũ (n8n analyze-mood): keyword bắt chuỗi con không hiểu phủ
+// định ("not resolved" vẫn +điểm resolved), nhãn suy từ điểm nên "urgent"
+// không bao giờ hiện, công thức trộn điểm là số tay không hiệu chuẩn.
+// Bản này: AI là nguồn chính với rubric + ví dụ mẫu; mood và urgency là HAI
+// trục độc lập; có confidence để nơi dùng tự quyết có tin hay không.
+import { DATA_ONLY, neutralize, parseJson } from "./prompts.ts";
+
+export type Mood = "frustrated" | "confused" | "neutral" | "satisfied" | "happy";
+export type Urgency = "low" | "medium" | "high";
+
+export interface Sentiment {
+  score: number; // 0-100, trạng thái hiện tại của khách (cuối hội thoại)
+  mood: Mood;
+  urgency: Urgency;
+  confidence: number; // 0-1
+  summary: string; // tiếng Việt, tối đa ~15 từ
+  signals: string[];
+}
+
+const MOODS: Mood[] = ["frustrated", "confused", "neutral", "satisfied", "happy"];
+const URGENCIES: Urgency[] = ["low", "medium", "high"];
+
+export const SENTIMENT_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    score: { type: "INTEGER" },
+    mood: { type: "STRING", enum: MOODS },
+    urgency: { type: "STRING", enum: URGENCIES },
+    confidence: { type: "NUMBER" },
+    summary: { type: "STRING" },
+    signals: { type: "ARRAY", items: { type: "STRING" } },
+  },
+  required: ["score", "mood", "urgency", "confidence", "summary", "signals"],
+};
+
+export function sentimentPrompt(transcript: string): string {
+  return [
+    "Analyze the CUSTOMER's current emotional state at the END of this support conversation for a Shopify app (store translation). " +
+      "Agent and Bot lines are context only — never score the agent's mood. The customer may write in any language; judge meaning, not keywords.",
+    [
+      "Score anchors (0-100, the customer's state right now, latest messages weigh most):",
+      "- 5-25: angry or threatening — refund/chargeback demands, insults, churn threats still standing at the end.",
+      "- 26-42: frustrated — problem unresolved, repeating themselves, waiting too long, disappointment unaddressed.",
+      "- 43-57: neutral or unclear — purely factual exchange, or too little signal.",
+      "- 58-74: satisfied — issue resolved or progressing well, polite closing.",
+      "- 75-95: happy — explicit thanks, praise, or delight at the end.",
+      "Negation flips meaning: \"still not resolved\" is frustrated, not resolved. Sarcasm counts by intent, not literal words.",
+      "A conversation that started angry but ended with thanks is satisfied/happy — score where it ENDED.",
+    ].join("\n"),
+    [
+      "urgency is a SEPARATE axis from mood (a calm customer can be urgent):",
+      "- high: business blocked (store broken before a launch/sale), explicit deadline, money being lost now.",
+      "- medium: work is slowed, waiting noticeably, needs an answer to proceed.",
+      "- low: general question, no time pressure.",
+    ].join("\n"),
+    "confidence: 0-1 — low when there are few customer messages, mixed signals, or heavy sarcasm/ambiguity.",
+    "summary: in Vietnamese, at most 15 words, the customer's final state and why. signals: up to 3 short evidence phrases (quote or paraphrase the decisive customer words).",
+    "Examples: customer ends \"still not working after 3 days, my store launch is tomorrow\" → score ~25, mood frustrated, urgency high. " +
+      "Customer ends \"ya funciona, muchas gracias!\" → score ~80, mood happy, urgency low. " +
+      "Customer asks \"how do I translate the checkout page?\" with no emotion → score ~50, mood neutral, urgency low.",
+    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<Vietnamese>","signals":["..."]}. ${DATA_ONLY}`,
+    `<conversation>\n${neutralize(transcript)}\n</conversation>`,
+  ].join("\n\n");
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** Chuẩn hoá output AI: thiếu/sai trường thì suy từ điểm như bảng neo, không ném lỗi. */
+export function parseSentiment(text: string): Sentiment {
+  let r: Partial<Sentiment> = {};
+  try {
+    r = parseJson<Partial<Sentiment>>(text);
+  } catch {
+    r = {}; // AI trả rác → dùng bảng neo với điểm trung tính thay vì ném lỗi
+  }
+  const score = clamp(Math.round(typeof r.score === "number" ? r.score : 50), 0, 100);
+  const mood: Mood = MOODS.includes(r.mood as Mood)
+    ? (r.mood as Mood)
+    : score <= 42
+    ? "frustrated"
+    : score <= 57
+    ? "neutral"
+    : score <= 74
+    ? "satisfied"
+    : "happy";
+  return {
+    score,
+    mood,
+    urgency: URGENCIES.includes(r.urgency as Urgency) ? (r.urgency as Urgency) : "low",
+    confidence: clamp(typeof r.confidence === "number" ? r.confidence : 0.5, 0, 1),
+    summary: typeof r.summary === "string" ? r.summary.trim().slice(0, 200) : "",
+    signals: (Array.isArray(r.signals) ? r.signals : []).filter((s) => typeof s === "string").slice(0, 3),
+  };
+}
+
+export const MOOD_EMOJI: Record<Mood, string> = {
+  frustrated: "😤",
+  confused: "😕",
+  neutral: "😐",
+  satisfied: "😊",
+  happy: "😄",
+};
+
+export const MOOD_LABEL: Record<Mood, string> = {
+  frustrated: "Đang bực / chưa hài lòng",
+  confused: "Đang bối rối",
+  neutral: "Trung tính",
+  satisfied: "Hài lòng",
+  happy: "Rất vui",
+};
+
+/**
+ * Lớp 2 của draft: điều chỉnh CÁCH chuyển tải theo mood của khách.
+ * Chỉ chỉnh nhịp/độ ấm/thứ tự ưu tiên — không đổi sự kiện, không đụng xưng hô,
+ * chữ ký hay giọng gốc (Layer 1) của CS.
+ */
+export function sentimentGuidance(s: Sentiment): string {
+  const lines: string[] = [];
+  if (s.mood === "frustrated" || s.urgency === "high") {
+    lines.push(
+      "The customer is frustrated and/or this is urgent. Delivery adjustments (override the style defaults where they conflict):",
+      "- Open by acknowledging their specific problem in one plain line — no cheerful opener, no emoji anywhere, no thanks-for-reaching-out.",
+      "- Be short and concrete: what happens next and the exact info/action needed. If a timeframe is not stated in the conversation or help center, do not invent one — use a [[CS: …]] check for it.",
+      "- Never ask for a review, rating, upgrade or anything promotional in this state.",
+    );
+  } else if (s.mood === "confused") {
+    lines.push(
+      "The customer seems confused. Delivery adjustments:",
+      "- Explain step by step, numbered, one action per step; define any product term in plain words the first time it appears.",
+      "- End by asking them to confirm the step they are stuck on, rather than a generic \"let me know\".",
+    );
+  } else if (s.mood === "satisfied" || s.mood === "happy") {
+    lines.push(
+      "The customer is in a good mood. Delivery adjustments:",
+      "- A warmer, lighter tone is welcome; keep the agent's own signature and pronoun choices unchanged.",
+      "- One brief friendly closing line is fine; do not turn the reply into marketing.",
+    );
+  }
+  return lines.join("\n");
+}
