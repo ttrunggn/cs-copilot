@@ -10,6 +10,13 @@ export interface AnalyzeResult {
   action: "analyze";
   sentiment: Sentiment | null;
   cached: boolean;
+  /** Số tin của khách làm đầu vào cho dấu vân tay sentiment — panel hiện "Tính trên N tin". */
+  msg_count: number;
+}
+
+/** Đếm tin của khách — cùng tập đầu vào mà sentimentFingerprint dùng. */
+export function customerMessageCount(messages: MessageRow[]): number {
+  return messages.filter((m) => m.from === "user").length;
 }
 
 /** Dấu vân tay chỉ từ tin của khách: mood đổi khi khách nhắn thêm, không đổi khi CS trả lời. */
@@ -62,5 +69,5 @@ export async function runAnalyze(
   const { conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
   void conv;
   const { sentiment, cached } = await resolveSentiment(deps, req.website_id, req.session_id, messages, req.force);
-  return { action: "analyze", sentiment, cached };
+  return { action: "analyze", sentiment, cached, msg_count: customerMessageCount(messages) };
 }
