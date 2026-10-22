@@ -22,6 +22,7 @@ const CONV: ConversationRow = {
   state: "unresolved",
   last_customer_at: "2026-10-15T03:03:00+00:00",
   last_human_operator_at: "2026-10-15T03:02:00+00:00",
+  updated_at: "2026-10-15T03:03:00+00:00",
 };
 const MSGS: MessageRow[] = [
   { id: 1, content_en: null, from: "user", type: "text", is_bot: false, content: "a", created_at: "2026-10-15T03:01:00+00:00", operator_name: null },
