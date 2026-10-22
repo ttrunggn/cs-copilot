@@ -29,6 +29,9 @@ export interface Deps {
   db: Db;
   n8n: N8n;
   ai: Ai;
+  /** Việc nền sau response (refresh cho đường đọc nhanh); vắng mặt thì chạy đồng bộ. */
+  background?: (task: Promise<unknown>) => void;
+  now?: () => number;
 }
 
 function parseRequest(body: unknown): CopilotRequest {
