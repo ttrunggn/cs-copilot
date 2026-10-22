@@ -1,8 +1,9 @@
 // Học giọng văn từng CS từ chatlog 90 ngày. Chạy tay khi muốn cập nhật (vd mỗi tuần):
-//   deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id> [--skip-classify] [--skip-profiles] [--skip-cases]
+//   deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id> [--skip-classify] [--skip-profiles] [--skip-note-formats] [--skip-cases]
 // 1) Phân loại topic theo lô cho hội thoại chưa có topic (theo bộ topic của workspace).
 // 2) Mỗi CS: profile "_all" + profile riêng cho topic có ≥ min_conversations_per_topic hội thoại.
 //    Bỏ chat email hệ thống. Trường nào có trong manual_override vẫn thắng lúc dùng (không bị ghi đè).
+// 2b) Format private note theo từng CS, học từ note cũ (type='note') của chính CS, lưu ở dòng "_all".
 // 3) Tóm tắt hội thoại đã resolve chưa có trong `cases` thành case tương tự cho Soạn tin.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createAiStore } from "../supabase/functions/_shared/db.ts";
@@ -14,9 +15,14 @@ import {
   groupForLearning,
   LEARN_SCHEMA,
   learnPrompt,
+  MIN_NOTES_FOR_FORMAT,
+  NOTE_LEARN_SCHEMA,
+  noteLearnPrompt,
   type OpMessage,
   parseClassifyBatch,
   parseLearned,
+  parseNoteFormat,
+  pickNoteSamples,
   pickSamples,
   SKIP_TOPICS,
 } from "../supabase/functions/_shared/learn.ts";
@@ -129,6 +135,45 @@ for (const [opId, groups] of flags.includes("--skip-profiles") ? [] : groupForLe
       console.log(`- ${name} / ${topic}: ${p.tone} (${p.sample_messages.length} tin mẫu)`);
     } catch (e) {
       console.warn(`- ${name} / ${topic}: lỗi ${e instanceof Error ? e.message : e}`);
+    }
+  }
+}
+
+// ---------- 2b) học format private note theo từng CS ----------
+// Nguồn: note cũ (type='note') của chính CS đó trong messages — không thu thập gì mới.
+// Chỉ học khi CS có ≥ MIN_NOTES_FOR_FORMAT note dùng được; lưu vào dòng "_all" (cột note_format).
+// Format là thói quen cá nhân nên không theo topic. Chạy cùng nhịp học giọng văn; tắt bằng --skip-note-formats.
+if (!flags.includes("--skip-profiles") && !flags.includes("--skip-note-formats")) {
+  const opNotes = await all<OpMessage>((a, b) =>
+    sb.from("messages").select("operator_id,session_id,content,created_at").eq("website_id", websiteId).eq("from", "operator")
+      .eq("type", "note").eq("is_bot", false).not("operator_id", "is", null).gt("created_at", since).order("id").range(a, b)
+  );
+  const notesByOp = new Map<string, OpMessage[]>();
+  for (const m of opNotes) {
+    if (SKIP_TOPICS.includes(topicOf.get(m.session_id) ?? "")) continue;
+    if (!notesByOp.has(m.operator_id)) notesByOp.set(m.operator_id, []);
+    notesByOp.get(m.operator_id)!.push(m);
+  }
+  for (const [opId, notes] of notesByOp) {
+    const samples = pickNoteSamples(notes);
+    const name = nameOf.get(opId) ?? opId;
+    if (samples.length < MIN_NOTES_FOR_FORMAT) {
+      console.log(`- ${name} / note format: chỉ ${samples.length} note dùng được (< ${MIN_NOTES_FOR_FORMAT}), giữ template cố định`);
+      continue;
+    }
+    try {
+      const { text } = await ai.generate("learn", noteLearnPrompt(name, samples), { schema: NOTE_LEARN_SCHEMA });
+      const fmt = parseNoteFormat(text, samples.length);
+      const { error } = await sb.from("agent_profiles").upsert({
+        crisp_user_id: opId,
+        website_id: websiteId,
+        topic: "_all",
+        note_format: fmt,
+      }, { onConflict: "crisp_user_id,website_id,topic" });
+      if (error) throw error;
+      console.log(`- ${name} / note format: ${fmt.language}, mục [${fmt.sections.map((s) => s.field).join(" > ") || "mặc định"}], ${fmt.line_style} (${samples.length} note)`);
+    } catch (e) {
+      console.warn(`- ${name} / note format: lỗi ${e instanceof Error ? e.message : e}`);
     }
   }
 }
