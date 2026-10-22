@@ -1,4 +1,5 @@
-import type { Profile, ProfileRow } from "./types.ts";
+import { asNoteFormat } from "./learn.ts";
+import type { NoteFormat, Profile, ProfileRow } from "./types.ts";
 
 export type ProfileSource = "topic" | "all" | "default";
 
@@ -43,4 +44,16 @@ export function resolveProfile(
     ...defined(byTopic?.manual_override),
   };
   return { profile, source };
+}
+
+/**
+ * Format note học theo CS, chỉ nằm ở dòng "_all" (format là thói quen cá nhân, không theo topic).
+ * manual_override.note_format (nếu người quản trị đặt tay trong jsonb) thắng bản học, như mọi trường khác.
+ * null = chưa đủ note để học → handoff dùng template cố định.
+ */
+export function resolveNoteFormat(rows: ProfileRow[]): NoteFormat | null {
+  const all = rows.find((r) => r.topic === "_all");
+  if (!all) return null;
+  const manual = (all.manual_override as { note_format?: unknown } | null)?.note_format;
+  return asNoteFormat(manual) ?? asNoteFormat(all.note_format);
 }

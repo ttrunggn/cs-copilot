@@ -33,6 +33,30 @@ export interface Workspace {
   default_profile: Partial<Profile>;
 }
 
+export type NoteLanguage = "vi" | "en" | "mixed";
+export type NoteLineStyle = "numbered" | "bullets" | "paragraphs";
+export type NoteSectionField = "summary" | "issues" | "next_step";
+
+export interface NoteSection {
+  field: NoteSectionField;
+  label: string; // nhãn CS tự dùng, "" = không in nhãn, nội dung đứng một mình
+}
+
+/**
+ * Format private note học từ note cũ của từng CS (chỉ đặc điểm trình bày, không nội dung).
+ * Chỉ áp ở lớp format (formatHandoffNote); nội dung vẫn do HANDOFF_SCHEMA quyết định.
+ * sections thiếu trường nào thì trường đó được nối thêm bằng nhãn mặc định — không bao giờ bỏ nội dung.
+ */
+export interface NoteFormat {
+  language: NoteLanguage;
+  header: string | null; // dòng đầu, "{name}" thay bằng tên CS; null = CS không viết dòng đầu
+  sections: NoteSection[]; // thứ tự + nhãn từng trường theo thói quen của CS
+  line_style: NoteLineStyle; // cách liệt kê các vấn đề
+  state_style: "emoji" | "text"; // trạng thái vấn đề: "✅ Xong" hay "Xong"
+  sign_off: string | null; // dòng ký tên cuối note, "{name}" thay tên; null = không có
+  notes_used: number; // số note đã dùng để học — bằng chứng, dưới ngưỡng thì không áp
+}
+
 export interface ProfileRow extends Partial<Profile> {
   crisp_user_id: string;
   website_id: string;
@@ -40,6 +64,7 @@ export interface ProfileRow extends Partial<Profile> {
   conversations_used: number;
   learned_at: string | null;
   manual_override: Partial<Profile> | null;
+  note_format?: NoteFormat | null; // chỉ có ở dòng "_all" (cột jsonb, migration 20261022000016)
 }
 
 export interface ConversationRow {

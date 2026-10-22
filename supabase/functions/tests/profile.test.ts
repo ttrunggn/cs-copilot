@@ -1,6 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { BUILTIN_PROFILE, resolveProfile } from "../_shared/profile.ts";
-import type { ProfileRow } from "../_shared/types.ts";
+import { BUILTIN_PROFILE, resolveNoteFormat, resolveProfile } from "../_shared/profile.ts";
+import type { NoteFormat, ProfileRow } from "../_shared/types.ts";
 
 const row = (topic: string, extra: Partial<ProfileRow> = {}): ProfileRow => ({
   crisp_user_id: "op-lan",
@@ -58,4 +58,34 @@ Deno.test("null learned fields do not erase defaults", () => {
 
 Deno.test("built-in profile writes in English", () => {
   assertEquals([BUILTIN_PROFILE.pronoun_self, BUILTIN_PROFILE.pronoun_customer, BUILTIN_PROFILE.tone], ["I", "you", "friendly, polite, concise"]);
+});
+
+const NOTE_FMT: NoteFormat = {
+  language: "vi",
+  header: "Bàn giao — {name}",
+  sections: [{ field: "issues", label: "Vấn đề:" }],
+  line_style: "bullets",
+  state_style: "text",
+  sign_off: null,
+  notes_used: 6,
+};
+
+Deno.test("resolveNoteFormat reads the format from the _all row only", () => {
+  assertEquals(resolveNoteFormat([]), null);
+  assertEquals(resolveNoteFormat([row("billing", { note_format: NOTE_FMT })]), null);
+  assertEquals(resolveNoteFormat([row("_all", { note_format: NOTE_FMT })]), NOTE_FMT);
+  assertEquals(resolveNoteFormat([row("_all")]), null);
+});
+
+Deno.test("resolveNoteFormat rejects a format learned from too few notes", () => {
+  assertEquals(resolveNoteFormat([row("_all", { note_format: { ...NOTE_FMT, notes_used: 2 } })]), null);
+});
+
+Deno.test("resolveNoteFormat: manual_override note_format beats the learned one", () => {
+  const manual = { ...NOTE_FMT, language: "en" as const, header: "Handoff — {name}" };
+  const rows = [row("_all", {
+    note_format: NOTE_FMT,
+    manual_override: { note_format: manual } as unknown as ProfileRow["manual_override"],
+  })];
+  assertEquals(resolveNoteFormat(rows), manual);
 });
