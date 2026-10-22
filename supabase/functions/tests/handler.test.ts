@@ -85,6 +85,7 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     topic_label: "Billing",
     profile_source: "topic",
     profile_name: "Lan Nguyen",
+    conversation_state: "unresolved",
     needs_reply: true,
     unanswered: ["c"],
     pending_messages: [{ text: "c", bot_replied: false }],
