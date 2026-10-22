@@ -8,6 +8,8 @@ import type {
   HandoffFields,
   HandoffState,
   HelpdeskChunk,
+  NoteFormat,
+  NoteSectionField,
   Profile,
   Topic,
   Variant,
@@ -323,13 +325,63 @@ const STATE_LABEL: Record<HandoffState, string> = {
 const WAITING_LABEL: Record<WaitingOn, string> = { customer: "khách", tech: "tech", cs: "CS", none: "" };
 
 /** Note ngắn: 1 dòng tóm tắt, mỗi vấn đề 1 dòng (trạng thái + làm gì cụ thể), 1 dòng bước tiếp theo. */
-export function formatHandoffNote(h: HandoffFields, operatorName: string): string {
-  const waiting = WAITING_LABEL[h.waiting_on];
-  return [
-    `📋 Handoff — ${operatorName}`,
-    h.summary,
-    ...h.issues.map((i, n) => `${n + 1}. ${i.issue} — ${STATE_LABEL[i.state]}${i.detail ? `: ${i.detail}` : ""}`),
-    ...(h.more ? [`… và ${h.more} vấn đề khác`] : []),
-    `➡️ Tiếp theo${waiting ? ` (chờ ${waiting})` : ""}: ${h.next_step}`,
-  ].join("\n");
+export function formatHandoffNote(h: HandoffFields, operatorName: string, fmt?: NoteFormat | null): string {
+  if (!fmt) {
+    const waiting = WAITING_LABEL[h.waiting_on];
+    return [
+      `📋 Handoff — ${operatorName}`,
+      h.summary,
+      ...h.issues.map((i, n) => `${n + 1}. ${i.issue} — ${STATE_LABEL[i.state]}${i.detail ? `: ${i.detail}` : ""}`),
+      ...(h.more ? [`… và ${h.more} vấn đề khác`] : []),
+      `➡️ Tiếp theo${waiting ? ` (chờ ${waiting})` : ""}: ${h.next_step}`,
+    ].join("\n");
+  }
+  return formatHandoffNoteLearned(h, operatorName, fmt);
+}
+
+const STATE_LABEL_TEXT: Record<HandoffState, string> = {
+  done: "Xong",
+  in_progress: "Đang xử lý",
+  waiting_customer: "Chờ khách",
+  waiting_tech: "Chờ tech",
+  not_started: "Chưa xử lý",
+};
+const WAITING_LABEL_EN: Record<WaitingOn, string> = { customer: "customer", tech: "tech", cs: "CS", none: "" };
+const FIELD_ORDER: NoteSectionField[] = ["summary", "issues", "next_step"];
+
+/**
+ * Cùng nội dung HANDOFF_SCHEMA nhưng trình bày theo format học từ note cũ của CS:
+ * dòng đầu, thứ tự/nhãn các mục, kiểu liệt kê, ngôn ngữ nhãn mặc định, dòng ký tên.
+ * Trường nào format của CS không có mục riêng thì nối thêm bằng nhãn mặc định của ngôn ngữ đó —
+ * nội dung không bao giờ bị bỏ, chỉ có trình bày là thay đổi. Thuần code, không gọi AI.
+ */
+function formatHandoffNoteLearned(h: HandoffFields, operatorName: string, fmt: NoteFormat): string {
+  const en = fmt.language === "en";
+  const stateLabel = (s: HandoffState) => (fmt.state_style === "text" ? STATE_LABEL_TEXT[s] : STATE_LABEL[s]);
+  const block = (field: NoteSectionField, label: string): string[] => {
+    if (field === "summary") return [label ? `${label} ${h.summary}` : h.summary];
+    if (field === "issues") {
+      const marker = (n: number) => (fmt.line_style === "numbered" ? `${n + 1}. ` : fmt.line_style === "bullets" ? "- " : "");
+      return [
+        ...(label ? [label] : []),
+        ...h.issues.map((i, n) => `${marker(n)}${i.issue} — ${stateLabel(i.state)}${i.detail ? `: ${i.detail}` : ""}`),
+        ...(h.more ? [en ? `… and ${h.more} more issues` : `… và ${h.more} vấn đề khác`] : []),
+      ];
+    }
+    const waiting = en ? WAITING_LABEL_EN[h.waiting_on] : WAITING_LABEL[h.waiting_on];
+    const core = waiting ? `${en ? `(waiting on ${waiting}) ` : `(chờ ${waiting}) `}${h.next_step}` : h.next_step;
+    return [label ? `${label} ${core}` : core];
+  };
+  const defaultLabel = (field: NoteSectionField) =>
+    field === "next_step" ? (en ? "Next step:" : "Tiếp theo:") : "";
+  const lines: string[] = [];
+  if (fmt.header) lines.push(fmt.header.replaceAll("{name}", operatorName));
+  const covered = new Set<NoteSectionField>();
+  for (const s of fmt.sections) {
+    covered.add(s.field);
+    lines.push(...block(s.field, s.label));
+  }
+  for (const f of FIELD_ORDER) if (!covered.has(f)) lines.push(...block(f, defaultLabel(f)));
+  if (fmt.sign_off) lines.push(fmt.sign_off.replaceAll("{name}", operatorName));
+  return lines.join("\n");
 }
