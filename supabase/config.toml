@@ -1,1 +1,421 @@
-IyBGb3IgZGV0YWlsZWQgY29uZmlndXJhdGlvbiByZWZlcmVuY2UgZG9jdW1lbnRhdGlvbiwgdmlzaXQ6CiMgaHR0cHM6Ly9zdXBhYmFzZS5jb20vZG9jcy9ndWlkZXMvbG9jYWwtZGV2ZWxvcG1lbnQvY2xpL2NvbmZpZwojIEEgc3RyaW5nIHVzZWQgdG8gZGlzdGluZ3Vpc2ggZGlmZmVyZW50IFN1cGFiYXNlIHByb2plY3RzIG9uIHRoZSBzYW1lIGhvc3QuIERlZmF1bHRzIHRvIHRoZQojIHdvcmtpbmcgZGlyZWN0b3J5IG5hbWUgd2hlbiBydW5uaW5nIGBzdXBhYmFzZSBpbml0YC4KcHJvamVjdF9pZCA9ICJjcy1jb3BpbG90IgoKW2FwaV0KZW5hYmxlZCA9IHRydWUKIyBQb3J0IHRvIHVzZSBmb3IgdGhlIEFQSSBVUkwuCnBvcnQgPSA1NDMyMQojIFNjaGVtYXMgdG8gZXhwb3NlIGluIHlvdXIgQVBJLiBUYWJsZXMsIHZpZXdzIGFuZCBzdG9yZWQgcHJvY2VkdXJlcyBpbiB0aGlzIHNjaGVtYSB3aWxsIGdldCBBUEkKIyBlbmRwb2ludHMuIGBwdWJsaWNgIGFuZCBgZ3JhcGhxbF9wdWJsaWNgIHNjaGVtYXMgYXJlIGluY2x1ZGVkIGJ5IGRlZmF1bHQuCnNjaGVtYXMgPSBbInB1YmxpYyIsICJncmFwaHFsX3B1YmxpYyJdCiMgRXh0cmEgc2NoZW1hcyB0byBhZGQgdG8gdGhlIHNlYXJjaF9wYXRoIG9mIGV2ZXJ5IHJlcXVlc3QuCmV4dHJhX3NlYXJjaF9wYXRoID0gWyJwdWJsaWMiLCAiZXh0ZW5zaW9ucyJdCiMgVGhlIG1heGltdW0gbnVtYmVyIG9mIHJvd3MgcmV0dXJucyBmcm9tIGEgdmlldywgdGFibGUsIG9yIHN0b3JlZCBwcm9jZWR1cmUuIExpbWl0cyBwYXlsb2FkIHNpemUKIyBmb3IgYWNjaWRlbnRhbCBvciBtYWxpY2lvdXMgcmVxdWVzdHMuCm1heF9yb3dzID0gMTAwMAojIENvbnRyb2xzIHdoZXRoZXIgbmV3IHRhYmxlcywgdmlld3MsIHNlcXVlbmNlcyBhbmQgZnVuY3Rpb25zIGNyZWF0ZWQgaW4gdGhlIGBwdWJsaWNgIHNjaGVtYSBieQojIGBwb3N0Z3Jlc2AgYXJlIHJlYWNoYWJsZSB0aHJvdWdoIHRoZSBEYXRhIEFQSSByb2xlcyAoYGFub25gLCBgYXV0aGVudGljYXRlZGAsIGBzZXJ2aWNlX3JvbGVgKQojIHdpdGhvdXQgZXhwbGljaXQgR1JBTlRzLCBtYXRjaGluZyB0aGUgY2xvdWQgZGVmYXVsdC4gU2V0IHRvIGBmYWxzZWAgdG8gcmVxdWlyZSBleHBsaWNpdCBHUkFOVHMKIyBpbnN0ZWFkLiBMZWZ0IHVuc2V0LCBhIGZyZXNoIHByb2plY3QgZmFsbHMgYmFjayB0byBgdHJ1ZWAuCiMgYXV0b19leHBvc2VfbmV3X3RhYmxlcyA9IHRydWUKClthcGkudGxzXQojIEVuYWJsZSBIVFRQUyBlbmRwb2ludHMgbG9jYWxseSB1c2luZyBhIHNlbGYtc2lnbmVkIGNlcnRpZmljYXRlLgplbmFibGVkID0gZmFsc2UKIyBQYXRocyB0byBzZWxmLXNpZ25lZCBjZXJ0aWZpY2F0ZSBwYWlyLgojIGNlcnRfcGF0aCA9ICIuLi9jZXJ0cy9teS1jZXJ0LnBlbSIKIyBrZXlfcGF0aCA9ICIuLi9jZXJ0cy9teS1rZXkucGVtIgoKW2RiXQojIFBvcnQgdG8gdXNlIGZvciB0aGUgbG9jYWwgZGF0YWJhc2UgVVJMLgpwb3J0ID0gNTQzMjIKIyBQb3J0IHVzZWQgYnkgZGIgZGlmZiBjb21tYW5kIHRvIGluaXRpYWxpemUgdGhlIHNoYWRvdyBkYXRhYmFzZS4Kc2hhZG93X3BvcnQgPSA1NDMyMAojIE1heGltdW0gYW1vdW50IG9mIHRpbWUgdG8gd2FpdCBmb3IgaGVhbHRoIGNoZWNrIHdoZW4gc3RhcnRpbmcgdGhlIGxvY2FsIGRhdGFiYXNlLgpoZWFsdGhfdGltZW91dCA9ICIybSIKIyBUaGUgZGF0YWJhc2UgbWFqb3IgdmVyc2lvbiB0byB1c2UuIFRoaXMgaGFzIHRvIGJlIHRoZSBzYW1lIGFzIHlvdXIgcmVtb3RlIGRhdGFiYXNlJ3MuIFJ1biBgU0hPVwojIHNlcnZlcl92ZXJzaW9uO2Agb24gdGhlIHJlbW90ZSBkYXRhYmFzZSB0byBjaGVjay4KbWFqb3JfdmVyc2lvbiA9IDE3CiMgT3Jpb2xlREIgdmVyc2lvbiB0byB1c2UgYXMgdGhlIFBvc3RncmVzIHN0b3JhZ2UgZW5naW5lLiBMZWF2ZSBlbXB0eSB0byB1c2UgdGhlIGRlZmF1bHQgZW5naW5lLgpvcmlvbGVkYl92ZXJzaW9uID0gIiIKCltkYi5wb29sZXJdCmVuYWJsZWQgPSBmYWxzZQojIFBvcnQgdG8gdXNlIGZvciB0aGUgbG9jYWwgY29ubmVjdGlvbiBwb29sZXIuCnBvcnQgPSA1NDMyOQojIFNwZWNpZmllcyB3aGVuIGEgc2VydmVyIGNvbm5lY3Rpb24gY2FuIGJlIHJldXNlZCBieSBvdGhlciBjbGllbnRzLgojIENvbmZpZ3VyZSBvbmUgb2YgdGhlIHN1cHBvcnRlZCBwb29sZXIgbW9kZXM6IGB0cmFuc2FjdGlvbmAsIGBzZXNzaW9uYC4KcG9vbF9tb2RlID0gInRyYW5zYWN0aW9uIgojIEhvdyBtYW55IHNlcnZlciBjb25uZWN0aW9ucyB0byBhbGxvdyBwZXIgdXNlci9kYXRhYmFzZSBwYWlyLgpkZWZhdWx0X3Bvb2xfc2l6ZSA9IDIwCiMgTWF4aW11bSBudW1iZXIgb2YgY2xpZW50IGNvbm5lY3Rpb25zIGFsbG93ZWQuCm1heF9jbGllbnRfY29ubiA9IDEwMAoKIyBbZGIudmF1bHRdCiMgc2VjcmV0X2tleSA9ICJlbnYoU0VDUkVUX1ZBTFVFKSIKCltkYi5taWdyYXRpb25zXQojIElmIGRpc2FibGVkLCBtaWdyYXRpb25zIHdpbGwgYmUgc2tpcHBlZCBkdXJpbmcgYSBkYiBwdXNoIG9yIHJlc2V0LgplbmFibGVkID0gdHJ1ZQojIFNwZWNpZmllcyBhbiBvcmRlcmVkIGxpc3Qgb2Ygc2NoZW1hIGZpbGVzLCBkaXJlY3Rvcmllcywgb3IgZ2xvYiBwYXR0ZXJucyB0aGF0IGRlc2NyaWJlIHlvdXIgZGF0YWJhc2UuCiMgU3VwcG9ydHMgcGF0aHMgcmVsYXRpdmUgdG8gc3VwYWJhc2UgZGlyZWN0b3J5OiAiLi9zY2hlbWFzLyouc3FsIiwgIi4vZGF0YWJhc2UiLgpzY2hlbWFfcGF0aHMgPSBbXQoKW2RiLnNlZWRdCiMgSWYgZW5hYmxlZCwgc2VlZHMgdGhlIGRhdGFiYXNlIGFmdGVyIG1pZ3JhdGlvbnMgZHVyaW5nIGEgZGIgcmVzZXQuCmVuYWJsZWQgPSB0cnVlCiMgU3BlY2lmaWVzIGFuIG9yZGVyZWQgbGlzdCBvZiBzZWVkIGZpbGVzIHRvIGxvYWQgZHVyaW5nIGRiIHJlc2V0LgojIFN1cHBvcnRzIGdsb2IgcGF0dGVybnMgcmVsYXRpdmUgdG8gc3VwYWJhc2UgZGlyZWN0b3J5OiAiLi9zZWVkcy8qLnNxbCIKc3FsX3BhdGhzID0gWyIuL3NlZWQuc3FsIl0KCltkYi5uZXR3b3JrX3Jlc3RyaWN0aW9uc10KIyBFbmFibGUgbWFuYWdlbWVudCBvZiBuZXR3b3JrIHJlc3RyaWN0aW9ucy4KZW5hYmxlZCA9IGZhbHNlCiMgTGlzdCBvZiBJUHY0IENJRFIgYmxvY2tzIGFsbG93ZWQgdG8gY29ubmVjdCB0byB0aGUgZGF0YWJhc2UuCiMgRGVmYXVsdHMgdG8gYWxsb3cgYWxsIElQdjQgY29ubmVjdGlvbnMuIFNldCBlbXB0eSBhcnJheSB0byBibG9jayBhbGwgSVBzLgphbGxvd2VkX2NpZHJzID0gWyIwLjAuMC4wLzAiXQojIExpc3Qgb2YgSVB2NiBDSURSIGJsb2NrcyBhbGxvd2VkIHRvIGNvbm5lY3QgdG8gdGhlIGRhdGFiYXNlLgojIERlZmF1bHRzIHRvIGFsbG93IGFsbCBJUHY2IGNvbm5lY3Rpb25zLiBTZXQgZW1wdHkgYXJyYXkgdG8gYmxvY2sgYWxsIElQcy4KYWxsb3dlZF9jaWRyc192NiA9IFsiOjovMCJdCgojIFVuY29tbWVudCB0byByZWplY3Qgbm9uLXNlY3VyZSBjb25uZWN0aW9ucyB0byB0aGUgZGF0YWJhc2UuCiMgW2RiLnNzbF9lbmZvcmNlbWVudF0KIyBlbmFibGVkID0gdHJ1ZQoKW3JlYWx0aW1lXQplbmFibGVkID0gdHJ1ZQojIEJpbmQgcmVhbHRpbWUgdmlhIGVpdGhlciBJUHY0IG9yIElQdjYuIChkZWZhdWx0OiBJUHY0KQojIGlwX3ZlcnNpb24gPSAiSVB2NiIKIyBUaGUgbWF4aW11bSBsZW5ndGggaW4gYnl0ZXMgb2YgSFRUUCByZXF1ZXN0IGhlYWRlcnMuIChkZWZhdWx0OiA0MDk2KQojIG1heF9oZWFkZXJfbGVuZ3RoID0gNDA5NgoKW3N0dWRpb10KZW5hYmxlZCA9IHRydWUKIyBQb3J0IHRvIHVzZSBmb3IgU3VwYWJhc2UgU3R1ZGlvLgpwb3J0ID0gNTQzMjMKIyBFeHRlcm5hbCBVUkwgb2YgdGhlIEFQSSBzZXJ2ZXIgdGhhdCBmcm9udGVuZCBjb25uZWN0cyB0by4KYXBpX3VybCA9ICJodHRwOi8vMTI3LjAuMC4xIgojIE9wZW5BSSBBUEkgS2V5IHRvIHVzZSBmb3IgU3VwYWJhc2UgQUkgaW4gdGhlIFN1cGFiYXNlIFN0dWRpby4Kb3BlbmFpX2FwaV9rZXkgPSAiZW52KE9QRU5BSV9BUElfS0VZKSIKCiMgRW1haWwgdGVzdGluZyBzZXJ2ZXIuIEVtYWlscyBzZW50IHdpdGggdGhlIGxvY2FsIGRldiBzZXR1cCBhcmUgbm90IGFjdHVhbGx5IHNlbnQgLSByYXRoZXIsIHRoZXkKIyBhcmUgbW9uaXRvcmVkLCBhbmQgeW91IGNhbiB2aWV3IHRoZSBlbWFpbHMgdGhhdCB3b3VsZCBoYXZlIGJlZW4gc2VudCBmcm9tIHRoZSB3ZWIgaW50ZXJmYWNlLgpbbG9jYWxfc210cF0KZW5hYmxlZCA9IHRydWUKIyBQb3J0IHRvIHVzZSBmb3IgdGhlIGVtYWlsIHRlc3Rpbmcgc2VydmVyIHdlYiBpbnRlcmZhY2UuCnBvcnQgPSA1NDMyNAojIFVuY29tbWVudCB0byBleHBvc2UgYWRkaXRpb25hbCBwb3J0cyBmb3IgdGVzdGluZyB1c2VyIGFwcGxpY2F0aW9ucyB0aGF0IHNlbmQgZW1haWxzLgojIHNtdHBfcG9ydCA9IDU0MzI1CiMgcG9wM19wb3J0ID0gNTQzMjYKIyBhZG1pbl9lbWFpbCA9ICJhZG1pbkBlbWFpbC5jb20iCiMgc2VuZGVyX25hbWUgPSAiQWRtaW4iCgpbc3RvcmFnZV0KZW5hYmxlZCA9IHRydWUKIyBUaGUgbWF4aW11bSBmaWxlIHNpemUgYWxsb3dlZCAoZS5nLiAiNU1CIiwgIjUwMEtCIikuCmZpbGVfc2l6ZV9saW1pdCA9ICI1ME1pQiIKCiMgVW5jb21tZW50IHRvIGNvbmZpZ3VyZSBsb2NhbCBzdG9yYWdlIGJ1Y2tldHMKIyBbc3RvcmFnZS5idWNrZXRzLmltYWdlc10KIyBwdWJsaWMgPSBmYWxzZQojIGZpbGVfc2l6ZV9saW1pdCA9ICI1ME1pQiIKIyBhbGxvd2VkX21pbWVfdHlwZXMgPSBbImltYWdlL3BuZyIsICJpbWFnZS9qcGVnIl0KIyBvYmplY3RzX3BhdGggPSAiLi9pbWFnZXMiCgojIEFsbG93IGNvbm5lY3Rpb25zIHZpYSBTMyBjb21wYXRpYmxlIGNsaWVudHMKW3N0b3JhZ2UuczNfcHJvdG9jb2xdCmVuYWJsZWQgPSB0cnVlCgojIEltYWdlIHRyYW5zZm9ybWF0aW9uIEFQSSBpcyBhdmFpbGFibGUgdG8gU3VwYWJhc2UgUHJvIHBsYW4uCiMgW3N0b3JhZ2UuaW1hZ2VfdHJhbnNmb3JtYXRpb25dCiMgZW5hYmxlZCA9IHRydWUKCiMgU3RvcmUgYW5hbHl0aWNhbCBkYXRhIGluIFMzIGZvciBydW5uaW5nIEVUTCBqb2JzIG92ZXIgSWNlYmVyZyBDYXRhbG9nCiMgVGhpcyBmZWF0dXJlIGlzIG9ubHkgYXZhaWxhYmxlIG9uIHRoZSBob3N0ZWQgcGxhdGZvcm0uCltzdG9yYWdlLmFuYWx5dGljc10KZW5hYmxlZCA9IGZhbHNlCm1heF9uYW1lc3BhY2VzID0gNQptYXhfdGFibGVzID0gMTAKbWF4X2NhdGFsb2dzID0gMgoKIyBBbmFseXRpY3MgQnVja2V0cyBpcyBhdmFpbGFibGUgdG8gU3VwYWJhc2UgUHJvIHBsYW4uCiMgW3N0b3JhZ2UuYW5hbHl0aWNzLmJ1Y2tldHMubXktd2FyZWhvdXNlXQoKIyBTdG9yZSB2ZWN0b3IgZW1iZWRkaW5ncyBpbiBTMyBmb3IgbGFyZ2UgYW5kIGR1cmFibGUgZGF0YXNldHMKW3N0b3JhZ2UudmVjdG9yXQplbmFibGVkID0gdHJ1ZQptYXhfYnVja2V0cyA9IDEwCm1heF9pbmRleGVzID0gNQoKIyBWZWN0b3IgQnVja2V0cyBpcyBhdmFpbGFibGUgdG8gU3VwYWJhc2UgUHJvIHBsYW4uCiMgW3N0b3JhZ2UudmVjdG9yLmJ1Y2tldHMuZG9jdW1lbnRzLW9wZW5haV0KClthdXRoXQplbmFibGVkID0gdHJ1ZQojIFRoZSBiYXNlIFVSTCBvZiB5b3VyIHdlYnNpdGUuIFVzZWQgYXMgYW4gYWxsb3ctbGlzdCBmb3IgcmVkaXJlY3RzIGFuZCBmb3IgY29uc3RydWN0aW5nIFVSTHMgdXNlZAojIGluIGVtYWlscy4Kc2l0ZV91cmwgPSAiaHR0cDovLzEyNy4wLjAuMTozMDAwIgojIFRoZSBwdWJsaWMgVVJMIHRoYXQgQXV0aCBzZXJ2ZXMgb24uIERlZmF1bHRzIHRvIHRoZSBBUEkgZXh0ZXJuYWwgVVJMIHdpdGggYC9hdXRoL3YxYCBhcHBlbmRlZC4KIyBleHRlcm5hbF91cmwgPSAiIgojIEEgbGlzdCBvZiAqZXhhY3QqIFVSTHMgdGhhdCBhdXRoIHByb3ZpZGVycyBhcmUgcGVybWl0dGVkIHRvIHJlZGlyZWN0IHRvIHBvc3QgYXV0aGVudGljYXRpb24uCmFkZGl0aW9uYWxfcmVkaXJlY3RfdXJscyA9IFsiaHR0cHM6Ly8xMjcuMC4wLjE6MzAwMCJdCiMgSG93IGxvbmcgdG9rZW5zIGFyZSB2YWxpZCBmb3IsIGluIHNlY29uZHMuIERlZmF1bHRzIHRvIDM2MDAgKDEgaG91ciksIG1heGltdW0gNjA0LDgwMCAoMSB3ZWVrKS4Kand0X2V4cGlyeSA9IDM2MDAKIyBKV1QgaXNzdWVyIFVSTC4gSWYgbm90IHNldCwgZGVmYXVsdHMgdG8gYXV0aC5leHRlcm5hbF91cmwuCiMgand0X2lzc3VlciA9ICIiCiMgUGF0aCB0byBKV1Qgc2lnbmluZyBrZXkuIERPIE5PVCBjb21taXQgeW91ciBzaWduaW5nIGtleXMgZmlsZSB0byBnaXQuCiMgc2lnbmluZ19rZXlzX3BhdGggPSAiLi9zaWduaW5nX2tleXMuanNvbiIKIyBJZiBkaXNhYmxlZCwgdGhlIHJlZnJlc2ggdG9rZW4gd2lsbCBuZXZlciBleHBpcmUuCmVuYWJsZV9yZWZyZXNoX3Rva2VuX3JvdGF0aW9uID0gdHJ1ZQojIEFsbG93cyByZWZyZXNoIHRva2VucyB0byBiZSByZXVzZWQgYWZ0ZXIgZXhwaXJ5LCB1cCB0byB0aGUgc3BlY2lmaWVkIGludGVydmFsIGluIHNlY29uZHMuCiMgUmVxdWlyZXMgZW5hYmxlX3JlZnJlc2hfdG9rZW5fcm90YXRpb24gPSB0cnVlLgpyZWZyZXNoX3Rva2VuX3JldXNlX2ludGVydmFsID0gMTAKIyBBbGxvdy9kaXNhbGxvdyBuZXcgdXNlciBzaWdudXBzIHRvIHlvdXIgcHJvamVjdC4KZW5hYmxlX3NpZ251cCA9IHRydWUKIyBBbGxvdy9kaXNhbGxvdyBhbm9ueW1vdXMgc2lnbi1pbnMgdG8geW91ciBwcm9qZWN0LgplbmFibGVfYW5vbnltb3VzX3NpZ25faW5zID0gZmFsc2UKIyBBbGxvdy9kaXNhbGxvdyB0ZXN0aW5nIG1hbnVhbCBsaW5raW5nIG9mIGFjY291bnRzCmVuYWJsZV9tYW51YWxfbGlua2luZyA9IGZhbHNlCiMgUGFzc3dvcmRzIHNob3J0ZXIgdGhhbiB0aGlzIHZhbHVlIHdpbGwgYmUgcmVqZWN0ZWQgYXMgd2Vhay4gTWluaW11bSA2LCByZWNvbW1lbmRlZCA4IG9yIG1vcmUuCm1pbmltdW1fcGFzc3dvcmRfbGVuZ3RoID0gNgojIFBhc3N3b3JkcyB0aGF0IGRvIG5vdCBtZWV0IHRoZSBmb2xsb3dpbmcgcmVxdWlyZW1lbnRzIHdpbGwgYmUgcmVqZWN0ZWQgYXMgd2Vhay4gU3VwcG9ydGVkIHZhbHVlcwojIGFyZTogYGxldHRlcnNfZGlnaXRzYCwgYGxvd2VyX3VwcGVyX2xldHRlcnNfZGlnaXRzYCwgYGxvd2VyX3VwcGVyX2xldHRlcnNfZGlnaXRzX3N5bWJvbHNgCnBhc3N3b3JkX3JlcXVpcmVtZW50cyA9ICIiCgojIENvbmZpZ3VyZSBwYXNza2V5IHNpZ24taW5zLgojIFthdXRoLnBhc3NrZXldCiMgZW5hYmxlZCA9IGZhbHNlCgojIENvbmZpZ3VyZSBXZWJBdXRobiByZWx5aW5nIHBhcnR5IHNldHRpbmdzIChyZXF1aXJlZCB3aGVuIHBhc3NrZXkgaXMgZW5hYmxlZCkuCiMgW2F1dGgud2ViYXV0aG5dCiMgcnBfZGlzcGxheV9uYW1lID0gIlN1cGFiYXNlIgojIHJwX2lkID0gImxvY2FsaG9zdCIKIyBycF9vcmlnaW5zID0gWyJodHRwOi8vMTI3LjAuMC4xOjMwMDAiXQoKW2F1dGgucmF0ZV9saW1pdF0KIyBOdW1iZXIgb2YgZW1haWxzIHRoYXQgY2FuIGJlIHNlbnQgcGVyIGhvdXIuIFJlcXVpcmVzIGF1dGguZW1haWwuc210cCB0byBiZSBlbmFibGVkLgplbWFpbF9zZW50ID0gMgojIE51bWJlciBvZiBTTVMgbWVzc2FnZXMgdGhhdCBjYW4gYmUgc2VudCBwZXIgaG91ci4gUmVxdWlyZXMgYXV0aC5zbXMgdG8gYmUgZW5hYmxlZC4Kc21zX3NlbnQgPSAzMAojIE51bWJlciBvZiBhbm9ueW1vdXMgc2lnbi1pbnMgdGhhdCBjYW4gYmUgbWFkZSBwZXIgaG91ciBwZXIgSVAgYWRkcmVzcy4gUmVxdWlyZXMgZW5hYmxlX2Fub255bW91c19zaWduX2lucyA9IHRydWUuCmFub255bW91c191c2VycyA9IDMwCiMgTnVtYmVyIG9mIHNlc3Npb25zIHRoYXQgY2FuIGJlIHJlZnJlc2hlZCBpbiBhIDUgbWludXRlIGludGVydmFsIHBlciBJUCBhZGRyZXNzLgp0b2tlbl9yZWZyZXNoID0gMTUwCiMgTnVtYmVyIG9mIHNpZ24gdXAgYW5kIHNpZ24taW4gcmVxdWVzdHMgdGhhdCBjYW4gYmUgbWFkZSBpbiBhIDUgbWludXRlIGludGVydmFsIHBlciBJUCBhZGRyZXNzIChleGNsdWRlcyBhbm9ueW1vdXMgdXNlcnMpLgpzaWduX2luX3NpZ25fdXBzID0gMzAKIyBOdW1iZXIgb2YgT1RQIC8gTWFnaWMgbGluayB2ZXJpZmljYXRpb25zIHRoYXQgY2FuIGJlIG1hZGUgaW4gYSA1IG1pbnV0ZSBpbnRlcnZhbCBwZXIgSVAgYWRkcmVzcy4KdG9rZW5fdmVyaWZpY2F0aW9ucyA9IDMwCiMgTnVtYmVyIG9mIFdlYjMgbG9naW5zIHRoYXQgY2FuIGJlIG1hZGUgaW4gYSA1IG1pbnV0ZSBpbnRlcnZhbCBwZXIgSVAgYWRkcmVzcy4Kd2ViMyA9IDMwCgojIENvbmZpZ3VyZSBvbmUgb2YgdGhlIHN1cHBvcnRlZCBjYXB0Y2hhIHByb3ZpZGVyczogYGhjYXB0Y2hhYCwgYHR1cm5zdGlsZWAuCiMgW2F1dGguY2FwdGNoYV0KIyBlbmFibGVkID0gdHJ1ZQojIHByb3ZpZGVyID0gImhjYXB0Y2hhIgojIHNlY3JldCA9ICIiCgpbYXV0aC5lbWFpbF0KIyBBbGxvdy9kaXNhbGxvdyBuZXcgdXNlciBzaWdudXBzIHZpYSBlbWFpbCB0byB5b3VyIHByb2plY3QuCmVuYWJsZV9zaWdudXAgPSB0cnVlCiMgSWYgZW5hYmxlZCwgYSB1c2VyIHdpbGwgYmUgcmVxdWlyZWQgdG8gY29uZmlybSBhbnkgZW1haWwgY2hhbmdlIG9uIGJvdGggdGhlIG9sZCwgYW5kIG5ldyBlbWFpbAojIGFkZHJlc3Nlcy4gSWYgZGlzYWJsZWQsIG9ubHkgdGhlIG5ldyBlbWFpbCBpcyByZXF1aXJlZCB0byBjb25maXJtLgpkb3VibGVfY29uZmlybV9jaGFuZ2VzID0gdHJ1ZQojIElmIGVuYWJsZWQsIHVzZXJzIG5lZWQgdG8gY29uZmlybSB0aGVpciBlbWFpbCBhZGRyZXNzIGJlZm9yZSBzaWduaW5nIGluLgplbmFibGVfY29uZmlybWF0aW9ucyA9IGZhbHNlCiMgSWYgZW5hYmxlZCwgdXNlcnMgd2lsbCBuZWVkIHRvIHJlYXV0aGVudGljYXRlIG9yIGhhdmUgbG9nZ2VkIGluIHJlY2VudGx5IHRvIGNoYW5nZSB0aGVpciBwYXNzd29yZC4Kc2VjdXJlX3Bhc3N3b3JkX2NoYW5nZSA9IGZhbHNlCiMgQ29udHJvbHMgdGhlIG1pbmltdW0gYW1vdW50IG9mIHRpbWUgdGhhdCBtdXN0IHBhc3MgYmVmb3JlIHNlbmRpbmcgYW5vdGhlciBzaWdudXAgY29uZmlybWF0aW9uIG9yIHBhc3N3b3JkIHJlc2V0IGVtYWlsLgptYXhfZnJlcXVlbmN5ID0gIjFzIgojIE51bWJlciBvZiBjaGFyYWN0ZXJzIHVzZWQgaW4gdGhlIGVtYWlsIE9UUC4Kb3RwX2xlbmd0aCA9IDYKIyBOdW1iZXIgb2Ygc2Vjb25kcyBiZWZvcmUgdGhlIGVtYWlsIE9UUCBleHBpcmVzIChkZWZhdWx0cyB0byAxIGhvdXIpLgpvdHBfZXhwaXJ5ID0gMzYwMAoKIyBVc2UgYSBwcm9kdWN0aW9uLXJlYWR5IFNNVFAgc2VydmVyCiMgW2F1dGguZW1haWwuc210cF0KIyBlbmFibGVkID0gdHJ1ZQojIGhvc3QgPSAic210cC5zZW5kZ3JpZC5uZXQiCiMgcG9ydCA9IDU4NwojIHVzZXIgPSAiYXBpa2V5IgojIHBhc3MgPSAiZW52KFNFTkRHUklEX0FQSV9LRVkpIgojIGFkbWluX2VtYWlsID0gImFkbWluQGVtYWlsLmNvbSIKIyBzZW5kZXJfbmFtZSA9ICJBZG1pbiIKCiMgVW5jb21tZW50IHRvIGN1c3RvbWl6ZSBlbWFpbCB0ZW1wbGF0ZQojIFthdXRoLmVtYWlsLnRlbXBsYXRlLmludml0ZV0KIyBzdWJqZWN0ID0gIllvdSBoYXZlIGJlZW4gaW52aXRlZCIKIyBjb250ZW50X3BhdGggPSAiLi9zdXBhYmFzZS90ZW1wbGF0ZXMvaW52aXRlLmh0bWwiCgojIFVuY29tbWVudCB0byBjdXN0b21pemUgbm90aWZpY2F0aW9uIGVtYWlsIHRlbXBsYXRlCiMgW2F1dGguZW1haWwubm90aWZpY2F0aW9uLnBhc3N3b3JkX2NoYW5nZWRdCiMgZW5hYmxlZCA9IHRydWUKIyBzdWJqZWN0ID0gIllvdXIgcGFzc3dvcmQgaGFzIGJlZW4gY2hhbmdlZCIKIyBjb250ZW50X3BhdGggPSAiLi9zdXBhYmFzZS90ZW1wbGF0ZXMvcGFzc3dvcmRfY2hhbmdlZF9ub3RpZmljYXRpb24uaHRtbCIKClthdXRoLnNtc10KIyBBbGxvdy9kaXNhbGxvdyBuZXcgdXNlciBzaWdudXBzIHZpYSBTTVMgdG8geW91ciBwcm9qZWN0LgplbmFibGVfc2lnbnVwID0gZmFsc2UKIyBJZiBlbmFibGVkLCB1c2VycyBuZWVkIHRvIGNvbmZpcm0gdGhlaXIgcGhvbmUgbnVtYmVyIGJlZm9yZSBzaWduaW5nIGluLgplbmFibGVfY29uZmlybWF0aW9ucyA9IGZhbHNlCiMgVGVtcGxhdGUgZm9yIHNlbmRpbmcgT1RQIHRvIHVzZXJzCnRlbXBsYXRlID0gIllvdXIgY29kZSBpcyB7eyAuQ29kZSB9fSIKIyBDb250cm9scyB0aGUgbWluaW11bSBhbW91bnQgb2YgdGltZSB0aGF0IG11c3QgcGFzcyBiZWZvcmUgc2VuZGluZyBhbm90aGVyIHNtcyBvdHAuCm1heF9mcmVxdWVuY3kgPSAiNXMiCgojIFVzZSBwcmUtZGVmaW5lZCBtYXAgb2YgcGhvbmUgbnVtYmVyIHRvIE9UUCBmb3IgdGVzdGluZy4KIyBbYXV0aC5zbXMudGVzdF9vdHBdCiMgNDE1MjEyNzc3NyA9ICIxMjM0NTYiCgojIENvbmZpZ3VyZSBsb2dnZWQgaW4gc2Vzc2lvbiB0aW1lb3V0cy4KIyBbYXV0aC5zZXNzaW9uc10KIyBGb3JjZSBsb2cgb3V0IGFmdGVyIHRoZSBzcGVjaWZpZWQgZHVyYXRpb24uCiMgdGltZWJveCA9ICIyNGgiCiMgRm9yY2UgbG9nIG91dCBpZiB0aGUgdXNlciBoYXMgYmVlbiBpbmFjdGl2ZSBsb25nZXIgdGhhbiB0aGUgc3BlY2lmaWVkIGR1cmF0aW9uLgojIGluYWN0aXZpdHlfdGltZW91dCA9ICI4aCIKCiMgVGhpcyBob29rIHJ1bnMgYmVmb3JlIGEgbmV3IHVzZXIgaXMgY3JlYXRlZCBhbmQgYWxsb3dzIGRldmVsb3BlcnMgdG8gcmVqZWN0IHRoZSByZXF1ZXN0IGJhc2VkIG9uIHRoZSBpbmNvbWluZyB1c2VyIG9iamVjdC4KIyBbYXV0aC5ob29rLmJlZm9yZV91c2VyX2NyZWF0ZWRdCiMgZW5hYmxlZCA9IHRydWUKIyB1cmkgPSAicGctZnVuY3Rpb25zOi8vcG9zdGdyZXMvYXV0aC9iZWZvcmUtdXNlci1jcmVhdGVkLWhvb2siCgojIFRoaXMgaG9vayBydW5zIGJlZm9yZSBhIHRva2VuIGlzIGlzc3VlZCBhbmQgYWxsb3dzIHlvdSB0byBhZGQgYWRkaXRpb25hbCBjbGFpbXMgYmFzZWQgb24gdGhlIGF1dGhlbnRpY2F0aW9uIG1ldGhvZCB1c2VkLgojIFthdXRoLmhvb2suY3VzdG9tX2FjY2Vzc190b2tlbl0KIyBlbmFibGVkID0gdHJ1ZQojIHVyaSA9ICJwZy1mdW5jdGlvbnM6Ly88ZGF0YWJhc2U+LzxzY2hlbWE+Lzxob29rX25hbWU+IgoKIyBDb25maWd1cmUgb25lIG9mIHRoZSBzdXBwb3J0ZWQgU01TIHByb3ZpZGVyczogYHR3aWxpb2AsIGB0d2lsaW9fdmVyaWZ5YCwgYG1lc3NhZ2ViaXJkYCwgYHRleHRsb2NhbGAsIGB2b25hZ2VgLgpbYXV0aC5zbXMudHdpbGlvXQplbmFibGVkID0gZmFsc2UKYWNjb3VudF9zaWQgPSAiIgptZXNzYWdlX3NlcnZpY2Vfc2lkID0gIiIKIyBETyBOT1QgY29tbWl0IHlvdXIgVHdpbGlvIGF1dGggdG9rZW4gdG8gZ2l0LiBVc2UgZW52aXJvbm1lbnQgdmFyaWFibGUgc3Vic3RpdHV0aW9uIGluc3RlYWQ6CmF1dGhfdG9rZW4gPSAiZW52KFNVUEFCQVNFX0FVVEhfU01TX1RXSUxJT19BVVRIX1RPS0VOKSIKCiMgTXVsdGktZmFjdG9yLWF1dGhlbnRpY2F0aW9uIGlzIGF2YWlsYWJsZSB0byBTdXBhYmFzZSBQcm8gcGxhbi4KW2F1dGgubWZhXQojIENvbnRyb2wgaG93IG1hbnkgTUZBIGZhY3RvcnMgY2FuIGJlIGVucm9sbGVkIGF0IG9uY2UgcGVyIHVzZXIuCm1heF9lbnJvbGxlZF9mYWN0b3JzID0gMTAKCiMgQ29udHJvbCBNRkEgdmlhIEFwcCBBdXRoZW50aWNhdG9yIChUT1RQKQpbYXV0aC5tZmEudG90cF0KZW5yb2xsX2VuYWJsZWQgPSBmYWxzZQp2ZXJpZnlfZW5hYmxlZCA9IGZhbHNlCgojIENvbmZpZ3VyZSBNRkEgdmlhIFBob25lIE1lc3NhZ2luZwpbYXV0aC5tZmEucGhvbmVdCmVucm9sbF9lbmFibGVkID0gZmFsc2UKdmVyaWZ5X2VuYWJsZWQgPSBmYWxzZQpvdHBfbGVuZ3RoID0gNgp0ZW1wbGF0ZSA9ICJZb3VyIGNvZGUgaXMge3sgLkNvZGUgfX0iCm1heF9mcmVxdWVuY3kgPSAiNXMiCgojIENvbmZpZ3VyZSBNRkEgdmlhIFdlYkF1dGhuCiMgW2F1dGgubWZhLndlYl9hdXRobl0KIyBlbnJvbGxfZW5hYmxlZCA9IHRydWUKIyB2ZXJpZnlfZW5hYmxlZCA9IHRydWUKCiMgVXNlIGFuIGV4dGVybmFsIE9BdXRoIHByb3ZpZGVyLiBUaGUgZnVsbCBsaXN0IG9mIHByb3ZpZGVycyBhcmU6IGBhcHBsZWAsIGBhenVyZWAsIGBiaXRidWNrZXRgLAojIGBkaXNjb3JkYCwgYGZhY2Vib29rYCwgYGdpdGh1YmAsIGBnaXRsYWJgLCBgZ29vZ2xlYCwgYGtleWNsb2FrYCwgYGxpbmtlZGluX29pZGNgLCBgbm90aW9uYCwgYHR3aXRjaGAsCiMgYHR3aXR0ZXJgLCBgeGAsIGBzbGFja2AsIGBzcG90aWZ5YCwgYHdvcmtvc2AsIGB6b29tYC4KW2F1dGguZXh0ZXJuYWwuYXBwbGVdCmVuYWJsZWQgPSBmYWxzZQpjbGllbnRfaWQgPSAiIgojIERPIE5PVCBjb21taXQgeW91ciBPQXV0aCBwcm92aWRlciBzZWNyZXQgdG8gZ2l0LiBVc2UgZW52aXJvbm1lbnQgdmFyaWFibGUgc3Vic3RpdHV0aW9uIGluc3RlYWQ6CnNlY3JldCA9ICJlbnYoU1VQQUJBU0VfQVVUSF9FWFRFUk5BTF9BUFBMRV9TRUNSRVQpIgojIE92ZXJyaWRlcyB0aGUgZGVmYXVsdCBhdXRoIGNhbGxiYWNrIFVSTCBkZXJpdmVkIGZyb20gYXV0aC5leHRlcm5hbF91cmwuCnJlZGlyZWN0X3VyaSA9ICIiCiMgT3ZlcnJpZGVzIHRoZSBkZWZhdWx0IGF1dGggcHJvdmlkZXIgVVJMLiBVc2VkIHRvIHN1cHBvcnQgc2VsZi1ob3N0ZWQgZ2l0bGFiLCBzaW5nbGUtdGVuYW50IEF6dXJlLAojIG9yIGFueSBvdGhlciB0aGlyZC1wYXJ0eSBPSURDIHByb3ZpZGVycy4KdXJsID0gIiIKIyBJZiBlbmFibGVkLCB0aGUgbm9uY2UgY2hlY2sgd2lsbCBiZSBza2lwcGVkLiBSZXF1aXJlZCBmb3IgbG9jYWwgc2lnbiBpbiB3aXRoIEdvb2dsZSBhdXRoLgpza2lwX25vbmNlX2NoZWNrID0gZmFsc2UKIyBJZiBlbmFibGVkLCBpdCB3aWxsIGFsbG93IHRoZSB1c2VyIHRvIHN1Y2Nlc3NmdWxseSBhdXRoZW50aWNhdGUgd2hlbiB0aGUgcHJvdmlkZXIgZG9lcyBub3QgcmV0dXJuIGFuIGVtYWlsIGFkZHJlc3MuCmVtYWlsX29wdGlvbmFsID0gZmFsc2UKCiMgQWxsb3cgU29sYW5hIHdhbGxldCBob2xkZXJzIHRvIHNpZ24gaW4gdG8geW91ciBwcm9qZWN0IHZpYSB0aGUgU2lnbiBpbiB3aXRoIFNvbGFuYSAoU0lXUywgRUlQLTQzNjEpIHN0YW5kYXJkLgojIFlvdSBjYW4gY29uZmlndXJlICJ3ZWIzIiByYXRlIGxpbWl0IGluIHRoZSBbYXV0aC5yYXRlX2xpbWl0XSBzZWN0aW9uIGFuZCBzZXQgdXAgW2F1dGguY2FwdGNoYV0gaWYgc2VsZi1ob3N0aW5nLgpbYXV0aC53ZWIzLnNvbGFuYV0KZW5hYmxlZCA9IGZhbHNlCgojIFVzZSBGaXJlYmFzZSBBdXRoIGFzIGEgdGhpcmQtcGFydHkgcHJvdmlkZXIgYWxvbmdzaWRlIFN1cGFiYXNlIEF1dGguClthdXRoLnRoaXJkX3BhcnR5LmZpcmViYXNlXQplbmFibGVkID0gZmFsc2UKIyBwcm9qZWN0X2lkID0gIm15LWZpcmViYXNlLXByb2plY3QiCgojIFVzZSBBdXRoMCBhcyBhIHRoaXJkLXBhcnR5IHByb3ZpZGVyIGFsb25nc2lkZSBTdXBhYmFzZSBBdXRoLgpbYXV0aC50aGlyZF9wYXJ0eS5hdXRoMF0KZW5hYmxlZCA9IGZhbHNlCiMgdGVuYW50ID0gIm15LWF1dGgwLXRlbmFudCIKIyB0ZW5hbnRfcmVnaW9uID0gInVzIgoKIyBVc2UgQVdTIENvZ25pdG8gKEFtcGxpZnkpIGFzIGEgdGhpcmQtcGFydHkgcHJvdmlkZXIgYWxvbmdzaWRlIFN1cGFiYXNlIEF1dGguClthdXRoLnRoaXJkX3BhcnR5LmF3c19jb2duaXRvXQplbmFibGVkID0gZmFsc2UKIyB1c2VyX3Bvb2xfaWQgPSAibXktdXNlci1wb29sLWlkIgojIHVzZXJfcG9vbF9yZWdpb24gPSAidXMtZWFzdC0xIgoKIyBVc2UgQ2xlcmsgYXMgYSB0aGlyZC1wYXJ0eSBwcm92aWRlciBhbG9uZ3NpZGUgU3VwYWJhc2UgQXV0aC4KW2F1dGgudGhpcmRfcGFydHkuY2xlcmtdCmVuYWJsZWQgPSBmYWxzZQojIE9idGFpbiBmcm9tIGh0dHBzOi8vY2xlcmsuY29tL3NldHVwL3N1cGFiYXNlCiMgZG9tYWluID0gImV4YW1wbGUuY2xlcmsuYWNjb3VudHMuZGV2IgoKIyBPQXV0aCBzZXJ2ZXIgY29uZmlndXJhdGlvbgpbYXV0aC5vYXV0aF9zZXJ2ZXJdCiMgRW5hYmxlIE9BdXRoIHNlcnZlciBmdW5jdGlvbmFsaXR5CmVuYWJsZWQgPSBmYWxzZQojIFBhdGggZm9yIE9BdXRoIGNvbnNlbnQgZmxvdyBVSQphdXRob3JpemF0aW9uX3VybF9wYXRoID0gIi9vYXV0aC9jb25zZW50IgojIEFsbG93IGR5bmFtaWMgY2xpZW50IHJlZ2lzdHJhdGlvbgphbGxvd19keW5hbWljX3JlZ2lzdHJhdGlvbiA9IGZhbHNlCgpbZWRnZV9ydW50aW1lXQplbmFibGVkID0gdHJ1ZQojIFN1cHBvcnRlZCByZXF1ZXN0IHBvbGljaWVzOiBgb25lc2hvdGAsIGBwZXJfd29ya2VyYC4KIyBgcGVyX3dvcmtlcmAgKGRlZmF1bHQpIOKAlCBlbmFibGVzIGhvdCByZWxvYWQgZHVyaW5nIGxvY2FsIGRldmVsb3BtZW50LgojIGBvbmVzaG90YCDigJQgZmFsbGJhY2sgbW9kZSBpZiBob3QgcmVsb2FkIGNhdXNlcyBpc3N1ZXMgKGUuZy4gaW4gbGFyZ2UgcmVwb3Mgb3Igd2l0aCBzeW1saW5rcykuCnBvbGljeSA9ICJwZXJfd29ya2VyIgojIFBvcnQgdG8gYXR0YWNoIHRoZSBDaHJvbWUgaW5zcGVjdG9yIGZvciBkZWJ1Z2dpbmcgZWRnZSBmdW5jdGlvbnMuCmluc3BlY3Rvcl9wb3J0ID0gODA4MwojIFRoZSBEZW5vIG1ham9yIHZlcnNpb24gdG8gdXNlLgpkZW5vX3ZlcnNpb24gPSAyCgojIFtlZGdlX3J1bnRpbWUuc2VjcmV0c10KIyBzZWNyZXRfa2V5ID0gImVudihTRUNSRVRfVkFMVUUpIgoKW2FuYWx5dGljc10KZW5hYmxlZCA9IHRydWUKcG9ydCA9IDU0MzI3CiMgQ29uZmlndXJlIG9uZSBvZiB0aGUgc3VwcG9ydGVkIGJhY2tlbmRzOiBgcG9zdGdyZXNgLCBgYmlncXVlcnlgLgpiYWNrZW5kID0gInBvc3RncmVzIgoKIyBFeHBlcmltZW50YWwgZmVhdHVyZXMgbWF5IGJlIGRlcHJlY2F0ZWQgYW55IHRpbWUKW2V4cGVyaW1lbnRhbF0KIyBDb25maWd1cmVzIFMzIGJ1Y2tldCBVUkwsIGVnLiA8YnVja2V0X25hbWU+LnMzLTxyZWdpb24+LmFtYXpvbmF3cy5jb20KczNfaG9zdCA9ICJlbnYoUzNfSE9TVCkiCiMgQ29uZmlndXJlcyBTMyBidWNrZXQgcmVnaW9uLCBlZy4gdXMtZWFzdC0xCnMzX3JlZ2lvbiA9ICJlbnYoUzNfUkVHSU9OKSIKIyBDb25maWd1cmVzIEFXU19BQ0NFU1NfS0VZX0lEIGZvciBTMyBidWNrZXQKczNfYWNjZXNzX2tleSA9ICJlbnYoUzNfQUNDRVNTX0tFWSkiCiMgQ29uZmlndXJlcyBBV1NfU0VDUkVUX0FDQ0VTU19LRVkgZm9yIFMzIGJ1Y2tldApzM19zZWNyZXRfa2V5ID0gImVudihTM19TRUNSRVRfS0VZKSIKCiMgcGctZGVsdGEgaXMgdGhlIHNjaGVtYSBkaWZmIGVuZ2luZSBmb3IgZGIgZGlmZiAvIGRiIHB1bGwgLyBkYiByZW1vdGUgY29tbWl0LgojIFNldCBlbmFibGVkID0gZmFsc2UgdG8gZmFsbCBiYWNrIHRvIHRoZSBsZWdhY3kgbWlncmEgZW5naW5lLgpbZXhwZXJpbWVudGFsLnBnZGVsdGFdCmVuYWJsZWQgPSB0cnVlCiMgRGlyZWN0b3J5IHVuZGVyIGBzdXBhYmFzZS9gIHdoZXJlIGRlY2xhcmF0aXZlIGZpbGVzIGFyZSB3cml0dGVuLgojIGRlY2xhcmF0aXZlX3NjaGVtYV9wYXRoID0gIi4vc2NoZW1hcyIKIyBKU09OIHN0cmluZyBwYXNzZWQgdGhyb3VnaCB0byBwZy1kZWx0YSBTUUwgZm9ybWF0dGluZy4gV2hlbiBvbWl0dGVkLCBTUUwgaXMKIyBmb3JtYXR0ZWQgd2l0aCB1cHBlcmNhc2Uga2V5d29yZHMsIGluZGVudCAyLCBtYXggd2lkdGggMTgwLCB0cmFpbGluZyBjb21tYXMsCiMgYW5kIGNvbHVtbi9rZXkgYWxpZ25tZW50LiBTZXQgdG8gIm51bGwiIHRvIGVtaXQgcmF3LCB1bmZvcm1hdHRlZCBTUUwuCiMgZm9ybWF0X29wdGlvbnMgPSAie1wia2V5d29yZENhc2VcIjpcInVwcGVyXCIsXCJpbmRlbnRcIjoyLFwibWF4V2lkdGhcIjoxODAsXCJjb21tYVN0eWxlXCI6XCJ0cmFpbGluZ1wifSIKCltmdW5jdGlvbnMuY29waWxvdF0KdmVyaWZ5X2p3dCA9IGZhbHNlCgpbZnVuY3Rpb25zLm1jcF0KdmVyaWZ5X2p3dCA9IGZhbHNlCg==
+# For detailed configuration reference documentation, visit:
+# https://supabase.com/docs/guides/local-development/cli/config
+# A string used to distinguish different Supabase projects on the same host. Defaults to the
+# working directory name when running `supabase init`.
+project_id = "cs-copilot"
+
+[api]
+enabled = true
+# Port to use for the API URL.
+port = 54321
+# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
+# endpoints. `public` and `graphql_public` schemas are included by default.
+schemas = ["public", "graphql_public"]
+# Extra schemas to add to the search_path of every request.
+extra_search_path = ["public", "extensions"]
+# The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
+# for accidental or malicious requests.
+max_rows = 1000
+# Controls whether new tables, views, sequences and functions created in the `public` schema by
+# `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
+# without explicit GRANTs, matching the cloud default. Set to `false` to require explicit GRANTs
+# instead. Left unset, a fresh project falls back to `true`.
+# auto_expose_new_tables = true
+
+[api.tls]
+# Enable HTTPS endpoints locally using a self-signed certificate.
+enabled = false
+# Paths to self-signed certificate pair.
+# cert_path = "../certs/my-cert.pem"
+# key_path = "../certs/my-key.pem"
+
+[db]
+# Port to use for the local database URL.
+port = 54322
+# Port used by db diff command to initialize the shadow database.
+shadow_port = 54320
+# Maximum amount of time to wait for health check when starting the local database.
+health_timeout = "2m"
+# The database major version to use. This has to be the same as your remote database's. Run `SHOW
+# server_version;` on the remote database to check.
+major_version = 17
+# OrioleDB version to use as the Postgres storage engine. Leave empty to use the default engine.
+orioledb_version = ""
+
+[db.pooler]
+enabled = false
+# Port to use for the local connection pooler.
+port = 54329
+# Specifies when a server connection can be reused by other clients.
+# Configure one of the supported pooler modes: `transaction`, `session`.
+pool_mode = "transaction"
+# How many server connections to allow per user/database pair.
+default_pool_size = 20
+# Maximum number of client connections allowed.
+max_client_conn = 100
+
+# [db.vault]
+# secret_key = "env(SECRET_VALUE)"
+
+[db.migrations]
+# If disabled, migrations will be skipped during a db push or reset.
+enabled = true
+# Specifies an ordered list of schema files, directories, or glob patterns that describe your database.
+# Supports paths relative to supabase directory: "./schemas/*.sql", "./database".
+schema_paths = []
+
+[db.seed]
+# If enabled, seeds the database after migrations during a db reset.
+enabled = true
+# Specifies an ordered list of seed files to load during db reset.
+# Supports glob patterns relative to supabase directory: "./seeds/*.sql"
+sql_paths = ["./seed.sql"]
+
+[db.network_restrictions]
+# Enable management of network restrictions.
+enabled = false
+# List of IPv4 CIDR blocks allowed to connect to the database.
+# Defaults to allow all IPv4 connections. Set empty array to block all IPs.
+allowed_cidrs = ["0.0.0.0/0"]
+# List of IPv6 CIDR blocks allowed to connect to the database.
+# Defaults to allow all IPv6 connections. Set empty array to block all IPs.
+allowed_cidrs_v6 = ["::/0"]
+
+# Uncomment to reject non-secure connections to the database.
+# [db.ssl_enforcement]
+# enabled = true
+
+[realtime]
+enabled = true
+# Bind realtime via either IPv4 or IPv6. (default: IPv4)
+# ip_version = "IPv6"
+# The maximum length in bytes of HTTP request headers. (default: 4096)
+# max_header_length = 4096
+
+[studio]
+enabled = true
+# Port to use for Supabase Studio.
+port = 54323
+# External URL of the API server that frontend connects to.
+api_url = "http://127.0.0.1"
+# OpenAI API Key to use for Supabase AI in the Supabase Studio.
+openai_api_key = "env(OPENAI_API_KEY)"
+
+# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
+# are monitored, and you can view the emails that would have been sent from the web interface.
+[local_smtp]
+enabled = true
+# Port to use for the email testing server web interface.
+port = 54324
+# Uncomment to expose additional ports for testing user applications that send emails.
+# smtp_port = 54325
+# pop3_port = 54326
+# admin_email = "admin@email.com"
+# sender_name = "Admin"
+
+[storage]
+enabled = true
+# The maximum file size allowed (e.g. "5MB", "500KB").
+file_size_limit = "50MiB"
+
+# Uncomment to configure local storage buckets
+# [storage.buckets.images]
+# public = false
+# file_size_limit = "50MiB"
+# allowed_mime_types = ["image/png", "image/jpeg"]
+# objects_path = "./images"
+
+# Allow connections via S3 compatible clients
+[storage.s3_protocol]
+enabled = true
+
+# Image transformation API is available to Supabase Pro plan.
+# [storage.image_transformation]
+# enabled = true
+
+# Store analytical data in S3 for running ETL jobs over Iceberg Catalog
+# This feature is only available on the hosted platform.
+[storage.analytics]
+enabled = false
+max_namespaces = 5
+max_tables = 10
+max_catalogs = 2
+
+# Analytics Buckets is available to Supabase Pro plan.
+# [storage.analytics.buckets.my-warehouse]
+
+# Store vector embeddings in S3 for large and durable datasets
+[storage.vector]
+enabled = true
+max_buckets = 10
+max_indexes = 5
+
+# Vector Buckets is available to Supabase Pro plan.
+# [storage.vector.buckets.documents-openai]
+
+[auth]
+enabled = true
+# The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
+# in emails.
+site_url = "http://127.0.0.1:3000"
+# The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
+# external_url = ""
+# A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
+jwt_expiry = 3600
+# JWT issuer URL. If not set, defaults to auth.external_url.
+# jwt_issuer = ""
+# Path to JWT signing key. DO NOT commit your signing keys file to git.
+# signing_keys_path = "./signing_keys.json"
+# If disabled, the refresh token will never expire.
+enable_refresh_token_rotation = true
+# Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
+# Requires enable_refresh_token_rotation = true.
+refresh_token_reuse_interval = 10
+# Allow/disallow new user signups to your project.
+enable_signup = true
+# Allow/disallow anonymous sign-ins to your project.
+enable_anonymous_sign_ins = false
+# Allow/disallow testing manual linking of accounts
+enable_manual_linking = false
+# Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
+minimum_password_length = 6
+# Passwords that do not meet the following requirements will be rejected as weak. Supported values
+# are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
+password_requirements = ""
+
+# Configure passkey sign-ins.
+# [auth.passkey]
+# enabled = false
+
+# Configure WebAuthn relying party settings (required when passkey is enabled).
+# [auth.webauthn]
+# rp_display_name = "Supabase"
+# rp_id = "localhost"
+# rp_origins = ["http://127.0.0.1:3000"]
+
+[auth.rate_limit]
+# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
+email_sent = 2
+# Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
+sms_sent = 30
+# Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
+anonymous_users = 30
+# Number of sessions that can be refreshed in a 5 minute interval per IP address.
+token_refresh = 150
+# Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
+sign_in_sign_ups = 30
+# Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
+token_verifications = 30
+# Number of Web3 logins that can be made in a 5 minute interval per IP address.
+web3 = 30
+
+# Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
+# [auth.captcha]
+# enabled = true
+# provider = "hcaptcha"
+# secret = ""
+
+[auth.email]
+# Allow/disallow new user signups via email to your project.
+enable_signup = true
+# If enabled, a user will be required to confirm any email change on both the old, and new email
+# addresses. If disabled, only the new email is required to confirm.
+double_confirm_changes = true
+# If enabled, users need to confirm their email address before signing in.
+enable_confirmations = false
+# If enabled, users will need to reauthenticate or have logged in recently to change their password.
+secure_password_change = false
+# Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
+max_frequency = "1s"
+# Number of characters used in the email OTP.
+otp_length = 6
+# Number of seconds before the email OTP expires (defaults to 1 hour).
+otp_expiry = 3600
+
+# Use a production-ready SMTP server
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.sendgrid.net"
+# port = 587
+# user = "apikey"
+# pass = "env(SENDGRID_API_KEY)"
+# admin_email = "admin@email.com"
+# sender_name = "Admin"
+
+# Uncomment to customize email template
+# [auth.email.template.invite]
+# subject = "You have been invited"
+# content_path = "./supabase/templates/invite.html"
+
+# Uncomment to customize notification email template
+# [auth.email.notification.password_changed]
+# enabled = true
+# subject = "Your password has been changed"
+# content_path = "./supabase/templates/password_changed_notification.html"
+
+[auth.sms]
+# Allow/disallow new user signups via SMS to your project.
+enable_signup = false
+# If enabled, users need to confirm their phone number before signing in.
+enable_confirmations = false
+# Template for sending OTP to users
+template = "Your code is {{ .Code }}"
+# Controls the minimum amount of time that must pass before sending another sms otp.
+max_frequency = "5s"
+
+# Use pre-defined map of phone number to OTP for testing.
+# [auth.sms.test_otp]
+# 4152127777 = "123456"
+
+# Configure logged in session timeouts.
+# [auth.sessions]
+# Force log out after the specified duration.
+# timebox = "24h"
+# Force log out if the user has been inactive longer than the specified duration.
+# inactivity_timeout = "8h"
+
+# This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
+# [auth.hook.before_user_created]
+# enabled = true
+# uri = "pg-functions://postgres/auth/before-user-created-hook"
+
+# This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
+# [auth.hook.custom_access_token]
+# enabled = true
+# uri = "pg-functions://<database>/<schema>/<hook_name>"
+
+# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+[auth.sms.twilio]
+enabled = false
+account_sid = ""
+message_service_sid = ""
+# DO NOT commit your Twilio auth token to git. Use environment variable substitution instead:
+auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
+
+# Multi-factor-authentication is available to Supabase Pro plan.
+[auth.mfa]
+# Control how many MFA factors can be enrolled at once per user.
+max_enrolled_factors = 10
+
+# Control MFA via App Authenticator (TOTP)
+[auth.mfa.totp]
+enroll_enabled = false
+verify_enabled = false
+
+# Configure MFA via Phone Messaging
+[auth.mfa.phone]
+enroll_enabled = false
+verify_enabled = false
+otp_length = 6
+template = "Your code is {{ .Code }}"
+max_frequency = "5s"
+
+# Configure MFA via WebAuthn
+# [auth.mfa.web_authn]
+# enroll_enabled = true
+# verify_enabled = true
+
+# Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
+# `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
+# `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
+[auth.external.apple]
+enabled = false
+client_id = ""
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+# Overrides the default auth callback URL derived from auth.external_url.
+redirect_uri = ""
+# Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
+# or any other third-party OIDC providers.
+url = ""
+# If enabled, the nonce check will be skipped. Required for local sign in with Google auth.
+skip_nonce_check = false
+# If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
+email_optional = false
+
+# Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
+# You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
+[auth.web3.solana]
+enabled = false
+
+# Use Firebase Auth as a third-party provider alongside Supabase Auth.
+[auth.third_party.firebase]
+enabled = false
+# project_id = "my-firebase-project"
+
+# Use Auth0 as a third-party provider alongside Supabase Auth.
+[auth.third_party.auth0]
+enabled = false
+# tenant = "my-auth0-tenant"
+# tenant_region = "us"
+
+# Use AWS Cognito (Amplify) as a third-party provider alongside Supabase Auth.
+[auth.third_party.aws_cognito]
+enabled = false
+# user_pool_id = "my-user-pool-id"
+# user_pool_region = "us-east-1"
+
+# Use Clerk as a third-party provider alongside Supabase Auth.
+[auth.third_party.clerk]
+enabled = false
+# Obtain from https://clerk.com/setup/supabase
+# domain = "example.clerk.accounts.dev"
+
+# OAuth server configuration
+[auth.oauth_server]
+# Enable OAuth server functionality
+enabled = false
+# Path for OAuth consent flow UI
+authorization_url_path = "/oauth/consent"
+# Allow dynamic client registration
+allow_dynamic_registration = false
+
+[edge_runtime]
+enabled = true
+# Supported request policies: `oneshot`, `per_worker`.
+# `per_worker` (default) — enables hot reload during local development.
+# `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
+policy = "per_worker"
+# Port to attach the Chrome inspector for debugging edge functions.
+inspector_port = 8083
+# The Deno major version to use.
+deno_version = 2
+
+# [edge_runtime.secrets]
+# secret_key = "env(SECRET_VALUE)"
+
+[analytics]
+enabled = true
+port = 54327
+# Configure one of the supported backends: `postgres`, `bigquery`.
+backend = "postgres"
+
+# Experimental features may be deprecated any time
+[experimental]
+# Configures S3 bucket URL, eg. <bucket_name>.s3-<region>.amazonaws.com
+s3_host = "env(S3_HOST)"
+# Configures S3 bucket region, eg. us-east-1
+s3_region = "env(S3_REGION)"
+# Configures AWS_ACCESS_KEY_ID for S3 bucket
+s3_access_key = "env(S3_ACCESS_KEY)"
+# Configures AWS_SECRET_ACCESS_KEY for S3 bucket
+s3_secret_key = "env(S3_SECRET_KEY)"
+
+# pg-delta is the schema diff engine for db diff / db pull / db remote commit.
+# Set enabled = false to fall back to the legacy migra engine.
+[experimental.pgdelta]
+enabled = true
+# Directory under `supabase/` where declarative files are written.
+# declarative_schema_path = "./schemas"
+# JSON string passed through to pg-delta SQL formatting. When omitted, SQL is
+# formatted with uppercase keywords, indent 2, max width 180, trailing commas,
+# and column/key alignment. Set to "null" to emit raw, unformatted SQL.
+# format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
+
+[functions.copilot]
+verify_jwt = false
+
+[functions.mcp]
+verify_jwt = false

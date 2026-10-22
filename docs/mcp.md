@@ -1,1 +1,67 @@
-IyBD4buVbmcgTUNQIGPhu6dhIENTIENvcGlsb3QKCkVkZ2UgRnVuY3Rpb24gYG1jcGAgbeG7nyBjw6FjIGto4bqjIG7Eg25nIGPhu6dhIGNvcGlsb3QgdGjDoG5oICoqTUNQIHRvb2xzKiogKE1vZGVsCkNvbnRleHQgUHJvdG9jb2wsIFN0cmVhbWFibGUgSFRUUCkgxJHhu4MgQUkgY2xpZW50IG7hu5lpIGLhu5kg4oCUIGNoYXRib3QgdHJhaW5lciwKYWdlbnQga2jDoWMsIE1DUCBJbnNwZWN0b3Ig4oCUIGfhu41pIHRy4buxYyB0aeG6v3AsIGtow7RuZyBj4bqnbiBiaeG6v3QgUkVTVCBu4buZaSBi4buZLgoKRW5kcG9pbnQgc2F1IGtoaSBkZXBsb3k6CgpgYGAKUE9TVCBodHRwczovL3Jib2RrdGh5dWl5Zm90ZXdneGt1LnN1cGFiYXNlLmNvL2Z1bmN0aW9ucy92MS9tY3AKYGBgCgojIyBYw6FjIHRo4buxYwoKRMO5bmcgxJHDum5nIHRva2VuIENTIGPDoSBuaMOibiBuaMawIGtoaSBn4buNaSBmdW5jdGlvbiBgY29waWxvdGAsIGfhu61pIHF1YSBt4buZdCB0cm9uZwpoYWkgaGVhZGVyOgoKLSBgeC1jb3BpbG90LXRva2VuOiA8dG9rZW4+YCwgaG/hurdjCi0gYEF1dGhvcml6YXRpb246IEJlYXJlciA8dG9rZW4+YAoKVG9vbCBjaOG6oXkgduG7m2kgcXV54buBbiB2w6AgZ2nhu41uZyB2xINuIGPhu6dhIENTIHPhu58gaOG7r3UgdG9rZW4gxJHDsy4KCiMjIFRvb2xzCgp8IFRvb2wgfCBWaeG7h2MgfCBTaWRlLWVmZmVjdCB8CnwgLS0tIHwgLS0tIHwgLS0tIHwKfCBgY29waWxvdF9jaGVja19jb252ZXJzYXRpb25gIHwgVHLhuqFuZyB0aMOhaSBjb252ZXJzYXRpb246IHRpbiBjaMawYSB0cuG6oyBs4budaSwgdG9waWMsIEppcmEsIHNlbnRpbWVudCDEkcOjIGNhY2hlLCB0cuG6oW5nIHRow6FpIENTQVQgfCBLaMO0bmcgKGNo4buJIMSR4buNYykgfAp8IGBjb3BpbG90X2dlbmVyYXRlX2RyYWZ0YCB8IFNv4bqhbiBkcmFmdCB0aGVvIGdp4buNbmcgQ1MgKyBzZW50aW1lbnQgTGF5ZXIgMiwga8OobSBj4bqjbmggYsOhbyB2ZXJpZnkgfCBHaGkgb3V0cHV0IHbDoG8gREIsIGtow7RuZyBn4butaSBraMOhY2ggfAp8IGBjb3BpbG90X2FuYWx5emVfc2VudGltZW50YCB8IMSQaeG7g20gbW9vZCAwLTEwMCwgbW9vZCwgdXJnZW5jeSwgY29uZmlkZW5jZSAoY2FjaGUgdGhlbyB0aW4ga2jDoWNoKSB8IEdoaSBjYWNoZSBzZW50aW1lbnQgfAp8IGBjb3BpbG90X2hhbmRvZmZfbm90ZWAgfCBU4bqhbyB2w6AgxJHEg25nIHByaXZhdGUgbm90ZSBiw6BuIGdpYW8gdsOgbyBDcmlzcCB8IEPDsyDigJQgxJHEg25nIG5vdGUgdGjhuq10IHwKfCBgY29waWxvdF9zZW5kX2NzYXRfc3VydmV5YCB8IEfhu61pIENTQVQgcGlja2VyIDQgbOG7sWEgY2jhu41uIHbDoG8gY29udmVyc2F0aW9uIHwgQ8OzIOKAlCBn4butaSBjaG8ga2jDoWNoLCBzZXJ2ZXIgY2jhu5FuZyB0csO5bmcgfAoKTeG7jWkgdG9vbCDEkeG7gXUgbmjhuq1uIGB3ZWJzaXRlX2lkYCB2w6AgYHNlc3Npb25faWRgIChk4bqhbmcgYHNlc3Npb25f4oCmYCk7CmBnZW5lcmF0ZWAvYGFuYWx5emVgL2BoYW5kb2ZmYCBuaOG6rW4gdGjDqm0gYGZvcmNlYCDEkeG7gyBi4buPIHF1YSBjYWNoZS4KCiMjIFbDrSBk4bulIGPhuqV1IGjDrG5oIGNsaWVudCAoc3RkaW8tc3R5bGUgSlNPTikKCmBgYGpzb24KewogICJtY3BTZXJ2ZXJzIjogewogICAgImNzLWNvcGlsb3QiOiB7CiAgICAgICJ1cmwiOiAiaHR0cHM6Ly9yYm9ka3RoeXVpeWZvdGV3Z3hrdS5zdXBhYmFzZS5jby9mdW5jdGlvbnMvdjEvbWNwIiwKICAgICAgImhlYWRlcnMiOiB7ICJ4LWNvcGlsb3QtdG9rZW4iOiAiPHRva2VuIENTIGPDoSBuaMOibj4iIH0KICAgIH0KICB9Cn0KYGBgCgojIyBLaeG7g20gdHJhIG5oYW5oIGLhurFuZyBjdXJsCgpgYGBiYXNoCmN1cmwgLXMgJE1DUF9VUkwgLUggIngtY29waWxvdC10b2tlbjogJFRPS0VOIiAtSCAnY29udGVudC10eXBlOiBhcHBsaWNhdGlvbi9qc29uJyAtZCAnewogICJqc29ucnBjIjogIjIuMCIsICJpZCI6IDEsICJtZXRob2QiOiAidG9vbHMvbGlzdCIKfScKYGBgCgpgYGBiYXNoCmN1cmwgLXMgJE1DUF9VUkwgLUggIngtY29waWxvdC10b2tlbjogJFRPS0VOIiAtSCAnY29udGVudC10eXBlOiBhcHBsaWNhdGlvbi9qc29uJyAtZCAnewogICJqc29ucnBjIjogIjIuMCIsICJpZCI6IDIsICJtZXRob2QiOiAidG9vbHMvY2FsbCIsCiAgInBhcmFtcyI6IHsgIm5hbWUiOiAiY29waWxvdF9jaGVja19jb252ZXJzYXRpb24iLAogICAgICAgICAgICAgICJhcmd1bWVudHMiOiB7ICJ3ZWJzaXRlX2lkIjogIjx3ZWJzaXRlX2lkPiIsICJzZXNzaW9uX2lkIjogInNlc3Npb25f4oCmIiB9IH0KfScKYGBgCgpM4buXaSBuZ2hp4buHcCB24bulIChzYWkgdG9rZW4sIGtow7RuZyB0aOG6pXkgY29udmVyc2F0aW9uLCBBSSBo4bq/dCBxdW90YSkgdHLhuqMgduG7gSB0cm9uZwpgcmVzdWx0YCB24bubaSBgaXNFcnJvcjogdHJ1ZWAgxJHhu4MgY2xpZW50IGhp4buDbiB0aOG7iyBjaG8gbmfGsOG7nWkgZMO5bmc7IGzhu5dpIGdpYW8gdGjhu6ljCnRy4bqjIEpTT04tUlBDIGVycm9yIGNodeG6qW4gKGAtMzI2MDFgIG1ldGhvZCBs4bqhLCBgLTMyNjAyYCBzYWkgdGhhbSBz4buRKS4K
+# Cổng MCP của CS Copilot
+
+Edge Function `mcp` mở các khả năng của copilot thành **MCP tools** (Model
+Context Protocol, Streamable HTTP) để AI client nội bộ — chatbot trainer,
+agent khác, MCP Inspector — gọi trực tiếp, không cần biết REST nội bộ.
+
+Endpoint sau khi deploy:
+
+```
+POST https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/mcp
+```
+
+## Xác thực
+
+Dùng đúng token CS cá nhân như khi gọi function `copilot`, gửi qua một trong
+hai header:
+
+- `x-copilot-token: <token>`, hoặc
+- `Authorization: Bearer <token>`
+
+Tool chạy với quyền và giọng văn của CS sở hữu token đó.
+
+## Tools
+
+| Tool | Việc | Side-effect |
+| --- | --- | --- |
+| `copilot_check_conversation` | Trạng thái conversation: tin chưa trả lời, topic, Jira, sentiment đã cache, trạng thái CSAT | Không (chỉ đọc) |
+| `copilot_generate_draft` | Soạn draft theo giọng CS + sentiment Layer 2, kèm cảnh báo verify | Ghi output vào DB, không gửi khách |
+| `copilot_analyze_sentiment` | Điểm mood 0-100, mood, urgency, confidence (cache theo tin khách) | Ghi cache sentiment |
+| `copilot_handoff_note` | Tạo và đăng private note bàn giao vào Crisp | Có — đăng note thật |
+| `copilot_send_csat_survey` | Gửi CSAT picker 4 lựa chọn vào conversation | Có — gửi cho khách, server chống trùng |
+
+Mọi tool đều nhận `website_id` và `session_id` (dạng `session_…`);
+`generate`/`analyze`/`handoff` nhận thêm `force` để bỏ qua cache.
+
+## Ví dụ cấu hình client (stdio-style JSON)
+
+```json
+{
+  "mcpServers": {
+    "cs-copilot": {
+      "url": "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/mcp",
+      "headers": { "x-copilot-token": "<token CS cá nhân>" }
+    }
+  }
+}
+```
+
+## Kiểm tra nhanh bằng curl
+
+```bash
+curl -s $MCP_URL -H "x-copilot-token: $TOKEN" -H 'content-type: application/json' -d '{
+  "jsonrpc": "2.0", "id": 1, "method": "tools/list"
+}'
+```
+
+```bash
+curl -s $MCP_URL -H "x-copilot-token: $TOKEN" -H 'content-type: application/json' -d '{
+  "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+  "params": { "name": "copilot_check_conversation",
+              "arguments": { "website_id": "<website_id>", "session_id": "session_…" } }
+}'
+```
+
+Lỗi nghiệp vụ (sai token, không thấy conversation, AI hết quota) trả về trong
+`result` với `isError: true` để client hiển thị cho người dùng; lỗi giao thức
+trả JSON-RPC error chuẩn (`-32601` method lạ, `-32602` sai tham số).

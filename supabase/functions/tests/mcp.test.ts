@@ -1,1 +1,63 @@
-aW1wb3J0IHsgYXNzZXJ0LCBhc3NlcnRFcXVhbHMgfSBmcm9tICJqc3I6QHN0ZC9hc3NlcnRAMSI7CmltcG9ydCB7IGhhbmRsZVJwYywgVE9PTFMgfSBmcm9tICIuLi9tY3AvaGFuZGxlci50cyI7CmltcG9ydCB7IG1ha2VEZXBzLCBUT0tFTiB9IGZyb20gIi4vZmFrZXMudHMiOwoKY29uc3QgcnBjID0gKG1ldGhvZDogc3RyaW5nLCBwYXJhbXM/OiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPiwgaWQ6IHVua25vd24gPSAxKSA9PiAoeyBqc29ucnBjOiAiMi4wIiwgaWQsIG1ldGhvZCwgcGFyYW1zIH0pOwoKRGVuby50ZXN0KCJtY3AgaW5pdGlhbGl6ZTogdHLhuqMgcHJvdG9jb2wgdmVyc2lvbiArIHNlcnZlckluZm8iLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBkZXBzIH0gPSBtYWtlRGVwcygpOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGVScGMocnBjKCJpbml0aWFsaXplIiwgeyBwcm90b2NvbFZlcnNpb246ICIyMDI1LTAzLTI2IiB9KSwgVE9LRU4sIGRlcHMpOwogIGFzc2VydEVxdWFscyhyLnN0YXR1cywgMjAwKTsKICBjb25zdCBib2R5ID0gci5ib2R5IGFzIHsgcmVzdWx0OiB7IHByb3RvY29sVmVyc2lvbjogc3RyaW5nOyBzZXJ2ZXJJbmZvOiB7IG5hbWU6IHN0cmluZyB9IH0gfTsKICBhc3NlcnRFcXVhbHMoYm9keS5yZXN1bHQucHJvdG9jb2xWZXJzaW9uLCAiMjAyNS0wMy0yNiIpOwogIGFzc2VydEVxdWFscyhib2R5LnJlc3VsdC5zZXJ2ZXJJbmZvLm5hbWUsICJjcy1jb3BpbG90Iik7Cn0pOwoKRGVuby50ZXN0KCJtY3AgdG9vbHMvbGlzdDogxJHhu6cgNSB0b29sLCB0w6puIGto4bubcCBhY3Rpb24gY+G7p2EgY29waWxvdCIsIGFzeW5jICgpID0+IHsKICBjb25zdCB7IGRlcHMgfSA9IG1ha2VEZXBzKCk7CiAgY29uc3QgciA9IGF3YWl0IGhhbmRsZVJwYyhycGMoInRvb2xzL2xpc3QiKSwgVE9LRU4sIGRlcHMpOwogIGNvbnN0IGJvZHkgPSByLmJvZHkgYXMgeyByZXN1bHQ6IHsgdG9vbHM6IHsgbmFtZTogc3RyaW5nIH1bXSB9IH07CiAgYXNzZXJ0RXF1YWxzKGJvZHkucmVzdWx0LnRvb2xzLm1hcCgodCkgPT4gdC5uYW1lKSwgWwogICAgImNvcGlsb3RfY2hlY2tfY29udmVyc2F0aW9uIiwKICAgICJjb3BpbG90X2dlbmVyYXRlX2RyYWZ0IiwKICAgICJjb3BpbG90X2FuYWx5emVfc2VudGltZW50IiwKICAgICJjb3BpbG90X2hhbmRvZmZfbm90ZSIsCiAgICAiY29waWxvdF9zZW5kX2NzYXRfc3VydmV5IiwKICBdKTsKICBhc3NlcnRFcXVhbHMoVE9PTFMubGVuZ3RoLCA1KTsKfSk7CgpEZW5vLnRlc3QoIm1jcCB0b29scy9jYWxsIGNoZWNrOiBjaOG6oXkgcXVhIGhhbmRsZXIgY29waWxvdCwgdHLhuqMgc3RydWN0dXJlZENvbnRlbnQiLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBkZXBzIH0gPSBtYWtlRGVwcygpOwogIGNvbnN0IHIgPSBhd2FpdCBoYW5kbGVScGMoCiAgICBycGMoInRvb2xzL2NhbGwiLCB7IG5hbWU6ICJjb3BpbG90X2NoZWNrX2NvbnZlcnNhdGlvbiIsIGFyZ3VtZW50czogeyB3ZWJzaXRlX2lkOiAid3MxIiwgc2Vzc2lvbl9pZDogInNlc3Npb25fMSIgfSB9KSwKICAgIFRPS0VOLAogICAgZGVwcywKICApOwogIGNvbnN0IGJvZHkgPSByLmJvZHkgYXMgeyByZXN1bHQ6IHsgaXNFcnJvcjogYm9vbGVhbjsgc3RydWN0dXJlZENvbnRlbnQ6IHsgYWN0aW9uOiBzdHJpbmcgfSB9IH07CiAgYXNzZXJ0RXF1YWxzKGJvZHkucmVzdWx0LmlzRXJyb3IsIGZhbHNlKTsKICBhc3NlcnRFcXVhbHMoYm9keS5yZXN1bHQuc3RydWN0dXJlZENvbnRlbnQuYWN0aW9uLCAiY2hlY2siKTsKfSk7CgpEZW5vLnRlc3QoIm1jcCB0b29scy9jYWxsOiB0b2tlbiBzYWkg4oaSIGlzRXJyb3IsIGtow7RuZyBs4buZIGNoaSB0aeG6v3QgaOG7hyB0aOG7kW5nIiwgYXN5bmMgKCkgPT4gewogIGNvbnN0IHsgZGVwcyB9ID0gbWFrZURlcHMoKTsKICBjb25zdCByID0gYXdhaXQgaGFuZGxlUnBjKAogICAgcnBjKCJ0b29scy9jYWxsIiwgeyBuYW1lOiAiY29waWxvdF9jaGVja19jb252ZXJzYXRpb24iLCBhcmd1bWVudHM6IHsgd2Vic2l0ZV9pZDogIndzMSIsIHNlc3Npb25faWQ6ICJzZXNzaW9uXzEiIH0gfSksCiAgICAidG9rZW4tc2FpIiwKICAgIGRlcHMsCiAgKTsKICBjb25zdCBib2R5ID0gci5ib2R5IGFzIHsgcmVzdWx0OiB7IGlzRXJyb3I6IGJvb2xlYW47IGNvbnRlbnQ6IHsgdGV4dDogc3RyaW5nIH1bXSB9IH07CiAgYXNzZXJ0RXF1YWxzKGJvZHkucmVzdWx0LmlzRXJyb3IsIHRydWUpOwogIGFzc2VydChib2R5LnJlc3VsdC5jb250ZW50WzBdLnRleHQubGVuZ3RoID4gMCk7Cn0pOwoKRGVuby50ZXN0KCJtY3A6IHRvb2wgbOG6oSDihpIgLTMyNjAyLCBtZXRob2QgbOG6oSDihpIgLTMyNjAxLCBub3RpZmljYXRpb24g4oaSIDIwMiBpbSBs4bq3bmciLCBhc3luYyAoKSA9PiB7CiAgY29uc3QgeyBkZXBzIH0gPSBtYWtlRGVwcygpOwogIGNvbnN0IGJhZFRvb2wgPSBhd2FpdCBoYW5kbGVScGMocnBjKCJ0b29scy9jYWxsIiwgeyBuYW1lOiAia2hvbmdfY28iLCBhcmd1bWVudHM6IHt9IH0pLCBUT0tFTiwgZGVwcyk7CiAgYXNzZXJ0RXF1YWxzKChiYWRUb29sLmJvZHkgYXMgeyBlcnJvcjogeyBjb2RlOiBudW1iZXIgfSB9KS5lcnJvci5jb2RlLCAtMzI2MDIpOwogIGNvbnN0IGJhZE1ldGhvZCA9IGF3YWl0IGhhbmRsZVJwYyhycGMoInJlc291cmNlcy9saXN0IiksIFRPS0VOLCBkZXBzKTsKICBhc3NlcnRFcXVhbHMoKGJhZE1ldGhvZC5ib2R5IGFzIHsgZXJyb3I6IHsgY29kZTogbnVtYmVyIH0gfSkuZXJyb3IuY29kZSwgLTMyNjAxKTsKICBjb25zdCBub3RpZiA9IGF3YWl0IGhhbmRsZVJwYyh7IGpzb25ycGM6ICIyLjAiLCBtZXRob2Q6ICJub3RpZmljYXRpb25zL2luaXRpYWxpemVkIiB9LCBUT0tFTiwgZGVwcyk7CiAgYXNzZXJ0RXF1YWxzKG5vdGlmLnN0YXR1cywgMjAyKTsKICBhc3NlcnRFcXVhbHMobm90aWYuYm9keSwgbnVsbCk7Cn0pOwo=
+import { assert, assertEquals } from "jsr:@std/assert@1";
+import { handleRpc, TOOLS } from "../mcp/handler.ts";
+import { makeDeps, TOKEN } from "./fakes.ts";
+
+const rpc = (method: string, params?: Record<string, unknown>, id: unknown = 1) => ({ jsonrpc: "2.0", id, method, params });
+
+Deno.test("mcp initialize: trả protocol version + serverInfo", async () => {
+  const { deps } = makeDeps();
+  const r = await handleRpc(rpc("initialize", { protocolVersion: "2025-03-26" }), TOKEN, deps);
+  assertEquals(r.status, 200);
+  const body = r.body as { result: { protocolVersion: string; serverInfo: { name: string } } };
+  assertEquals(body.result.protocolVersion, "2025-03-26");
+  assertEquals(body.result.serverInfo.name, "cs-copilot");
+});
+
+Deno.test("mcp tools/list: đủ 5 tool, tên khớp action của copilot", async () => {
+  const { deps } = makeDeps();
+  const r = await handleRpc(rpc("tools/list"), TOKEN, deps);
+  const body = r.body as { result: { tools: { name: string }[] } };
+  assertEquals(body.result.tools.map((t) => t.name), [
+    "copilot_check_conversation",
+    "copilot_generate_draft",
+    "copilot_analyze_sentiment",
+    "copilot_handoff_note",
+    "copilot_send_csat_survey",
+  ]);
+  assertEquals(TOOLS.length, 5);
+});
+
+Deno.test("mcp tools/call check: chạy qua handler copilot, trả structuredContent", async () => {
+  const { deps } = makeDeps();
+  const r = await handleRpc(
+    rpc("tools/call", { name: "copilot_check_conversation", arguments: { website_id: "ws1", session_id: "session_1" } }),
+    TOKEN,
+    deps,
+  );
+  const body = r.body as { result: { isError: boolean; structuredContent: { action: string } } };
+  assertEquals(body.result.isError, false);
+  assertEquals(body.result.structuredContent.action, "check");
+});
+
+Deno.test("mcp tools/call: token sai → isError, không lộ chi tiết hệ thống", async () => {
+  const { deps } = makeDeps();
+  const r = await handleRpc(
+    rpc("tools/call", { name: "copilot_check_conversation", arguments: { website_id: "ws1", session_id: "session_1" } }),
+    "token-sai",
+    deps,
+  );
+  const body = r.body as { result: { isError: boolean; content: { text: string }[] } };
+  assertEquals(body.result.isError, true);
+  assert(body.result.content[0].text.length > 0);
+});
+
+Deno.test("mcp: tool lạ → -32602, method lạ → -32601, notification → 202 im lặng", async () => {
+  const { deps } = makeDeps();
+  const badTool = await handleRpc(rpc("tools/call", { name: "khong_co", arguments: {} }), TOKEN, deps);
+  assertEquals((badTool.body as { error: { code: number } }).error.code, -32602);
+  const badMethod = await handleRpc(rpc("resources/list"), TOKEN, deps);
+  assertEquals((badMethod.body as { error: { code: number } }).error.code, -32601);
+  const notif = await handleRpc({ jsonrpc: "2.0", method: "notifications/initialized" }, TOKEN, deps);
+  assertEquals(notif.status, 202);
+  assertEquals(notif.body, null);
+});
