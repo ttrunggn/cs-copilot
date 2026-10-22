@@ -1,1 +1,51 @@
-aW1wb3J0IHsgYXNzZXJ0LCBhc3NlcnRFcXVhbHMsIGFzc2VydFN0cmluZ0luY2x1ZGVzIH0gZnJvbSAianNyOkBzdGQvYXNzZXJ0QDEiOwppbXBvcnQgeyBwYXJzZVNlbnRpbWVudCwgc2VudGltZW50R3VpZGFuY2UsIHNlbnRpbWVudFByb21wdCB9IGZyb20gIi4uL19zaGFyZWQvc2VudGltZW50LnRzIjsKaW1wb3J0IHsgc2VudGltZW50RmluZ2VycHJpbnQgfSBmcm9tICIuLi9jb3BpbG90L2FuYWx5emUudHMiOwppbXBvcnQgdHlwZSB7IE1lc3NhZ2VSb3cgfSBmcm9tICIuLi9fc2hhcmVkL3R5cGVzLnRzIjsKCmZ1bmN0aW9uIG1zZyhwOiBQYXJ0aWFsPE1lc3NhZ2VSb3c+KTogTWVzc2FnZVJvdyB7CiAgcmV0dXJuIHsKICAgIGlkOiAxLCBjb250ZW50X2VuOiBudWxsLCBmcm9tOiAidXNlciIsIHR5cGU6ICJ0ZXh0IiwgaXNfYm90OiBmYWxzZSwKICAgIGNvbnRlbnQ6ICJoaSIsIGNyZWF0ZWRfYXQ6ICIyMDI2LTAxLTAxVDAwOjAwOjAwWiIsIG9wZXJhdG9yX25hbWU6IG51bGwsIC4uLnAsCiAgfTsKfQoKRGVuby50ZXN0KCJwYXJzZVNlbnRpbWVudDogb3V0cHV0IGjhu6NwIGzhu4cgZ2nhu68gbmd1ecOqbiBoYWkgdHLhu6VjIMSR4buZYyBs4bqtcCIsICgpID0+IHsKICBjb25zdCBzID0gcGFyc2VTZW50aW1lbnQoSlNPTi5zdHJpbmdpZnkoewogICAgc2NvcmU6IDIyLCBtb29kOiAiZnJ1c3RyYXRlZCIsIHVyZ2VuY3k6ICJoaWdoIiwgY29uZmlkZW5jZTogMC45LCBzdW1tYXJ5OiAiS2jDoWNoIGLhu7FjIHbDrCBs4buXaSBjaMawYSBz4butYSIsIHNpZ25hbHM6IFsic3RpbGwgbm90IHdvcmtpbmciXSwKICB9KSk7CiAgYXNzZXJ0RXF1YWxzKHMubW9vZCwgImZydXN0cmF0ZWQiKTsKICBhc3NlcnRFcXVhbHMocy51cmdlbmN5LCAiaGlnaCIpOyAvLyBi4bqjbiBjxakga2jDtG5nIGJhbyBnaeG7nSByYSDEkcaw4bujYyB0cuG6oW5nIHRow6FpIGto4bqpbiBj4bqlcAogIGFzc2VydEVxdWFscyhzLnNjb3JlLCAyMik7Cn0pOwoKRGVuby50ZXN0KCJwYXJzZVNlbnRpbWVudDogdGhp4bq/dSBtb29kIHRow6wgc3V5IHThu6sgxJFp4buDbSB0aGVvIGLhuqNuZyBuZW8sIGtow7RuZyBuw6ltIGzhu5dpIiwgKCkgPT4gewogIGFzc2VydEVxdWFscyhwYXJzZVNlbnRpbWVudCgneyJzY29yZSI6ODB9JykubW9vZCwgImhhcHB5Iik7CiAgYXNzZXJ0RXF1YWxzKHBhcnNlU2VudGltZW50KCd7InNjb3JlIjo1MH0nKS5tb29kLCAibmV1dHJhbCIpOwogIGFzc2VydEVxdWFscyhwYXJzZVNlbnRpbWVudCgneyJzY29yZSI6OTV9JykudXJnZW5jeSwgImxvdyIpOwogIGFzc2VydEVxdWFscyhwYXJzZVNlbnRpbWVudCgia2jDtG5nIHBo4bqjaSBqc29uIikuc2NvcmUsIDUwKTsKfSk7CgpEZW5vLnRlc3QoInNlbnRpbWVudFByb21wdDogcnVicmljIGPDsyBuZW8gxJFp4buDbSwgdHLhu6VjIHVyZ2VuY3kgcmnDqm5nIHbDoCB2w60gZOG7pSBwaOG7pyDEkeG7i25oIiwgKCkgPT4gewogIGNvbnN0IHAgPSBzZW50aW1lbnRQcm9tcHQoIlVzZXI6IHN0aWxsIG5vdCByZXNvbHZlZCIpOwogIGFzc2VydFN0cmluZ0luY2x1ZGVzKHAsICJOZWdhdGlvbiBmbGlwcyBtZWFuaW5nIik7CiAgYXNzZXJ0U3RyaW5nSW5jbHVkZXMocCwgInVyZ2VuY3kgaXMgYSBTRVBBUkFURSBheGlzIik7CiAgYXNzZXJ0U3RyaW5nSW5jbHVkZXMocCwgInN0aWxsIG5vdCByZXNvbHZlZCIpOwp9KTsKCkRlbm8udGVzdCgic2VudGltZW50R3VpZGFuY2U6IGtow6FjaCBi4buxYy9raOG6qW4gY+G6pXAgdGjDrCBj4bqlbSBlbW9qaSB2w6AgY+G6pW0geGluIHJldmlldyIsICgpID0+IHsKICBjb25zdCBnID0gc2VudGltZW50R3VpZGFuY2UoeyBzY29yZTogMjAsIG1vb2Q6ICJmcnVzdHJhdGVkIiwgdXJnZW5jeTogImxvdyIsIGNvbmZpZGVuY2U6IDAuOSwgc3VtbWFyeTogIiIsIHNpZ25hbHM6IFtdIH0pOwogIGFzc2VydFN0cmluZ0luY2x1ZGVzKGcsICJubyBlbW9qaSBhbnl3aGVyZSIpOwogIGFzc2VydFN0cmluZ0luY2x1ZGVzKGcsICJOZXZlciBhc2sgZm9yIGEgcmV2aWV3Iik7CiAgY29uc3QgY2FsbSA9IHNlbnRpbWVudEd1aWRhbmNlKHsgc2NvcmU6IDUwLCBtb29kOiAibmV1dHJhbCIsIHVyZ2VuY3k6ICJsb3ciLCBjb25maWRlbmNlOiAwLjksIHN1bW1hcnk6ICIiLCBzaWduYWxzOiBbXSB9KTsKICBhc3NlcnRFcXVhbHMoY2FsbSwgIiIpOwp9KTsKCkRlbm8udGVzdCgic2VudGltZW50RmluZ2VycHJpbnQ6IGNo4buJIMSR4buVaSBraGkga2jDoWNoIG5o4bqvbiwgQ1MgdHLhuqMgbOG7nWkga2jDtG5nIMSR4buVaSIsIGFzeW5jICgpID0+IHsKICBjb25zdCBiYXNlID0gW21zZyh7IGNvbnRlbnQ6ICJoZWxwIiB9KV07CiAgY29uc3QgZnAxID0gYXdhaXQgc2VudGltZW50RmluZ2VycHJpbnQoYmFzZSk7CiAgY29uc3QgZnAyID0gYXdhaXQgc2VudGltZW50RmluZ2VycHJpbnQoWy4uLmJhc2UsIG1zZyh7IGZyb206ICJvcGVyYXRvciIsIGNvbnRlbnQ6ICJzdXJlIiwgY3JlYXRlZF9hdDogIjIwMjYtMDEtMDFUMDA6MDE6MDBaIiB9KV0pOwogIGNvbnN0IGZwMyA9IGF3YWl0IHNlbnRpbWVudEZpbmdlcnByaW50KFsuLi5iYXNlLCBtc2coeyBjb250ZW50OiAic3RpbGwgYnJva2VuIiwgY3JlYXRlZF9hdDogIjIwMjYtMDEtMDFUMDA6MDI6MDBaIiB9KV0pOwogIGFzc2VydEVxdWFscyhmcDEsIGZwMik7CiAgYXNzZXJ0KGZwMSAhPT0gZnAzKTsKfSk7Cg==
+import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
+import { parseSentiment, sentimentGuidance, sentimentPrompt } from "../_shared/sentiment.ts";
+import { sentimentFingerprint } from "../copilot/analyze.ts";
+import type { MessageRow } from "../_shared/types.ts";
+
+function msg(p: Partial<MessageRow>): MessageRow {
+  return {
+    id: 1, content_en: null, from: "user", type: "text", is_bot: false,
+    content: "hi", created_at: "2026-01-01T00:00:00Z", operator_name: null, ...p,
+  };
+}
+
+Deno.test("parseSentiment: output hợp lệ giữ nguyên hai trục độc lập", () => {
+  const s = parseSentiment(JSON.stringify({
+    score: 22, mood: "frustrated", urgency: "high", confidence: 0.9, summary: "Khách bực vì lỗi chưa sửa", signals: ["still not working"],
+  }));
+  assertEquals(s.mood, "frustrated");
+  assertEquals(s.urgency, "high"); // bản cũ không bao giờ ra được trạng thái khẩn cấp
+  assertEquals(s.score, 22);
+});
+
+Deno.test("parseSentiment: thiếu mood thì suy từ điểm theo bảng neo, không ném lỗi", () => {
+  assertEquals(parseSentiment('{"score":80}').mood, "happy");
+  assertEquals(parseSentiment('{"score":50}').mood, "neutral");
+  assertEquals(parseSentiment('{"score":95}').urgency, "low");
+  assertEquals(parseSentiment("không phải json").score, 50);
+});
+
+Deno.test("sentimentPrompt: rubric có neo điểm, trục urgency riêng và ví dụ phủ định", () => {
+  const p = sentimentPrompt("User: still not resolved");
+  assertStringIncludes(p, "Negation flips meaning");
+  assertStringIncludes(p, "urgency is a SEPARATE axis");
+  assertStringIncludes(p, "still not resolved");
+});
+
+Deno.test("sentimentGuidance: khách bực/khẩn cấp thì cấm emoji và cấm xin review", () => {
+  const g = sentimentGuidance({ score: 20, mood: "frustrated", urgency: "low", confidence: 0.9, summary: "", signals: [] });
+  assertStringIncludes(g, "no emoji anywhere");
+  assertStringIncludes(g, "Never ask for a review");
+  const calm = sentimentGuidance({ score: 50, mood: "neutral", urgency: "low", confidence: 0.9, summary: "", signals: [] });
+  assertEquals(calm, "");
+});
+
+Deno.test("sentimentFingerprint: chỉ đổi khi khách nhắn, CS trả lời không đổi", async () => {
+  const base = [msg({ content: "help" })];
+  const fp1 = await sentimentFingerprint(base);
+  const fp2 = await sentimentFingerprint([...base, msg({ from: "operator", content: "sure", created_at: "2026-01-01T00:01:00Z" })]);
+  const fp3 = await sentimentFingerprint([...base, msg({ content: "still broken", created_at: "2026-01-01T00:02:00Z" })]);
+  assertEquals(fp1, fp2);
+  assert(fp1 !== fp3);
+});
