@@ -1,8 +1,10 @@
+import { sha256Hex } from "../_shared/auth.ts";
 import { humanTranscript, inputFingerprint } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
+import { resolveNoteFormat } from "../_shared/profile.ts";
 import { formatHandoffNote, HANDOFF_SCHEMA, handoffPrompt, parseHandoff } from "../_shared/prompts.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
 import type { Workspace } from "../_shared/types.ts";
@@ -27,7 +29,11 @@ export async function runHandoff(
   deps: { db: Db; n8n: N8n; ai: Ai },
 ): Promise<HandoffResult> {
   const { stale, conv, messages: raw } = await loadConversation(deps, req.website_id, req.session_id);
-  const inputFp = await inputFingerprint("handoff", operatorId, raw);
+  // Format note học theo CS (dòng "_all"): có thì note render theo thói quen của CS, không thì template cố định.
+  // Trộn format vào dấu vân tay như hint/tone của draft, để format mới học không bị cache trả note mẫu cũ.
+  const noteFormat = resolveNoteFormat(await deps.db.getProfiles(operatorId, req.website_id));
+  const baseFp = await inputFingerprint("handoff", operatorId, raw);
+  const inputFp = noteFormat ? await sha256Hex(`${baseFp}|note-format:${JSON.stringify(noteFormat)}`) : baseFp;
   if (!req.force) {
     const hit = await deps.db.findCachedOutput({
       websiteId: req.website_id, sessionId: req.session_id, operatorId, kind: "handoff", inputFp,
@@ -56,7 +62,7 @@ export async function runHandoff(
     throw new AiBadOutput("handoff không đọc được");
   }
   const operator = await deps.db.getOperator(operatorId);
-  const note = formatHandoffNote(fields, operator?.display_name ?? operatorId);
+  const note = formatHandoffNote(fields, operator?.display_name ?? operatorId, noteFormat);
 
   const outputId = await deps.db.insertOutput({
     website_id: req.website_id,
@@ -69,7 +75,9 @@ export async function runHandoff(
     verified: null,
     helpdesk_matches: null,
     topic: conv.topic,
-    profile_used: null,
+    // Như generate: "all" = dùng profile học của chính CS (ở đây là note format ở dòng _all),
+    // "default" = không có profile học, dùng mặc định (template cố định).
+    profile_used: noteFormat ? "all" : "default",
     model,
     prompt_version: null,
     posted: null,
