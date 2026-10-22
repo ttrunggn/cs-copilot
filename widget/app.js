@@ -1,8 +1,8 @@
-import { describeShape, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
+import { countPlaceholders, describeShape, mapError, operatorIdFrom, readContext, toDraftViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
-import { csatPanel, draftPanel, extensionHint, handoffPanel, insightPanel, jiraPanel, knowledgePanel, pendingMessageCard, suggestionCard, techPanel } from "./panels.js";
+import { chipsRow, csatPanel, draftPanel, extensionHint, handoffPanel, insightPanel, jiraPanel, knowledgePanel, pendingMessageCard, storefrontPanel, storefrontStrip, suggestionCard, summaryPanel } from "./panels.js";
 
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
@@ -12,7 +12,22 @@ const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
 const extension = createExtensionClient(render);
-const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
+const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, saveDraftEdit, toggleDraftEdit, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
+
+/** Lưu bản draft CS vừa sửa tại chỗ (null = huỷ sửa). Đếm lại chỗ [[CS: …]] theo bản mới. */
+function saveDraftEdit(text) {
+  if (state.draft && typeof text === "string") {
+    state.draft.vm = { ...state.draft.vm, text, todos: countPlaceholders(text) };
+    state.draftPlacement = "";
+  }
+  state.draftEditing = false;
+  render();
+}
+
+function toggleDraftEdit() {
+  state.draftEditing = true;
+  render();
+}
 
 function showMessage(text, retry) {
   show(el("section", { className: "state-card" }, [
@@ -60,10 +75,16 @@ async function onGenerate(force) {
   render();
   try {
     const sessionId = readContext(location.search).sessionId;
-    const out = await call("generate", force ? { force: true } : {});
+    const extra = {};
+    if (force) extra.force = true;
+    const hint = state.hint.trim();
+    if (hint) extra.hint = hint;
+    if (state.tone !== "default") extra.tone = state.tone;
+    const out = await call("generate", extra);
     state.draft = { output_id: out.output_id, session_id: sessionId, vm: toDraftViewModel(out) };
     if (out.sentiment) state.sentiment = out.sentiment;
     state.draftPlacement = "";
+    state.draftEditing = false;
     state.busy = "";
     render();
     if (state.bridge === "ready") extension.sendInsert("auto");
@@ -81,6 +102,7 @@ async function onAnalyze(force) {
   try {
     const out = await call("analyze", force ? { force: true } : {});
     state.sentiment = out.sentiment;
+    if (typeof out.msg_count === "number") state.sentimentMsgCount = out.msg_count;
     if (!out.sentiment) state.notice = "Chưa đủ tin nhắn của khách để phân tích.";
   } catch (e) {
     if (!e.stale) state.notice = e.message ?? "Không phân tích được, thử lại sau";
@@ -92,17 +114,20 @@ async function onAnalyze(force) {
 async function onSurvey() {
   state.busy = "Đang gửi survey…";
   state.notice = "";
+  state.csatError = false;
   render();
   try {
     const out = await call("survey");
     if (out.sent) {
       state.csat = { sent: true, sent_at: out.sent_at };
+      state.csatError = false;
       state.notice = out.already ? "Survey đã được gửi trước đó rồi." : "Đã gửi CSAT survey cho khách.";
     } else {
-      state.notice = "Không gửi được survey (n8n gate không phản hồi), thử lại sau.";
+      // Panel CSAT hiện trạng thái lỗi riêng kèm nút Thử lại (board 5).
+      state.csatError = true;
     }
   } catch (e) {
-    if (!e.stale) state.notice = e.message ?? "Không gửi được survey, thử lại sau";
+    if (!e.stale) state.csatError = true;
   }
   state.busy = "";
   render();
@@ -136,8 +161,10 @@ function render() {
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
     vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
+    chipsRow(),
+    storefrontStrip(),
     insightPanel(handlers),
-    !state.draft && vm.pendingMessages.length ? suggestionCard(handlers, vm.pendingMessages[vm.pendingMessages.length - 1].text) : null,
+    summaryPanel(handlers),
     vm.pendingMessages.length ? el("section", { className: "pending-section" }, [
       ...vm.pendingMessages.map(pendingMessageCard),
       vm.hiddenPendingCount ? el("p", { className: "muted", textContent: `Đang hiện ${vm.pendingMessages.length} trong ${vm.pendingCount} tin` }) : null,
@@ -145,6 +172,7 @@ function render() {
       el("h2", { textContent: "Hết tin chờ rồi" }),
       el("p", { className: "subtitle", textContent: vm.subtitle }),
     ]),
+    !state.draft && vm.pendingMessages.length ? suggestionCard(handlers, vm.pendingMessages[vm.pendingMessages.length - 1].text) : null,
     el("div", { className: "actions" }, [
       el("button", { className: "button-primary compose-button", textContent: state.busy.startsWith("Đang soạn") ? "Đang soạn…" : "Soạn tin trả lời", disabled, onclick: () => onGenerate(false) }),
       el("button", { className: "button-secondary private-button", textContent: state.busy.startsWith("Đang viết") ? "Đang viết private note…" : "🔒  Private note", disabled, onclick: () => onHandoff(false) }),
@@ -164,14 +192,14 @@ function render() {
         el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), (state.notice = ""), render()) }),
       ]),
     ]) : null,
+    draftPanel(handlers),
+    jiraPanel(),
     el("section", { className: "meta-section" }, vm.metaRows.map((m) => el("div", { className: "meta-row" }, [
       el("span", { className: "muted", textContent: m.label }), el("span", { textContent: m.value }),
     ]))),
-    jiraPanel(),
     handoffPanel(handlers),
-    techPanel(),
-    draftPanel(handlers),
     extensionHint(handlers),
+    storefrontPanel(),
     csatPanel(handlers),
   );
 }
@@ -195,11 +223,15 @@ async function load() {
     state.shownSession = sessionId;
     state.draft = null;
     state.sentiment = null;
+    state.sentimentMsgCount = 0;
     state.csat = null;
+    state.csatError = false;
     state.handoff = null;
     state.knowledgeOpen = false;
     state.choice = false;
     state.draftPlacement = "";
+    state.draftEditing = false;
+    state.hint = "";
     state.notice = "";
     state.check = null;
     const cached = checkCache.get(sessionId);
