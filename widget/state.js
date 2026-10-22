@@ -10,7 +10,9 @@ export const state = {
   notice: "", // dòng trạng thái dưới draft/handoff
   choice: false, // đang hỏi Thay thế / Chèn cuối / Huỷ
   draftPlacement: "", // inserted | copied
-  knowledgeOpen: false, // UI scaffold: sẽ nối FAQ search sau
+  knowledgeOpen: false, // panel Hỏi tài liệu đang mở hay đóng (nút ở hàng action bật/tắt)
+  askQuestion: "", // câu hỏi CS đang gõ trong panel Hỏi tài liệu (giữ qua các lần render)
+  askResult: null, // { question, found, answer, sources } — kết quả ask gần nhất của chat đang mở
   sentiment: null, // phân tích tâm trạng mới nhất (check/analyze/generate trả về)
   sentimentMsgCount: 0, // số tin của khách mà analyze vừa tính sentiment trên đó (0 = chưa biết)
   csat: null, // { sent, sent_at } — trạng thái survey của conversation đang mở
