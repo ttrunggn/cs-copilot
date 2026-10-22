@@ -140,6 +140,16 @@ function render() {
   );
 }
 
+// Cache check gần nhất theo session: quay lại conversation cũ là hiện ngay
+// dữ liệu đã có, rồi mới gọi lại check để làm mới — khỏi chờ "Đang kiểm tra…".
+const checkCache = new Map();
+
+function applyCheck(sessionId) {
+  if (state.check.latest_draft && !state.draft) {
+    state.draft = { output_id: state.check.latest_draft.output_id, session_id: sessionId, vm: toDraftViewModel(state.check.latest_draft) };
+  }
+}
+
 async function load() {
   if (!state.operatorId) return showMessage("Đang xác định CS đang đăng nhập…");
   const sessionId = readContext(location.search).sessionId;
@@ -151,17 +161,25 @@ async function load() {
     state.choice = false;
     state.draftPlacement = "";
     state.notice = "";
+    state.check = null;
+    const cached = checkCache.get(sessionId);
+    if (cached) {
+      state.check = cached;
+      applyCheck(sessionId);
+      render();
+    }
   }
-  showMessage("Đang kiểm tra…");
+  if (!state.check || state.shownSession !== sessionId) showMessage("Đang kiểm tra…");
   try {
     state.check = await call("check");
   } catch (e) {
     if (e.stale) return;
+    if (checkCache.has(sessionId)) return; // đã hiện bản cache, lỗi làm mới thì giữ nguyên màn hình
     return showMessage(e.message ?? "Không kết nối được copilot", e.kind === "retry" || e.kind === "fatal");
   }
-  if (state.check.latest_draft && !state.draft) {
-    state.draft = { output_id: state.check.latest_draft.output_id, session_id: sessionId, vm: toDraftViewModel(state.check.latest_draft) };
-  }
+  if (readContext(location.search).sessionId !== sessionId) return; // CS đã chuyển conversation khác trong lúc chờ
+  checkCache.set(sessionId, state.check);
+  applyCheck(sessionId);
   render();
 }
 
