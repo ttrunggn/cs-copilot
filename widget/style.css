@@ -127,6 +127,10 @@ button:disabled { opacity: .55; cursor: default; }
 .field:disabled { opacity: 1; cursor: not-allowed; }
 .field-static { min-height: auto; color: var(--muted); }
 .knowledge-card { gap: 10px; }
+.ask-question { justify-self: end; max-width: 92%; padding: 10px 12px; border-radius: 12px; background: var(--bubble); white-space: pre-wrap; overflow-wrap: anywhere; }
+.ask-answer-block, .ask-notfound { display: grid; gap: 10px; }
+.ask-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ask-notfound .warn p { margin-top: 4px; font-weight: 400; }
 .csat-panel { display: grid; gap: 10px; padding: 14px 0 0; border-top: 1px solid var(--line); }
 .csat-button { border-color: var(--csat); background: var(--csat); color: #fff; }
 .csat-button:disabled { opacity: .5; }
