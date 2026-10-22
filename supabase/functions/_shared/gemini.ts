@@ -1,4 +1,4 @@
-export type AiTask = "draft" | "verify" | "handoff" | "classify" | "translate" | "learn" | "case_summary" | "sentiment" | "embed";
+export type AiTask = "draft" | "verify" | "handoff" | "classify" | "translate" | "learn" | "case_summary" | "sentiment" | "ask" | "embed";
 
 export class AiUnavailable extends Error {
   readonly code = "AI_UNAVAILABLE";
