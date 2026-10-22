@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -226,4 +226,33 @@ Deno.test("toJiraViewModel shows status, NEW badge and the latest new comment", 
   assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", title: "TNT-1 · Pending Dev", summary: "Menu bug", isNew: true, news: ["Đổi trạng thái", "Tech · Dev Minh (1 giờ trước): Fixed"] });
   assertEquals(vm[1].url, null);
   assertEquals(vm[1].title, "TNT-2 · chưa đồng bộ");
+});
+
+Deno.test("toAskViewModel keeps found answers and https sources only", () => {
+  const vm = toAskViewModel({
+    found: true,
+    answer: "  Bật Auto Currency trong Settings. ",
+    sources: [
+      { title: "Currency", url: "https://help.transcy.io/en/article/currency" },
+      { title: "Evil", url: "javascript:alert(1)" },
+      { title: "Thiếu url" },
+    ],
+  });
+  assertEquals(vm, {
+    found: true,
+    answer: "Bật Auto Currency trong Settings.",
+    sources: [{ title: "Currency", url: "https://help.transcy.io/en/article/currency" }],
+  });
+});
+
+Deno.test("toAskViewModel treats found without a real answer as not found", () => {
+  assertEquals(toAskViewModel({ found: false, answer: null, sources: [] }), { found: false, answer: "", sources: [] });
+  assertEquals(toAskViewModel({ found: true, answer: "  ", sources: [] }).found, false);
+  assertEquals(toAskViewModel(null), { found: false, answer: "", sources: [] });
+});
+
+Deno.test("askAnswerToHint trims and caps at the server hint limit (500)", () => {
+  assertEquals(askAnswerToHint("  đáp án ngắn  "), "đáp án ngắn");
+  assertEquals(askAnswerToHint("x".repeat(600)).length, 500);
+  assertEquals(askAnswerToHint(null), "");
 });

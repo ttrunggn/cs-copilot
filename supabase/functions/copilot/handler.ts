@@ -4,16 +4,18 @@ import { type Ai, AiBadOutput, AiUnavailable } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { type DraftTone, parseDraftTone } from "../_shared/prompts.ts";
 import { runAnalyze } from "./analyze.ts";
+import { runAsk } from "./ask.ts";
 import { runCheck } from "./check.ts";
 import { runSurvey } from "./survey.ts";
 import { runGenerate } from "./generate.ts";
 import { runHandoff } from "./handoff.ts";
 
+export type { AskResult } from "./ask.ts";
 export type { CheckResult } from "./check.ts";
 export type { GenerateResult } from "./generate.ts";
 export type { HandoffResult } from "./handoff.ts";
 
-const ACTIONS = ["check", "handoff", "generate", "analyze", "survey"] as const;
+const ACTIONS = ["check", "handoff", "generate", "analyze", "survey", "ask"] as const;
 type Action = typeof ACTIONS[number];
 // session_id/website_id đi vào URL Crisp ở phía n8n nên phải đúng định dạng Crisp.
 const SESSION_ID = /^session_[\w-]+$/;
@@ -30,9 +32,12 @@ export interface CopilotRequest {
   hint: string;
   /** Giọng văn CS chọn cho draft; không hợp lệ → default. */
   tone: DraftTone;
+  /** Câu hỏi của CS cho Hỏi tài liệu (chỉ action ask dùng). Trần 300 ký tự. */
+  question: string;
 }
 
 export const HINT_MAX_CHARS = 500;
+export const QUESTION_MAX_CHARS = 300;
 
 export interface Deps {
   db: Db;
@@ -61,6 +66,7 @@ function parseRequest(body: unknown): CopilotRequest {
     operator_id: str("operator_id"),
     hint: str("hint").slice(0, HINT_MAX_CHARS),
     tone: parseDraftTone(b.tone),
+    question: str("question").slice(0, QUESTION_MAX_CHARS),
   };
 }
 
@@ -82,6 +88,8 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
         return { status: 200, body: await runAnalyze(req, deps) };
       case "survey":
         return { status: 200, body: await runSurvey(req, operatorId, deps) };
+      case "ask":
+        return { status: 200, body: await runAsk(req, deps) };
     }
   } catch (e) {
     if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };
