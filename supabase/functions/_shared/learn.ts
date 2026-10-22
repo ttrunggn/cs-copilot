@@ -1,6 +1,6 @@
 // Logic thuần cho việc học giọng văn từng CS và phân loại topic theo lô (script scripts/learn-profiles.ts dùng).
 import { DATA_ONLY, neutralize, parseJson, topicLine } from "./prompts.ts";
-import type { Profile, Topic } from "./types.ts";
+import type { NoteFormat, NoteLanguage, NoteLineStyle, NoteSection, NoteSectionField, Profile, Topic } from "./types.ts";
 
 export interface OpMessage {
   operator_id: string;
@@ -117,6 +117,118 @@ export function parseLearned(text: string, samples: string[]): Omit<Profile, nev
     sample_messages: picked,
     style_notes: str("style_notes") || null,
   };
+}
+
+// ---------- học format private note theo từng CS ----------
+
+/** Dưới số note này thì coi như chưa đủ bằng chứng về thói quen format → dùng template cố định. */
+export const MIN_NOTES_FOR_FORMAT = 3;
+const MIN_NOTE_CHARS = 20;
+const MAX_NOTE_CHARS = 1500;
+const MAX_NOTES_PER_SESSION = 2;
+// Note do chính copilot đăng (formatHandoffNote) cũng nằm trong messages — học lại chính mình thì vô nghĩa.
+const SELF_NOTE = /^📋 Handoff\b/;
+
+/** Note mẫu để học format: mới nhất trước, bỏ note của copilot/quá ngắn/quá dài/trùng, tối đa 2 note mỗi hội thoại. */
+export function pickNoteSamples(notes: OpMessage[], max = 12): string[] {
+  const seen = new Set<string>();
+  const perSession = new Map<string, number>();
+  const out: string[] = [];
+  for (const m of [...notes].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))) {
+    const text = m.content.trim();
+    const key = text.toLowerCase().replace(/\s+/g, " ");
+    if (text.length < MIN_NOTE_CHARS || text.length > MAX_NOTE_CHARS || SELF_NOTE.test(text) || seen.has(key)) continue;
+    if ((perSession.get(m.session_id) ?? 0) >= MAX_NOTES_PER_SESSION) continue;
+    seen.add(key);
+    perSession.set(m.session_id, (perSession.get(m.session_id) ?? 0) + 1);
+    out.push(text);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+export const NOTE_LEARN_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    language: { type: "STRING", enum: ["vi", "en", "mixed"] },
+    header: { type: "STRING" },
+    sections: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          field: { type: "STRING", enum: ["summary", "issues", "next_step"] },
+          label: { type: "STRING" },
+        },
+        required: ["field", "label"],
+      },
+    },
+    line_style: { type: "STRING", enum: ["numbered", "bullets", "paragraphs"] },
+    state_style: { type: "STRING", enum: ["emoji", "text"] },
+    sign_off: { type: "STRING" },
+  },
+  required: ["language", "sections", "line_style", "state_style"],
+};
+
+export function noteLearnPrompt(agentName: string, samples: string[]): string {
+  return [
+    `Below are real internal handoff/private notes the support agent "${agentName}" wrote for teammates.`,
+    "Describe ONLY the FORMAT of these notes — never copy or summarize their content. Write every field in the format described; labels must be quoted verbatim from the notes.",
+    "language: \"vi\" if the notes are written in Vietnamese, \"en\" if in English, \"mixed\" if both are used regularly.",
+    "header: the first line of the notes with the agent's own name replaced by {name} (e.g. \"Bàn giao — {name}\"); empty string if the notes have no header line.",
+    "sections: the content blocks in the order this agent writes them. Map each block to one field: \"summary\" (what the customer wants / overall situation), " +
+    "\"issues\" (the list of individual problems and what was done about each), \"next_step\" (what to do next / who is being waited on). " +
+    "label: the exact heading or label the agent puts before that block (e.g. \"Vấn đề:\", \"Customer wants:\"); empty string if the block has no label. List each field at most once, in the agent's usual order.",
+    "line_style: how the issues block is written — \"numbered\" (1. 2. 3.), \"bullets\" (- or •), or \"paragraphs\" (plain lines/sentences).",
+    "state_style: \"emoji\" if the agent marks each issue's status with emoji (✅ ⏳ 🛠…), otherwise \"text\".",
+    "sign_off: a closing line that is only the agent's name/signature, with the name replaced by {name}; empty string if there is none.",
+    DATA_ONLY,
+    `<notes>\n${samples.map((s, i) => `[${i}] ${neutralize(s)}`).join("\n")}\n</notes>`,
+  ].join("\n\n");
+}
+
+const NOTE_FIELDS: NoteSectionField[] = ["summary", "issues", "next_step"];
+const NOTE_LANGUAGES: NoteLanguage[] = ["vi", "en", "mixed"];
+const NOTE_LINE_STYLES: NoteLineStyle[] = ["numbered", "bullets", "paragraphs"];
+const cap = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
+
+/** Làm sạch một object format thô (từ AI hoặc từ jsonb trong DB) thành NoteFormat; không có tín hiệu thì null. */
+function sanitizeNoteFormat(r: Record<string, unknown>, notesUsed: number): NoteFormat | null {
+  const sections: NoteSection[] = [];
+  for (const s of Array.isArray(r.sections) ? r.sections : []) {
+    const field = (s as { field?: unknown })?.field;
+    if (!NOTE_FIELDS.includes(field as NoteSectionField) || sections.some((x) => x.field === field)) continue;
+    sections.push({ field: field as NoteSectionField, label: cap((s as { label?: unknown }).label, 60) });
+    if (sections.length >= NOTE_FIELDS.length) break;
+  }
+  const header = cap(r.header, 100) || null;
+  const sign_off = cap(r.sign_off, 60) || null;
+  if (!sections.length && !header && !sign_off) return null;
+  return {
+    language: NOTE_LANGUAGES.includes(r.language as NoteLanguage) ? (r.language as NoteLanguage) : "vi",
+    header,
+    sections,
+    line_style: NOTE_LINE_STYLES.includes(r.line_style as NoteLineStyle) ? (r.line_style as NoteLineStyle) : "numbered",
+    state_style: r.state_style === "text" ? "text" : "emoji",
+    sign_off,
+    notes_used: notesUsed,
+  };
+}
+
+/** Parse kết quả AI học format. Ném lỗi khi output không đọc được hoặc không có tín hiệu format nào. */
+export function parseNoteFormat(text: string, notesUsed: number): NoteFormat {
+  const fmt = sanitizeNoteFormat(parseJson<Record<string, unknown>>(text), notesUsed);
+  if (!fmt) throw new Error("note format không có tín hiệu");
+  return fmt;
+}
+
+/** Đọc note_format từ DB (jsonb): chỉ nhận khi đủ bằng chứng (notes_used ≥ ngưỡng) và đúng hình dạng. */
+export function asNoteFormat(value: unknown): NoteFormat | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const r = value as Record<string, unknown>;
+  const used = typeof r.notes_used === "number" && Number.isFinite(r.notes_used) ? r.notes_used : 0;
+  if (used < MIN_NOTES_FOR_FORMAT) return null;
+  return sanitizeNoteFormat(r, used);
 }
 
 /** Vài tin đầu của khách mỗi hội thoại (theo thời gian), đủ để phân loại mà không tốn token. */
