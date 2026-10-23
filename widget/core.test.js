@@ -1,9 +1,22 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { askAnswerToHint, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
 const TOKEN = "11111111-2222-3333-4444-555555555555";
+
+Deno.test("actionButtonState: rảnh thì nút action bật, không chạy", () => {
+  assertEquals(actionButtonState("", "generate"), { running: false, disabled: false });
+});
+
+Deno.test("actionButtonState: nút của action đang chạy hiện running và bị khoá", () => {
+  assertEquals(actionButtonState("generate", "generate"), { running: true, disabled: true });
+});
+
+Deno.test("actionButtonState: action khác đang chạy thì nút bị khoá nhưng không running (không spinner)", () => {
+  assertEquals(actionButtonState("analyze", "generate"), { running: false, disabled: true });
+  assertEquals(actionButtonState("ask", "survey"), { running: false, disabled: true });
+});
 
 Deno.test("reads website_id, session_id and Crisp website token from iframe URL", () => {
   assertEquals(readContext(`?website_id=f5733b35-0234&session_id=session_abc-1&token=${TOKEN}&locale=en`),
