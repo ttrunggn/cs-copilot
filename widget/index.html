@@ -4,12 +4,37 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CS Copilot</title>
+  <link rel="preconnect" href="https://rbodkthyuiyfotewgxku.supabase.co">
+  <link rel="dns-prefetch" href="https://assets.crisp.chat">
   <link rel="stylesheet" href="style.css">
-  <script src="https://assets.crisp.chat/widget/javascripts/sdk.min.js"></script>
+  <link rel="modulepreload" href="core.js">
+  <link rel="modulepreload" href="dom.js">
+  <link rel="modulepreload" href="state.js">
+  <link rel="modulepreload" href="bridge-core.js">
+  <link rel="modulepreload" href="extension-client.js">
+  <link rel="modulepreload" href="panels.js">
+  <style>
+    /* Critical CSS cho first paint: khớp token dark mặc định của style.css,
+       chỉ để khung xương hiện đúng màu trước khi style.css tải xong.
+       Bản đầy đủ của các class .sk* nằm trong style.css. */
+    body { margin: 0; background: #141519; }
+    .sk { display: grid; gap: 12px; padding: 16px; }
+    .sk-block { border-radius: 14px; background: #1b1d23; animation: sk-pulse 1.2s ease-in-out infinite alternate; }
+    .sk-head { height: 44px; }
+    .sk-card { height: 118px; }
+    .sk-card-sm { height: 74px; }
+    @keyframes sk-pulse { from { opacity: .55; } to { opacity: 1; } }
+  </style>
+  <script defer src="https://assets.crisp.chat/widget/javascripts/sdk.min.js"></script>
 </head>
 <body>
   <main id="app" aria-live="polite">
-    <p class="muted">Đang tải…</p>
+    <div class="sk" aria-hidden="true">
+      <div class="sk-block sk-head"></div>
+      <div class="sk-block sk-card"></div>
+      <div class="sk-block sk-card-sm"></div>
+      <div class="sk-block sk-card"></div>
+    </div>
   </main>
   <script type="module" src="app.js"></script>
 </body>
