@@ -6,12 +6,18 @@ import { parseSentiment, SENTIMENT_SCHEMA, type Sentiment, sentimentPrompt } fro
 import type { MessageRow } from "../_shared/types.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
 
+/** Vì sao chưa có sentiment: chưa có tin khách để đọc, hay AI chưa sẵn sàng
+ * (thiếu cấu hình task "sentiment" trên server / hết quota). Panel hiện đúng
+ * thông điệp theo reason thay vì đổ hết về "chưa đủ tin nhắn". */
+export type SentimentReason = "no_customer_text" | "ai_unavailable";
+
 export interface AnalyzeResult {
   action: "analyze";
   sentiment: Sentiment | null;
   cached: boolean;
   /** Số tin của khách làm đầu vào cho dấu vân tay sentiment — panel hiện "Tính trên N tin". */
   msg_count: number;
+  reason: SentimentReason | null;
 }
 
 /** Đếm tin của khách — cùng tập đầu vào mà sentimentFingerprint dùng. */
@@ -38,26 +44,26 @@ export async function resolveSentiment(
   sessionId: string,
   messages: MessageRow[],
   force = false,
-): Promise<{ sentiment: Sentiment | null; cached: boolean }> {
+): Promise<{ sentiment: Sentiment | null; cached: boolean; reason: SentimentReason | null }> {
   const cached = await deps.db.getSentiment(websiteId, sessionId).catch(() => null);
   const strip = (s: Sentiment & { input_fp: string }): Sentiment => {
     const { input_fp: _fp, ...rest } = s;
     return rest;
   };
   if (!messages.some((m) => m.from === "user" && m.type === "text")) {
-    return { sentiment: cached ? strip(cached) : null, cached: Boolean(cached) };
+    return { sentiment: cached ? strip(cached) : null, cached: Boolean(cached), reason: cached ? null : "no_customer_text" };
   }
   const fp = await sentimentFingerprint(messages);
-  if (!force && cached && cached.input_fp === fp) return { sentiment: strip(cached), cached: true };
+  if (!force && cached && cached.input_fp === fp) return { sentiment: strip(cached), cached: true, reason: null };
   try {
     const transcript = humanTranscript(messages, 40, true);
     const { text, model } = await deps.ai.generate("sentiment", sentimentPrompt(transcript), { schema: SENTIMENT_SCHEMA });
     const sentiment = parseSentiment(text);
     await deps.db.saveSentiment({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model }).catch(() => {});
-    return { sentiment, cached: false };
+    return { sentiment, cached: false, reason: null };
   } catch (e) {
     console.error("sentiment failed", e);
-    return { sentiment: cached ? strip(cached) : null, cached: Boolean(cached) };
+    return { sentiment: cached ? strip(cached) : null, cached: Boolean(cached), reason: cached ? null : "ai_unavailable" };
   }
 }
 
@@ -68,6 +74,6 @@ export async function runAnalyze(
 ): Promise<AnalyzeResult> {
   const { conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
   void conv;
-  const { sentiment, cached } = await resolveSentiment(deps, req.website_id, req.session_id, messages, req.force);
-  return { action: "analyze", sentiment, cached, msg_count: customerMessageCount(messages) };
+  const { sentiment, cached, reason } = await resolveSentiment(deps, req.website_id, req.session_id, messages, req.force);
+  return { action: "analyze", sentiment, cached, msg_count: customerMessageCount(messages), reason };
 }
