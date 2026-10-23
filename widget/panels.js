@@ -32,47 +32,17 @@ export function extensionHint({ detectExtension }) {
   ]);
 }
 
-const TONE_OPTIONS = [
-  ["default", "Mặc định"],
-  ["friendly", "Thân thiện"],
-  ["formal", "Trang trọng"],
-  ["concise", "Ngắn gọn"],
-];
-
-export function draftPanel({ copy, onGenerate, sendInsert, saveDraftEdit, toggleDraftEdit }) {
+/**
+ * Thẻ draft gọn: nội dung + nguồn + cảnh báo, và MỘT hành động duy nhất.
+ * Draft đi thẳng vào ô Reply của Crisp qua extension — không còn nút Copy,
+ * không sửa trong panel: cần sửa thì bấm "Sửa trong Crisp" và sửa ngay tại
+ * ô Reply (chỗ CS sẽ bấm Send). Ý + giọng văn chọn ở thẻ soạn phía trên,
+ * trước khi bấm soạn.
+ */
+export function draftPanel({ onEditInCrisp }) {
   if (!state.draft) return null;
   const draft = state.draft;
   const vm = draft.vm;
-  const genBtn = actionButtonState(state.busyAction, "generate");
-
-  // Sửa draft tại chỗ: textarea thay bản đọc; Lưu mới ghi vào state.draft.vm.
-  let editor = null;
-  let editBox = null;
-  if (state.draftEditing) {
-    editBox = el("textarea", { className: "field draft-edit", rows: 10, value: vm.text });
-    editor = el("div", { className: "draft-editor" }, [
-      editBox,
-      el("div", { className: "row" }, [
-        el("button", { className: "button-primary", textContent: "Lưu", onclick: () => saveDraftEdit(editBox.value) }),
-        el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => saveDraftEdit(null) }),
-      ]),
-    ]);
-  }
-
-  const toneSelect = el("select", {
-    className: "tone-select",
-    title: "Giọng văn cho draft",
-    onchange: (e) => { state.tone = e.target.value; },
-  }, TONE_OPTIONS.map(([v, label]) => el("option", { value: v, textContent: label })));
-  toneSelect.value = state.tone;
-
-  const hintBox = el("textarea", {
-    className: "field draft-hint",
-    rows: 2,
-    placeholder: "vd: lỗi 502, chờ dev, mai trả lời",
-    value: state.hint,
-    oninput: (e) => { state.hint = e.target.value; },
-  });
 
   return el("section", { className: "card ai-card draft-card" }, [
     el("div", { className: "draft-heading" }, [
@@ -81,7 +51,7 @@ export function draftPanel({ copy, onGenerate, sendInsert, saveDraftEdit, toggle
         ? "Đã điền draft vào ô Reply, đọc lại rồi bấm Send"
         : state.draftPlacement === "copied"
         ? "Đã copy, dán vào ô Reply bằng Ctrl+V"
-        : state.bridge === "ready" ? "Extension sẵn sàng điền draft vào ô Reply" : "Đọc lại draft rồi copy vào ô Reply nhé" }),
+        : state.bridge === "ready" ? "Extension sẵn sàng điền draft vào ô Reply" : "Cài extension để điền draft thẳng vào ô Reply nhé" }),
     ]),
     el("div", { className: "draft-meta" }, [
       el("span", { className: "muted", textContent: vm.age ? `✦ Soạn ${vm.age}` : "✦ Soạn vừa xong" }),
@@ -98,7 +68,7 @@ export function draftPanel({ copy, onGenerate, sendInsert, saveDraftEdit, toggle
       ])
       : null,
     vm.todos ? el("p", { className: "warn", textContent: `Còn ${vm.todos} chỗ cần điền trước khi gửi.` }) : null,
-    editor ?? draftText(vm.text),
+    draftText(vm.text),
     vm.warnings.length
       ? el("div", { className: "warnings" }, vm.warnings.map((w) =>
         el("div", { className: "warning-item" }, [
@@ -107,17 +77,13 @@ export function draftPanel({ copy, onGenerate, sendInsert, saveDraftEdit, toggle
         ])
       ))
       : null,
-    el("p", { className: "muted", textContent: "Thêm ý của bạn (không bắt buộc). Để trống thì AI tự soạn từ tin khách; có ý thì ý của bạn được ưu tiên." }),
-    hintBox,
-    el("div", { className: "row draft-actions" }, [
-      el("button", { className: "button-secondary", disabled: genBtn.disabled, onclick: () => onGenerate(true) }, buttonContent(genBtn.running, state.busy, "Soạn lại")),
-      toneSelect,
-      el("button", { className: "button-secondary", textContent: "Sửa", disabled: state.draftEditing, onclick: toggleDraftEdit }),
-    ]),
-    el("div", { className: "row draft-actions" }, [
-      el("button", { className: state.bridge === "ready" ? "button-secondary" : "button-primary", textContent: state.copiedKey === "draft" ? "Đã copy ✓" : "Copy", onclick: () => copy(vm.text, "draft") }),
-      state.bridge === "ready" ? el("button", { className: "button-primary draft-insert", textContent: "Điền vào Reply", disabled: state.insertPending, onclick: () => sendInsert("replace") }) : null,
-    ]),
+    state.bridge === "ready"
+      ? el("div", { className: "row draft-actions single" }, [
+        state.draftPlacement === "inserted"
+          ? el("button", { className: "button-secondary", textContent: "Sửa trong Crisp", onclick: () => onEditInCrisp() })
+          : el("button", { className: "button-primary draft-insert", textContent: "Điền vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() }),
+      ])
+      : null,
   ]);
 }
 
@@ -332,7 +298,7 @@ export function csatPanel({ onSurvey }) {
       : state.csatError
       ? el("div", { className: "csat-error" }, [
         el("b", { textContent: "Không gửi được" }),
-        el("p", { className: "muted", textContent: "n8n gate không phản hồi hoặc lỗi kết nối." }),
+        el("p", { className: "muted", textContent: state.csatErrorMsg || "n8n gate không phản hồi hoặc lỗi kết nối." }),
         el("button", { className: "button-secondary", disabled: svBtn.disabled, onclick: () => onSurvey() }, buttonContent(svBtn.running, "Đang gửi…", "Thử lại")),
       ])
       : frustratedOpen
