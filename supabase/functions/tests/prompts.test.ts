@@ -73,6 +73,14 @@ Deno.test("draftPrompt asks to answer each issue in order, respects bot replies,
   }
 });
 
+Deno.test("draftPrompt binds the reply to the on-duty agent's name when agentName is given", () => {
+  const p = draftPrompt({ ...draftInput, agentName: "Ethan Nguyen" });
+  assertEquals(p.includes("The agent writing this reply is Ethan Nguyen"), true);
+  assertEquals(p.includes("copy their phrasing, never their name"), true);
+  // Không truyền tên thì không có dòng trói tên (đường cũ giữ nguyên).
+  assertEquals(draftPrompt(draftInput).includes("The agent writing this reply is"), false);
+});
+
 Deno.test("draftPrompt omits helpdesk section when none", () => {
   assertEquals(draftPrompt({ ...draftInput, helpdesk: [] }).includes("[H1]"), false);
 });
