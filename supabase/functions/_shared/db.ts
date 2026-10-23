@@ -18,6 +18,7 @@ export interface Db {
   getMessages(websiteId: string, sessionId: string, limit: number): Promise<MessageRow[]>;
   saveTranslations(rows: { id: number; content_en: string }[]): Promise<void>;
   getProfiles(operatorId: string, websiteId: string): Promise<ProfileRow[]>;
+  getWorkspaceAllProfiles(websiteId: string): Promise<ProfileRow[]>;
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
   findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>;
   insertOutput(row: NewOutput): Promise<number>;
@@ -85,6 +86,12 @@ export function createDb(sb: SupabaseClient): Db {
     async getProfiles(operatorId, websiteId) {
       const { data, error } = await sb.from("agent_profiles").select("*")
         .eq("crisp_user_id", operatorId).eq("website_id", websiteId);
+      if (error) throw error;
+      return (data ?? []) as ProfileRow[];
+    },
+    async getWorkspaceAllProfiles(websiteId) {
+      const { data, error } = await sb.from("agent_profiles").select("*")
+        .eq("website_id", websiteId).eq("topic", "_all");
       if (error) throw error;
       return (data ?? []) as ProfileRow[];
     },
