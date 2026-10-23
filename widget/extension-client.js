@@ -6,10 +6,10 @@ const INSERT_TIMEOUT_MS = 3000;
 
 /**
  * Giao tiếp với Chrome extension qua window.postMessage: ping để nhận diện
- * extension và gửi lệnh điền draft vào ô Reply. `render` được truyền vào từ
- * app.js để module này không phải import vòng về app.js.
+ * extension và gửi lệnh điền draft vào ô Reply. `render` và `notify` được
+ * truyền vào từ app.js để module này không phải import vòng về app.js.
  */
-export function createExtensionClient(render) {
+export function createExtensionClient(render, notify) {
   function pingExtension() {
     return new Promise((resolve) => {
       const onMsg = (ev) => {
@@ -54,11 +54,11 @@ export function createExtensionClient(render) {
     const requestId = newRequestId();
     const msg = "error" in ctx ? null : draftInsert(state.draft, ctx.sessionId, requestId, mode);
     if (!msg) {
-      state.notice = insertResultMessage("session_mismatch");
+      notify(insertResultMessage("session_mismatch"), "error");
       return render();
     }
     state.insertPending = true;
-    state.notice = "Đang điền draft vào ô Reply…";
+    notify("Đang điền draft vào ô Reply…", "info");
     render();
     const onMsg = (ev) => {
       const r = acceptReply(ev, window, requestId);
@@ -68,13 +68,16 @@ export function createExtensionClient(render) {
       state.insertPending = false;
       state.choice = r.status === "not_empty";
       if (r.status === "inserted" || r.status === "duplicate") state.draftPlacement = "inserted";
-      state.notice = state.choice ? `${insertResultMessage(r.status)}: thay thế, chèn xuống cuối hay huỷ?` : insertResultMessage(r.status);
+      notify(
+        state.choice ? `${insertResultMessage(r.status)}: thay thế, chèn xuống cuối hay huỷ?` : insertResultMessage(r.status),
+        state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
+      );
       render();
     };
     const timer = setTimeout(() => {
       window.removeEventListener("message", onMsg);
       state.insertPending = false;
-      state.notice = insertResultMessage("composer_not_found");
+      notify(insertResultMessage("composer_not_found"), "error");
       render();
     }, INSERT_TIMEOUT_MS);
     window.addEventListener("message", onMsg);

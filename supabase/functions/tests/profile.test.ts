@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { BUILTIN_PROFILE, pickBestNoteFormat, pickBestProfileRow, resolveNoteFormat, resolveProfile } from "../_shared/profile.ts";
+import { BUILTIN_PROFILE, pickBestNoteFormat, pickBestProfileRow, rebindIdentity, resolveNoteFormat, resolveProfile } from "../_shared/profile.ts";
 import type { NoteFormat, ProfileRow } from "../_shared/types.ts";
 
 const row = (topic: string, extra: Partial<ProfileRow> = {}): ProfileRow => ({
@@ -127,6 +127,38 @@ Deno.test("resolveProfile: own rows and own manual override beat the best row", 
   assertEquals(r.source, "all");
   assertEquals(r.profile.tone, "của mình");
   assertEquals(r.profile.signature, "— Tôi");
+});
+
+Deno.test("resolveProfile: best row contributes style but never its signature", () => {
+  const best = row("_all", { crisp_user_id: "op-b", tone: "best", signature: "This is Raymond from Transcy" });
+  const r = resolveProfile([], null, {}, best);
+  assertEquals(r.source, "best");
+  assertEquals(r.profile.tone, "best");
+  assertEquals(r.profile.signature, null);
+  // Workspace default signature (mức team) vẫn được dùng khi lớp best bị khử chữ ký.
+  const r2 = resolveProfile([], null, { signature: "Transcy Support Team" }, best);
+  assertEquals(r2.profile.signature, "Transcy Support Team");
+});
+
+Deno.test("rebindIdentity swaps the donor name for the borrower's in samples and signature", () => {
+  const p = {
+    ...BUILTIN_PROFILE,
+    signature: "Regards, Raymond",
+    sample_messages: [
+      "Hi there, This is Raymond from the Customer Success Team at Transcy.",
+      "Raymond here — checking your store now.",
+      "Your Raymond-style discount code is safe with me.",
+    ],
+  };
+  const out = rebindIdentity(p, "Raymond Tran", "Ethan Nguyen");
+  // Tên đầy đủ và tên gọi đều đổi; từ ghép chứa tên (Raymond-style) không bị đụng.
+  assertEquals(out.signature, "Regards, Ethan");
+  assertEquals(out.sample_messages[0], "Hi there, This is Ethan from the Customer Success Team at Transcy.");
+  assertEquals(out.sample_messages[1], "Ethan here — checking your store now.");
+  assertEquals(out.sample_messages[2], "Your Raymond-style discount code is safe with me.");
+  // Không đổi khi thiếu tên hoặc trùng tên.
+  assertEquals(rebindIdentity(p, "", "Ethan Nguyen"), p);
+  assertEquals(rebindIdentity(p, "Ethan Nguyen", "Ethan Nguyen"), p);
 });
 
 Deno.test("pickBestNoteFormat picks most notes_used, ignores manual-only formats", () => {

@@ -1,4 +1,4 @@
-import { actionButtonState, askAnswerToHint, countPlaceholders, describeShape, mapError, operatorIdFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, describeShape, mapError, operatorIdFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { buttonContent, el, show } from "./dom.js";
 import { state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -11,27 +11,55 @@ const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
 const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
-const extension = createExtensionClient(render);
+const extension = createExtensionClient(render, setNotice);
 function toggleSuggestion() {
   state.suggestionExpanded = !state.suggestionExpanded;
   render();
 }
 
-const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, saveDraftEdit, toggleDraftEdit, onToggleSuggestion: toggleSuggestion, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
+const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onToggleSuggestion: toggleSuggestion, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
 
-/** Lưu bản draft CS vừa sửa tại chỗ (null = huỷ sửa). Đếm lại chỗ [[CS: …]] theo bản mới. */
-function saveDraftEdit(text) {
-  if (state.draft && typeof text === "string") {
-    state.draft.vm = { ...state.draft.vm, text, todos: countPlaceholders(text) };
-    state.draftPlacement = "";
-  }
-  state.draftEditing = false;
-  render();
+let noticeTimer = null;
+
+/**
+ * Hiện một thông báo trạng thái duy nhất, có hạn: thành công tự tắt sau 6s,
+ * thông tin 8s, lỗi 12s; bấm × tắt ngay. Thông báo mới thay thông báo cũ —
+ * không còn cảnh lỗi của thao tác trước treo lại khi CS đã làm việc khác.
+ */
+function setNotice(text, kind = "info") {
+  state.notice = text;
+  state.noticeKind = text ? kind : "";
+  clearTimeout(noticeTimer);
+  if (!text) return;
+  const mine = text;
+  noticeTimer = setTimeout(() => {
+    if (state.notice === mine) {
+      state.notice = "";
+      state.noticeKind = "";
+      render();
+    }
+  }, kind === "error" ? 12000 : kind === "success" ? 6000 : 8000);
 }
 
-function toggleDraftEdit() {
-  state.draftEditing = true;
-  render();
+function clearNotice() {
+  clearTimeout(noticeTimer);
+  state.notice = "";
+  state.noticeKind = "";
+}
+
+/**
+ * Sửa draft ngay trong Crisp: draft được điền vào ô Reply (extension tự focus
+ * vào ô soạn khi điền) và CS sửa trực tiếp ở đó — panel không giữ bản sửa riêng.
+ * Đã điền rồi thì không điền lại (tránh ghi đè phần CS vừa sửa), chỉ nhắc chỗ sửa.
+ */
+function onEditInCrisp() {
+  if (!state.draft) return;
+  if (state.draftPlacement === "inserted") {
+    setNotice("Draft đang nằm trong ô Reply của Crisp — bấm vào ô Reply để sửa trực tiếp ở đó.", "info");
+    render();
+    return;
+  }
+  extension.sendInsert("replace");
 }
 
 function showMessage(text, retry) {
@@ -69,7 +97,7 @@ async function copy(text, key = "") {
     t.remove();
   }
   if (state.draft && text === state.draft.vm.text) state.draftPlacement = "copied";
-  state.notice = "Đã copy, dán vào ô Reply bằng Ctrl+V";
+  setNotice("Đã copy, dán vào ô Reply bằng Ctrl+V", "success");
   if (key) {
     state.copiedKey = key;
     clearTimeout(copyTimer);
@@ -83,14 +111,18 @@ async function copy(text, key = "") {
 
 // ---------- API ----------
 
-async function call(action, extra = {}) {
+async function call(action, extra = {}, signal) {
   const ctx = readContext(location.search);
   if ("error" in ctx) throw { message: ctx.error };
   const res = await fetch(API, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ website_id: ctx.websiteId, session_id: ctx.sessionId, crisp_token: ctx.crispToken, operator_id: state.operatorId, action, ...extra }),
-  }).catch(() => null);
+    signal,
+  }).catch((err) => {
+    if (signal?.aborted) throw { aborted: true };
+    return null;
+  });
   const body = res ? await res.json().catch(() => ({})) : {};
   // Response về khi CS đã chuyển sang chat khác thì bỏ (spec 6.4 #2).
   if (readContext(location.search).sessionId !== ctx.sessionId) throw { stale: true };
@@ -98,12 +130,92 @@ async function call(action, extra = {}) {
   return body;
 }
 
+// ---------- thẻ tiến trình (kiểu simulator) ----------
+
+const PROGRESS_STEPS = {
+  generate: ["Đọc hội thoại", "Đối chiếu bài helpdesk", "Soạn theo giọng của bạn", "Kiểm tra lại nội dung"],
+  analyze: ["Đọc tin nhắn của khách", "Phân tích tâm trạng"],
+  ask: ["Tìm trong tài liệu", "Đọc bài liên quan", "Soạn câu trả lời kèm nguồn"],
+  handoff: ["Đọc hội thoại", "Viết private note"],
+};
+// Mốc thời gian (ms) chuyển sang bước kế — nhịp hiển thị để CS thấy việc đang
+// chạy tới đâu; bước cuối giữ nguyên cho tới khi server trả kết quả thật.
+const PROGRESS_MARKS = [0, 900, 2200, 4200];
+
+let progressTimer = null;
+
+function progressStepIndex(action, elapsedMs) {
+  const steps = PROGRESS_STEPS[action] ?? [];
+  let idx = 0;
+  while (idx < steps.length - 1 && elapsedMs >= (PROGRESS_MARKS[idx + 1] ?? Number.POSITIVE_INFINITY)) idx++;
+  return idx;
+}
+
+function startProgress(action) {
+  stopProgress();
+  state.progress = { action, startedAt: Date.now() };
+  // Chỉ cập nhật đúng thẻ tiến trình trong DOM — render lại toàn panel nhiều
+  // lần mỗi giây sẽ làm CS mất dấu con trỏ khi đang gõ ở ô ý/câu hỏi.
+  progressTimer = setInterval(tickProgress, 200);
+}
+
+function stopProgress() {
+  clearInterval(progressTimer);
+  progressTimer = null;
+  state.progress = null;
+  state.abortController = null;
+}
+
+function tickProgress() {
+  const p = state.progress;
+  const card = document.querySelector(".prog");
+  if (!p || !card) return;
+  const steps = PROGRESS_STEPS[p.action] ?? [];
+  const elapsed = Date.now() - p.startedAt;
+  const idx = progressStepIndex(p.action, elapsed);
+  const elapsedEl = card.querySelector(".prog-elapsed");
+  if (elapsedEl) elapsedEl.textContent = `${(elapsed / 1000).toFixed(1)}s`;
+  const bar = card.querySelector(".prog-bar i");
+  if (bar) bar.style.width = `${Math.min(96, ((idx + 1) / Math.max(steps.length, 1)) * 100)}%`;
+  card.querySelectorAll(".prog-steps li").forEach((li, i) => {
+    li.classList.toggle("done", i < idx);
+    li.classList.toggle("active", i === idx);
+  });
+}
+
+function progressCard() {
+  const p = state.progress;
+  if (!p) return null;
+  const steps = PROGRESS_STEPS[p.action] ?? [];
+  const elapsed = Date.now() - p.startedAt;
+  const idx = progressStepIndex(p.action, elapsed);
+  return el("div", { className: "prog" }, [
+    el("div", { className: "prog-head" }, [
+      el("span", { className: "prog-spark", textContent: "✦" }),
+      el("b", { textContent: state.busy }),
+      el("span", { className: "prog-elapsed", textContent: `${(elapsed / 1000).toFixed(1)}s` }),
+      state.abortController
+        ? el("button", { className: "button-secondary compact-button", textContent: "Huỷ", onclick: () => state.abortController?.abort() })
+        : null,
+    ]),
+    el("div", { className: "prog-bar" }, [el("i")]),
+    el("ul", { className: "prog-steps" }, steps.map((s, i) =>
+      el("li", { className: i < idx ? "done" : i === idx ? "active" : "" }, [
+        el("span", { className: "prog-ic" }),
+        document.createTextNode(s),
+      ]))),
+  ]);
+}
+
 async function onGenerate(force) {
   if (state.busy) return; // một action API tại một thời điểm — chặn cả Enter/bấm đúp lọt qua nút đã khoá
   state.busyAction = "generate";
   state.busy = force ? "Đang soạn lại…" : "Đang soạn…";
-  state.notice = "";
+  clearNotice();
   state.choice = false;
+  const ctrl = new AbortController();
+  state.abortController = ctrl;
+  startProgress("generate");
   render();
   try {
     const sessionId = readContext(location.search).sessionId;
@@ -112,19 +224,21 @@ async function onGenerate(force) {
     const hint = state.hint.trim();
     if (hint) extra.hint = hint;
     if (state.tone !== "default") extra.tone = state.tone;
-    const out = await call("generate", extra);
+    const out = await call("generate", extra, ctrl.signal);
     state.draft = { output_id: out.output_id, session_id: sessionId, vm: toDraftViewModel(out) };
     if (out.sentiment) state.sentiment = out.sentiment;
     state.draftPlacement = "";
-    state.draftEditing = false;
     state.busy = "";
     state.busyAction = "";
+    stopProgress();
     render();
     if (state.bridge === "ready") extension.sendInsert("auto");
   } catch (e) {
     state.busy = "";
     state.busyAction = "";
-    if (!e.stale) state.notice = e.message ?? "Không soạn được, thử lại sau";
+    stopProgress();
+    if (e?.aborted) setNotice("Đã huỷ soạn.", "info");
+    else if (!e.stale) setNotice(e.message ?? "Không soạn được, thử lại sau", "error");
     render();
   }
 }
@@ -133,18 +247,31 @@ async function onAnalyze(force) {
   if (state.busy) return;
   state.busyAction = "analyze";
   state.busy = "Đang phân tích tâm trạng…";
-  state.notice = "";
+  clearNotice();
+  const ctrl = new AbortController();
+  state.abortController = ctrl;
+  startProgress("analyze");
   render();
   try {
-    const out = await call("analyze", force ? { force: true } : {});
+    const out = await call("analyze", force ? { force: true } : {}, ctrl.signal);
     state.sentiment = out.sentiment;
     if (typeof out.msg_count === "number") state.sentimentMsgCount = out.msg_count;
-    if (!out.sentiment) state.notice = "Chưa đủ tin nhắn của khách để phân tích.";
+    if (!out.sentiment) {
+      // Nói đúng nguyên nhân: server trả reason — đừng đổ hết về "chưa đủ tin nhắn"
+      // khi thật ra AI cho sentiment chưa sẵn sàng (thiếu cấu hình/hết quota).
+      if (out.reason === "ai_unavailable") {
+        setNotice("Chưa phân tích được: AI cho sentiment chưa sẵn sàng trên server (thiếu cấu hình hoặc hết quota).", "error");
+      } else {
+        setNotice("Chưa đủ tin nhắn của khách để phân tích.", "info");
+      }
+    }
   } catch (e) {
-    if (!e.stale) state.notice = e.message ?? "Không phân tích được, thử lại sau";
+    if (e?.aborted) setNotice("Đã huỷ phân tích.", "info");
+    else if (!e.stale) setNotice(e.message ?? "Không phân tích được, thử lại sau", "error");
   }
   state.busy = "";
   state.busyAction = "";
+  stopProgress();
   render();
 }
 
@@ -152,21 +279,27 @@ async function onSurvey() {
   if (state.busy) return;
   state.busyAction = "survey";
   state.busy = "Đang gửi survey…";
-  state.notice = "";
+  clearNotice();
   state.csatError = false;
+  state.csatErrorMsg = "";
   render();
   try {
     const out = await call("survey");
     if (out.sent) {
       state.csat = { sent: true, sent_at: out.sent_at };
       state.csatError = false;
-      state.notice = out.already ? "Survey đã được gửi trước đó rồi." : "Đã gửi CSAT survey cho khách.";
+      setNotice(out.already ? "Survey đã được gửi trước đó rồi." : "Đã gửi CSAT survey cho khách.", "success");
     } else {
-      // Panel CSAT hiện trạng thái lỗi riêng kèm nút Thử lại (board 5).
+      // Panel CSAT hiện trạng thái lỗi riêng kèm nút Thử lại (board 5),
+      // kèm đúng lý do server trả về thay vì một câu chung chung.
       state.csatError = true;
+      state.csatErrorMsg = out.error ?? "";
     }
   } catch (e) {
-    if (!e.stale) state.csatError = true;
+    if (!e.stale) {
+      state.csatError = true;
+      state.csatErrorMsg = e.message ?? "";
+    }
   }
   state.busy = "";
   state.busyAction = "";
@@ -178,22 +311,27 @@ async function onAsk() {
   if (state.busy) return; // Enter trong ô nhập cũng đi qua đây — chặn gọi ask song song
   const question = state.askQuestion.trim();
   if (!question) {
-    state.notice = "Hãy nhập câu hỏi để tìm trong tài liệu.";
+    setNotice("Hãy nhập câu hỏi để tìm trong tài liệu.", "info");
     render();
     return;
   }
   state.busyAction = "ask";
   state.busy = "Đang tìm tài liệu…";
-  state.notice = "";
+  clearNotice();
+  const ctrl = new AbortController();
+  state.abortController = ctrl;
+  startProgress("ask");
   render();
   try {
-    const out = await call("ask", { question });
+    const out = await call("ask", { question }, ctrl.signal);
     state.askResult = { question, ...toAskViewModel(out) };
   } catch (e) {
-    if (!e.stale) state.notice = e.message ?? "Không tìm được tài liệu, thử lại sau";
+    if (e?.aborted) setNotice("Đã huỷ tìm tài liệu.", "info");
+    else if (!e.stale) setNotice(e.message ?? "Không tìm được tài liệu, thử lại sau", "error");
   }
   state.busy = "";
   state.busyAction = "";
+  stopProgress();
   render();
 }
 
@@ -215,29 +353,57 @@ async function onHandoff(force) {
   if (state.busy) return;
   state.busyAction = "handoff";
   state.busy = "Đang viết handoff…";
-  state.notice = "";
+  clearNotice();
+  const ctrl = new AbortController();
+  state.abortController = ctrl;
+  startProgress("handoff");
   render();
   try {
-    const out = await call("handoff", force ? { force: true } : {});
+    const out = await call("handoff", force ? { force: true } : {}, ctrl.signal);
     state.handoff = { note: out.note, posted: out.posted, cached: out.cached };
     state.busy = "";
     state.busyAction = "";
+    stopProgress();
     render();
   } catch (e) {
     state.busy = "";
     state.busyAction = "";
-    if (!e.stale) state.notice = e.message ?? "Không tạo được handoff, thử lại sau";
+    stopProgress();
+    if (e?.aborted) setNotice("Đã huỷ viết note.", "info");
+    else if (!e.stale) setNotice(e.message ?? "Không tạo được handoff, thử lại sau", "error");
     render();
   }
 }
 
 // ---------- render ----------
 
+const TONE_OPTIONS = [
+  ["default", "Mặc định"],
+  ["friendly", "Thân thiện"],
+  ["formal", "Trang trọng"],
+  ["concise", "Ngắn gọn"],
+];
+
 function render() {
   if (!state.check) return;
   const vm = toViewModel(state.check, Date.now());
   const genBtn = actionButtonState(state.busyAction, "generate");
   const noteBtn = actionButtonState(state.busyAction, "handoff");
+  // Điều khiển soạn draft nằm TRƯỚC nút soạn: CS chọn ý + giọng văn trước,
+  // draft sinh ra mới theo đúng lựa chọn — không còn cảnh soạn xong mới thấy chỗ chọn.
+  const toneSelect = el("select", {
+    className: "tone-select",
+    title: "Giọng văn cho draft",
+    onchange: (e) => { state.tone = e.target.value; },
+  }, TONE_OPTIONS.map(([v, label]) => el("option", { value: v, textContent: label })));
+  toneSelect.value = state.tone;
+  const hintBox = el("textarea", {
+    className: "field draft-hint",
+    rows: 2,
+    placeholder: "vd: lỗi 502, chờ dev, mai trả lời",
+    value: state.hint,
+    oninput: (e) => { state.hint = e.target.value; },
+  });
   show(
     el("header", { className: "inbox-header" }, [
       el("div", {}, [el("h1", { textContent: vm.header }), el("p", { className: "subtitle", textContent: vm.subtitle })]),
@@ -256,23 +422,33 @@ function render() {
       el("p", { className: "subtitle", textContent: vm.subtitle }),
     ]),
     !state.draft && vm.pendingMessages.length ? suggestionCard(handlers, vm.pendingMessages[vm.pendingMessages.length - 1].text) : null,
+    (vm.pendingMessages.length || state.draft) ? el("section", { className: "card compose-card" }, [
+      el("p", { className: "muted", textContent: "Thêm ý của bạn (không bắt buộc). Để trống thì AI tự soạn từ tin khách; có ý thì ý của bạn được ưu tiên." }),
+      hintBox,
+      el("div", { className: "row draft-actions" }, [
+        toneSelect,
+        el("button", { className: "button-primary compose-button", disabled: genBtn.disabled, onclick: () => onGenerate(Boolean(state.draft)) }, buttonContent(genBtn.running, state.busy, state.draft ? "Soạn lại tin trả lời" : "Soạn tin trả lời")),
+      ]),
+    ]) : null,
     el("div", { className: "actions" }, [
-      el("button", { className: "button-primary compose-button", disabled: genBtn.disabled, onclick: () => onGenerate(false) }, buttonContent(genBtn.running, state.busy, "Soạn tin trả lời")),
       el("button", { className: "button-secondary private-button", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "🔒  Private note")),
       el("button", { className: "button-secondary knowledge-button", textContent: "Hỏi tài liệu", onclick: () => ((state.knowledgeOpen = !state.knowledgeOpen), render()) }),
     ]),
     knowledgePanel(handlers),
-    state.busy ? el("div", { className: "loading-card" }, [
+    state.progress ? progressCard() : state.busy ? el("div", { className: "loading-card" }, [
       el("p", { className: "muted", textContent: state.busy }),
       el("div", { className: "skeleton" }, [el("i"), el("i"), el("i")]),
     ]) : null,
-    state.notice ? el("div", { className: `notice-card ${state.notice.startsWith("Đã") ? "success-notice" : ""}`, textContent: state.notice }) : null,
+    state.notice ? el("div", { className: `notice-card ${state.noticeKind === "success" ? "success-notice" : ""} ${state.noticeKind === "error" ? "error-notice" : ""}` }, [
+      el("span", { textContent: state.notice }),
+      el("button", { className: "notice-close", textContent: "×", title: "Đóng thông báo", onclick: () => (clearNotice(), render()) }),
+    ]) : null,
     state.choice ? el("div", { className: "insert-choice" }, [
       el("p", { className: "success-line", textContent: "Ô Reply đang có chữ: thay thế, chèn xuống cuối hay huỷ?" }),
       el("div", { className: "row" }, [
         el("button", { className: "button-primary", textContent: "Thay thế", disabled: state.insertPending, onclick: () => extension.sendInsert("replace") }),
         el("button", { className: "button-secondary", textContent: "Chèn xuống cuối", disabled: state.insertPending, onclick: () => extension.sendInsert("append") }),
-        el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), (state.notice = ""), render()) }),
+        el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), clearNotice(), render()) }),
       ]),
     ]) : null,
     draftPanel(handlers),
@@ -309,20 +485,21 @@ async function load() {
     const sessionId = readContext(location.search).sessionId;
     if (sessionId !== state.shownSession) {
       state.shownSession = sessionId;
+      stopProgress();
       state.draft = null;
       state.sentiment = null;
       state.sentimentMsgCount = 0;
       state.csat = null;
       state.csatError = false;
+      state.csatErrorMsg = "";
       state.handoff = null;
       state.knowledgeOpen = false;
       state.askQuestion = "";
       state.askResult = null;
       state.choice = false;
       state.draftPlacement = "";
-      state.draftEditing = false;
       state.hint = "";
-      state.notice = "";
+      clearNotice();
       state.copiedKey = "";
       state.suggestionExpanded = false;
       state.check = null;

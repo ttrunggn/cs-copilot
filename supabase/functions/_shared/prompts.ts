@@ -101,6 +101,8 @@ export function draftPrompt(i: {
   sentiment?: Sentiment | null;
   hint?: string;
   tone?: DraftTone;
+  /** Tên CS đang trực — tên duy nhất được phép xuất hiện khi draft tự giới thiệu/ký tên. */
+  agentName?: string | null;
 }): string {
   const p = i.profile;
   const parts = [
@@ -121,6 +123,9 @@ export function draftPrompt(i: {
     ].join("\n"),
     [
       "Agent's style:",
+      i.agentName
+        ? `- The agent writing this reply is ${i.agentName}. If the reply introduces the agent or signs off with a name, use exactly this name. The style samples below may come from a teammate: copy their phrasing, never their name.`
+        : "",
       `- Tone: ${p.tone}`,
       `- Refers to self as "${p.pronoun_self}", to the customer as "${p.pronoun_customer}"`,
       `- Emoji: ${p.use_emoji ? "allowed, sparingly" : "none"}`,

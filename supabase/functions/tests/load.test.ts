@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { FRESH_MS, loadConversationFast } from "../copilot/load.ts";
+import { FRESH_MS, loadConversation, loadConversationFast } from "../copilot/load.ts";
 import { CONV, makeDeps } from "./fakes.ts";
 
 const NOW = Date.parse("2026-10-15T03:10:00+00:00");
@@ -34,6 +34,23 @@ Deno.test("fast path: bản ghi cũ thì trả ngay kèm stale=true và refresh 
   assertEquals(bg.length, 1);
   await bg[0];
   assertEquals(refreshes(), 1);
+});
+
+Deno.test("loadConversation: bản ghi còn tươi thì bỏ qua refresh n8n (đường ghi cũng nhanh)", async () => {
+  const fresh = new Date(NOW - FRESH_MS / 2).toISOString();
+  const { deps, refreshes } = depsWith(fresh, () => {});
+  const r = await loadConversation(deps, "ws1", "session_1");
+  assertEquals(r.stale, false);
+  assertEquals(refreshes(), 0);
+  assertEquals(r.messages.length > 0, true);
+});
+
+Deno.test("loadConversation: bản ghi đã cũ thì vẫn refresh đồng bộ trước khi đọc", async () => {
+  const old = new Date(NOW - FRESH_MS * 10).toISOString();
+  const { deps, refreshes } = depsWith(old, () => {});
+  const r = await loadConversation(deps, "ws1", "session_1");
+  assertEquals(refreshes(), 1);
+  assertEquals(r.stale, false);
 });
 
 Deno.test("fast path: chưa có bản ghi thì refresh đồng bộ như cũ", async () => {

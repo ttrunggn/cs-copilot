@@ -219,8 +219,33 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .insert-choice { display: grid; gap: 8px; }
 .insert-choice .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
 .insert-choice button { min-width: 0; padding-inline: 6px; }
-.notice-card { font-weight: 650; }
+.notice-card { font-weight: 650; display: flex; align-items: flex-start; gap: 8px; }
+.notice-card > span { flex: 1; }
 .success-notice { border-color: #285b45; background: var(--accent-soft); color: var(--accent-fg); }
+.error-notice { border-color: var(--danger, #a33); background: var(--danger-bg, rgba(220, 80, 80, .12)); color: var(--danger, #e88); }
+.notice-close { flex: none; border: 0; background: transparent; color: inherit; font-size: 16px; line-height: 1; padding: 0 2px; cursor: pointer; opacity: .75; }
+.notice-close:hover { opacity: 1; }
+.compose-card { display: grid; gap: 8px; }
+.compose-card .draft-actions { grid-template-columns: auto 1fr; }
+.draft-actions.single { grid-template-columns: 1fr; }
+
+/* Thẻ tiến trình từng bước (theo simulator Ethan duyệt): bước đang chạy quay
+   spinner, bước xong hiện ✓, đồng hồ đếm giây thật — thay thẻ loading chung. */
+.prog { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-ai); }
+.prog-head { display: flex; align-items: center; gap: 10px; }
+.prog-head b { flex: 1; }
+.prog-spark { color: var(--ai); font-size: 18px; animation: pulse 1.3s ease-in-out infinite alternate; }
+.prog-elapsed { font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
+.prog-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+.prog-bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--ai)); transition: width .25s linear; }
+.prog-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.prog-steps li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.prog-steps li.active, .prog-steps li.done { color: var(--text); }
+.prog-ic { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); flex: none; display: grid; place-items: center; font-size: 10px; font-weight: 700; line-height: 1; }
+.prog-steps li.active .prog-ic { border-color: var(--ai); border-top-color: transparent; animation: prog-spin .8s linear infinite; }
+.prog-steps li.done .prog-ic { background: var(--success); border-color: var(--success); color: #0b1f16; }
+.prog-steps li.done .prog-ic::after { content: "✓"; }
+@keyframes prog-spin { to { transform: rotate(360deg); } }
 
 .jira-section { display: grid; gap: 11px; }
 .section-title { padding-top: 1px; }

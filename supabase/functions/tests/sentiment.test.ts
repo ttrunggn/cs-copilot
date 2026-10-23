@@ -62,6 +62,17 @@ Deno.test("analyze trả msg_count = số tin của khách trong hội thoại",
   assertEquals(body.sentiment?.mood, "frustrated");
 });
 
+Deno.test("analyze: AI lỗi và chưa có cache → reason ai_unavailable, sentiment null", async () => {
+  const f = fakeAi({});
+  f.ai.generate = () => Promise.reject(new Error("no models configured"));
+  const m = makeDeps({ ai: f.ai });
+  const r = await handle({ website_id: "ws1", session_id: "session_1", action: "analyze" }, TOKEN, m.deps);
+  assertEquals(r.status, 200);
+  const body = r.body as { sentiment: unknown; reason: string | null };
+  assertEquals(body.sentiment, null);
+  assertEquals(body.reason, "ai_unavailable");
+});
+
 Deno.test("sentimentFingerprint: chỉ đổi khi khách nhắn, CS trả lời không đổi", async () => {
   const base = [msg({ content: "help" })];
   const fp1 = await sentimentFingerprint(base);

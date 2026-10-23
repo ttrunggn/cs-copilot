@@ -3,7 +3,7 @@ import { humanTranscript, inputFingerprint, latestCustomerQuery } from "../_shar
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
-import { pickBestProfileRow, type ProfileSource, resolveProfile } from "../_shared/profile.ts";
+import { pickBestProfileRow, type ProfileSource, rebindIdentity, resolveProfile } from "../_shared/profile.ts";
 import {
   classifyPrompt,
   classifySchema,
@@ -98,11 +98,17 @@ export async function runGenerate(
   operatorId: string,
   deps: Deps,
 ): Promise<GenerateResult> {
-  const { stale, conv, messages: raw } = await loadConversation(deps, req.website_id, req.session_id);
+  // Nạp hội thoại + profile + thông tin CS chạy song song: chúng không phụ thuộc
+  // nhau, xếp hàng chờ từng cái chỉ cộng thêm độ trễ DB vào mỗi lần soạn.
+  const [{ stale, conv, messages: raw }, profiles, allProfiles, operator] = await Promise.all([
+    loadConversation(deps, req.website_id, req.session_id),
+    deps.db.getProfiles(operatorId, req.website_id),
+    deps.db.getWorkspaceAllProfiles(req.website_id),
+    deps.db.getOperator(operatorId).catch(() => null),
+  ]);
   const label = (key: string | null) => ws.topics.find((t) => t.key === key)?.label ?? null;
-  const profiles = await deps.db.getProfiles(operatorId, req.website_id);
   // CS chưa có dữ liệu học → mặc định là bản học tốt nhất của team (không phải template cứng).
-  const bestRow = pickBestProfileRow(await deps.db.getWorkspaceAllProfiles(req.website_id));
+  const bestRow = pickBestProfileRow(allProfiles);
   const hint = (req.hint ?? "").trim();
   const tone: DraftTone = req.tone ?? "default";
   // Hint/giọng văn đổi thì draft phải khác: trộn vào dấu vân tay để cache không trả bản soạn không có ý của CS.
@@ -126,18 +132,31 @@ export async function runGenerate(
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
   // Giữ reply text của bot trong context để CS không lặp lại hoặc phủ định điều khách vừa được thông báo.
   const transcript = humanTranscript(messages, 40, true);
-  // Phân loại topic và tìm helpdesk/case độc lập nhau: chạy song song thay vì nối tiếp để rút ngắn generate.
-  const [topic, found, mood] = await Promise.all([
+  // Phân loại topic, tìm helpdesk/case, sentiment, variant và Jira độc lập nhau:
+  // chạy tất cả song song thay vì nối tiếp để rút ngắn generate.
+  const [topic, found, mood, variants, jiraRows] = await Promise.all([
     resolveTopic(deps, ws, req.website_id, req.session_id, conv.topic, transcript),
     retrieve(deps, req.website_id, messages),
     resolveSentiment(deps, req.website_id, req.session_id, messages),
+    deps.db.getVariants("draft"),
+    deps.db.getJiraRows(req.website_id, req.session_id),
   ]);
   const { profile, source } = resolveProfile(profiles, topic, ws.default_profile, bestRow);
-  const variant = pickVariant(await deps.db.getVariants("draft"));
-  const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
+  // Tên trong draft phải là của CS đang trực. Profile "best" mượn văn phong của
+  // đồng đội nên samples còn nguyên tên người đó — khử tên người cho trước khi
+  // đưa vào prompt, và gắn tên CS vào prompt để model không ký thay người khác.
+  const agentName = operator?.display_name?.trim() || null;
+  let promptProfile = profile;
+  if (source === "best" && bestRow && agentName && bestRow.crisp_user_id !== operatorId) {
+    const donor = await deps.db.getOperator(bestRow.crisp_user_id).catch(() => null);
+    if (donor?.display_name) promptProfile = rebindIdentity(profile, donor.display_name, agentName);
+  }
+  const variant = pickVariant(variants);
+  const jira = jiraPromptBlock(jiraForConversation(jiraRows, conv.last_human_operator_at));
 
   const { text, model } = await deps.ai.generate("draft", draftPrompt({
-    profile,
+    profile: promptProfile,
+    agentName,
     topicLabel: label(topic),
     transcript,
     helpdesk: found.helpdesk,
