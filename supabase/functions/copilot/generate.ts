@@ -93,7 +93,7 @@ async function verify(deps: Deps, draft: string, helpdesk: HelpdeskChunk[]): Pro
 }
 
 export async function runGenerate(
-  req: { website_id: string; session_id: string; force: boolean; hint?: string; tone?: DraftTone },
+  req: { website_id: string; session_id: string; force: boolean; hint?: string; tone?: DraftTone; operator_name?: string },
   ws: Workspace,
   operatorId: string,
   deps: Deps,
@@ -142,10 +142,11 @@ export async function runGenerate(
     deps.db.getJiraRows(req.website_id, req.session_id),
   ]);
   const { profile, source } = resolveProfile(profiles, topic, ws.default_profile, bestRow);
-  // Tên trong draft phải là của CS đang trực. Profile "best" mượn văn phong của
-  // đồng đội nên samples còn nguyên tên người đó — khử tên người cho trước khi
-  // đưa vào prompt, và gắn tên CS vào prompt để model không ký thay người khác.
-  const agentName = operator?.display_name?.trim() || null;
+  // Tên trong draft phải theo ACCOUNT của CS đang dùng panel: widget gửi tên
+  // account đọc từ SDK Crisp — nguồn này thắng dòng `operators` trong DB (bản
+  // sao có thể cũ). Profile "best" mượn văn phong của đồng đội nên samples còn
+  // nguyên tên người đó — khử tên người cho và gắn tên account vào prompt.
+  const agentName = (req.operator_name ?? "").trim() || operator?.display_name?.trim() || null;
   let promptProfile = profile;
   if (source === "best" && bestRow && agentName && bestRow.crisp_user_id !== operatorId) {
     const donor = await deps.db.getOperator(bestRow.crisp_user_id).catch(() => null);

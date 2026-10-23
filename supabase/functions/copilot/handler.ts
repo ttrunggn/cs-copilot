@@ -28,6 +28,9 @@ export interface CopilotRequest {
   force: boolean;
   crisp_token: string;
   operator_id: string;
+  /** Tên account CS đang đăng nhập do widget đọc từ SDK Crisp — nguồn chuẩn cho
+   * tên trong draft/panel; DB `operators.display_name` chỉ là dự phòng. */
+  operator_name: string;
   /** Ý CS gõ thêm cho draft (chỉ action generate dùng). Trần 500 ký tự. */
   hint: string;
   /** Giọng văn CS chọn cho draft; không hợp lệ → default. */
@@ -64,6 +67,7 @@ function parseRequest(body: unknown): CopilotRequest {
     force: b.force === true || b.force === "1",
     crisp_token: str("crisp_token"),
     operator_id: str("operator_id"),
+    operator_name: str("operator_name").slice(0, 80),
     hint: str("hint").slice(0, HINT_MAX_CHARS),
     tone: parseDraftTone(b.tone),
     question: str("question").slice(0, QUESTION_MAX_CHARS),

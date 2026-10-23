@@ -37,7 +37,7 @@ export interface CheckResult {
 
 /** Không gọi AI: tin chờ trả lời, topic, profile sẽ dùng. Hiển thị nguyên văn tin khách. */
 export async function runCheck(
-  req: { website_id: string; session_id: string },
+  req: { website_id: string; session_id: string; operator_name?: string },
   ws: Workspace,
   operatorId: string,
   deps: LoadDeps,
@@ -62,7 +62,7 @@ export async function runCheck(
     topic: conv.topic,
     topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
     profile_source: source,
-    profile_name: operator?.display_name ?? operatorId,
+    profile_name: (req.operator_name ?? "").trim() || operator?.display_name || operatorId,
     conversation_state: conv.state,
     needs_reply: unanswered.length > 0,
     unanswered,

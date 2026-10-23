@@ -93,7 +93,7 @@ export function handoffPanel({ copy, onHandoff }) {
   const status = handoffStatus(handoff);
   const noteBtn = actionButtonState(state.busyAction, "handoff");
   return el("section", { className: "handoff-card" }, [
-    el("div", { className: "row" }, [el("h3", { textContent: "🔒 Private note" }), el("span", { className: handoff.posted ? "verify-state is-ok" : "verify-state is-warn", textContent: handoff.posted ? `✓ ${status}` : status })]),
+    el("div", { className: "row" }, [el("h3", { textContent: "Private note" }), el("span", { className: handoff.posted ? "verify-state is-ok" : "verify-state is-warn", textContent: handoff.posted ? `✓ ${status}` : status })]),
     el("div", { className: "note-text", textContent: handoff.note }),
     el("div", { className: "row" }, [
       el("button", { className: "button-secondary", textContent: state.copiedKey === "handoff" ? "Đã copy ✓" : "Copy", onclick: () => copy(handoff.note, "handoff") }),
@@ -243,7 +243,7 @@ export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandof
   });
   return el("section", { className: "card ai-card knowledge-card" }, [
     el("div", {}, [
-      el("h2", { textContent: "Hỏi tài liệu" }),
+      el("h2", { textContent: "Knowledge Base Asking" }),
       el("p", { className: "subtitle", textContent: "Tìm trong FAQ nội bộ, trả lời kèm nguồn" }),
     ]),
     input,

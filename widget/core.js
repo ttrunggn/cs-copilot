@@ -95,6 +95,30 @@ export function operatorIdFrom(data) {
   return typeof id === "string" ? id : "";
 }
 
+/**
+ * Tên account của CS đang đăng nhập, lấy từ chính dữ liệu operator mà SDK Crisp
+ * trả về — tên trong draft và trên panel phải theo account này, không theo dòng
+ * `operators` trong DB (bản sao có thể cũ hoặc do người khác đăng ký hộ).
+ * Dò cùng họ hình dạng với operatorIdFrom, cộng chi tiết kiểu Crisp API
+ * (details.first_name/last_name). Không thấy thì "" — server còn DB làm dự phòng.
+ */
+export function operatorNameFrom(data) {
+  const containers = [data?.operator, data?.data?.operator, data, data?.data, data?.details];
+  for (const c of containers) {
+    if (!c || typeof c !== "object") continue;
+    const sources = [c.details && typeof c.details === "object" ? c.details : null, c];
+    for (const src of sources) {
+      if (!src) continue;
+      const direct = src.name ?? src.nickname;
+      if (typeof direct === "string" && direct.trim()) return direct.trim();
+      const first = typeof src.first_name === "string" ? src.first_name.trim() : "";
+      const last = typeof src.last_name === "string" ? src.last_name.trim() : "";
+      if (first || last) return [first, last].filter(Boolean).join(" ");
+    }
+  }
+  return "";
+}
+
 /** Liệt kê tên trường (không lộ giá trị) để chẩn đoán cấu trúc dữ liệu Crisp trả về. */
 export function describeShape(data) {
   if (!data || typeof data !== "object") return "(trống)";

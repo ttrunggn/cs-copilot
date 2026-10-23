@@ -23,7 +23,7 @@ export interface HandoffResult {
 
 /** Note tiếng Việt liệt kê từng vấn đề của khách. Lưu outputs trước rồi mới đăng, để đăng lỗi vẫn copy được. */
 export async function runHandoff(
-  req: { website_id: string; session_id: string; force: boolean },
+  req: { website_id: string; session_id: string; force: boolean; operator_name?: string },
   ws: Workspace,
   operatorId: string,
   deps: { db: Db; n8n: N8n; ai: Ai },
@@ -66,7 +66,8 @@ export async function runHandoff(
     throw new AiBadOutput("handoff không đọc được");
   }
   const operator = await deps.db.getOperator(operatorId);
-  const note = formatHandoffNote(fields, operator?.display_name ?? operatorId, noteFormat);
+  // Tên trên note theo account đang đăng nhập (widget gửi kèm), DB chỉ là dự phòng.
+  const note = formatHandoffNote(fields, (req.operator_name ?? "").trim() || operator?.display_name || operatorId, noteFormat);
 
   const outputId = await deps.db.insertOutput({
     website_id: req.website_id,

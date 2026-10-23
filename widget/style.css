@@ -21,9 +21,6 @@
   --csat: #e8334f;
   --highlight-bg: #f2b84b;
   --highlight-text: #2a1a00;
-  --note-bg: #fff1b3;
-  --note-text: #2a2000;
-  --note-muted: #7a4a00;
   /* Tên cũ của stylesheet — alias về token để class hiện có không đổi hành vi. */
   --surface: var(--card);
   --surface-raised: var(--bubble);
@@ -38,8 +35,6 @@
   --accent-fg: var(--success);
   --warn-line: var(--warn-border);
   --warn-fg: var(--warn);
-  --note-line: var(--note-bg);
-  --note-fg: var(--note-text);
   --danger: var(--error);
   --danger-bg: #2b1719;
   --danger-line: var(--error-border);
@@ -256,10 +251,9 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .jira-news { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .jira-news li { overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
 
-.handoff-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--note-line); border-radius: 14px; background: var(--note-bg); color: var(--note-fg); }
-.handoff-card .verify-state { color: #7a4a00; }
+/* Private note dùng nền trung tính như các thẻ khác (Ethan: bỏ sơn vàng + bỏ khoá). */
+.handoff-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .note-text { line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
-.handoff-card .button-secondary { border-color: #b7973f; background: transparent; color: var(--note-fg); }
 .handoff-card .button-link { color: #6b510e; }
 .handoff-card .row:last-child { justify-content: flex-start; }
 
@@ -322,9 +316,6 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
     --warn-bg: #fff1d5;
     --warn-line: #e5c176;
     --warn-fg: #845100;
-    --note-bg: #fff4b7;
-    --note-line: #ead878;
-    --note-fg: #382d00;
     --danger: #b52b21;
     --danger-bg: #fbe4df;
     --danger-line: #e5a49d;

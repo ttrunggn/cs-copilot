@@ -50,6 +50,23 @@ Deno.test("generate returns draft, warnings and stores output", async () => {
   assertEquals(inserted[0].input_fp.length, 64);
 });
 
+Deno.test("generate: tên trong draft prompt theo account CS gửi kèm, thắng display_name trong DB", async () => {
+  const { deps, calls } = setup();
+  // DB (fake) có display_name "Lan Nguyen" — account đang đăng nhập là Ethan thì draft phải theo Ethan.
+  const r = await handle({ ...REQ, operator_name: "Ethan Nguyen" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("The agent writing this reply is Ethan Nguyen"), true);
+});
+
+Deno.test("generate: không có tên account thì dùng display_name trong DB", async () => {
+  const { deps, calls } = setup();
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("The agent writing this reply is Lan Nguyen"), true);
+});
+
 Deno.test("generate đưa ý của CS và giọng văn đã chọn vào draft prompt", async () => {
   const { deps, calls } = setup();
   const r = await handle({ ...REQ, hint: "khách cần link bài viết, đừng hứa thời gian hoàn tiền", tone: "concise" }, TOKEN, deps);
