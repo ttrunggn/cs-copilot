@@ -4,7 +4,7 @@ import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
-import { resolveNoteFormat } from "../_shared/profile.ts";
+import { pickBestNoteFormat, resolveNoteFormat } from "../_shared/profile.ts";
 import { formatHandoffNote, HANDOFF_SCHEMA, handoffPrompt, parseHandoff } from "../_shared/prompts.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
 import type { Workspace } from "../_shared/types.ts";
@@ -31,7 +31,11 @@ export async function runHandoff(
   const { stale, conv, messages: raw } = await loadConversation(deps, req.website_id, req.session_id);
   // Format note học theo CS (dòng "_all"): có thì note render theo thói quen của CS, không thì template cố định.
   // Trộn format vào dấu vân tay như hint/tone của draft, để format mới học không bị cache trả note mẫu cũ.
-  const noteFormat = resolveNoteFormat(await deps.db.getProfiles(operatorId, req.website_id));
+  const [ownProfiles, allProfiles] = await Promise.all([
+    deps.db.getProfiles(operatorId, req.website_id),
+    deps.db.getWorkspaceAllProfiles(req.website_id),
+  ]);
+  const noteFormat = resolveNoteFormat(ownProfiles, pickBestNoteFormat(allProfiles));
   const baseFp = await inputFingerprint("handoff", operatorId, raw);
   const inputFp = noteFormat ? await sha256Hex(`${baseFp}|note-format:${JSON.stringify(noteFormat)}`) : baseFp;
   if (!req.force) {
