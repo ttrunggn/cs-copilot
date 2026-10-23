@@ -49,6 +49,7 @@ export function createExtensionClient(render) {
   }
 
   function sendInsert(mode) {
+    if (state.insertPending) return; // một lệnh điền tại một thời điểm — bấm đúp không chèn hai lần
     const ctx = readContext(location.search);
     const requestId = newRequestId();
     const msg = "error" in ctx ? null : draftInsert(state.draft, ctx.sessionId, requestId, mode);
@@ -56,6 +57,7 @@ export function createExtensionClient(render) {
       state.notice = insertResultMessage("session_mismatch");
       return render();
     }
+    state.insertPending = true;
     state.notice = "Đang điền draft vào ô Reply…";
     render();
     const onMsg = (ev) => {
@@ -63,6 +65,7 @@ export function createExtensionClient(render) {
       if (!r) return;
       window.removeEventListener("message", onMsg);
       clearTimeout(timer);
+      state.insertPending = false;
       state.choice = r.status === "not_empty";
       if (r.status === "inserted" || r.status === "duplicate") state.draftPlacement = "inserted";
       state.notice = state.choice ? `${insertResultMessage(r.status)}: thay thế, chèn xuống cuối hay huỷ?` : insertResultMessage(r.status);
@@ -70,6 +73,7 @@ export function createExtensionClient(render) {
     };
     const timer = setTimeout(() => {
       window.removeEventListener("message", onMsg);
+      state.insertPending = false;
       state.notice = insertResultMessage("composer_not_found");
       render();
     }, INSERT_TIMEOUT_MS);

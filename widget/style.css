@@ -107,6 +107,10 @@ button { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; pa
 button:hover:not(:disabled) { border-color: #455063; background: #17191e; }
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: .55; cursor: default; }
+button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+/* Spinner nhỏ trong nút của action đang chạy (màu theo chữ của nút). */
+.spinner { display: inline-block; width: 14px; height: 14px; margin-right: 7px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; vertical-align: -2px; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .button-primary { border-color: var(--accent); background: var(--accent); color: #fff; }
 .button-primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
 .button-secondary { background: var(--input); }
@@ -118,7 +122,7 @@ button:disabled { opacity: .55; cursor: default; }
 .knowledge-button { min-height: 44px; }
 
 .eyebrow { color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .035em; }
-.compact-button { min-height: 34px; padding: 6px 9px; font-size: 12px; }
+.compact-button { min-height: 40px; padding: 6px 9px; font-size: 12px; }
 .future-card { position: relative; }
 .future-title { color: var(--fg); font-size: 16px; }
 .insight-card { gap: 9px; }
@@ -230,6 +234,15 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .handoff-card .button-secondary { border-color: #b7973f; background: transparent; color: var(--note-fg); }
 .handoff-card .button-link { color: #6b510e; }
 .handoff-card .row:last-child { justify-content: flex-start; }
+
+/* Khung xương cho các trạng thái chờ lần đầu (vẽ tĩnh trong index.html và
+   qua showLoading ở app.js) — đúng nhịp bố cục panel: header + vài thẻ. */
+.sk { display: grid; gap: 12px; }
+.sk-block { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); animation: pulse 1.2s ease-in-out infinite alternate; }
+.sk-head { height: 44px; }
+.sk-card { height: 118px; }
+.sk-card-sm { height: 74px; }
+.sk-status { color: var(--muted); font-size: 13px; }
 
 .loading-card { border-color: #24384f; background: var(--surface-ai); }
 .state-title { font-weight: 700; }

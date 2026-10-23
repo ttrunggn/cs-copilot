@@ -1,5 +1,5 @@
-import { handoffStatus, toJiraViewModel, toStorefrontViewModel } from "./core.js";
-import { el } from "./dom.js";
+import { actionButtonState, handoffStatus, toJiraViewModel, toStorefrontViewModel } from "./core.js";
+import { buttonContent, el } from "./dom.js";
 import { state } from "./state.js";
 
 // Các panel hiển thị của widget. Panel chỉ đọc `state` và gọi handler được
@@ -43,7 +43,7 @@ export function draftPanel({ copy, onGenerate, sendInsert, saveDraftEdit, toggle
   if (!state.draft) return null;
   const draft = state.draft;
   const vm = draft.vm;
-  const busy = Boolean(state.busy);
+  const genBtn = actionButtonState(state.busyAction, "generate");
 
   // Sửa draft tại chỗ: textarea thay bản đọc; Lưu mới ghi vào state.draft.vm.
   let editor = null;
@@ -110,13 +110,13 @@ export function draftPanel({ copy, onGenerate, sendInsert, saveDraftEdit, toggle
     el("p", { className: "muted", textContent: "Thêm ý của bạn (không bắt buộc). Để trống thì AI tự soạn từ tin khách; có ý thì ý của bạn được ưu tiên." }),
     hintBox,
     el("div", { className: "row draft-actions" }, [
-      el("button", { className: "button-secondary", textContent: "Soạn lại", disabled: busy, onclick: () => onGenerate(true) }),
+      el("button", { className: "button-secondary", disabled: genBtn.disabled, onclick: () => onGenerate(true) }, buttonContent(genBtn.running, state.busy, "Soạn lại")),
       toneSelect,
-      el("button", { className: "button-secondary", textContent: "Sửa", disabled: busy || state.draftEditing, onclick: toggleDraftEdit }),
+      el("button", { className: "button-secondary", textContent: "Sửa", disabled: state.draftEditing, onclick: toggleDraftEdit }),
     ]),
     el("div", { className: "row draft-actions" }, [
-      el("button", { className: state.bridge === "ready" ? "button-secondary" : "button-primary", textContent: "Copy", onclick: () => copy(vm.text) }),
-      state.bridge === "ready" ? el("button", { className: "button-primary draft-insert", textContent: "Điền vào Reply", onclick: () => sendInsert("replace") }) : null,
+      el("button", { className: state.bridge === "ready" ? "button-secondary" : "button-primary", textContent: state.copiedKey === "draft" ? "Đã copy ✓" : "Copy", onclick: () => copy(vm.text, "draft") }),
+      state.bridge === "ready" ? el("button", { className: "button-primary draft-insert", textContent: "Điền vào Reply", disabled: state.insertPending, onclick: () => sendInsert("replace") }) : null,
     ]),
   ]);
 }
@@ -125,12 +125,13 @@ export function handoffPanel({ copy, onHandoff }) {
   if (!state.handoff) return null;
   const handoff = state.handoff;
   const status = handoffStatus(handoff);
+  const noteBtn = actionButtonState(state.busyAction, "handoff");
   return el("section", { className: "handoff-card" }, [
     el("div", { className: "row" }, [el("h3", { textContent: "🔒 Private note" }), el("span", { className: handoff.posted ? "verify-state is-ok" : "verify-state is-warn", textContent: handoff.posted ? `✓ ${status}` : status })]),
     el("div", { className: "note-text", textContent: handoff.note }),
     el("div", { className: "row" }, [
-      el("button", { className: "button-secondary", textContent: "Copy", onclick: () => copy(handoff.note) }),
-      el("button", { className: "button-link", textContent: "Viết lại", disabled: Boolean(state.busy), onclick: () => onHandoff(true) }),
+      el("button", { className: "button-secondary", textContent: state.copiedKey === "handoff" ? "Đã copy ✓" : "Copy", onclick: () => copy(handoff.note, "handoff") }),
+      el("button", { className: "button-link", disabled: noteBtn.disabled, onclick: () => onHandoff(true) }, buttonContent(noteBtn.running, "Đang viết…", "Viết lại")),
     ]),
   ]);
 }
@@ -200,14 +201,14 @@ export function chipsRow() {
 /** Panel Tâm trạng khách — dữ liệu thật từ action analyze (cache theo tin nhắn của khách). */
 export function insightPanel({ onAnalyze }) {
   const s = state.sentiment;
-  const busy = state.busy.startsWith("Đang phân tích");
+  const anBtn = actionButtonState(state.busyAction, "analyze");
   const moodCls = s ? `mood-${s.mood}` : "";
   const fill = s ? el("div", { className: `score-fill mood-bg-${s.mood}` }) : null;
   if (fill) fill.style.width = `${s.score}%`;
   return el("section", { className: "card insight-card" }, [
     el("div", { className: "row" }, [
       el("span", { className: "eyebrow", textContent: "TÂM TRẠNG KHÁCH" }),
-      el("button", { className: "button-secondary compact-button", textContent: busy ? "Đang phân tích…" : s ? "Phân tích lại" : "Phân tích", disabled: busy, onclick: () => onAnalyze(true) }),
+      el("button", { className: "button-secondary compact-button", disabled: anBtn.disabled, onclick: () => onAnalyze(true) }, buttonContent(anBtn.running, "Đang phân tích…", s ? "Phân tích lại" : "Phân tích")),
     ]),
     s
       ? el("div", { className: "mood-row" }, [
@@ -233,6 +234,7 @@ export function insightPanel({ onAnalyze }) {
 export function summaryPanel({ copy, onHandoff }) {
   if (!state.handoff) return null;
   const handoff = state.handoff;
+  const noteBtn = actionButtonState(state.busyAction, "handoff");
   return el("section", { className: "card ai-card summary-card" }, [
     el("div", { className: "row" }, [
       el("b", {}, [el("span", { className: "ai-mark", textContent: "✦ " }), document.createTextNode("Tóm tắt")]),
@@ -240,8 +242,8 @@ export function summaryPanel({ copy, onHandoff }) {
     ]),
     el("div", { className: "summary-note", textContent: handoff.note }),
     el("div", { className: "row summary-actions" }, [
-      el("button", { className: "button-secondary compact-button", textContent: "Copy", onclick: () => copy(handoff.note) }),
-      el("button", { className: "button-link", textContent: "Viết lại", disabled: Boolean(state.busy), onclick: () => onHandoff(true) }),
+      el("button", { className: "button-secondary compact-button", textContent: state.copiedKey === "summary" ? "Đã copy ✓" : "Copy", onclick: () => copy(handoff.note, "summary") }),
+      el("button", { className: "button-link", disabled: noteBtn.disabled, onclick: () => onHandoff(true) }, buttonContent(noteBtn.running, "Đang viết…", "Viết lại")),
     ]),
   ]);
 }
@@ -257,7 +259,9 @@ export function summaryPanel({ copy, onHandoff }) {
 export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandoff }) {
   if (!state.knowledgeOpen) return null;
   const r = state.askResult;
-  const busy = state.busy.startsWith("Đang tìm tài liệu");
+  const askBtn = actionButtonState(state.busyAction, "ask");
+  const genBtn = actionButtonState(state.busyAction, "generate");
+  const noteBtn = actionButtonState(state.busyAction, "handoff");
   const input = el("textarea", {
     className: "field",
     rows: 3,
@@ -277,7 +281,7 @@ export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandof
       el("p", { className: "subtitle", textContent: "Tìm trong FAQ nội bộ, trả lời kèm nguồn" }),
     ]),
     input,
-    el("button", { className: "button-primary", textContent: busy ? "Đang tìm…" : "Tìm trong tài liệu", disabled: busy, onclick: () => onAsk() }),
+    el("button", { className: "button-primary", disabled: askBtn.disabled, onclick: () => onAsk() }, buttonContent(askBtn.running, "Đang tìm…", "Tìm trong tài liệu")),
     r ? el("div", { className: "ask-question", textContent: r.question }) : null,
     r && r.found ? el("div", { className: "ask-answer-block" }, [
       el("div", { className: "ask-answer", textContent: r.answer }),
@@ -289,8 +293,8 @@ export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandof
         ]),
       ]) : null,
       el("div", { className: "row" }, [
-        el("button", { className: "button-secondary", textContent: "Copy", onclick: () => copy(r.answer) }),
-        el("button", { className: "button-primary", textContent: "Soạn thành tin trả lời khách", disabled: Boolean(state.busy), onclick: () => onAskCompose(r.answer) }),
+        el("button", { className: "button-secondary", textContent: state.copiedKey === "ask" ? "Đã copy ✓" : "Copy", onclick: () => copy(r.answer, "ask") }),
+        el("button", { className: "button-primary", disabled: genBtn.disabled, onclick: () => onAskCompose(r.answer) }, buttonContent(genBtn.running, state.busy, "Soạn thành tin trả lời khách")),
       ]),
     ]) : null,
     r && !r.found ? el("div", { className: "ask-notfound" }, [
@@ -300,7 +304,7 @@ export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandof
       ]),
       el("div", { className: "row" }, [
         el("button", { className: "button-secondary", textContent: "Thử từ khoá khác", onclick: () => onAskRetry() }),
-        el("button", { className: "button-secondary", textContent: "Ghi private note hỏi quản lý", disabled: Boolean(state.busy), onclick: () => onHandoff(false) }),
+        el("button", { className: "button-secondary", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết…", "Ghi private note hỏi quản lý")),
       ]),
     ]) : null,
   ]);
@@ -314,7 +318,7 @@ export function knowledgePanel({ copy, onAsk, onAskCompose, onAskRetry, onHandof
 export function csatPanel({ onSurvey }) {
   const csat = state.csat;
   const s = state.sentiment;
-  const busy = state.busy.startsWith("Đang gửi survey");
+  const svBtn = actionButtonState(state.busyAction, "survey");
   const convState = state.check?.conversation_state ?? null;
   const sentTime = csat?.sent_at ? new Date(csat.sent_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "";
   const frustratedOpen = s?.mood === "frustrated" && convState !== "resolved";
@@ -329,7 +333,7 @@ export function csatPanel({ onSurvey }) {
       ? el("div", { className: "csat-error" }, [
         el("b", { textContent: "Không gửi được" }),
         el("p", { className: "muted", textContent: "n8n gate không phản hồi hoặc lỗi kết nối." }),
-        el("button", { className: "button-secondary", textContent: "Thử lại", disabled: busy, onclick: () => onSurvey() }),
+        el("button", { className: "button-secondary", disabled: svBtn.disabled, onclick: () => onSurvey() }, buttonContent(svBtn.running, "Đang gửi…", "Thử lại")),
       ])
       : frustratedOpen
       ? el("p", { className: "warn", textContent: convState
@@ -338,7 +342,7 @@ export function csatPanel({ onSurvey }) {
       : el("p", { className: "muted", textContent: "Gửi phiếu đánh giá CSAT (4 lựa chọn) vào đoạn chat cho khách." }),
     state.csatError && !csat?.sent
       ? null
-      : el("button", { className: "csat-button", textContent: busy ? "Đang gửi…" : "Send CSAT Survey", disabled: Boolean(csat?.sent) || busy, onclick: () => onSurvey() }),
+      : el("button", { className: "csat-button", disabled: Boolean(csat?.sent) || svBtn.disabled, onclick: () => onSurvey() }, buttonContent(svBtn.running, "Đang gửi…", "Send CSAT Survey")),
   ]);
 }
 
@@ -416,12 +420,13 @@ export function storefrontPanel() {
  */
 export function suggestionCard({ onGenerate }, preview) {
   const s = state.sentiment;
+  const genBtn = actionButtonState(state.busyAction, "generate");
   return el("section", { className: "card suggestion-card" }, [
     el("div", { className: "row" }, [
       el("span", { className: "eyebrow", textContent: "💡 GỢI Ý TRẢ LỜI" }),
       s ? el("span", { className: "muted", textContent: moodText(s) }) : null,
     ]),
     preview ? el("p", { className: "suggestion-preview", textContent: preview }) : null,
-    el("button", { className: "button-primary", textContent: "Soạn draft cho tin này", disabled: Boolean(state.busy), onclick: () => onGenerate(false) }),
+    el("button", { className: "button-primary", disabled: genBtn.disabled, onclick: () => onGenerate(false) }, buttonContent(genBtn.running, state.busy, "Soạn draft cho tin này")),
   ]);
 }

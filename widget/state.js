@@ -21,7 +21,10 @@ export const state = {
   tone: "default", // giọng văn CS chọn cho draft: default | friendly | formal | concise
   draftEditing: false, // đang sửa draft trực tiếp trong panel
   storefront: null, // dữ liệu Storefront Watch thô; null = chưa nối nguồn (panel hiện trạng thái trống)
-  busy: "",
+  busy: "", // nhãn bận hiển thị (thẻ loading chung)
+  busyAction: "", // action API đang chạy: generate | handoff | analyze | survey | ask ("" = rảnh)
+  copiedKey: "", // nút Copy vừa bấm xong (draft | handoff | summary | ask) — hiện "Đã copy ✓" tại nút ~1,6s
+  insertPending: false, // đang chờ extension trả lời lệnh điền draft — khoá các nút điền/chọn cách điền
   bridge: "checking", // checking | missing | outdated | ready
   bridgeProbe: null,
 };

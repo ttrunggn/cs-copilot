@@ -105,6 +105,16 @@ export function describeShape(data) {
 
 const HTTPS_URL = /^https:\/\//;
 
+/**
+ * Trạng thái nút của một action API theo state.busyAction ("" = đang rảnh):
+ * nút của chính action đang chạy thì `running` (hiện spinner + nhãn bận);
+ * có bất kỳ action nào chạy thì mọi nút action đều `disabled` — giữ nguyên
+ * nguyên tắc không gọi API song song như trước, chỉ khác ở phản hồi trực quan.
+ */
+export function actionButtonState(busyAction, action) {
+  return { running: busyAction === action, disabled: busyAction !== "" };
+}
+
 /** Số chỗ [[CS: …]] CS phải tự điền trong draft. */
 export function countPlaceholders(text) {
   return (String(text ?? "").match(/\[\[CS:[^\]]*\]\]/g) ?? []).length;

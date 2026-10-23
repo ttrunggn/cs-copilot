@@ -12,6 +12,13 @@ export function el(tag, props = {}, children = []) {
   return n;
 }
 
+/** Nội dung nút của action: đang chạy → spinner + nhãn bận; rảnh → nhãn thường. */
+export function buttonContent(running, busyText, text) {
+  return running
+    ? [el("span", { className: "spinner" }), document.createTextNode(busyText)]
+    : [document.createTextNode(text)];
+}
+
 export function show(...nodes) {
   app.replaceChildren(...nodes.filter(Boolean));
   fit();
