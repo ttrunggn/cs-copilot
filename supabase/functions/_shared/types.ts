@@ -1,3 +1,5 @@
+// Kiểu dữ liệu dùng chung cho các Edge Function của copilot.
+// (Bản này đồng thời kích hoạt lại deploy sau khi extension.zip tốt đã lên master — 2026-10-23.)
 export interface MessageRow {
   id: number;
   content_en: string | null;
