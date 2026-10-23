@@ -12,7 +12,12 @@ const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
 const extension = createExtensionClient(render);
-const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, saveDraftEdit, toggleDraftEdit, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
+function toggleSuggestion() {
+  state.suggestionExpanded = !state.suggestionExpanded;
+  render();
+}
+
+const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, saveDraftEdit, toggleDraftEdit, onToggleSuggestion: toggleSuggestion, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
 
 /** Lưu bản draft CS vừa sửa tại chỗ (null = huỷ sửa). Đếm lại chỗ [[CS: …]] theo bản mới. */
 function saveDraftEdit(text) {
@@ -319,6 +324,7 @@ async function load() {
       state.hint = "";
       state.notice = "";
       state.copiedKey = "";
+      state.suggestionExpanded = false;
       state.check = null;
       const cached = checkCache.get(sessionId);
       if (cached) {

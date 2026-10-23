@@ -3,7 +3,7 @@ import { humanTranscript, inputFingerprint, latestCustomerQuery } from "../_shar
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
-import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
+import { pickBestProfileRow, type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 import {
   classifyPrompt,
   classifySchema,
@@ -101,6 +101,8 @@ export async function runGenerate(
   const { stale, conv, messages: raw } = await loadConversation(deps, req.website_id, req.session_id);
   const label = (key: string | null) => ws.topics.find((t) => t.key === key)?.label ?? null;
   const profiles = await deps.db.getProfiles(operatorId, req.website_id);
+  // CS chưa có dữ liệu học → mặc định là bản học tốt nhất của team (không phải template cứng).
+  const bestRow = pickBestProfileRow(await deps.db.getWorkspaceAllProfiles(req.website_id));
   const hint = (req.hint ?? "").trim();
   const tone: DraftTone = req.tone ?? "default";
   // Hint/giọng văn đổi thì draft phải khác: trộn vào dấu vân tay để cache không trả bản soạn không có ý của CS.
@@ -115,7 +117,7 @@ export async function runGenerate(
       return {
         action: "generate", stale, cached: true, output_id: hit.id, draft: hit.content, warnings: hit.warnings,
         verified: hit.verified ?? false, helpdesk_matches: hit.helpdesk_matches ?? 0, sources: [], topic: hit.topic,
-        topic_label: label(hit.topic), profile_source: resolveProfile(profiles, hit.topic, ws.default_profile).source,
+        topic_label: label(hit.topic), profile_source: resolveProfile(profiles, hit.topic, ws.default_profile, bestRow).source,
         prompt_version: hit.prompt_version ?? "", sentiment: null,
       };
     }
@@ -130,7 +132,7 @@ export async function runGenerate(
     retrieve(deps, req.website_id, messages),
     resolveSentiment(deps, req.website_id, req.session_id, messages),
   ]);
-  const { profile, source } = resolveProfile(profiles, topic, ws.default_profile);
+  const { profile, source } = resolveProfile(profiles, topic, ws.default_profile, bestRow);
   const variant = pickVariant(await deps.db.getVariants("draft"));
   const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
 

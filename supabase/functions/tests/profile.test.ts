@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { BUILTIN_PROFILE, resolveNoteFormat, resolveProfile } from "../_shared/profile.ts";
+import { BUILTIN_PROFILE, pickBestNoteFormat, pickBestProfileRow, resolveNoteFormat, resolveProfile } from "../_shared/profile.ts";
 import type { NoteFormat, ProfileRow } from "../_shared/types.ts";
 
 const row = (topic: string, extra: Partial<ProfileRow> = {}): ProfileRow => ({
@@ -88,4 +88,63 @@ Deno.test("resolveNoteFormat: manual_override note_format beats the learned one"
     manual_override: { note_format: manual } as unknown as ProfileRow["manual_override"],
   })];
   assertEquals(resolveNoteFormat(rows), manual);
+});
+
+Deno.test("pickBestProfileRow picks the _all row with most conversations, floor applied", () => {
+  const rows = [
+    row("_all", { crisp_user_id: "op-a", conversations_used: 40, tone: "a" }),
+    row("_all", { crisp_user_id: "op-b", conversations_used: 120, tone: "b" }),
+    row("_all", { crisp_user_id: "op-c", conversations_used: 3, tone: "c" }),
+    row("billing", { crisp_user_id: "op-d", conversations_used: 999, tone: "d" }),
+  ];
+  assertEquals(pickBestProfileRow(rows)?.crisp_user_id, "op-b");
+  assertEquals(pickBestProfileRow([row("_all", { conversations_used: 4 })]), null);
+  assertEquals(pickBestProfileRow([]), null);
+});
+
+Deno.test("pickBestProfileRow tie-breaks by latest learned_at", () => {
+  const rows = [
+    row("_all", { crisp_user_id: "op-old", conversations_used: 50, learned_at: "2026-09-01T00:00:00Z" }),
+    row("_all", { crisp_user_id: "op-new", conversations_used: 50, learned_at: "2026-10-01T00:00:00Z" }),
+  ];
+  assertEquals(pickBestProfileRow(rows)?.crisp_user_id, "op-new");
+});
+
+Deno.test("resolveProfile: no own rows -> best team profile under workspace default", () => {
+  const best = row("_all", { crisp_user_id: "op-b", tone: "giọng tốt nhất", pronoun_self: "mình" });
+  const r = resolveProfile([], "billing", {}, best);
+  assertEquals(r.source, "best");
+  assertEquals(r.profile.tone, "giọng tốt nhất");
+  const r2 = resolveProfile([], "billing", { tone: "ws tone" }, best);
+  assertEquals(r2.profile.tone, "ws tone");
+  assertEquals(r2.profile.pronoun_self, "mình");
+});
+
+Deno.test("resolveProfile: own rows and own manual override beat the best row", () => {
+  const best = row("_all", { crisp_user_id: "op-b", tone: "best", signature: "— Best" });
+  const own = [row("_all", { tone: "của mình", manual_override: { signature: "— Tôi" } })];
+  const r = resolveProfile(own, null, {}, best);
+  assertEquals(r.source, "all");
+  assertEquals(r.profile.tone, "của mình");
+  assertEquals(r.profile.signature, "— Tôi");
+});
+
+Deno.test("pickBestNoteFormat picks most notes_used, ignores manual-only formats", () => {
+  const manualOnly = { ...NOTE_FMT, notes_used: 99, header: "Manual — {name}" };
+  const rows = [
+    row("_all", { crisp_user_id: "op-a", note_format: { ...NOTE_FMT, notes_used: 5 } }),
+    row("_all", { crisp_user_id: "op-b", note_format: { ...NOTE_FMT, notes_used: 12, header: "B — {name}" } }),
+    row("_all", { crisp_user_id: "op-c", note_format: null, manual_override: { note_format: manualOnly } as unknown as ProfileRow["manual_override"] }),
+    row("_all", { crisp_user_id: "op-d", note_format: { ...NOTE_FMT, notes_used: 2 } }),
+  ];
+  const best = pickBestNoteFormat(rows);
+  assertEquals(best?.header, "B — {name}");
+  assertEquals(best?.notes_used, 12);
+});
+
+Deno.test("resolveNoteFormat falls back to the best team format, own format wins", () => {
+  const best = { ...NOTE_FMT, header: "Team — {name}" };
+  assertEquals(resolveNoteFormat([], best), best);
+  assertEquals(resolveNoteFormat([row("_all", { note_format: NOTE_FMT })], best), NOTE_FMT);
+  assertEquals(resolveNoteFormat([], null), null);
 });

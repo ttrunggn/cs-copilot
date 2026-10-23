@@ -87,6 +87,7 @@ export function makeDeps(opts: {
     getMessages: () => Promise.resolve(opts.messages ?? [msg("user", "a", 1), msg("operator", "b", 2), msg("user", "c", 3)]),
     saveTranslations: () => Promise.resolve(),
     getProfiles: () => Promise.resolve([]),
+    getWorkspaceAllProfiles: () => Promise.resolve([]),
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     findCachedOutput: () => Promise.resolve(opts.cached ?? null),
     insertOutput: (row) => {

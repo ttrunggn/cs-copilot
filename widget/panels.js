@@ -1,4 +1,4 @@
-import { actionButtonState, handoffStatus, toJiraViewModel, toStorefrontViewModel } from "./core.js";
+import { actionButtonState, handoffStatus, previewNeedsToggle, toJiraViewModel, toStorefrontViewModel } from "./core.js";
 import { buttonContent, el } from "./dom.js";
 import { state } from "./state.js";
 
@@ -418,7 +418,7 @@ export function storefrontPanel() {
  * Bấm một cái là generate chạy và draft xổ ra ngay dưới — không tự gọi AI trước,
  * tránh tốn quota cho những case CS không cần.
  */
-export function suggestionCard({ onGenerate }, preview) {
+export function suggestionCard({ onGenerate, onToggleSuggestion }, preview) {
   const s = state.sentiment;
   const genBtn = actionButtonState(state.busyAction, "generate");
   return el("section", { className: "card suggestion-card" }, [
@@ -426,7 +426,11 @@ export function suggestionCard({ onGenerate }, preview) {
       el("span", { className: "eyebrow", textContent: "💡 GỢI Ý TRẢ LỜI" }),
       s ? el("span", { className: "muted", textContent: moodText(s) }) : null,
     ]),
-    preview ? el("p", { className: "suggestion-preview", textContent: preview }) : null,
+    preview ? el("span", { className: "muted suggestion-label", textContent: "Tin khách đang chờ:" }) : null,
+    preview ? el("p", { className: "suggestion-preview" + (previewNeedsToggle(preview) && !state.suggestionExpanded ? " clamped" : ""), textContent: preview }) : null,
+    preview && previewNeedsToggle(preview)
+      ? el("button", { className: "link-text suggestion-toggle", textContent: state.suggestionExpanded ? "Thu gọn" : "Xem thêm", onclick: () => onToggleSuggestion() })
+      : null,
     el("button", { className: "button-primary", disabled: genBtn.disabled, onclick: () => onGenerate(false) }, buttonContent(genBtn.running, state.busy, "Soạn draft cho tin này")),
   ]);
 }

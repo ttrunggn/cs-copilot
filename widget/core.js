@@ -34,7 +34,7 @@ export function timeAgo(iso, now) {
   return `${Math.floor(s / 86400)} ngày trước`;
 }
 
-const SOURCE_LABEL = { topic: "theo topic", all: "chung", default: "mặc định workspace" };
+const SOURCE_LABEL = { topic: "theo topic", all: "chung", best: "tốt nhất của team", default: "mặc định workspace" };
 const MAX_CHARS = 300;
 
 /** Crisp lưu file thành marker + MIME + URL trong content; chỉ mở ảnh từ storage của Crisp. */
@@ -111,6 +111,12 @@ const HTTPS_URL = /^https:\/\//;
  * có bất kỳ action nào chạy thì mọi nút action đều `disabled` — giữ nguyên
  * nguyên tắc không gọi API song song như trước, chỉ khác ở phản hồi trực quan.
  */
+/** Tin khách dài (nhiều ký tự hoặc nhiều dòng) thì thẻ gợi ý thu gọn 3 dòng + nút Xem thêm. */
+export function previewNeedsToggle(text) {
+  const t = String(text ?? "");
+  return t.length > 160 || t.split("\n").length > 3;
+}
+
 export function actionButtonState(busyAction, action) {
   return { running: busyAction === action, disabled: busyAction !== "" };
 }

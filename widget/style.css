@@ -175,7 +175,10 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .draft-edit { min-height: 150px; }
 .draft-sources { font-size: 12px; overflow-wrap: anywhere; }
 .draft-insert { flex: 1; }
-.suggestion-preview { overflow-wrap: anywhere; }
+.suggestion-preview { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.suggestion-preview.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.suggestion-label { font-size: 12px; }
+.suggestion-toggle { align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; }
 
 /* Storefront Watch */
 .card.storefront-strip { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 10px; }

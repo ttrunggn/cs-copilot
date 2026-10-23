@@ -48,6 +48,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getMessages: () => Promise.resolve(MSGS),
     saveTranslations: () => Promise.resolve(),
     getProfiles: () => Promise.resolve(PROFILES),
+    getWorkspaceAllProfiles: () => Promise.resolve(PROFILES),
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),

@@ -18,6 +18,7 @@ async function fakeDb(member = true): Promise<Db> {
     getConversation: () => Promise.resolve(null),
     getMessages: () => Promise.resolve([]),
     getProfiles: () => Promise.resolve([]),
+    getWorkspaceAllProfiles: () => Promise.resolve([]),
     getOperator: () => Promise.resolve(null),
     saveTranslations: () => Promise.resolve(),
     findCachedOutput: () => Promise.resolve(null),

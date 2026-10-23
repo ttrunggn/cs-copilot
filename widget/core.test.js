@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -268,4 +268,15 @@ Deno.test("askAnswerToHint trims and caps at the server hint limit (500)", () =>
   assertEquals(askAnswerToHint("  đáp án ngắn  "), "đáp án ngắn");
   assertEquals(askAnswerToHint("x".repeat(600)).length, 500);
   assertEquals(askAnswerToHint(null), "");
+});
+
+Deno.test("previewNeedsToggle: tin ngắn một dòng thì không cần nút xem thêm", () => {
+  assertEquals(previewNeedsToggle("Khách hỏi về đơn hàng ạ"), false);
+  assertEquals(previewNeedsToggle(""), false);
+  assertEquals(previewNeedsToggle(null), false);
+});
+
+Deno.test("previewNeedsToggle: tin dài hoặc nhiều dòng thì thu gọn", () => {
+  assertEquals(previewNeedsToggle("x".repeat(161)), true);
+  assertEquals(previewNeedsToggle("a\nb\nc\nd"), true);
 });
