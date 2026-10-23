@@ -1,7 +1,7 @@
 import { unansweredCustomerMessages } from "../_shared/context.ts";
 import { type ConversationJira, jiraForConversation } from "../_shared/jira.ts";
 import type { Db } from "../_shared/db.ts";
-import { type ProfileSource, resolveProfile } from "../_shared/profile.ts";
+import { pickBestProfileRow, type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 import type { Sentiment } from "../_shared/sentiment.ts";
 import type { Warning, Workspace } from "../_shared/types.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
@@ -43,8 +43,9 @@ export async function runCheck(
   deps: LoadDeps,
 ): Promise<CheckResult> {
   const { stale, conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
-  const [profiles, operator, latest, jiraRows, sentimentRow, csatSend] = await Promise.all([
+  const [profiles, allProfiles, operator, latest, jiraRows, sentimentRow, csatSend] = await Promise.all([
     deps.db.getProfiles(operatorId, req.website_id),
+    deps.db.getWorkspaceAllProfiles(req.website_id),
     deps.db.getOperator(operatorId),
     deps.db.getLatestDraft(req.website_id, req.session_id, operatorId),
     deps.db.getJiraRows(req.website_id, req.session_id),
@@ -53,7 +54,7 @@ export async function runCheck(
   ]);
   const unanswered = unansweredCustomerMessages(messages);
   const pendingMessages = pendingCustomerMessages(messages);
-  const { source } = resolveProfile(profiles, conv.topic, ws.default_profile);
+  const { source } = resolveProfile(profiles, conv.topic, ws.default_profile, pickBestProfileRow(allProfiles));
   return {
     action: "check",
     stale,
