@@ -1,5 +1,5 @@
-import { askAnswerToHint, countPlaceholders, describeShape, mapError, operatorIdFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
-import { el, show } from "./dom.js";
+import { actionButtonState, askAnswerToHint, countPlaceholders, describeShape, mapError, operatorIdFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { buttonContent, el, show } from "./dom.js";
 import { state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
 import { chipsRow, csatPanel, draftPanel, extensionHint, handoffPanel, insightPanel, jiraPanel, knowledgePanel, pendingMessageCard, storefrontPanel, storefrontStrip, suggestionCard, summaryPanel } from "./panels.js";
@@ -36,7 +36,24 @@ function showMessage(text, retry) {
   ]));
 }
 
-async function copy(text) {
+/** Trạng thái chờ lần đầu (chưa có dữ liệu gì để hiện): khung xương đúng bố cục
+ *  panel thay cho dòng chữ trơ; trạng thái lỗi vẫn dùng showMessage như cũ. */
+function showLoading(text) {
+  show(
+    el("div", { className: "sk" }, [
+      el("div", { className: "sk-block sk-head" }),
+      el("div", { className: "sk-block sk-card" }),
+      el("div", { className: "sk-block sk-card-sm" }),
+      el("div", { className: "sk-block sk-card" }),
+    ]),
+    el("p", { className: "sk-status", textContent: text }),
+  );
+}
+
+let copyTimer = null;
+
+/** Copy + phản hồi ngay tại nút vừa bấm (key: draft | handoff | summary | ask). */
+async function copy(text, key = "") {
   try {
     await navigator.clipboard.writeText(text);
   } catch {
@@ -48,6 +65,14 @@ async function copy(text) {
   }
   if (state.draft && text === state.draft.vm.text) state.draftPlacement = "copied";
   state.notice = "Đã copy, dán vào ô Reply bằng Ctrl+V";
+  if (key) {
+    state.copiedKey = key;
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => {
+      state.copiedKey = "";
+      render();
+    }, 1600);
+  }
   render();
 }
 
@@ -69,6 +94,8 @@ async function call(action, extra = {}) {
 }
 
 async function onGenerate(force) {
+  if (state.busy) return; // một action API tại một thời điểm — chặn cả Enter/bấm đúp lọt qua nút đã khoá
+  state.busyAction = "generate";
   state.busy = force ? "Đang soạn lại…" : "Đang soạn…";
   state.notice = "";
   state.choice = false;
@@ -86,16 +113,20 @@ async function onGenerate(force) {
     state.draftPlacement = "";
     state.draftEditing = false;
     state.busy = "";
+    state.busyAction = "";
     render();
     if (state.bridge === "ready") extension.sendInsert("auto");
   } catch (e) {
     state.busy = "";
+    state.busyAction = "";
     if (!e.stale) state.notice = e.message ?? "Không soạn được, thử lại sau";
     render();
   }
 }
 
 async function onAnalyze(force) {
+  if (state.busy) return;
+  state.busyAction = "analyze";
   state.busy = "Đang phân tích tâm trạng…";
   state.notice = "";
   render();
@@ -108,10 +139,13 @@ async function onAnalyze(force) {
     if (!e.stale) state.notice = e.message ?? "Không phân tích được, thử lại sau";
   }
   state.busy = "";
+  state.busyAction = "";
   render();
 }
 
 async function onSurvey() {
+  if (state.busy) return;
+  state.busyAction = "survey";
   state.busy = "Đang gửi survey…";
   state.notice = "";
   state.csatError = false;
@@ -130,17 +164,20 @@ async function onSurvey() {
     if (!e.stale) state.csatError = true;
   }
   state.busy = "";
+  state.busyAction = "";
   render();
 }
 
 /** Hỏi tài liệu (board 3): gửi câu hỏi lên action ask, kết quả vào state.askResult. */
 async function onAsk() {
+  if (state.busy) return; // Enter trong ô nhập cũng đi qua đây — chặn gọi ask song song
   const question = state.askQuestion.trim();
   if (!question) {
     state.notice = "Hãy nhập câu hỏi để tìm trong tài liệu.";
     render();
     return;
   }
+  state.busyAction = "ask";
   state.busy = "Đang tìm tài liệu…";
   state.notice = "";
   render();
@@ -151,6 +188,7 @@ async function onAsk() {
     if (!e.stale) state.notice = e.message ?? "Không tìm được tài liệu, thử lại sau";
   }
   state.busy = "";
+  state.busyAction = "";
   render();
 }
 
@@ -169,6 +207,8 @@ function onAskRetry() {
 }
 
 async function onHandoff(force) {
+  if (state.busy) return;
+  state.busyAction = "handoff";
   state.busy = "Đang viết handoff…";
   state.notice = "";
   render();
@@ -176,9 +216,11 @@ async function onHandoff(force) {
     const out = await call("handoff", force ? { force: true } : {});
     state.handoff = { note: out.note, posted: out.posted, cached: out.cached };
     state.busy = "";
+    state.busyAction = "";
     render();
   } catch (e) {
     state.busy = "";
+    state.busyAction = "";
     if (!e.stale) state.notice = e.message ?? "Không tạo được handoff, thử lại sau";
     render();
   }
@@ -189,7 +231,8 @@ async function onHandoff(force) {
 function render() {
   if (!state.check) return;
   const vm = toViewModel(state.check, Date.now());
-  const disabled = Boolean(state.busy);
+  const genBtn = actionButtonState(state.busyAction, "generate");
+  const noteBtn = actionButtonState(state.busyAction, "handoff");
   show(
     el("header", { className: "inbox-header" }, [
       el("div", {}, [el("h1", { textContent: vm.header }), el("p", { className: "subtitle", textContent: vm.subtitle })]),
@@ -209,8 +252,8 @@ function render() {
     ]),
     !state.draft && vm.pendingMessages.length ? suggestionCard(handlers, vm.pendingMessages[vm.pendingMessages.length - 1].text) : null,
     el("div", { className: "actions" }, [
-      el("button", { className: "button-primary compose-button", textContent: state.busy.startsWith("Đang soạn") ? "Đang soạn…" : "Soạn tin trả lời", disabled, onclick: () => onGenerate(false) }),
-      el("button", { className: "button-secondary private-button", textContent: state.busy.startsWith("Đang viết") ? "Đang viết private note…" : "🔒  Private note", disabled, onclick: () => onHandoff(false) }),
+      el("button", { className: "button-primary compose-button", disabled: genBtn.disabled, onclick: () => onGenerate(false) }, buttonContent(genBtn.running, state.busy, "Soạn tin trả lời")),
+      el("button", { className: "button-secondary private-button", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "🔒  Private note")),
       el("button", { className: "button-secondary knowledge-button", textContent: "Hỏi tài liệu", onclick: () => ((state.knowledgeOpen = !state.knowledgeOpen), render()) }),
     ]),
     knowledgePanel(handlers),
@@ -222,8 +265,8 @@ function render() {
     state.choice ? el("div", { className: "insert-choice" }, [
       el("p", { className: "success-line", textContent: "Ô Reply đang có chữ: thay thế, chèn xuống cuối hay huỷ?" }),
       el("div", { className: "row" }, [
-        el("button", { className: "button-primary", textContent: "Thay thế", onclick: () => extension.sendInsert("replace") }),
-        el("button", { className: "button-secondary", textContent: "Chèn xuống cuối", onclick: () => extension.sendInsert("append") }),
+        el("button", { className: "button-primary", textContent: "Thay thế", disabled: state.insertPending, onclick: () => extension.sendInsert("replace") }),
+        el("button", { className: "button-secondary", textContent: "Chèn xuống cuối", disabled: state.insertPending, onclick: () => extension.sendInsert("append") }),
         el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), (state.notice = ""), render()) }),
       ]),
     ]) : null,
@@ -251,45 +294,54 @@ function applyCheck(sessionId) {
   }
 }
 
+let loadInFlight = false;
+
 async function load() {
-  if (!state.operatorId) return showMessage("Đang xác định CS đang đăng nhập…");
-  const sessionId = readContext(location.search).sessionId;
-  if (sessionId !== state.shownSession) {
-    state.shownSession = sessionId;
-    state.draft = null;
-    state.sentiment = null;
-    state.sentimentMsgCount = 0;
-    state.csat = null;
-    state.csatError = false;
-    state.handoff = null;
-    state.knowledgeOpen = false;
-    state.askQuestion = "";
-    state.askResult = null;
-    state.choice = false;
-    state.draftPlacement = "";
-    state.draftEditing = false;
-    state.hint = "";
-    state.notice = "";
-    state.check = null;
-    const cached = checkCache.get(sessionId);
-    if (cached) {
-      state.check = cached;
-      applyCheck(sessionId);
-      render();
-    }
-  }
-  if (!state.check || state.shownSession !== sessionId) showMessage("Đang kiểm tra…");
+  if (loadInFlight) return; // bấm Làm mới/Thử lại liên tục không gọi check song song
+  loadInFlight = true;
   try {
-    state.check = await call("check");
-  } catch (e) {
-    if (e.stale) return;
-    if (checkCache.has(sessionId)) return; // đã hiện bản cache, lỗi làm mới thì giữ nguyên màn hình
-    return showMessage(e.message ?? "Không kết nối được copilot", e.kind === "retry" || e.kind === "fatal");
+    if (!state.operatorId) return showLoading("Đang xác định CS đang đăng nhập…");
+    const sessionId = readContext(location.search).sessionId;
+    if (sessionId !== state.shownSession) {
+      state.shownSession = sessionId;
+      state.draft = null;
+      state.sentiment = null;
+      state.sentimentMsgCount = 0;
+      state.csat = null;
+      state.csatError = false;
+      state.handoff = null;
+      state.knowledgeOpen = false;
+      state.askQuestion = "";
+      state.askResult = null;
+      state.choice = false;
+      state.draftPlacement = "";
+      state.draftEditing = false;
+      state.hint = "";
+      state.notice = "";
+      state.copiedKey = "";
+      state.check = null;
+      const cached = checkCache.get(sessionId);
+      if (cached) {
+        state.check = cached;
+        applyCheck(sessionId);
+        render();
+      }
+    }
+    if (!state.check || state.shownSession !== sessionId) showLoading("Đang kiểm tra…");
+    try {
+      state.check = await call("check");
+    } catch (e) {
+      if (e.stale) return;
+      if (checkCache.has(sessionId)) return; // đã hiện bản cache, lỗi làm mới thì giữ nguyên màn hình
+      return showMessage(e.message ?? "Không kết nối được copilot", e.kind === "retry" || e.kind === "fatal");
+    }
+    if (readContext(location.search).sessionId !== sessionId) return; // CS đã chuyển conversation khác trong lúc chờ
+    checkCache.set(sessionId, state.check);
+    applyCheck(sessionId);
+    render();
+  } finally {
+    loadInFlight = false;
   }
-  if (readContext(location.search).sessionId !== sessionId) return; // CS đã chuyển conversation khác trong lúc chờ
-  checkCache.set(sessionId, state.check);
-  applyCheck(sessionId);
-  render();
 }
 
 // CS đang đăng nhập lấy từ SDK chính thức của Crisp, không cần nhập token.
@@ -308,7 +360,7 @@ window.CRISP_READY_TRIGGER = () => {
 
 const ctx = readContext(location.search);
 if ("error" in ctx) showMessage(ctx.error);
-else showMessage("Đang xác định CS đang đăng nhập…");
+else showLoading("Đang xác định CS đang đăng nhập…");
 extension.detectExtension();
 window.addEventListener("focus", () => {
   if (state.bridge !== "ready") extension.detectExtension();
