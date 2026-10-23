@@ -8,6 +8,7 @@ export const state = {
   shownSession: "", // chat đang hiển thị; đổi chat thì xoá draft/handoff cũ
   handoff: null, // { note, posted, cached }
   notice: "", // dòng trạng thái dưới draft/handoff
+  noticeKind: "", // "" | success | error | info — quyết định màu + thời gian tự tắt của notice
   choice: false, // đang hỏi Thay thế / Chèn cuối / Huỷ
   draftPlacement: "", // inserted | copied
   knowledgeOpen: false, // panel Hỏi tài liệu đang mở hay đóng (nút ở hàng action bật/tắt)
@@ -17,12 +18,14 @@ export const state = {
   sentimentMsgCount: 0, // số tin của khách mà analyze vừa tính sentiment trên đó (0 = chưa biết)
   csat: null, // { sent, sent_at } — trạng thái survey của conversation đang mở
   csatError: false, // lần gửi survey gần nhất lỗi → panel CSAT hiện "Không gửi được / Thử lại"
+  csatErrorMsg: "", // lý do gửi survey lỗi do server trả về (hiện trong hộp lỗi CSAT)
   hint: "", // ý CS gõ thêm cho draft (gửi kèm generate)
   tone: "default", // giọng văn CS chọn cho draft: default | friendly | formal | concise
-  draftEditing: false, // đang sửa draft trực tiếp trong panel
   storefront: null, // dữ liệu Storefront Watch thô; null = chưa nối nguồn (panel hiện trạng thái trống)
   busy: "", // nhãn bận hiển thị (thẻ loading chung)
   busyAction: "", // action API đang chạy: generate | handoff | analyze | survey | ask ("" = rảnh)
+  progress: null, // { action, startedAt } — thẻ tiến trình từng bước khi chờ các action AI
+  abortController: null, // AbortController của call đang chạy — nút Huỷ trên thẻ tiến trình dùng nó
   copiedKey: "", // nút Copy vừa bấm xong (draft | handoff | summary | ask) — hiện "Đã copy ✓" tại nút ~1,6s
   suggestionExpanded: false, // thẻ gợi ý: tin khách dài mặc định thu gọn 3 dòng
   insertPending: false, // đang chờ extension trả lời lệnh điền draft — khoá các nút điền/chọn cách điền
