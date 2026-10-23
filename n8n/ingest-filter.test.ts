@@ -14,8 +14,8 @@ function run(body: unknown, path = "crisp-ingest-b3d3d4eb3bc264f3222f0018"): Pro
 
 const EVENT = { website_id: "ws1", event: "message:send", data: { session_id: "session_1", content: "hi" } };
 
-Deno.test("ingest is Webhook → Filter Events → Ingest Event (no signature nodes)", () => {
-  assertEquals(wf.nodes.map((n: { name: string }) => n.name), ["Crisp Webhook", "Filter Events", "Ingest Event"]);
+Deno.test("ingest is Webhook → Filter Events → Ingest Event → precompute sentiment (no signature nodes)", () => {
+  assertEquals(wf.nodes.map((n: { name: string }) => n.name), ["Crisp Webhook", "Filter Events", "Ingest Event", "Chuẩn bị precompute", "Precompute Sentiment"]);
 });
 
 Deno.test("webhook path carries a random-secret placeholder", () => {

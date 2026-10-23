@@ -3,6 +3,7 @@
 // mà không cần import vòng về app.js.
 export const state = {
   operatorId: "",
+  operatorName: "", // tên account CS đang đăng nhập (từ SDK Crisp) — nguồn chuẩn cho tên trong draft
   check: null, // kết quả check gần nhất
   draft: null, // { output_id, session_id, vm } — gắn với chat đã soạn
   shownSession: "", // chat đang hiển thị; đổi chat thì xoá draft/handoff cũ

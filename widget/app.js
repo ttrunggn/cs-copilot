@@ -1,4 +1,4 @@
-import { actionButtonState, askAnswerToHint, describeShape, mapError, operatorIdFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, describeShape, mapError, operatorIdFrom, operatorNameFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { buttonContent, el, show } from "./dom.js";
 import { state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -114,10 +114,14 @@ async function copy(text, key = "") {
 async function call(action, extra = {}, signal) {
   const ctx = readContext(location.search);
   if ("error" in ctx) throw { message: ctx.error };
+  const payload = { website_id: ctx.websiteId, session_id: ctx.sessionId, crisp_token: ctx.crispToken, operator_id: state.operatorId, action, ...extra };
+  // Tên account đi kèm để server lấy tên trong draft theo đúng account đang
+  // đăng nhập (DB chỉ là dự phòng khi SDK không trả tên).
+  if (state.operatorName) payload.operator_name = state.operatorName;
   const res = await fetch(API, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ website_id: ctx.websiteId, session_id: ctx.sessionId, crisp_token: ctx.crispToken, operator_id: state.operatorId, action, ...extra }),
+    body: JSON.stringify(payload),
     signal,
   }).catch((err) => {
     if (signal?.aborted) throw { aborted: true };
@@ -431,8 +435,8 @@ function render() {
       ]),
     ]) : null,
     el("div", { className: "actions" }, [
-      el("button", { className: "button-secondary private-button", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "🔒  Private note")),
-      el("button", { className: "button-secondary knowledge-button", textContent: "Hỏi tài liệu", onclick: () => ((state.knowledgeOpen = !state.knowledgeOpen), render()) }),
+      el("button", { className: "button-secondary private-button", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "Private note")),
+      el("button", { className: "button-secondary knowledge-button", textContent: "Knowledge Base Asking", onclick: () => ((state.knowledgeOpen = !state.knowledgeOpen), render()) }),
     ]),
     knowledgePanel(handlers),
     state.progress ? progressCard() : state.busy ? el("div", { className: "loading-card" }, [
@@ -532,6 +536,7 @@ window.CRISP_READY_TRIGGER = () => {
   $crisp.onDataAcquired = (namespace) => {
     if (namespace !== "operator") return;
     state.operatorId = operatorIdFrom($crisp.data.operator);
+    state.operatorName = operatorNameFrom($crisp.data.operator);
     if (!state.operatorId) {
       console.warn("[copilot] operator data shape:", describeShape($crisp.data.operator));
       return showMessage(`Không đọc được CS đang đăng nhập. Crisp trả về: ${describeShape($crisp.data.operator)}`);

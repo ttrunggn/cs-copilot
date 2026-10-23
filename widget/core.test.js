@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, operatorNameFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -108,6 +108,15 @@ Deno.test("operatorIdFrom handles the shapes Crisp may return", () => {
   assertEquals(operatorIdFrom({ data: { operator: { user_id: "u5" } } }), "u5");
   assertEquals(operatorIdFrom({ email: "x@y" }), "");
   assertEquals(operatorIdFrom(undefined), "");
+});
+
+Deno.test("operatorNameFrom reads the account name from the shapes Crisp may return", () => {
+  assertEquals(operatorNameFrom({ data: { operator: { user_id: "u5", first_name: "Ethan", last_name: "Nguyen" } } }), "Ethan Nguyen");
+  assertEquals(operatorNameFrom({ operator: { name: "Ethan Nguyen" } }), "Ethan Nguyen");
+  assertEquals(operatorNameFrom({ details: { first_name: "Ethan", last_name: "Nguyen" } }), "Ethan Nguyen");
+  assertEquals(operatorNameFrom({ nickname: "Ethan" }), "Ethan");
+  assertEquals(operatorNameFrom({ user_id: "u1" }), "");
+  assertEquals(operatorNameFrom(undefined), "");
 });
 
 Deno.test("describeShape lists field names only, never values", () => {
