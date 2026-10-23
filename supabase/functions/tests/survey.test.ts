@@ -22,9 +22,11 @@ Deno.test("survey: gửi qua n8n gate, ghi trạng thái, lần hai không gửi
   assertEquals(surveyCalls, 1); // chống gửi trùng
 });
 
-Deno.test("survey: n8n gate lỗi thì báo chưa gửi, không ghi trạng thái", async () => {
+Deno.test("survey: n8n gate lỗi thì báo chưa gửi kèm lý do, không ghi trạng thái", async () => {
   const { deps } = makeDeps();
   deps.n8n.sendSurvey = () => Promise.resolve(false);
   const r = await handle({ website_id: "ws1", session_id: "session_1", action: "survey" }, TOKEN, deps);
-  assertEquals((r.body as { sent: boolean }).sent, false);
+  const body = r.body as { sent: boolean; error: string | null };
+  assertEquals(body.sent, false);
+  assertEquals(body.error?.includes("n8n gate"), true);
 });
