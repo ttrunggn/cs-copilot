@@ -25,6 +25,40 @@ function defined(p: Partial<Profile> | null | undefined): Partial<Profile> {
   return out;
 }
 
+function definedExcept(p: Partial<Profile> | null | undefined, omit: (keyof Profile)[]): Partial<Profile> {
+  const out = defined(p);
+  for (const k of omit) delete out[k];
+  return out;
+}
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Đổi tên người cho (donor) thành tên CS đang trực trong signature + sample messages.
+ * Profile "tốt nhất của team" mang theo tên của chủ nó trong câu tự giới thiệu ở
+ * samples ("This is Raymond from…") — không đổi thì draft ký tên người khác.
+ * Chỉ thay tên đầy đủ và tên gọi (token đầu), giữ nguyên văn phong.
+ */
+export function rebindIdentity(profile: Profile, fromName: string, toName: string): Profile {
+  const from = fromName.trim();
+  const to = toName.trim();
+  if (!from || !to || from === to) return profile;
+  const swap = (s: string): string => {
+    let out = s.split(from).join(to);
+    const f = from.split(/\s+/)[0];
+    const t = to.split(/\s+/)[0];
+    if (f && t && f !== t) out = out.replace(new RegExp(`\\b${escapeRegExp(f)}\\b(?![-\\w])`, "g"), t);
+    return out;
+  };
+  return {
+    ...profile,
+    signature: profile.signature ? swap(profile.signature) : profile.signature,
+    sample_messages: profile.sample_messages.map(swap),
+  };
+}
+
 /** Ngưỡng để một profile được coi là "bản học tốt" đủlàm mặc định cho người chưa có dữ liệu. */
 export const MIN_CONVS_FOR_DEFAULT = 5;
 
@@ -75,7 +109,9 @@ export function resolveProfile(
 
   const profile: Profile = {
     ...BUILTIN_PROFILE,
-    ...defined(bestRow ?? undefined),
+    // Lớp "best" đóng góp văn phong, KHÔNG đóng góp chữ ký: signature là danh tính
+    // của người cho, để lọt sang thì draft của CS khác sẽ ký tên thay họ.
+    ...definedExcept(bestRow, ["signature"]),
     ...defined(workspaceDefault),
     ...defined(picked),
     ...defined(all?.manual_override),
