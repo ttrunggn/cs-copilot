@@ -18,12 +18,26 @@ export interface LoadDeps {
 
 type Loaded = { stale: boolean; conv: ConversationRow; messages: MessageRow[] };
 
-/** Bước chung của generate/handoff: refresh qua n8n (quá hạn thì stale) rồi đọc DB. Việc ghi cần dữ liệu mới nhất nên vẫn chờ refresh. */
+/**
+ * Bước chung của generate/handoff: cần dữ liệu mới nhất, nhưng webhook ingest
+ * đã giữ DB gần như tức thì — bản ghi còn tươi (≤ FRESH_MS, ví dụ panel vừa
+ * check xong) thì khỏi refresh đồng bộ qua n8n, tiết kiệm ~3-5s mỗi lần soạn.
+ * Bản ghi đã cũ hoặc chưa có thì vẫn refresh qua n8n như cũ rồi mới đọc.
+ */
 export async function loadConversation(
   deps: LoadDeps,
   websiteId: string,
   sessionId: string,
 ): Promise<Loaded> {
+  const existing = await deps.db.getConversation(websiteId, sessionId).catch(() => null);
+  if (existing) {
+    const now = (deps.now ?? Date.now)();
+    const age = existing.updated_at ? now - Date.parse(existing.updated_at) : Number.POSITIVE_INFINITY;
+    if (age <= FRESH_MS) {
+      const messages = await deps.db.getMessages(websiteId, sessionId, MESSAGE_LIMIT);
+      return { stale: false, conv: existing, messages };
+    }
+  }
   const { stale } = await deps.n8n.refreshConversation(websiteId, sessionId);
   const conv = await deps.db.getConversation(websiteId, sessionId);
   if (!conv) throw new HttpError(404, "Chưa có dữ liệu conversation này");
