@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { decideInsert, isCopilotMessage, sessionFromUrl } from "./composer-core.js";
+import { confirmNoteMode, decideInsert, isCopilotMessage, isYellowishColor, sessionFromUrl, tabLooksActive } from "./composer-core.js";
 
 Deno.test("sessionFromUrl reads the open conversation", () => {
   assertEquals(sessionFromUrl("https://app.crisp.chat/website/ws1/inbox/session_abc-123/"), "session_abc-123");
@@ -45,4 +45,36 @@ Deno.test("isCopilotMessage only accepts copilot:* messages from the same window
   assertEquals(isCopilotMessage({ source: {}, data: { type: "copilot:ping" } }, win), false);
   assertEquals(isCopilotMessage({ source: win, data: { type: "other" } }, win), false);
   assertEquals(isCopilotMessage({ source: win, data: null }, win), false);
+});
+
+Deno.test("isYellowishColor nhận nền vàng Note mode, loại trắng/xám/tối của Reply mode", () => {
+  assertEquals(isYellowishColor("rgb(255, 249, 196)"), true); // vàng nhạt kiểu Crisp note
+  assertEquals(isYellowishColor("rgba(250, 230, 140, 1)"), true);
+  assertEquals(isYellowishColor("rgb(146, 124, 32)"), true); // vàng sẫm (dark mode)
+  assertEquals(isYellowishColor("rgb(255, 255, 255)"), false);
+  assertEquals(isYellowishColor("rgb(24, 24, 27)"), false);
+  assertEquals(isYellowishColor("rgb(120, 120, 120)"), false);
+  assertEquals(isYellowishColor("transparent"), false);
+  assertEquals(isYellowishColor(""), false);
+});
+
+Deno.test("tabLooksActive qua aria-selected / data-state / class", () => {
+  assertEquals(tabLooksActive({ ariaSelected: "true" }), true);
+  assertEquals(tabLooksActive({ ariaSelected: "false" }), false);
+  assertEquals(tabLooksActive({ dataState: "active" }), true);
+  assertEquals(tabLooksActive({ className: "c-tab c-tab--is-active" }), true);
+  assertEquals(tabLooksActive({ className: "tab selected" }), true);
+  assertEquals(tabLooksActive({ className: "tab inactive" }), false); // không khớp nhầm "inactive"
+  assertEquals(tabLooksActive({ className: "tab" }), false);
+  assertEquals(tabLooksActive({}), false);
+});
+
+Deno.test("confirmNoteMode: phải có tab active VÀ một tín hiệu phía editor — thiếu một phía là không xác nhận", () => {
+  assertEquals(confirmNoteMode({ tabActive: true, yellowBg: true }), true);
+  assertEquals(confirmNoteMode({ tabActive: true, noteClass: true }), true);
+  assertEquals(confirmNoteMode({ tabActive: true, notePlaceholder: true }), true);
+  assertEquals(confirmNoteMode({ tabActive: true }), false); // chỉ tab active, editor chưa đổi → chưa tin
+  assertEquals(confirmNoteMode({ yellowBg: true }), false); // editor vàng nhưng tab chưa active → chưa tin
+  assertEquals(confirmNoteMode({}), false);
+  assertEquals(confirmNoteMode(), false);
 });

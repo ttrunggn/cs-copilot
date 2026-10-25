@@ -27,7 +27,7 @@ Tool chạy với quyền và giọng văn của CS sở hữu token đó.
 | `copilot_check_conversation` | Trạng thái conversation: tin chưa trả lời, topic, Jira, sentiment đã cache, trạng thái CSAT | Không (chỉ đọc) |
 | `copilot_generate_draft` | Soạn draft theo giọng CS + sentiment Layer 2, kèm cảnh báo verify | Ghi output vào DB, không gửi khách |
 | `copilot_analyze_sentiment` | Điểm mood 0-100, mood, urgency, confidence (cache theo tin khách) | Ghi cache sentiment |
-| `copilot_handoff_note` | Tạo và đăng private note bàn giao vào Crisp | Có — đăng note thật |
+| `copilot_handoff_note` | Tạo private note bàn giao và trả text về (copilot không tự đăng — CS tự dán vào ô Note của Crisp và đăng) | Không (chỉ ghi output vào DB) |
 | `copilot_send_csat_survey` | Gửi CSAT picker 4 lựa chọn vào conversation | Có — gửi cho khách, server chống trùng |
 
 Mọi tool đều nhận `website_id` và `session_id` (dạng `session_…`);

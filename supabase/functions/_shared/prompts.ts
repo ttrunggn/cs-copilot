@@ -98,6 +98,8 @@ export function draftPrompt(i: {
   cases: CaseMatch[];
   variantNotes: string | null;
   jira?: string;
+  /** Tóm tắt các finding Storefront Watch ĐÃ khớp hội thoại này (storefrontPromptBlock) — chỉ finding liên quan mới có mặt. */
+  storefront?: string;
   sentiment?: Sentiment | null;
   hint?: string;
   tone?: DraftTone;
@@ -172,6 +174,14 @@ export function draftPrompt(i: {
       "Jira tickets the team opened for this customer (internal). If a ticket has news the customer has not been told yet, " +
         "relay it in plain words; never paste ticket links, keys or internal names.\n" +
         `<jira>\n${i.jira}\n</jira>`,
+    );
+  }
+  if (i.storefront) {
+    parts.push(
+      "Automated storefront checks currently report these open problems on THIS customer's store, matched to what this conversation mentions (internal). " +
+        "If the customer is hitting one of them, acknowledge it as a known issue in plain words and say the team is on it; " +
+        "never mention the checking tool, severity labels, fingerprints or internal names.\n" +
+        `<storefront>\n${i.storefront}\n</storefront>`,
     );
   }
   if (i.variantNotes) parts.push(`Extra guidance: ${i.variantNotes}`);

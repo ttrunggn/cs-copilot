@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(45);
 
 insert into public.workspaces (website_id, name, topics) values
   ('ws1', 'App A',
@@ -108,6 +108,71 @@ select throws_ok($$ select public.ingest_event('{"website_id":"nope","event":"me
 -- 27: batch
 select is(public.ingest_events(jsonb_build_array(pg_temp.msg(10, 'user', 1760500010000, '"a"'), pg_temp.msg(11, 'user', 1760500011000, '"b"'))),
           2, 'ingest_events returns count');
+
+-- 28-34: custom data của phiên (migration 020) — session riêng s-cd, độc lập với dãy trên
+create function pg_temp.conv_cd() returns public.conversations language sql as $$
+  select * from public.conversations where website_id = 'ws1' and session_id = 's-cd'
+$$;
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-cd","data":{"shopify_domain":"shop-a.myshopify.com","tc_plan":"Cross-Border"}}}'); end $$;
+select is((pg_temp.conv_cd()).custom_data,
+          '{"shopify_domain":"shop-a.myshopify.com","tc_plan":"Cross-Border"}'::jsonb,
+          'set_data with pairs under data.data creates custom_data');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-cd","data":{"shopify_domain":"shop-b.myshopify.com","tc_status":"true"}}}'); end $$;
+select is((pg_temp.conv_cd()).custom_data,
+          '{"shopify_domain":"shop-b.myshopify.com","tc_plan":"Cross-Border","tc_status":"true"}'::jsonb,
+          'second set_data merges: overwrites same key, keeps others, adds new keys');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-cd","shopify_theme":"LIVE"}}'); end $$;
+select is((pg_temp.conv_cd()).custom_data->>'shopify_theme', 'LIVE',
+          'set_data pairs at top level of data also merge');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-cd","data":{"tc_target_currencies":["EUR"],"nested":{"a":1},"tc_visits":3,"tc_trial":false}}}'); end $$;
+select is((pg_temp.conv_cd()).custom_data,
+          '{"shopify_domain":"shop-b.myshopify.com","tc_plan":"Cross-Border","tc_status":"true","shopify_theme":"LIVE","tc_visits":3,"tc_trial":false}'::jsonb,
+          'non-scalar values (array/object) dropped, scalar number/boolean kept');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:meta","data":{"session_id":"s-cd","email":"a@b.c","nickname":"A","segments":[],"state":"unresolved","data":{"shopify_plan":"unlimited"}}}'); end $$;
+select is((pg_temp.conv_cd()).custom_data->>'shopify_plan', 'unlimited',
+          'session:meta (refresh shape, meta.data under data.data) merges too');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_segments","data":{"session_id":"s-cd","segments":["vip"]}}'); end $$;
+select ok(not ((pg_temp.conv_cd()).custom_data ? 'segments') and not ((pg_temp.conv_cd()).custom_data ? 'session_id'),
+          'structural keys (segments/session_id) never leak into custom_data');
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"message:send","data":{"session_id":"s-cd","fingerprint":991,"from":"user","type":"text","content":"hi","timestamp":1760500020000}}'); end $$;
+select is((pg_temp.conv_cd()).custom_data,
+          '{"shopify_domain":"shop-b.myshopify.com","tc_plan":"Cross-Border","tc_status":"true","shopify_theme":"LIVE","tc_visits":3,"tc_trial":false,"shopify_plan":"unlimited"}'::jsonb,
+          'message events leave custom_data unchanged');
+
+-- 35-41: cách ly custom_data giữa các session — hai phiên s-iso-a / s-iso-b
+-- set_data XEN KẼ thứ tự (A, B, rồi A ghi lần 2): mỗi phiên phải giữ đúng
+-- domain và key riêng của mình, không key nào của phiên kia lọt sang.
+create function pg_temp.conv_iso(p_sid text) returns public.conversations language sql as $$
+  select * from public.conversations where website_id = 'ws1' and session_id = p_sid
+$$;
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-iso-a","data":{"shopify_domain":"iso-a.myshopify.com","tc_plan":"A-plan","only_a":"alpha"}}}'); end $$;
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-iso-b","data":{"shopify_domain":"iso-b.myshopify.com","only_b":"beta"}}}'); end $$;
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:set_data","data":{"session_id":"s-iso-a","data":{"shopify_domain":"iso-a2.myshopify.com"}}}'); end $$;
+select is((pg_temp.conv_iso('s-iso-a')).custom_data->>'shopify_domain', 'iso-a2.myshopify.com',
+          'interleaved set_data: session A second write overwrites its own domain');
+select is((pg_temp.conv_iso('s-iso-b')).custom_data->>'shopify_domain', 'iso-b.myshopify.com',
+          'interleaved set_data: session B domain untouched by session A writes');
+select is((pg_temp.conv_iso('s-iso-a')).custom_data,
+          '{"shopify_domain":"iso-a2.myshopify.com","tc_plan":"A-plan","only_a":"alpha"}'::jsonb,
+          'session A merges its own keys only — no key from session B leaks in');
+select is((pg_temp.conv_iso('s-iso-b')).custom_data,
+          '{"shopify_domain":"iso-b.myshopify.com","only_b":"beta"}'::jsonb,
+          'session B merges its own keys only — no key from session A leaks in');
+
+-- Phiên chưa từng có set_data/meta (chỉ có tin nhắn): custom_data vẫn {}.
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"message:send","data":{"session_id":"s-empty","fingerprint":992,"from":"user","type":"text","content":"hi","timestamp":1760500021000}}'); end $$;
+select is((pg_temp.conv_iso('s-empty')).custom_data, '{}'::jsonb,
+          'session without set_data/meta keeps empty custom_data {}');
+
+-- session:meta kiểu refresh (dữ liệu ở meta.data → data.data) cũng khoá đúng
+-- phiên: ghi cho B thì chỉ B đổi, A giữ nguyên từng key.
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:meta","data":{"session_id":"s-iso-b","email":"b@x.io","nickname":"B","segments":[],"state":"unresolved","data":{"shopify_domain":"iso-b-meta.myshopify.com","meta_only":"from-meta"}}}'); end $$;
+select is((pg_temp.conv_iso('s-iso-b')).custom_data,
+          '{"shopify_domain":"iso-b-meta.myshopify.com","only_b":"beta","meta_only":"from-meta"}'::jsonb,
+          'session:meta (refresh shape) merges into its own session only');
+select is((pg_temp.conv_iso('s-iso-a')).custom_data,
+          '{"shopify_domain":"iso-a2.myshopify.com","tc_plan":"A-plan","only_a":"alpha"}'::jsonb,
+          'session:meta for session B leaves session A custom_data unchanged');
 
 select * from finish();
 rollback;

@@ -145,6 +145,27 @@ export function actionButtonState(busyAction, action) {
   return { running: busyAction === action, disabled: busyAction !== "" };
 }
 
+// ---------- thẻ tiến trình (progress) ----------
+// Chỉ 4 action AI có thẻ tiến trình từng bước; survey/jira/storefront dùng
+// nhãn bận/module loading riêng nên không có mặt ở đây.
+export const PROGRESS_STEPS = {
+  generate: ["Đọc hội thoại", "Đối chiếu bài helpdesk", "Soạn theo giọng của bạn", "Kiểm tra lại nội dung"],
+  analyze: ["Đọc tin nhắn của khách", "Phân tích tâm trạng"],
+  ask: ["Tìm trong tài liệu", "Đọc bài liên quan", "Soạn câu trả lời kèm nguồn"],
+  handoff: ["Đọc hội thoại", "Viết private note"],
+};
+// Mốc thời gian (ms) chuyển sang bước kế — nhịp hiển thị; bước cuối giữ
+// nguyên cho tới khi server trả kết quả thật (không tự "hoàn thành" giả).
+export const PROGRESS_MARKS = [0, 900, 2200, 4200];
+
+/** Bước tiến trình đang hiện sau `elapsedMs` ms của `action`; action không có thẻ tiến trình → 0. */
+export function progressStepIndex(action, elapsedMs) {
+  const steps = PROGRESS_STEPS[action] ?? [];
+  let idx = 0;
+  while (idx < steps.length - 1 && elapsedMs >= (PROGRESS_MARKS[idx + 1] ?? Number.POSITIVE_INFINITY)) idx++;
+  return idx;
+}
+
 /** Số chỗ [[CS: …]] CS phải tự điền trong draft. */
 export function countPlaceholders(text) {
   return (String(text ?? "").match(/\[\[CS:[^\]]*\]\]/g) ?? []).length;
@@ -193,10 +214,13 @@ export function askAnswerToHint(answer) {
   return String(answer ?? "").trim().slice(0, 500);
 }
 
-/** Trạng thái note handoff: chỉ báo "đã đăng trước đó" khi note thật sự đã lên Crisp. */
+/**
+ * Trạng thái note handoff: copilot KHÔNG tự đăng note (quy tắc ghi Crisp —
+ * Ethan chốt 2026-10-23). Note được điền vào ô Note của Crisp qua extension;
+ * CS tự sửa ngay trong ô Note rồi tự đăng. Không còn trạng thái "đã đăng".
+ */
 export function handoffStatus(h) {
-  if (!h.posted) return "Chưa đăng được note, copy giúp";
-  return h.cached ? "Note này đã đăng trước đó" : "Đã đăng private note";
+  return h.cached ? "Note đã tạo trước đó — chưa đăng" : "Note mới — chưa đăng";
 }
 
 const INSERT_MESSAGES = {
@@ -204,59 +228,213 @@ const INSERT_MESSAGES = {
   session_mismatch: "Draft của chat khác đã sẵn sàng, mở lại đúng chat để điền",
   not_empty: "Ô Reply đang có chữ",
   duplicate: "Draft này đã được điền rồi",
-  composer_not_found: "Không tìm thấy ô Reply, bấm Copy rồi dán bằng Ctrl+V",
+  composer_not_found: "Không tìm thấy ô soạn trong Crisp — tải lại trang Crisp rồi thử lại",
+  note_unconfirmed: "Chưa xác nhận được ô Note trong Crisp — chưa điền gì cả. Mở sẵn tab Note trong Crisp rồi thử lại",
 };
 
-export function insertResultMessage(status) {
+const NOTE_INSERT_MESSAGES = {
+  inserted: "Đã điền note vào ô Note, sửa lại rồi tự đăng trong Crisp",
+  session_mismatch: "Note của chat khác, mở lại đúng chat để điền",
+  not_empty: "Ô Note đang có chữ",
+  duplicate: "Note này đã được điền rồi",
+};
+
+/** Lời nhắn theo kết quả extension trả về; target "note" dùng bộ chữ riêng cho ô Note. */
+export function insertResultMessage(status, target = "reply") {
+  if (target === "note") return NOTE_INSERT_MESSAGES[status] ?? INSERT_MESSAGES[status] ?? INSERT_MESSAGES.composer_not_found;
   return INSERT_MESSAGES[status] ?? INSERT_MESSAGES.composer_not_found;
 }
 
-const SF_LEVELS = {
-  critical: { label: "Nghiêm trọng", cls: "critical" },
-  confirmed: { label: "Đã xác nhận", cls: "confirmed" },
-  new: { label: "Mới", cls: "new" },
-};
+/**
+ * Template xin review mặc định (fallback toàn cục): bê đúng khuôn mẫu trong
+ * preview v4 Ethan duyệt. Khi server học được template theo từng CS (như note
+ * format), widget sẽ nhận template của CS đang đăng nhập qua check/generate
+ * và giá trị này chỉ còn là dự phòng cuối cùng.
+ */
+export const REVIEW_TEMPLATE = "Hi, thank you for reaching out to us. I hope your issue has been resolved. If you are satisfied with my support, I would really appreciate it if you could take a moment to leave a review of your experience. It means a lot to our team. Thank you so much!";
 
 /**
- * Storefront Watch → view model cho panel (board 7) và strip ở board 1.
- * Chưa có nguồn dữ liệu: state.storefront = null → kind "empty" (panel hiện trạng thái
- * chưa có dữ liệu, strip không hiện). Khi nối nguồn thật chỉ cần đổ dữ liệu thô vào state:
- * { status: "loading"|"ok"|"error", store, scannedAt, confirmed: [{level,title,meta}],
- *   unverified: [{title,meta}], isStale }.
+ * "Vấn đề của khách" cho panel gọn. Backend KHÔNG trả issues riêng, nên nguồn
+ * trung thực nhất đang có là `signals` của phân tích sentiment — các vấn đề AI
+ * rút từ chính hội thoại. Chưa có sentiment thì lùi về topic của hội thoại;
+ * không có cả hai thì trả rỗng (panel hiện trạng thái chưa ghi nhận, không bịa).
  */
+export function toIssuesViewModel(check, sentiment) {
+  const signals = (sentiment?.signals ?? []).filter((s) => typeof s === "string" && s.trim());
+  if (signals.length) return { issues: signals.map((title) => ({ title, detail: null })) };
+  const topic = check?.topic_label ?? check?.topic ?? null;
+  if (topic) return { issues: [{ title: topic, detail: "Chủ đề của hội thoại" }] };
+  return { issues: [] };
+}
+
+/** 3 trạng thái issue Storefront Ethan chốt (2026-10-23) — thay taxonomy mức độ/tín hiệu cũ. */
+export const SF_GROUPS = [
+  { status: "new", label: "Mới" }, // issue mới được update
+  { status: "acknowledged", label: "Đã xác nhận" }, // đã tiếp nhận, sync từ đợt trước
+  { status: "in_progress", label: "Đang xử lý" }, // team CS đã contact khách, suy từ hội thoại
+];
+
+/**
+ * Storefront Watch → view model cho panel, gom issue theo đúng 3 trạng thái.
+ * Nguồn thật: action `storefront` của server (MCP Storefront Watch gọi trực
+ * tiếp, server tự chia 3 trạng thái bằng watermark storefront_seen + khớp
+ * hội thoại). state.storefront do app.js đổ vào:
+ * { status: "loading"|"ok"|"error"|"unconfigured"|"need-shop", store,
+ *   scannedAt, isStale, notWatched, error,
+ *   new: [{title,meta,fingerprint,kind,locale,page,severity,text,consoleLink}],
+ *   acknowledged: [...], inProgress: [...] }.
+ * Trong mỗi nhóm, finding trùng căn nguyên (cùng kind+page, khác locale)
+ * được gom thành một mục có entries[] giữ từng finding riêng (groupSameRootCause).
+ * null → kind "empty". Dữ liệu thô kiểu cũ (confirmed: [{level,…}]) vẫn đọc
+ * được: level "new" → nhóm Mới, còn lại → nhóm Đã xác nhận; mảng unverified
+ * cũ bị bỏ (ngoài 3 trạng thái đã chốt).
+ */
+/**
+ * Gom các finding TRÙNG CĂN NGUYÊN trong cùng một nhóm trạng thái: cùng
+ * (kind + page), chỉ khác locale — SW báo mỗi locale một finding riêng nên
+ * một lỗi ở 3 ngôn ngữ hiện 3 dòng rời khiến CS phải tự nhận ra chúng là
+ * một. Mục đã gom giữ MỌI entry riêng (fingerprint/locale/console link của
+ * từng finding) để mở chi tiết và deep-link vẫn đúng từng bug; count của
+ * nhóm và totalCount của module LUÔN đếm theo finding thật (trước gom),
+ * không lệch vì gom. Finding thiếu kind hoặc page → không đủ căn cứ gom,
+ * đứng riêng một mục như cũ. Dữ kiện kiểu cũ (chỉ title/meta) cũng đứng
+ * riêng vì không có kind/page.
+ */
+function groupSameRootCause(items) {
+  const groups = [];
+  const byKey = new Map();
+  for (const d of items) {
+    const entry = {
+      fingerprint: d.fingerprint ?? null,
+      locale: d.locale ?? null,
+      meta: d.meta ?? "",
+      severity: d.severity ?? null,
+      text: d.text ?? null,
+      consoleLink: d.consoleLink ?? null,
+      title: d.title ?? "",
+    };
+    const kind = d.kind ?? null;
+    const page = d.page ?? null;
+    if (!kind || !page) {
+      groups.push({ title: entry.title, meta: entry.meta, kind, page, locales: entry.locale ? [entry.locale] : [], entries: [entry], count: 1 });
+      continue;
+    }
+    const key = `${kind}|${page}`;
+    const g = byKey.get(key);
+    if (g) {
+      g.entries.push(entry);
+      if (entry.locale && !g.locales.includes(entry.locale)) g.locales.push(entry.locale);
+      g.count = g.entries.length;
+    } else {
+      const ng = { title: entry.title, meta: entry.meta, kind, page, locales: entry.locale ? [entry.locale] : [], entries: [entry], count: 1 };
+      byKey.set(key, ng);
+      groups.push(ng);
+    }
+  }
+  return groups;
+}
+
 export function toStorefrontViewModel(sf, now = Date.now()) {
   if (!sf) return { kind: "empty" };
   if (sf.status === "loading") return { kind: "loading" };
-  if (sf.status === "error") return { kind: "error" };
+  if (sf.status === "need-shop") return { kind: "need-shop" };
+  if (sf.status === "unconfigured") return { kind: "unconfigured", ...(sf.error ? { message: sf.error } : {}) };
+  if (sf.status === "error") return { kind: "error", ...(sf.error ? { message: sf.error } : {}) };
   if (!sf.store) return { kind: "missing-domain" };
-  const confirmed = (sf.confirmed ?? []).map((d) => {
-    const lv = SF_LEVELS[d.level] ?? SF_LEVELS.confirmed;
-    return { chip: lv.label, chipClass: lv.cls, title: d.title ?? "", meta: d.meta ?? "" };
+  const buckets = { new: [], acknowledged: [], in_progress: [] };
+  const push = (status, d) => buckets[status].push({
+    title: d?.title ?? "", meta: d?.meta ?? "", fingerprint: d?.fingerprint ?? null,
+    kind: d?.kind ?? null, locale: d?.locale ?? null, page: d?.page ?? null,
+    severity: d?.severity ?? null, text: d?.text ?? null, consoleLink: d?.consoleLink ?? null,
   });
-  const unverified = (sf.unverified ?? []).map((d) => ({ title: d.title ?? "", meta: d.meta ?? "" }));
+  for (const d of sf.new ?? []) push("new", d);
+  for (const d of sf.acknowledged ?? []) push("acknowledged", d);
+  for (const d of sf.inProgress ?? sf.in_progress ?? []) push("in_progress", d);
+  if (!sf.acknowledged && !sf.new) {
+    for (const d of sf.confirmed ?? []) push(d?.level === "new" ? "new" : "acknowledged", d);
+  }
+  const groups = SF_GROUPS.map((g) => {
+    const raw = buckets[g.status];
+    return { ...g, items: groupSameRootCause(raw), count: raw.length };
+  });
   return {
     kind: "results",
     store: sf.store,
     scannedLabel: sf.scannedAt ? timeAgo(sf.scannedAt, now) : null,
-    confirmed,
-    confirmedCount: confirmed.length,
-    unverified,
-    unverifiedCount: unverified.length,
+    groups,
+    totalCount: groups.reduce((n, g) => n + g.count, 0),
     isStale: Boolean(sf.isStale),
+    ...(sf.notWatched ? { notWatched: true } : {}),
   };
 }
 
-/** Ticket Jira của chat: tiêu đề + badge MỚI + các tin mới kể từ lần CS trả lời gần nhất. Link chỉ nhận https. */
+/**
+ * Mẫu giải thích một finding Storefront để CS điền vào ô Reply (insert-only
+ * qua extension như mọi draft — CS đọc/sửa rồi tự bấm Send; copilot không
+ * tự gửi). Mẫu TĨNH theo loại lỗi (kind) phía SW, tiếng Anh theo chuẩn trả
+ * khách, chèn sẵn trang/ngôn ngữ/đoạn text lỗi của finding để CS khỏi gõ
+ * lại. Kind lạ hoặc thiếu dữ kiện → mẫu chung: xác nhận có lỗi hiển thị ở
+ * store của khách + team đang xử lý + sẽ cập nhật khi xong. Mẫu không bịa
+ * thời gian sửa xong và không nhắc tên công cụ nội bộ.
+ */
+const EXPLANATION_BY_KIND = {
+  "Region missing": (c) => `a section of content is missing ${c.where}${c.version}`,
+  "Option unidentifiable": (c) => `some product options can't be told apart ${c.where}${c.version}${c.textBit}`,
+  "Graphic lost": (c) => `an image is not loading ${c.where}${c.version}${c.textBit}`,
+  "Layout degraded": (c) => `the layout doesn't look right ${c.where}${c.version}`,
+  "Block collapsed": (c) => `a content block appears collapsed or empty ${c.where}${c.version}${c.textBit}`,
+  "Height jump": (c) => `the page layout visibly jumps while loading ${c.where}${c.version}`,
+  "Raw template visible": (c) => `raw template code is showing as text on the page ${c.where}${c.version}${c.textBit}`,
+};
+
+export function explanationTemplate(f) {
+  const page = typeof f?.page === "string" && f.page.trim() ? f.page.trim() : null;
+  const locale = typeof f?.locale === "string" && f.locale.trim() ? f.locale.trim() : null;
+  const text = typeof f?.text === "string" && f.text.trim() ? f.text.trim() : null;
+  const ctx = {
+    where: page ? `on ${page}` : "on your store",
+    version: locale ? ` in the ${locale} version of the store` : "",
+    textBit: text ? ` (around the part showing "${text}")` : "",
+  };
+  const kind = typeof f?.kind === "string" && f.kind.trim() ? f.kind.trim() : (typeof f?.title === "string" ? f.title.trim() : "");
+  const describe = EXPLANATION_BY_KIND[kind] ?? ((c) => `there is a display issue ${c.where}${c.version}`);
+  return `Hi, thank you for letting us know. We've checked on our side and confirmed that ${describe(ctx)}. ` +
+    "Our technical team is already aware of this and is working on it. We'll update you as soon as it's fixed — sorry for the inconvenience in the meantime.";
+}
+
+/**
+ * Module bật theo ngữ cảnh (internal connections): server tính sẵn trong
+ * check.modules — Jira theo ticket liên kết; Storefront khi có ticket thuộc
+ * Jira của chính workspace, HOẶC (chỉ trong workspace Transcy) khi chat có
+ * shopify_domain mà SW đang theo dõi, không cần ticket (xem enabledModules
+ * ở _shared/jira.ts phía server) — widget chỉ render module được bật.
+ * Response thiếu modules (server cũ / bản check cache từ trước) → fallback an
+ * toàn: Jira theo dữ liệu ticket liên kết như hành vi cũ, Storefront ẩn.
+ */
+export function enabledModules(check) {
+  const m = check?.modules;
+  if (m) return { jira: Boolean(m.jira), storefront: Boolean(m.storefront) };
+  return { jira: (check?.jira ?? []).length > 0, storefront: false };
+}
+
+/**
+ * Ticket Jira của chat: tiêu đề + MỘT cơ chế dấu hiệu duy nhất từ server —
+ * badge "Cập nhật mới" (has_update: đổi trạng thái hoặc comment mới kể từ lần
+ * CS trả lời khách gần nhất) và nhãn "Chờ báo khách" (awaiting_report: ticket
+ * Done trên Jira nhưng CS chưa nhắn cho khách sau mốc Done — Done ≠ đã báo).
+ * Link chỉ nhận https.
+ */
 export function toJiraViewModel(items, now = Date.now()) {
   return (items ?? []).map((j) => ({
     key: j.issue_key,
     url: typeof j.url === "string" && HTTPS_URL.test(j.url) ? j.url : null,
     title: `${j.issue_key} · ${j.status ?? "chưa đồng bộ"}`,
     summary: j.summary,
-    isNew: j.is_new,
+    hasUpdate: j.has_update === true,
+    awaitingReport: j.awaiting_report === true,
     news: [
-      ...(j.status_changed ? ["Đổi trạng thái"] : []),
-      ...j.new_comments.slice(-2).map((c) => `${c.role === "tech" ? "Tech" : c.role === "cs" ? "CS" : "Bot"} · ${c.author} (${timeAgo(c.created_at, now)}): ${c.body}`),
+      ...(j.status_changed ? [j.prev_status && j.status ? `Đổi trạng thái: ${j.prev_status} → ${j.status}` : "Đổi trạng thái"] : []),
+      ...(j.new_comments ?? []).slice(-2).map((c) => `${c.role === "tech" ? "Tech" : c.role === "cs" ? "CS" : "Bot"} · ${c.author} (${timeAgo(c.created_at, now)}): ${c.body}`),
     ],
   }));
 }

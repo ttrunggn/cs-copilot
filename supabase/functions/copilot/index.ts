@@ -1,10 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { crispFromEnv } from "../_shared/crisp.ts";
 import { createAiStore, createDb } from "../_shared/db.ts";
 import { createGemini } from "../_shared/gemini.ts";
 import { createN8n } from "../_shared/n8n.ts";
 import { secretOk } from "../_shared/secret.ts";
+import { storefrontFromEnv } from "../_shared/storefront.ts";
 import { handle } from "./handler.ts";
 import { handlePrecompute } from "./precompute.ts";
+import { handleStorefrontSegments } from "./storefront-segments.ts";
+import { handleStorefrontSweep } from "./storefront-sweep.ts";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -21,6 +25,13 @@ const db = createDb(sb);
 // Nhiều key free tier, ngăn cách bằng dấu phẩy; key hết quota tự xoay sang key kế tiếp.
 const ai = createGemini({ apiKeys: (Deno.env.get("GEMINI_API_KEYS") ?? Deno.env.get("GEMINI_API_KEY") ?? "").split(","), store: createAiStore(sb) });
 const n8n = createN8n({ baseUrl: Deno.env.get("N8N_WEBHOOK_BASE")!, secret: Deno.env.get("N8N_SHARED_SECRET")! });
+// Storefront Watch MCP (gọi trực tiếp, ký HMAC phía server): thiếu
+// SW_API_TOKEN/SW_MCP_SIGNING_SECRET trong env → null, action trả unconfigured.
+const storefront = storefrontFromEnv((k) => Deno.env.get(k));
+// Client REST Crisp — CHỈ cho job đồng bộ segment `storefront-watch`
+// (ngoại lệ ghi duy nhất Ethan đã duyệt, xem _shared/crisp.ts). Thiếu
+// CRISP_PLUGIN_IDENTIFIER/CRISP_PLUGIN_KEY → null, job trả unconfigured.
+const crisp = crispFromEnv((k) => Deno.env.get(k));
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -31,10 +42,13 @@ Deno.serve(async (req) => {
   } catch {
     return json(400, { error: "Body không phải JSON" });
   }
-  // Route nội bộ: n8n gọi tính trước sentiment ngay sau khi ingest tin khách.
-  // Credential: shared secret ở header x-copilot-secret, hoặc service role key
+  // Các route nội bộ (n8n/lập lịch gọi): precompute sentiment ngay sau khi
+  // ingest tin khách, job đối chiếu nền Storefront Watch, và job đồng bộ
+  // segment `storefront-watch` (chạy sau sweep). Credential dùng chung:
+  // shared secret ở header x-copilot-secret, hoặc service role key
   // (n8n gọi bằng credential Supabase API có sẵn của nó: apikey/Bearer).
-  if ((body as { action?: unknown } | null)?.action === "precompute_sentiment") {
+  const internalAction = (body as { action?: unknown } | null)?.action;
+  if (internalAction === "precompute_sentiment" || internalAction === "storefront_sweep" || internalAction === "storefront_segments") {
     const presented = req.headers.get("x-copilot-secret") ?? req.headers.get("apikey") ??
       (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const shared = Deno.env.get("N8N_SHARED_SECRET") ?? "";
@@ -42,7 +56,11 @@ Deno.serve(async (req) => {
     if (!secretOk(presented, shared) && !secretOk(presented, service)) {
       return json(401, { error: "Thiếu credential nội bộ" });
     }
-    const r = await handlePrecompute(body, { db, ai });
+    const r = internalAction === "precompute_sentiment"
+      ? await handlePrecompute(body, { db, ai })
+      : internalAction === "storefront_sweep"
+      ? await handleStorefrontSweep(body, { db, storefront })
+      : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
   const background = (task: Promise<unknown>) => {
@@ -50,6 +68,6 @@ Deno.serve(async (req) => {
     if (rt?.waitUntil) rt.waitUntil(task);
     else void task;
   };
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background });
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront });
   return json(r.status, r.body);
 });

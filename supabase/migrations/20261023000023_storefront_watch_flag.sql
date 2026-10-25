@@ -1,0 +1,15 @@
+-- Định danh TƯỜNG MINH cho phạm vi Storefront Watch: cột storefront_watch
+-- trên workspaces. Trước đây phạm vi SW được nhận diện bằng "jira_project
+-- đã set" — SAI: workspace khác (OE) cũng có jira_project riêng (OES), nên
+-- cổng Storefront theo domain, job storefront_sweep và badge storefront
+-- trong check áp cả cho OE, trái quyết định của Ethan (Storefront Watch
+-- chỉ thuộc workspace của chính Transcy; workspace khác dù chat có
+-- shopify_domain cũng không được áp).
+--
+-- Cờ này là định danh DUY NHẤT của phạm vi SW (cổng domain trong
+-- enabledModules, job sweep, badge storefront_status). Mặc định false =
+-- hướng an toàn: chưa workspace nào nằm trong phạm vi SW cho tới khi bật
+-- cờ tường minh cho đúng workspace Transcy khi deploy (docs/setup.md 5f).
+-- jira_project giữ nguyên vai trò của nó: cổng Storefront theo ticket và
+-- lọc link Jira — không còn được dùng để suy phạm vi SW.
+alter table public.workspaces add column storefront_watch boolean not null default false;

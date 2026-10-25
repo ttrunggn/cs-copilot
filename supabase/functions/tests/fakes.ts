@@ -16,6 +16,8 @@ export const WS: Workspace = {
     { key: "translation", label: "Dịch nội dung", segments: [] },
   ],
   default_profile: {},
+  jira_project: null,
+  storefront_watch: false,
 };
 
 export const CONV: ConversationRow = {
@@ -29,6 +31,7 @@ export const CONV: ConversationRow = {
   last_customer_at: "2026-10-15T03:03:00+00:00",
   last_human_operator_at: "2026-10-15T03:02:00+00:00",
   updated_at: "2026-10-15T03:03:00+00:00",
+  custom_data: {},
 };
 
 let id = 100;
@@ -72,12 +75,10 @@ export function makeDeps(opts: {
   messages?: MessageRow[];
   ai?: Ai;
   stale?: boolean;
-  postOk?: boolean;
   cached?: OutputRow | null;
 } = {}) {
   const over: Partial<Db> = opts.db ?? {};
   const inserted: NewOutput[] = [];
-  const notes: string[] = [];
   const db: Db = {
     getWorkspace: () => Promise.resolve(WS),
     getWidgetTokenHash: () => Promise.resolve(null),
@@ -94,26 +95,31 @@ export function makeDeps(opts: {
       inserted.push(row);
       return Promise.resolve(42);
     },
-    markPosted: () => Promise.resolve(),
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),
+    unlinkJira: () => Promise.resolve(false),
+    getStorefrontSeen: () => Promise.resolve([]),
+    markStorefrontSeen: () => Promise.resolve(),
+    getStorefrontStoreStatus: () => Promise.resolve(null),
+    upsertStorefrontStoreStatus: () => Promise.resolve(),
+    getRecentShopDomains: () => Promise.resolve([]),
+    listStorefrontStoreStatus: () => Promise.resolve([]),
+    getStorefrontSegmentCandidates: () => Promise.resolve([]),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
+    releaseCsatSend: () => Promise.resolve(),
     ...over,
   };
   const n8n: N8n = {
     refreshConversation: () => Promise.resolve({ stale: opts.stale ?? false }),
+    triggerJiraSync: () => Promise.resolve(true),
     sendSurvey: () => Promise.resolve(true),
-    postNote: (_w, _s, content) => {
-      notes.push(content);
-      return Promise.resolve(opts.postOk ?? true);
-    },
   };
-  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, notes };
+  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted };
 }

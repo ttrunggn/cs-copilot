@@ -1,13 +1,16 @@
-// Giao thức widget ↔ extension (spec 6.3, protocol 1). Thuần, không chạm DOM.
-export const PROTOCOL = 1;
+// Giao thức widget ↔ extension (spec 6.3). Thuần, không chạm DOM.
+// Protocol 2: insert có thêm `target` ("reply" | "note"). Extension protocol 1
+// không biết target — widget coi là outdated và không cho điền note, tránh
+// cảnh extension cũ điền nội dung note vào ô Reply cho khách thấy.
+export const PROTOCOL = 2;
 export const PING_TIMEOUT_MS = 1000;
 
 export function newRequestId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function insertMessage({ requestId, outputId, sessionId, text, mode }) {
-  return { type: "copilot:insert", protocol: PROTOCOL, request_id: requestId, output_id: outputId, session_id: sessionId, text, mode };
+export function insertMessage({ requestId, outputId, sessionId, text, mode, target = "reply" }) {
+  return { type: "copilot:insert", protocol: PROTOCOL, request_id: requestId, output_id: outputId, session_id: sessionId, text, mode, target };
 }
 
 /** Chỉ nhận insert_result do extension gửi vào chính cửa sổ này, đúng request đang chờ. */

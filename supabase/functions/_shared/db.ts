@@ -1,13 +1,24 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { STOREFRONT_WATCH_SEGMENT } from "./crisp.ts";
 import type { AiStore } from "./gemini.ts";
 import type { HelpdeskStore } from "../embed-helpdesk/handler.ts";
-import type { JiraStore, TrackedLink } from "../jira-sync/handler.ts";
+import type { JiraStore } from "../jira-sync/handler.ts";
 import type { JiraComment, JiraIssue, JiraLink } from "./jira.ts";
+import { isPlausibleShop, type StorefrontStoreStatus } from "./storefront.ts";
 import type { CaseMatch, ConversationRow, HelpdeskChunk, MessageRow, NewOutput, OutputRow, ProfileRow, Variant, Workspace } from "./types.ts";
 import type { Sentiment } from "./sentiment.ts";
 
 const OUTPUT_COLUMNS = "id,kind,content,warnings,verified,helpdesk_matches,topic,prompt_version,posted,created_at";
 const CACHE_HOURS = 24;
+
+/** Một conversation ứng viên cho job đồng bộ segment `storefront-watch` (xem getStorefrontSegmentCandidates). */
+export interface StorefrontSegmentCandidate {
+  session_id: string;
+  /** shopify_domain đã trích từ custom_data và qua isPlausibleShop; null = không có domain hợp lệ. */
+  shop: string | null;
+  /** Segments đang mirror trong DB — chỉ để tính diff, không phải nguồn để ghi. */
+  segments: string[];
+}
 
 export interface Db {
   getWorkspace(websiteId: string): Promise<Workspace | null>;
@@ -22,24 +33,54 @@ export interface Db {
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
   findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>;
   insertOutput(row: NewOutput): Promise<number>;
-  markPosted(outputId: number, posted: boolean): Promise<void>;
   getLatestDraft(websiteId: string, sessionId: string, operatorId: string): Promise<OutputRow | null>;
   setAiTopic(websiteId: string, sessionId: string, topic: string): Promise<void>;
   matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
   matchCases(websiteId: string, embedding: number[], k: number): Promise<CaseMatch[]>;
   getVariants(task: "draft"): Promise<Variant[]>;
   getJiraRows(websiteId: string, sessionId: string): Promise<{ link: JiraLink; issue: JiraIssue | null }[]>;
+  /** Gỡ theo dõi một ticket khỏi một chat (active=false đúng dòng website+session+key). true = có dòng bị gỡ. */
+  unlinkJira(websiteId: string, sessionId: string, issueKey: string): Promise<boolean>;
   getSentiment(websiteId: string, sessionId: string): Promise<(Sentiment & { input_fp: string }) | null>;
   saveSentiment(row: Sentiment & { website_id: string; session_id: string; input_fp: string; model: string | null }): Promise<void>;
+  /** Fingerprint Storefront Watch đã từng hiện trên panel của workspace (mốc chia Mới / Đã xác nhận). */
+  getStorefrontSeen(websiteId: string): Promise<string[]>;
+  /** Ghi mốc đã thấy: fingerprint mới được insert, fingerprint cũ chỉ cập nhật last_seen_at. */
+  markStorefrontSeen(websiteId: string, fingerprints: string[]): Promise<void>;
+  /** Bản chụp trạng thái SW của một store (job storefront_sweep ghi); null = job chưa quét tới domain này. */
+  getStorefrontStoreStatus(websiteId: string, shop: string): Promise<StorefrontStoreStatus | null>;
+  /** Ghi/đè bản chụp trạng thái store theo PK (website_id, shop) — job sweep chạy lại không nhân dữ liệu. */
+  upsertStorefrontStoreStatus(row: StorefrontStoreStatus): Promise<void>;
+  /** Các shopify_domain DUY NHẤT trong custom_data của các conversation cập nhật trong `days` ngày gần nhất (job sweep quét tập này). */
+  getRecentShopDomains(websiteId: string, days: number): Promise<string[]>;
+  /** Toàn bộ bản chụp SW của workspace (job gắn segment đọc để biết store nào đủ điều kiện mang segment). */
+  listStorefrontStoreStatus(websiteId: string): Promise<StorefrontStoreStatus[]>;
+  /**
+   * Ứng viên đồng bộ segment `storefront-watch`: (a) các conversation cập
+   * nhật trong `days` ngày gần nhất có shopify_domain hợp lệ (kèm shop đã
+   * trích), và (b) MỌI conversation đang mang segment đó trong mirror DB —
+   * kể cả đã cũ hơn cửa sổ — để gỡ khi store hết điều kiện. Segments ở đây
+   * là bản MIRROR (ingest bắt session:set_segments), chỉ để tính diff;
+   * trước khi ghi, job đọc lại bản thật từ Crisp API.
+   */
+  getStorefrontSegmentCandidates(websiteId: string, days: number): Promise<StorefrontSegmentCandidate[]>;
   getCsatSend(websiteId: string, sessionId: string): Promise<{ sent_by: string; sent_at: string } | null>;
+  /**
+   * Claim quyền gửi CSAT cho conversation: insert ignoreDuplicates trên PK
+   * (website_id, session_id) — trả dòng vừa insert nếu claim thắng, null nếu
+   * đã có dòng (đã gửi hoặc request khác đang giữ claim). runSurvey claim
+   * TRƯỚC khi gọi n8n để hai request đồng thời không cùng gửi survey.
+   */
   recordCsatSend(websiteId: string, sessionId: string, operatorId: string): Promise<{ sent_at: string } | null>;
+  /** Nhả claim CSAT khi lượt gửi chắc chắn không thành — để CS bấm gửi lại được. */
+  releaseCsatSend(websiteId: string, sessionId: string): Promise<void>;
 }
 
 export function createDb(sb: SupabaseClient): Db {
   return {
     async getWorkspace(websiteId) {
       const { data, error } = await sb.from("workspaces")
-        .select("website_id,name,topics,default_profile")
+        .select("website_id,name,topics,default_profile,jira_project,storefront_watch")
         .eq("website_id", websiteId).maybeSingle();
       if (error) throw error;
       return data as Workspace | null;
@@ -64,7 +105,7 @@ export function createDb(sb: SupabaseClient): Db {
     },
     async getConversation(websiteId, sessionId) {
       const { data, error } = await sb.from("conversations")
-        .select("website_id,session_id,customer_email,customer_name,topic,topic_source,state,last_customer_at,last_human_operator_at,updated_at")
+        .select("website_id,session_id,customer_email,customer_name,topic,topic_source,state,last_customer_at,last_human_operator_at,updated_at,custom_data")
         .eq("website_id", websiteId).eq("session_id", sessionId).maybeSingle();
       if (error) throw error;
       return data as ConversationRow | null;
@@ -115,10 +156,6 @@ export function createDb(sb: SupabaseClient): Db {
       if (error) throw error;
       return data.id as number;
     },
-    async markPosted(outputId, posted) {
-      const { error } = await sb.from("outputs").update({ posted }).eq("id", outputId);
-      if (error) throw error;
-    },
     async getLatestDraft(websiteId, sessionId, operatorId) {
       const { data, error } = await sb.from("outputs").select(OUTPUT_COLUMNS)
         .eq("website_id", websiteId).eq("session_id", sessionId).eq("operator_id", operatorId).eq("kind", "draft")
@@ -142,14 +179,20 @@ export function createDb(sb: SupabaseClient): Db {
       return (data ?? []) as CaseMatch[];
     },
     async getJiraRows(websiteId, sessionId) {
-      const { data: links, error } = await sb.from("jira_links")
-        .select("website_id,session_id,issue_key,url,silent_baseline,last_seen_status,last_seen_comment_at")
+      const { data: rawLinks, error } = await sb.from("jira_links")
+        .select("website_id,session_id,issue_key,url,silent_baseline,last_seen_status,last_seen_comment_at,active")
         .eq("website_id", websiteId).eq("session_id", sessionId).order("created_at");
       if (error) throw error;
-      if (!links?.length) return [];
+      // Chỉ link đang theo dõi (active) mới lên panel và vào ngữ cảnh prompt.
+      // Link inactive = CS gỡ tay, hoặc ticket Done ĐÃ báo khách và jira-sync
+      // dọn dẹp tắt theo dõi. Ticket Done CHƯA báo khách vẫn active và vẫn
+      // được trả về — jiraForConversation quyết định ẩn/hiện theo mốc CS nhắn
+      // khách (Done ≠ đã báo khách, xem _shared/jira.ts).
+      const links = ((rawLinks ?? []) as (JiraLink & { active?: boolean })[]).filter((l) => l.active === true);
+      if (!links.length) return [];
       const keys = links.map((l) => l.issue_key as string);
       const [{ data: issues, error: e1 }, { data: comments, error: e2 }] = await Promise.all([
-        sb.from("jira_issues").select("issue_key,summary,status,status_category,assignee,updated_at,status_changed_at").in("issue_key", keys),
+        sb.from("jira_issues").select("issue_key,summary,status,status_category,assignee,updated_at,status_changed_at,prev_status").in("issue_key", keys),
         sb.from("jira_comments").select("id,issue_key,author,role,body_text,created_at").in("issue_key", keys).order("created_at"),
       ]);
       if (e1) throw e1;
@@ -162,12 +205,109 @@ export function createDb(sb: SupabaseClient): Db {
         };
       });
     },
+    async unlinkJira(websiteId, sessionId, issueKey) {
+      // Chỉ tắt đúng dòng của chat này: website+session+key đều phải khớp,
+      // không gỡ lan sang chat khác đang theo dõi cùng ticket.
+      const { data, error } = await sb.from("jira_links").update({ active: false })
+        .eq("website_id", websiteId).eq("session_id", sessionId).eq("issue_key", issueKey)
+        .eq("active", true) // chỉ gỡ link ĐANG active — gỡ lần 2 phải trả false, không báo "đã gỡ" sai
+        .select("issue_key");
+      if (error) throw error;
+      return (data ?? []).length > 0;
+    },
     async getSentiment(websiteId, sessionId) {
       const { data, error } = await sb.from("conversation_sentiment")
         .select("score,mood,urgency,confidence,summary,signals,input_fp")
         .eq("website_id", websiteId).eq("session_id", sessionId).maybeSingle();
       if (error) throw error;
       return data as (Sentiment & { input_fp: string }) | null;
+    },
+    async getStorefrontSeen(websiteId) {
+      const { data, error } = await sb.from("storefront_seen").select("fingerprint").eq("website_id", websiteId);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.fingerprint as string);
+    },
+    async markStorefrontSeen(websiteId, fingerprints) {
+      if (!fingerprints.length) return;
+      // Upsert chỉ kèm last_seen_at: dòng mới lấy first_seen_at từ default của
+      // bảng, dòng cũ khi conflict chỉ cập nhật last_seen_at — mốc "lần đầu
+      // hiện" không bị ghi đè.
+      const rows = fingerprints.map((fingerprint) => ({ website_id: websiteId, fingerprint, last_seen_at: new Date().toISOString() }));
+      const { error } = await sb.from("storefront_seen").upsert(rows, { onConflict: "website_id,fingerprint" });
+      if (error) throw error;
+    },
+    async getStorefrontStoreStatus(websiteId, shop) {
+      const { data, error } = await sb.from("storefront_store_status")
+        .select("website_id,shop,watched,open_critical,open_high,open_medium,open_low,open_total,worst_severity,last_good_check,fetched_at")
+        .eq("website_id", websiteId).eq("shop", shop).maybeSingle();
+      if (error) throw error;
+      return data as StorefrontStoreStatus | null;
+    },
+    async upsertStorefrontStoreStatus(row) {
+      const { error } = await sb.from("storefront_store_status")
+        .upsert(row, { onConflict: "website_id,shop" });
+      if (error) throw error;
+    },
+    async getRecentShopDomains(websiteId, days) {
+      const since = new Date(Date.now() - days * 86_400_000).toISOString();
+      const { data, error } = await sb.from("conversations")
+        .select("custom_data")
+        .eq("website_id", websiteId).gte("updated_at", since)
+        .not("custom_data", "is", null);
+      if (error) throw error;
+      // custom_data là dữ liệu phía khách ghi — trích shopify_domain ở đây và
+      // chỉ giữ giá trị hợp lệ (isPlausibleShop) + duy nhất, giữ nguyên thứ tự
+      // gặp đầu tiên để job sweep quét tất định.
+      const out: string[] = [];
+      const seen = new Set<string>();
+      for (const r of data ?? []) {
+        const cd = (r as { custom_data?: Record<string, unknown> | null }).custom_data;
+        const v = cd?.shopify_domain;
+        if (!isPlausibleShop(v)) continue;
+        const shop = v.trim();
+        if (seen.has(shop)) continue;
+        seen.add(shop);
+        out.push(shop);
+      }
+      return out;
+    },
+    async listStorefrontStoreStatus(websiteId) {
+      const { data, error } = await sb.from("storefront_store_status")
+        .select("website_id,shop,watched,open_critical,open_high,open_medium,open_low,open_total,worst_severity,last_good_check,fetched_at")
+        .eq("website_id", websiteId);
+      if (error) throw error;
+      return (data ?? []) as StorefrontStoreStatus[];
+    },
+    async getStorefrontSegmentCandidates(websiteId, days) {
+      const since = new Date(Date.now() - days * 86_400_000).toISOString();
+      const cols = "session_id,custom_data,segments";
+      // (a) conversation gần đây có domain — ứng viên GẮN; (b) mọi
+      // conversation đang mang segment trong mirror — ứng viên GỠ khi store
+      // hết điều kiện, không bị cửa sổ ngày chặn (segment treo trên chat cũ
+      // vẫn phải được dọn).
+      const [recent, tagged] = await Promise.all([
+        sb.from("conversations").select(cols).eq("website_id", websiteId).gte("updated_at", since),
+        sb.from("conversations").select(cols).eq("website_id", websiteId).contains("segments", [STOREFRONT_WATCH_SEGMENT]),
+      ]);
+      if (recent.error) throw recent.error;
+      if (tagged.error) throw tagged.error;
+      const bySession = new Map<string, StorefrontSegmentCandidate>();
+      const add = (r: { session_id?: unknown; custom_data?: unknown; segments?: unknown }) => {
+        const sessionId = typeof r.session_id === "string" ? r.session_id : "";
+        if (!sessionId || bySession.has(sessionId)) return;
+        const cd = (r.custom_data ?? null) as Record<string, unknown> | null;
+        const v = cd?.shopify_domain;
+        const segments = Array.isArray(r.segments) ? r.segments.filter((s): s is string => typeof s === "string") : [];
+        const shop = isPlausibleShop(v) ? v.trim() : null;
+        // Chỉ giữ dòng có ích cho việc đồng bộ: có shop để đối chiếu bản
+        // chụp, hoặc đang mang segment của mình (cần gỡ). Dòng còn lại
+        // không thể đổi trạng thái segment nào cả.
+        if (shop === null && !segments.includes(STOREFRONT_WATCH_SEGMENT)) return;
+        bySession.set(sessionId, { session_id: sessionId, shop, segments });
+      };
+      for (const r of recent.data ?? []) add(r as { session_id?: unknown; custom_data?: unknown; segments?: unknown });
+      for (const r of tagged.data ?? []) add(r as { session_id?: unknown; custom_data?: unknown; segments?: unknown });
+      return [...bySession.values()];
     },
     async getCsatSend(websiteId, sessionId) {
       const { data, error } = await sb.from("csat_survey_sends")
@@ -182,6 +322,11 @@ export function createDb(sb: SupabaseClient): Db {
         .select("sent_at").maybeSingle();
       if (error) throw error;
       return data as { sent_at: string } | null;
+    },
+    async releaseCsatSend(websiteId, sessionId) {
+      const { error } = await sb.from("csat_survey_sends").delete()
+        .eq("website_id", websiteId).eq("session_id", sessionId);
+      if (error) throw error;
     },
     async saveSentiment(row) {
       const { error } = await sb.from("conversation_sentiment").upsert({ ...row, updated_at: new Date().toISOString() });
@@ -248,9 +393,16 @@ export function createJiraStore(sb: SupabaseClient): JiraStore {
       return [...names];
     },
     async saveIssue(issue) {
-      const { data: prev, error: e0 } = await sb.from("jira_issues").select("status,status_changed_at").eq("issue_key", issue.issue_key).maybeSingle();
+      const { data: prev, error: e0 } = await sb.from("jira_issues").select("status,status_changed_at,prev_status").eq("issue_key", issue.issue_key).maybeSingle();
       if (e0) throw e0;
-      const changed = prev && prev.status !== issue.status;
+      const changed = Boolean(prev && prev.status !== issue.status);
+      // Đổi trạng thái: ghi mốc phát hiện đổi (status_changed_at) VÀ trạng thái
+      // bị thay thế (prev_status) — panel cần cả hai để hiện "từ <cũ> → <mới>"
+      // và để biết ticket chuyển Done từ khi nào. Không đổi thì giữ nguyên cả hai.
+      const marks = {
+        status_changed_at: changed ? new Date().toISOString() : prev?.status_changed_at ?? null,
+        prev_status: changed ? (prev?.status ?? null) : prev?.prev_status ?? null,
+      };
       const { error } = await sb.from("jira_issues").upsert({
         issue_key: issue.issue_key,
         summary: issue.summary,
@@ -258,7 +410,7 @@ export function createJiraStore(sb: SupabaseClient): JiraStore {
         status_category: issue.status_category,
         assignee: issue.assignee,
         updated_at: issue.updated_at,
-        status_changed_at: changed ? new Date().toISOString() : prev?.status_changed_at ?? null,
+        ...marks,
         synced_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -266,20 +418,25 @@ export function createJiraStore(sb: SupabaseClient): JiraStore {
         const { error: e2 } = await sb.from("jira_comments").upsert(issue.comments.map((c) => ({ ...c, issue_key: issue.issue_key })));
         if (e2) throw e2;
       }
+      return marks;
     },
     async linksFor(keys) {
+      // Panel-only mirror: link không kèm cờ đăng note nào nữa — sync không bao giờ ghi lên Crisp.
       const { data, error } = await sb.from("jira_links")
         .select("website_id,session_id,issue_key,url,silent_baseline,last_seen_status,last_seen_comment_at").eq("active", true).in("issue_key", keys);
       if (error) throw error;
-      const { data: ws, error: e2 } = await sb.from("workspaces").select("website_id,jira_auto_note");
-      if (e2) throw e2;
-      const auto = new Map((ws ?? []).map((w) => [w.website_id as string, w.jira_auto_note as boolean]));
-      return ((data ?? []) as JiraLink[]).map((l): TrackedLink => ({ ...l, auto_note: auto.get(l.website_id) ?? true }));
+      return (data ?? []) as JiraLink[];
     },
     async updateLink(link, patch) {
       const { error } = await sb.from("jira_links").update(patch)
         .eq("website_id", link.website_id).eq("session_id", link.session_id).eq("issue_key", link.issue_key);
       if (error) throw error;
+    },
+    async lastHumanOperatorAt(link) {
+      const { data, error } = await sb.from("conversations").select("last_human_operator_at")
+        .eq("website_id", link.website_id).eq("session_id", link.session_id).maybeSingle();
+      if (error) throw error;
+      return (data?.last_human_operator_at as string | undefined) ?? null;
     },
   };
 }

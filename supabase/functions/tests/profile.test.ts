@@ -110,6 +110,16 @@ Deno.test("pickBestProfileRow tie-breaks by latest learned_at", () => {
   assertEquals(pickBestProfileRow(rows)?.crisp_user_id, "op-new");
 });
 
+Deno.test("pickBestProfileRow tie-break compares instants, not raw strings (mixed offsets)", () => {
+  // 08:00+07:00 = 01:00Z — chuỗi thô lớn hơn "02:00...Z" nhưng thời điểm THẬT thì cũ hơn.
+  // So chuỗi (localeCompare) sẽ chọn nhầm op-offset; so epoch chọn đúng op-z.
+  const rows = [
+    row("_all", { crisp_user_id: "op-offset", conversations_used: 50, learned_at: "2026-10-01T08:00:00+07:00" }),
+    row("_all", { crisp_user_id: "op-z", conversations_used: 50, learned_at: "2026-10-01T02:00:00.000Z" }),
+  ];
+  assertEquals(pickBestProfileRow(rows)?.crisp_user_id, "op-z");
+});
+
 Deno.test("resolveProfile: no own rows -> best team profile under workspace default", () => {
   const best = row("_all", { crisp_user_id: "op-b", tone: "giọng tốt nhất", pronoun_self: "mình" });
   const r = resolveProfile([], "billing", {}, best);

@@ -2,15 +2,31 @@ import { assertEquals } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
 import { makeDeps, TOKEN } from "./fakes.ts";
 
-Deno.test("survey: gửi qua n8n gate, ghi trạng thái, lần hai không gửi lại", async () => {
-  let recorded = false;
-  let surveyCalls = 0;
-  const { deps } = makeDeps({
+/**
+ * Fake csat_survey_sends có trạng thái, mô phỏng đúng PK (website, session):
+ * recordCsatSend = claim — dòng đã tồn tại thì trả null (ignoreDuplicates),
+ * releaseCsatSend = xoá dòng. Nhờ vậy test tái hiện được cả race đồng thời.
+ */
+function fakeCsatDb() {
+  let row: { sent_by: string; sent_at: string } | null = null;
+  return {
+    row: () => row,
     db: {
-      getCsatSend: () => Promise.resolve(recorded ? { sent_by: "op-lan", sent_at: "2026-10-15T03:05:00+00:00" } : null),
-      recordCsatSend: () => (recorded = true, Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" })),
+      getCsatSend: () => Promise.resolve(row),
+      recordCsatSend: () => {
+        if (row) return Promise.resolve(null);
+        row = { sent_by: "op-lan", sent_at: "2026-10-15T03:05:00+00:00" };
+        return Promise.resolve({ sent_at: row.sent_at });
+      },
+      releaseCsatSend: () => (row = null, Promise.resolve()),
     },
-  });
+  };
+}
+
+Deno.test("survey: gửi qua n8n gate, ghi trạng thái, lần hai không gửi lại", async () => {
+  const csat = fakeCsatDb();
+  let surveyCalls = 0;
+  const { deps } = makeDeps({ db: csat.db });
   deps.n8n.sendSurvey = () => (surveyCalls++, Promise.resolve(true));
   const req = { website_id: "ws1", session_id: "session_1", action: "survey" };
   const r1 = await handle(req, TOKEN, deps);
@@ -22,11 +38,44 @@ Deno.test("survey: gửi qua n8n gate, ghi trạng thái, lần hai không gửi
   assertEquals(surveyCalls, 1); // chống gửi trùng
 });
 
-Deno.test("survey: n8n gate lỗi thì báo chưa gửi kèm lý do, không ghi trạng thái", async () => {
-  const { deps } = makeDeps();
+Deno.test("survey: hai request ĐỒNG THỜI chỉ gửi đúng một lần (claim trước khi gửi)", async () => {
+  const csat = fakeCsatDb();
+  let surveyCalls = 0;
+  const { deps } = makeDeps({ db: csat.db });
+  // n8n chậm 30ms: cả hai request đều kịp qua bước kiểm "đã gửi chưa" trước
+  // khi lượt gửi đầu xong — bản cũ (kiểm → gửi → ghi) sẽ gửi 2 lần ở đây.
+  deps.n8n.sendSurvey = () => (surveyCalls++, new Promise<boolean>((r) => setTimeout(() => r(true), 30)));
+  const req = { website_id: "ws1", session_id: "session_1", action: "survey" };
+  const [r1, r2] = await Promise.all([handle(req, TOKEN, deps), handle(req, TOKEN, deps)]);
+  assertEquals(surveyCalls, 1);
+  const bodies = [r1.body, r2.body] as { sent: boolean; already: boolean }[];
+  assertEquals(bodies.every((b) => b.sent), true);
+  assertEquals(bodies.filter((b) => b.already).length, 1); // một thắng claim, một nhận "đã gửi"
+});
+
+Deno.test("survey: n8n gate lỗi thì báo chưa gửi kèm lý do và NHẢ claim để bấm lại được", async () => {
+  const csat = fakeCsatDb();
+  const { deps } = makeDeps({ db: csat.db });
   deps.n8n.sendSurvey = () => Promise.resolve(false);
-  const r = await handle({ website_id: "ws1", session_id: "session_1", action: "survey" }, TOKEN, deps);
+  const req = { website_id: "ws1", session_id: "session_1", action: "survey" };
+  const r = await handle(req, TOKEN, deps);
   const body = r.body as { sent: boolean; error: string | null };
   assertEquals(body.sent, false);
   assertEquals(body.error?.includes("n8n gate"), true);
+  assertEquals(csat.row(), null); // claim đã nhả — không kẹt ở trạng thái "đã gửi" giả
+  deps.n8n.sendSurvey = () => Promise.resolve(true);
+  const r2 = await handle(req, TOKEN, deps);
+  assertEquals((r2.body as { sent: boolean }).sent, true);
+});
+
+Deno.test("survey: tên gửi đi là tên ACCOUNT Crisp (operator_name), thắng tên trong DB", async () => {
+  const csat = fakeCsatDb();
+  const { deps } = makeDeps({ db: csat.db });
+  let agentName = "";
+  deps.n8n.sendSurvey = (_w, _s, name) => (agentName = name, Promise.resolve(true));
+  // makeDeps mặc định getOperator trả "Lan Nguyen" (bản sao DB); request mang
+  // operator_name của account đang đăng nhập thì tên đó phải thắng.
+  const r = await handle({ website_id: "ws1", session_id: "session_1", action: "survey", operator_name: "Lan N. (account)" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(agentName, "Lan N. (account)");
 });

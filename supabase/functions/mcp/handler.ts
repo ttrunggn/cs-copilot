@@ -47,7 +47,7 @@ export const TOOLS = [
   {
     name: "copilot_handoff_note",
     description:
-      "Tạo private note bàn giao (handoff) cho conversation và đăng vào Crisp qua n8n. Có side-effect thật trong Crisp nên chỉ gọi khi CS yêu cầu.",
+      "Tạo private note bàn giao (handoff) cho conversation và TRẢ TEXT note về — copilot không tự đăng lên Crisp (theo quy tắc ghi Crisp, CS tự dán vào ô Note của Crisp, sửa và tự đăng). Tool này không có side-effect trong Crisp.",
     inputSchema: { type: "object", properties: { ...ID_PROPS, ...FORCE_PROP }, required: ["website_id", "session_id"] },
     annotations: { readOnlyHint: false, destructiveHint: false },
   },

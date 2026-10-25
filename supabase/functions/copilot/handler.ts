@@ -9,13 +9,18 @@ import { runCheck } from "./check.ts";
 import { runSurvey } from "./survey.ts";
 import { runGenerate } from "./generate.ts";
 import { runHandoff } from "./handoff.ts";
+import { runJiraSyncNow, runJiraUnlink } from "./jira-actions.ts";
+import type { StorefrontMcp } from "../_shared/storefront.ts";
+import { runStorefront, runStorefrontFinding } from "./storefront-actions.ts";
 
 export type { AskResult } from "./ask.ts";
 export type { CheckResult } from "./check.ts";
 export type { GenerateResult } from "./generate.ts";
 export type { HandoffResult } from "./handoff.ts";
+export type { JiraSyncNowResult, JiraUnlinkResult } from "./jira-actions.ts";
+export type { StorefrontFindingResult, StorefrontResult } from "./storefront-actions.ts";
 
-const ACTIONS = ["check", "handoff", "generate", "analyze", "survey", "ask"] as const;
+const ACTIONS = ["check", "handoff", "generate", "analyze", "survey", "ask", "jira_sync_now", "jira_unlink", "storefront", "storefront_finding"] as const;
 type Action = typeof ACTIONS[number];
 // session_id/website_id đi vào URL Crisp ở phía n8n nên phải đúng định dạng Crisp.
 const SESSION_ID = /^session_[\w-]+$/;
@@ -37,6 +42,12 @@ export interface CopilotRequest {
   tone: DraftTone;
   /** Câu hỏi của CS cho Hỏi tài liệu (chỉ action ask dùng). Trần 300 ký tự. */
   question: string;
+  /** Ticket cần gỡ khỏi panel (chỉ action jira_unlink dùng; validate định dạng ở runJiraUnlink). */
+  issue_key: string;
+  /** Store cần kiểm tra (chỉ action storefront dùng; tuỳ chọn — widget truyền domain/link khi CS nhập tay, không truyền thì server tự resolve từ custom_data.shopify_domain của phiên; trần 300 ký tự như inputSchema của find_store). */
+  shop: string;
+  /** Finding cần xem chi tiết (chỉ action storefront_finding dùng; validate 40-hex ở runStorefrontFinding). */
+  fingerprint: string;
 }
 
 export const HINT_MAX_CHARS = 500;
@@ -46,6 +57,8 @@ export interface Deps {
   db: Db;
   n8n: N8n;
   ai: Ai;
+  /** Client MCP Storefront Watch; null/vắng = server chưa cấu hình SW_API_TOKEN + SW_MCP_SIGNING_SECRET (action trả unconfigured). */
+  storefront?: StorefrontMcp | null;
   /** Việc nền sau response (refresh cho đường đọc nhanh); vắng mặt thì chạy đồng bộ. */
   background?: (task: Promise<unknown>) => void;
   now?: () => number;
@@ -71,6 +84,9 @@ function parseRequest(body: unknown): CopilotRequest {
     hint: str("hint").slice(0, HINT_MAX_CHARS),
     tone: parseDraftTone(b.tone),
     question: str("question").slice(0, QUESTION_MAX_CHARS),
+    issue_key: str("issue_key"),
+    shop: str("shop").slice(0, 300),
+    fingerprint: str("fingerprint"),
   };
 }
 
@@ -94,6 +110,14 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
         return { status: 200, body: await runSurvey(req, operatorId, deps) };
       case "ask":
         return { status: 200, body: await runAsk(req, deps) };
+      case "jira_sync_now":
+        return { status: 200, body: await runJiraSyncNow(req, deps) };
+      case "jira_unlink":
+        return { status: 200, body: await runJiraUnlink(req, deps) };
+      case "storefront":
+        return { status: 200, body: await runStorefront(req, ws, deps) };
+      case "storefront_finding":
+        return { status: 200, body: await runStorefrontFinding(req, ws, deps) };
     }
   } catch (e) {
     if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };

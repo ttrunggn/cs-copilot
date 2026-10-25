@@ -3,7 +3,7 @@ import { authorize, authorizeWidget, HttpError, sha256Hex } from "../_shared/aut
 import type { Db } from "../_shared/db.ts";
 import type { Workspace } from "../_shared/types.ts";
 
-const WS: Workspace = { website_id: "ws1", name: "App A", topics: [], default_profile: {} };
+const WS: Workspace = { website_id: "ws1", name: "App A", topics: [], default_profile: {}, jira_project: null, storefront_watch: false };
 const TOKEN = "tok-lan";
 const CRISP_TOKEN = "11111111-2222-3333-4444-555555555555";
 
@@ -23,17 +23,25 @@ async function fakeDb(member = true): Promise<Db> {
     saveTranslations: () => Promise.resolve(),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
-    markPosted: () => Promise.resolve(),
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),
+    unlinkJira: () => Promise.resolve(false),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
+    getStorefrontSeen: () => Promise.resolve([]),
+    markStorefrontSeen: () => Promise.resolve(),
+    getStorefrontStoreStatus: () => Promise.resolve(null),
+    upsertStorefrontStoreStatus: () => Promise.resolve(),
+    getRecentShopDomains: () => Promise.resolve([]),
+    listStorefrontStoreStatus: () => Promise.resolve([]),
+    getStorefrontSegmentCandidates: () => Promise.resolve([]),
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve(null),
+    releaseCsatSend: () => Promise.resolve(),
   };
 }
 

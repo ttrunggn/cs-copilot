@@ -17,21 +17,21 @@ const FIELDS = {
   next_step: "Báo khách khi tech fix",
 };
 
-Deno.test("handoff posts formatted Vietnamese note and stores output", async () => {
+Deno.test("handoff returns the formatted Vietnamese note and stores the output — posting NOTHING to Crisp", async () => {
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
-  const { deps, inserted, notes } = makeDeps({ ai });
+  const { deps, inserted } = makeDeps({ ai });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
   const body = r.body as Record<string, unknown>;
   assertEquals(body.action, "handoff");
-  assertEquals(body.posted, true);
   assertEquals(body.cached, false);
   assertEquals(body.output_id, 42);
+  assertEquals("posted" in body, false); // quy tắc ghi Crisp: handler chỉ trả text, không có khái niệm đã đăng
   assertEquals((body.note as string).startsWith("📋 Handoff — Lan Nguyen\nKhách cần sửa switcher"), true);
-  assertEquals(notes, [body.note]);
   assertEquals(inserted[0].kind, "handoff");
   assertEquals(inserted[0].content, body.note);
   assertEquals(inserted[0].operator_id, "op-lan");
+  assertEquals(inserted[0].posted, null);
 });
 
 Deno.test("handoff note lists each issue from a multi-issue message", async () => {
@@ -77,67 +77,57 @@ const CACHED = {
   topic: "billing", prompt_version: null, posted: true, created_at: "2026-10-15T03:05:00+00:00",
 };
 
-Deno.test("cached handoff that never reached Crisp is posted again", async () => {
-  const marks: [number, boolean][] = [];
-  const { deps, notes } = makeDeps({ cached: { ...CACHED, posted: false }, db: { markPosted: (id, p) => (marks.push([id, p]), Promise.resolve()) } });
+Deno.test("cached handoff is returned as-is — no repost concept anymore, whatever the legacy posted flag says", async () => {
+  const { deps } = makeDeps({ cached: { ...CACHED, posted: false } });
   const r = await handle(REQ, TOKEN, deps);
-  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ", posted: true });
-  assertEquals(notes, ["📋 Handoff — cũ"]);
-  assertEquals(marks, [[7, true]]);
+  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ" });
 });
 
-Deno.test("handoff records whether the note was posted", async () => {
-  const marks: [number, boolean][] = [];
+Deno.test("handoff CANNOT post to Crisp: the deps interfaces have no postNote/markPosted at all", async () => {
+  // CRISP WRITE RULE giữ ở tầng CẤU TRÚC, không dựa vào "không ai gọi":
+  // interface N8n/Db đã xoá hẳn postNote/markPosted (kèm workflow
+  // copilot-post-note) — handoff muốn đăng cũng không có đường nào để gọi.
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
-  const { deps } = makeDeps({ ai, postOk: false, db: { markPosted: (id, p) => (marks.push([id, p]), Promise.resolve()) } });
-  await handle(REQ, TOKEN, deps);
-  assertEquals(marks, [[42, false]]);
-});
-
-Deno.test("handoff cached does not repost", async () => {
-  const { ai, calls } = fakeAi({});
-  const { deps, notes } = makeDeps({ ai, cached: CACHED });
+  const { deps } = makeDeps({ ai });
+  assertEquals("postNote" in deps.n8n, false);
+  assertEquals("markPosted" in deps.db, false);
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
-  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ", posted: true });
-  assertEquals(notes, []);
+  assertEquals(typeof (r.body as { note: string }).note, "string");
+});
+
+Deno.test("handoff cached skips AI and returns the stored note", async () => {
+  const { ai, calls } = fakeAi({});
+  const { deps } = makeDeps({ ai, cached: CACHED });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ" });
   assertEquals(calls.filter((c) => c.task === "handoff").length, 0);
 });
 
-Deno.test("handoff force ignores cache", async () => {
+Deno.test("handoff force ignores cache and regenerates — still posting nothing", async () => {
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
-  const { deps, notes } = makeDeps({ ai, cached: { ...CACHED, content: "old" } });
+  const { deps, inserted } = makeDeps({ ai, cached: { ...CACHED, content: "old" } });
   const r = await handle({ ...REQ, force: true }, TOKEN, deps);
   assertEquals((r.body as { cached: boolean }).cached, false);
-  assertEquals(notes.length, 1);
-});
-
-Deno.test("handoff post failure returns posted false with note", async () => {
-  const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
-  const { deps, inserted } = makeDeps({ ai, postOk: false });
-  const body = (await handle(REQ, TOKEN, deps)).body as { posted: boolean; note: string };
-  assertEquals(body.posted, false);
-  assertEquals(body.note.startsWith("📋 Handoff"), true);
   assertEquals(inserted.length, 1);
 });
 
 Deno.test("handoff with unparseable AI output posts nothing", async () => {
   const { ai } = fakeAi({ handoff: "Sorry, I cannot help with that." });
-  const { deps, notes, inserted } = makeDeps({ ai });
+  const { deps, inserted } = makeDeps({ ai });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 503);
   assertEquals((r.body as { code: string }).code, "AI_BAD_OUTPUT");
-  assertEquals(notes, []);
   assertEquals(inserted, []);
 });
 
 Deno.test("handoff AI unavailable returns 503", async () => {
   const { ai } = fakeAi({ handoff: new AiUnavailable() });
-  const { deps, notes } = makeDeps({ ai });
+  const { deps } = makeDeps({ ai });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 503);
   assertEquals(r.body, { error: "AI đang hết quota hoặc lỗi, thử lại sau", code: "AI_UNAVAILABLE" });
-  assertEquals(notes, []);
 });
 
 Deno.test("unreadable handoff says AI_BAD_OUTPUT, not quota", async () => {
@@ -171,9 +161,9 @@ const NOTE_FMT_ROW: ProfileRow = {
 
 Deno.test("handoff renders in the CS's learned note format and records profile_used", async () => {
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
-  const { deps, inserted, notes } = makeDeps({ ai, db: { getProfiles: () => Promise.resolve([NOTE_FMT_ROW]) } });
+  const { deps, inserted } = makeDeps({ ai, db: { getProfiles: () => Promise.resolve([NOTE_FMT_ROW]) } });
   const r = await handle(REQ, TOKEN, deps);
-  const body = r.body as { note: string; posted: boolean };
+  const body = r.body as { note: string };
   assertEquals(body.note, [
     "Handoff — Lan Nguyen",
     "Issues raised:",
@@ -184,7 +174,6 @@ Deno.test("handoff renders in the CS's learned note format and records profile_u
     "Next: (waiting on tech) Báo khách khi tech fix",
     "— Lan Nguyen",
   ].join("\n"));
-  assertEquals(notes, [body.note]);
   assertEquals(inserted[0].profile_used, "all");
   assertEquals(inserted[0].content, body.note);
 });
