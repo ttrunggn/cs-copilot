@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Hook cấp website của Crisp không được ký (chỉ plugin hook có X-Crisp-Signature), nên webhook này được bảo vệ\n// bằng đường dẫn ngẫu nhiên. Đường dẫn còn là placeholder hoặc quá ngắn thì từ chối mọi request.\nconst path = String($('Crisp Webhook').params.path || '');\nif (path.includes('REPLACE') || path.replace('crisp-ingest-', '').length < 20) throw new Error('Đường dẫn webhook chưa được thay bằng chuỗi ngẫu nhiên');\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email'];\nconst b = $input.first().json.body;\nif (!b || typeof b !== 'object' || !ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
+        "jsCode": "// Hook cấp website của Crisp không được ký (chỉ plugin hook có X-Crisp-Signature), nên webhook này được bảo vệ\n// bằng đường dẫn ngẫu nhiên. Đường dẫn còn là placeholder hoặc quá ngắn thì từ chối mọi request.\nconst path = String($('Crisp Webhook').params.path || '');\nif (path.includes('REPLACE') || path.replace('crisp-ingest-', '').length < 20) throw new Error('Đường dẫn webhook chưa được thay bằng chuỗi ngẫu nhiên');\nconst ALLOWED = ['message:send', 'message:received', 'session:set_segments', 'session:set_state', 'session:set_email', 'session:set_data'];\nconst b = $input.first().json.body;\nif (!b || typeof b !== 'object' || !ALLOWED.includes(b.event) || !b.website_id || !b.data) return [];\nreturn [{ json: { p_event: { website_id: b.website_id, event: b.event, data: b.data } } }];"
       },
       "id": "b1a00000-0000-4000-8000-000000000002",
       "name": "Filter Events",
@@ -39,7 +39,7 @@
         "nodeCredentialType": "supabaseApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ p_event: $json.p_event }) }}",
+        "jsonBody": "={{ JSON.stringify({ p_event: $('Filter Events').first().json.p_event }) }}",
         "options": {
           "timeout": 15000
         }
@@ -64,7 +64,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Chỉ tính trước sentiment cho tin khách gửi (message:received): mood đổi khi\n// khách nhắn thêm. Sự kiện khác (CS trả lời, đổi trạng thái…) thì bỏ qua.\nconst p = $json.p_event || {};\nif (p.event !== 'message:received') return [];\nconst sessionId = p.data && p.data.session_id;\nif (!p.website_id || !sessionId) return [];\nreturn [{ json: { website_id: p.website_id, session_id: sessionId } }];"
+        "jsCode": "// Chỉ tính trước sentiment cho tin khách gửi (message:received): mood đổi khi\n// khách nhắn thêm. Sự kiện khác (CS trả lời, đổi trạng thái…) thì bỏ qua.\nconst p = $('Filter Events').first().json.p_event || {};\nif (p.event !== 'message:received') return [];\nconst sessionId = p.data && p.data.session_id;\nif (!p.website_id || !sessionId) return [];\nreturn [{ json: { website_id: p.website_id, session_id: sessionId } }];"
       },
       "id": "b1a00000-0000-4000-8000-000000000004",
       "name": "Chuẩn bị precompute",

@@ -18,10 +18,14 @@ export interface HandoffResult {
   cached: boolean;
   output_id: number;
   note: string;
-  posted: boolean;
 }
 
-/** Note tiếng Việt liệt kê từng vấn đề của khách. Lưu outputs trước rồi mới đăng, để đăng lỗi vẫn copy được. */
+/**
+ * Note tiếng Việt liệt kê từng vấn đề của khách. Handler CHỈ trả text note về panel
+ * (quy tắc ghi Crisp, Ethan chốt 2026-10-23): copilot không tự đăng note — panel đưa
+ * text cho extension điền vào ô Note của Crisp, CS đọc/sửa ngay trong Crisp rồi tự
+ * đăng. outputs.posted giữ null vĩnh viễn (không còn khái niệm copilot "đã đăng").
+ */
 export async function runHandoff(
   req: { website_id: string; session_id: string; force: boolean; operator_name?: string },
   ws: Workspace,
@@ -43,11 +47,9 @@ export async function runHandoff(
       websiteId: req.website_id, sessionId: req.session_id, operatorId, kind: "handoff", inputFp,
     });
     if (hit) {
-      // Lần trước đăng lỗi thì đăng lại note cũ, không báo "đã đăng" khi Crisp chưa có note.
-      if (hit.posted) return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content, posted: true };
-      const posted = await deps.n8n.postNote(req.website_id, req.session_id, hit.content);
-      await deps.db.markPosted(hit.id, posted);
-      return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content, posted };
+      // Cache hit: trả nguyên note cũ trong panel — không có khái niệm "đăng lại",
+      // vì copilot không đăng note (CS tự dán vào Crisp).
+      return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content };
     }
   }
 
@@ -85,9 +87,7 @@ export async function runHandoff(
     profile_used: noteFormat ? "all" : "default",
     model,
     prompt_version: null,
-    posted: null,
+    posted: null, // không còn đường tự đăng — cột giữ null để phân biệt với các output thời kỳ tự đăng
   });
-  const posted = await deps.n8n.postNote(req.website_id, req.session_id, note);
-  await deps.db.markPosted(outputId, posted);
-  return { action: "handoff", stale, cached: false, output_id: outputId, note, posted };
+  return { action: "handoff", stale, cached: false, output_id: outputId, note };
 }

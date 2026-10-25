@@ -33,6 +33,17 @@ export interface Workspace {
   name: string;
   topics: Topic[];
   default_profile: Partial<Profile>;
+  /** Mã project Jira của chính workspace (vd "TNT" của Transcy, "OES" của OE); null = chưa cấu hình. Vai trò: cổng Storefront theo ticket + lọc link Jira. KHÔNG dùng để suy phạm vi Storefront Watch (xem storefront_watch). */
+  jira_project: string | null;
+  /**
+   * true = workspace nằm trong phạm vi Storefront Watch. Định danh DUY NHẤT
+   * của phạm vi SW (migration 023): cổng Storefront theo shopify_domain, job
+   * storefront_sweep và badge storefront_status trong check đều đọc cờ này.
+   * Chỉ bật cho workspace của chính Transcy khi deploy — workspace khác cũng
+   * có jira_project riêng (OES) và shopify_domain trong visitor data, nên
+   * không được suy phạm vi SW từ hai tín hiệu đó (quyết định của Ethan).
+   */
+  storefront_watch: boolean;
 }
 
 export type NoteLanguage = "vi" | "en" | "mixed";
@@ -80,6 +91,8 @@ export interface ConversationRow {
   last_customer_at: string | null;
   last_human_operator_at: string | null;
   updated_at: string | null; // lần cuối ingest/refresh chạm vào bản ghi, dùng đo độ tươi cho đường đọc nhanh
+  /** Custom data của phiên Crisp (ingest merge từ session data; vd shopify_domain do integration phía store set). */
+  custom_data: Record<string, unknown>;
 }
 
 export interface HelpdeskChunk {
@@ -134,7 +147,7 @@ export interface OutputRow {
   helpdesk_matches: number | null;
   topic: string | null;
   prompt_version: string | null;
-  posted: boolean | null; // chỉ handoff: note đã lên Crisp chưa
+  posted: boolean | null; // legacy của thời handoff tự đăng note lên Crisp; từ 2026-10-23 copilot không tự đăng nữa nên luôn null
   created_at: string;
 }
 

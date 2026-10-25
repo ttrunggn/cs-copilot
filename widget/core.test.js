@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, operatorNameFrom, readContext, timeAgo, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -174,23 +174,32 @@ Deno.test("toDraftViewModel drops non-https warning links", () => {
   assertEquals(vm.warnings[0].url, null);
 });
 
-Deno.test("insertResultMessage covers the 5 statuses", () => {
-  for (const s of ["inserted", "session_mismatch", "not_empty", "duplicate", "composer_not_found"]) {
+Deno.test("insertResultMessage covers the reply statuses incl. note_unconfirmed fallback", () => {
+  for (const s of ["inserted", "session_mismatch", "not_empty", "duplicate", "composer_not_found", "note_unconfirmed"]) {
     assertEquals(typeof insertResultMessage(s), "string", s);
     assertEquals(insertResultMessage(s).length > 0, true, s);
   }
   assertEquals(insertResultMessage("session_mismatch"), "Draft của chat khác đã sẵn sàng, mở lại đúng chat để điền");
+  // Không còn đường Copy nữa: composer_not_found không được nhắc tới Copy/Ctrl+V.
+  assertEquals(insertResultMessage("composer_not_found").includes("Copy"), false);
+});
+
+Deno.test("insertResultMessage with note target speaks about the Note box", () => {
+  assertEquals(insertResultMessage("inserted", "note"), "Đã điền note vào ô Note, sửa lại rồi tự đăng trong Crisp");
+  assertEquals(insertResultMessage("not_empty", "note"), "Ô Note đang có chữ");
+  assertEquals(insertResultMessage("duplicate", "note"), "Note này đã được điền rồi");
+  // Status an toàn của riêng note: extension không xác nhận được Note mode → không điền gì cả.
+  assertEquals(insertResultMessage("note_unconfirmed", "note").includes("chưa điền gì cả"), true);
+  assertEquals(insertResultMessage("session_mismatch", "note").includes("Note"), true);
 });
 
 Deno.test("reloaded latest_draft without helpdesk match keeps the no-article badge", () => {
   assertEquals(toDraftViewModel({ content: "x", warnings: [], verified: true, helpdesk_matches: 0 }).badge, "Không có bài helpdesk liên quan");
 });
 
-Deno.test("handoffStatus says already posted only when it really was", () => {
-  assertEquals(handoffStatus({ cached: true, posted: true }), "Note này đã đăng trước đó");
-  assertEquals(handoffStatus({ cached: true, posted: false }), "Chưa đăng được note, copy giúp");
-  assertEquals(handoffStatus({ cached: false, posted: true }), "Đã đăng private note");
-  assertEquals(handoffStatus({ cached: false, posted: false }), "Chưa đăng được note, copy giúp");
+Deno.test("handoffStatus never claims the note was posted — copilot does not post notes", () => {
+  assertEquals(handoffStatus({ cached: true }), "Note đã tạo trước đó — chưa đăng");
+  assertEquals(handoffStatus({ cached: false }), "Note mới — chưa đăng");
 });
 
 Deno.test("mapError 503 AI_BAD_OUTPUT → retry with server message", () => {
@@ -217,37 +226,101 @@ Deno.test("toStorefrontViewModel: chưa nối nguồn → empty; loading/error/m
   assertEquals(toStorefrontViewModel({ status: "ok", store: null }, NOW), { kind: "missing-domain" });
 });
 
-Deno.test("toStorefrontViewModel: results gom lỗi đã xác nhận + tín hiệu chưa xác minh + cờ cũ", () => {
+Deno.test("toStorefrontViewModel: results gom issue theo đúng 3 trạng thái Mới / Đã xác nhận / Đang xử lý", () => {
   const vm = toStorefrontViewModel({
     status: "ok",
     store: "store-abc.myshopify.com",
     scannedAt: "2026-10-16T09:00:00Z",
     isStale: true,
+    new: [{ title: "Mất hình ở trang collection", meta: "fr-fr · cập nhật 26 phút trước" }],
+    acknowledged: [{ title: "Thiếu vùng nội dung", meta: "ja, zh, es · đã tiếp nhận, sync đợt trước" }],
+    inProgress: [{ title: "Webhook thanh toán không bắn", meta: "CS đã liên hệ khách — theo hội thoại này" }],
+  }, NOW);
+  assertEquals(vm.kind, "results");
+  assertEquals(vm.totalCount, 3);
+  assertEquals(vm.isStale, true);
+  assertEquals(vm.scannedLabel, "1 giờ trước");
+  assertEquals(vm.groups.map((g) => [g.status, g.label, g.items.length]), [
+    ["new", "Mới", 1],
+    ["acknowledged", "Đã xác nhận", 1],
+    ["in_progress", "Đang xử lý", 1],
+  ]);
+  assertEquals(vm.groups[2].items[0].title, "Webhook thanh toán không bắn");
+});
+
+Deno.test("toStorefrontViewModel: dữ liệu thô kiểu cũ (confirmed + level) vẫn xếp được vào 3 nhóm, unverified bị bỏ", () => {
+  const vm = toStorefrontViewModel({
+    status: "ok",
+    store: "store-abc.myshopify.com",
+    scannedAt: "2026-10-16T09:00:00Z",
     confirmed: [
-      { level: "critical", title: "Lộ mã template (thẻ <tc>) trên trang", meta: "ko-kr · thấy 2 lần · nên gửi dev" },
-      { level: "new", title: "Mất hình", meta: "fr-fr · đã xác nhận" },
+      { level: "critical", title: "Lộ mã template (thẻ <tc>) trên trang", meta: "ko-kr · thấy 2 lần" },
+      { level: "new", title: "Mất hình", meta: "fr-fr" },
     ],
     unverified: [{ title: "Chiều cao trang nhảy", meta: "fr-fr · cần xác minh" }],
   }, NOW);
   assertEquals(vm.kind, "results");
-  assertEquals(vm.confirmedCount, 2);
-  assertEquals(vm.unverifiedCount, 1);
-  assertEquals(vm.isStale, true);
-  assertEquals(vm.scannedLabel, "1 giờ trước");
-  assertEquals(vm.confirmed[0].chip, "Nghiêm trọng");
-  assertEquals(vm.confirmed[0].chipClass, "critical");
-  assertEquals(vm.confirmed[1].chip, "Mới");
+  assertEquals(vm.totalCount, 2);
+  assertEquals(vm.groups[0].items.map((i) => i.title), ["Mất hình"]);
+  assertEquals(vm.groups[1].items.map((i) => i.title), ["Lộ mã template (thẻ <tc>) trên trang"]);
+  assertEquals(vm.groups[2].items, []);
 });
 
-Deno.test("toJiraViewModel shows status, NEW badge and the latest new comment", async () => {
+Deno.test("toIssuesViewModel: ưu tiên signals của sentiment làm issue", () => {
+  const vm = toIssuesViewModel(CHECK, { signals: ["Bị trừ phí 2 lần", "Chưa rõ thời gian hoàn tiền", "  "] });
+  assertEquals(vm.issues, [
+    { title: "Bị trừ phí 2 lần", detail: null },
+    { title: "Chưa rõ thời gian hoàn tiền", detail: null },
+  ]);
+});
+
+Deno.test("toIssuesViewModel: chưa có sentiment thì lùi về topic, không có gì thì rỗng (không bịa)", () => {
+  assertEquals(toIssuesViewModel(CHECK, null).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+  assertEquals(toIssuesViewModel({ ...CHECK, topic: null, topic_label: null }, null).issues, []);
+  assertEquals(toIssuesViewModel(null, null).issues, []);
+  assertEquals(toIssuesViewModel(CHECK, { signals: [] }).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+});
+
+Deno.test("REVIEW_TEMPLATE là template xin review mặc định có nội dung", () => {
+  assertEquals(typeof REVIEW_TEMPLATE, "string");
+  assertEquals(REVIEW_TEMPLATE.includes("leave a review"), true);
+});
+
+Deno.test("toJiraViewModel shows status, update badge with from → to, and the latest new comment", async () => {
   const { toJiraViewModel } = await import("./core.js");
   const vm = toJiraViewModel([{
     issue_key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", summary: "Menu bug", status: "Pending Dev",
-    is_new: true, status_changed: true, new_comments: [{ author: "Dev Minh", role: "tech", body: "Fixed", created_at: "2026-10-16T09:00:00Z" }], recent_comments: [],
-  }, { issue_key: "TNT-2", url: "javascript:alert(1)", summary: null, status: null, is_new: false, status_changed: false, new_comments: [], recent_comments: [] }], NOW);
-  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", title: "TNT-1 · Pending Dev", summary: "Menu bug", isNew: true, news: ["Đổi trạng thái", "Tech · Dev Minh (1 giờ trước): Fixed"] });
+    has_update: true, status_changed: true, prev_status: "In Progress", done: false, awaiting_report: false,
+    new_comments: [{ author: "Dev Minh", role: "tech", body: "Fixed", created_at: "2026-10-16T09:00:00Z" }], recent_comments: [],
+  }, { issue_key: "TNT-2", url: "javascript:alert(1)", summary: null, status: null, has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, new_comments: [], recent_comments: [] }], NOW);
+  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", title: "TNT-1 · Pending Dev", summary: "Menu bug", hasUpdate: true, awaitingReport: false, news: ["Đổi trạng thái: In Progress → Pending Dev", "Tech · Dev Minh (1 giờ trước): Fixed"] });
   assertEquals(vm[1].url, null);
   assertEquals(vm[1].title, "TNT-2 · chưa đồng bộ");
+});
+
+Deno.test("toJiraViewModel: ticket Done chưa báo khách mang cờ awaitingReport; thiếu prev_status thì dòng đổi trạng thái không có 'từ →'", async () => {
+  const { toJiraViewModel } = await import("./core.js");
+  const vm = toJiraViewModel([{
+    issue_key: "TNT-3", url: "https://firegroup.atlassian.net/browse/TNT-3", summary: "Crash", status: "Done",
+    has_update: true, status_changed: true, prev_status: null, done: true, awaiting_report: true, new_comments: [], recent_comments: [],
+  }], NOW);
+  assertEquals(vm[0].awaitingReport, true);
+  assertEquals(vm[0].hasUpdate, true);
+  assertEquals(vm[0].title, "TNT-3 · Done");
+  assertEquals(vm[0].news, ["Đổi trạng thái"]);
+});
+
+Deno.test("enabledModules: dùng nguyên kết quả server tính trong check.modules", () => {
+  assertEquals(enabledModules({ modules: { jira: true, storefront: true }, jira: [] }), { jira: true, storefront: true });
+  assertEquals(enabledModules({ modules: { jira: true, storefront: false }, jira: [{ issue_key: "OES-15" }] }), { jira: true, storefront: false });
+  assertEquals(enabledModules({ modules: { jira: false, storefront: false }, jira: [] }), { jira: false, storefront: false });
+});
+
+Deno.test("enabledModules: response thiếu modules (server cũ) → Jira theo ticket liên kết, Storefront ẩn", () => {
+  assertEquals(enabledModules({ jira: [{ issue_key: "TNT-1" }] }), { jira: true, storefront: false });
+  assertEquals(enabledModules({ jira: [] }), { jira: false, storefront: false });
+  assertEquals(enabledModules(null), { jira: false, storefront: false });
+  assertEquals(enabledModules(undefined), { jira: false, storefront: false });
 });
 
 Deno.test("toAskViewModel keeps found answers and https sources only", () => {
@@ -288,4 +361,215 @@ Deno.test("previewNeedsToggle: tin ngắn một dòng thì không cần nút xem
 Deno.test("previewNeedsToggle: tin dài hoặc nhiều dòng thì thu gọn", () => {
   assertEquals(previewNeedsToggle("x".repeat(161)), true);
   assertEquals(previewNeedsToggle("a\nb\nc\nd"), true);
+});
+
+Deno.test("toStorefrontViewModel: need-shop/unconfigured tách riêng; error mang message khi server có nói", () => {
+  assertEquals(toStorefrontViewModel({ status: "need-shop" }, NOW), { kind: "need-shop" });
+  assertEquals(toStorefrontViewModel({ status: "unconfigured", error: "thiếu env" }, NOW), { kind: "unconfigured", message: "thiếu env" });
+  assertEquals(toStorefrontViewModel({ status: "error", error: "HTTP 503" }, NOW), { kind: "error", message: "HTTP 503" });
+  assertEquals(toStorefrontViewModel({ status: "error" }, NOW), { kind: "error" });
+});
+
+Deno.test("toStorefrontViewModel: results giữ fingerprint từng item để bấm mở chi tiết; notWatched lộ rõ", () => {
+  const fp = "a".repeat(40);
+  const vm = toStorefrontViewModel({
+    status: "ok",
+    store: "shop-x.myshopify.com",
+    scannedAt: null,
+    notWatched: true,
+    new: [{ title: "Lỗi 1", meta: "high · de", fingerprint: fp }],
+    acknowledged: [],
+    inProgress: [],
+  }, NOW);
+  assertEquals(vm.kind, "results");
+  assertEquals(vm.notWatched, true);
+  // Item kiểu cũ (chỉ title/meta/fingerprint, không kind/page) không bị gom;
+  // fingerprint của finding nằm ở entries[0] để panels bấm mở chi tiết.
+  assertEquals(vm.groups[0].items[0], {
+    title: "Lỗi 1", meta: "high · de", kind: null, page: null, locales: [], count: 1,
+    entries: [{ fingerprint: fp, locale: null, meta: "high · de", severity: null, text: null, consoleLink: null, title: "Lỗi 1" }],
+  });
+});
+
+Deno.test("toStorefrontViewModel: gom finding trùng căn nguyên (fixture amirobeauty) — 3 Region missing ở / gom 1 mục, tổng vẫn 9", () => {
+  const F = (fp, kind, locale, page) => ({
+    title: kind, meta: "", fingerprint: fp, kind, locale, page,
+    severity: "critical", text: null, consoleLink: `https://sw.transcy.io/#/f/${fp}`,
+  });
+  const vm = toStorefrontViewModel({
+    status: "ok", store: "amirobeauty.com", scannedAt: null,
+    new: [
+      F("aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7", "Region missing", "ja", "/"),
+      F("5517ba1da2be48c228850f56a6741e9e30bd297b", "Region missing", "zh", "/"),
+      F("f38202faad7e0a03f6ebf8c1fd5df56501690aed", "Region missing", "es", "/"),
+      F("036a70d3e7321a4d179fe1db24d756d6b713e7ac", "Option unidentifiable", "zh", "/products/amiro-oath-makeup-lighted-mirror"),
+      F("42bf44a1456a4a6e4e970daa7a714ce1b80accf9", "Graphic lost", "es", "/products/amiro-mate-led-makeup-mirror"),
+      F("db6348cc25e10335a4ce3c178deda8737734c16d", "Graphic lost", "zh", "/products/tatis-exclusive-amiro-spectra-led-face-mask"),
+      F("3628224935126736319ae0cfdd077026a7d5bfd3", "Layout degraded", "es", "/products/dmauamiro-o2-led-vanity-mirror"),
+      F("ee16a4e2600f278dc455132edc42746dd35bcdab", "Option unidentifiable", "zh", "/products/amiro-mate-led-makeup-mirror"),
+      F("b037194bbe99fddc03116b836b6fd5e8dca46833", "Block collapsed", "zh", "/products/amiro-mate-led-makeup-mirror"),
+    ],
+    acknowledged: [], inProgress: [],
+  }, NOW);
+  assertEquals(vm.kind, "results");
+  // Tổng đếm theo finding THẬT trước gom — gom không được làm lệch số.
+  assertEquals(vm.totalCount, 9);
+  const gNew = vm.groups[0];
+  assertEquals(gNew.count, 9);
+  // 9 finding → 7 mục: bộ ba Region missing gom 1; các kind+page còn lại đều khác nhau.
+  assertEquals(gNew.items.length, 7);
+  const region = gNew.items[0];
+  assertEquals(region.kind, "Region missing");
+  assertEquals(region.count, 3);
+  assertEquals(region.locales, ["ja", "zh", "es"]);
+  // Mọi fingerprint + console link vẫn riêng từng entry để mở chi tiết/deep-link đúng bug.
+  assertEquals(region.entries.map((e) => e.fingerprint), [
+    "aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7",
+    "5517ba1da2be48c228850f56a6741e9e30bd297b",
+    "f38202faad7e0a03f6ebf8c1fd5df56501690aed",
+  ]);
+  assertEquals(region.entries[1].consoleLink, "https://sw.transcy.io/#/f/5517ba1da2be48c228850f56a6741e9e30bd297b");
+  // Hai finding cùng kind nhưng KHÁC page không bị gom lẫn.
+  assertEquals(gNew.items.filter((i) => i.kind === "Graphic lost").length, 2);
+});
+
+Deno.test("toStorefrontViewModel: không gom XUYÊN nhóm trạng thái — cùng kind+page ở Mới và Đã xác nhận vẫn là 2 mục riêng", () => {
+  const F = (fp) => ({ title: "Region missing", meta: "", fingerprint: fp, kind: "Region missing", locale: "ja", page: "/", severity: "critical", text: null, consoleLink: null });
+  const vm = toStorefrontViewModel({
+    status: "ok", store: "s.myshopify.com", scannedAt: null,
+    new: [F("a".repeat(40))], acknowledged: [F("b".repeat(40))], inProgress: [],
+  }, NOW);
+  assertEquals(vm.totalCount, 2);
+  assertEquals(vm.groups[0].items.length, 1);
+  assertEquals(vm.groups[1].items.length, 1);
+});
+
+Deno.test("explanationTemplate: kind có mẫu → đoạn riêng theo kind, chèn sẵn page/locale/text của finding", () => {
+  const t = explanationTemplate({ kind: "Region missing", locale: "ja", page: "/", text: null });
+  assertEquals(t.includes("a section of content is missing on / in the ja version of the store"), true);
+  assertEquals(t.includes("Our technical team is already aware"), true);
+  const t2 = explanationTemplate({ kind: "Graphic lost", locale: "es", page: "/products/x", text: "Rosa" });
+  assertEquals(t2.includes('an image is not loading on /products/x in the es version of the store (around the part showing "Rosa")'), true);
+});
+
+Deno.test("explanationTemplate: kind lạ / thiếu dữ kiện → mẫu chung, vẫn là tiếng Anh hoàn chỉnh, không nhắc tên công cụ nội bộ", () => {
+  const t = explanationTemplate({ kind: "Lỗi chưa từng thấy", locale: null, page: null, text: null });
+  assertEquals(t.includes("there is a display issue on your store"), true);
+  assertEquals(t.includes("Storefront"), false);
+  assertEquals(t.includes("fingerprint"), false);
+  const empty = explanationTemplate({});
+  assertEquals(empty.includes("there is a display issue on your store"), true);
+  assertEquals(empty.length > 80, true);
+});
+
+// ---------- bổ sung rà soát trục 3: progress + view-model các trạng thái còn thiếu ----------
+
+Deno.test("progressStepIndex: generate đi đủ 4 bước theo mốc 0/900/2200/4200ms và giữ ở bước cuối", () => {
+  assertEquals(progressStepIndex("generate", 0), 0);
+  assertEquals(progressStepIndex("generate", 899), 0);
+  assertEquals(progressStepIndex("generate", 900), 1);
+  assertEquals(progressStepIndex("generate", 2199), 1);
+  assertEquals(progressStepIndex("generate", 2200), 2);
+  assertEquals(progressStepIndex("generate", 4200), 3);
+  // Chờ lâu đến mấy cũng không tự nhảy qua bước cuối — không báo hoàn thành giả.
+  assertEquals(progressStepIndex("generate", 999999), 3);
+});
+
+Deno.test("progressStepIndex: analyze 2 bước, ask/handoff theo đúng số bước của chúng; action không có thẻ tiến trình → 0", () => {
+  assertEquals(progressStepIndex("analyze", 0), 0);
+  assertEquals(progressStepIndex("analyze", 900), 1);
+  assertEquals(progressStepIndex("analyze", 999999), 1);
+  assertEquals(progressStepIndex("ask", 2200), 2);
+  assertEquals(progressStepIndex("ask", 999999), 2);
+  assertEquals(progressStepIndex("handoff", 900), 1);
+  assertEquals(progressStepIndex("survey", 5000), 0);
+  assertEquals(progressStepIndex("storefront", 5000), 0);
+  assertEquals(progressStepIndex("", 5000), 0);
+});
+
+Deno.test("PROGRESS_STEPS: chỉ 4 action AI có thẻ tiến trình (survey/jira/storefront dùng nhãn bận riêng)", () => {
+  assertEquals(Object.keys(PROGRESS_STEPS).sort(), ["analyze", "ask", "generate", "handoff"]);
+});
+
+Deno.test("actionButtonState: ma trận loại trừ lẫn nhau cho MỌI action đang chạy (kể cả storefront/jira)", () => {
+  const actions = ["generate", "analyze", "ask", "handoff", "survey", "jira_sync", "jira_unlink", "storefront"];
+  for (const running of actions) {
+    for (const a of actions) {
+      assertEquals(actionButtonState(running, a), { running: running === a, disabled: true }, `${running} vs ${a}`);
+    }
+  }
+  for (const a of actions) assertEquals(actionButtonState("", a), { running: false, disabled: false }, a);
+});
+
+Deno.test("toViewModel: đúng 1 tin chờ và 0 tin chờ — header/hiddenPendingCount/botRepliedCount", () => {
+  const one = toViewModel({ ...CHECK, unanswered: ["chỉ một tin"] }, NOW);
+  assertEquals(one.header, "1 tin khách đang chờ");
+  assertEquals(one.pendingCount, 1);
+  assertEquals(one.hiddenPendingCount, 0);
+  assertEquals(one.unanswered, ["chỉ một tin"]);
+  const zero = toViewModel({ ...CHECK, needs_reply: false, unanswered: [] }, NOW);
+  assertEquals(zero.pendingCount, 0);
+  assertEquals(zero.pendingMessages, []);
+  assertEquals(zero.botRepliedCount, 0);
+});
+
+Deno.test("toViewModel: pending_messages có sẵn thắng unanswered thô và giữ cờ bot_replied", () => {
+  const vm = toViewModel({
+    ...CHECK,
+    unanswered: ["bản thô bị bỏ qua"],
+    pending_messages: [{ text: "tin 1", bot_replied: true }, { text: "tin 2", bot_replied: false }],
+  }, NOW);
+  assertEquals(vm.unanswered, ["tin 1", "tin 2"]);
+  assertEquals(vm.pendingMessages.map((m) => m.botReplied), [true, false]);
+  assertEquals(vm.botRepliedCount, 1);
+});
+
+Deno.test("toIssuesViewModel: đúng 1 signal → đúng 1 issue; sentiment có nhưng signals toàn khoảng trắng → lùi về topic", () => {
+  assertEquals(toIssuesViewModel(CHECK, { signals: ["Mất hoá đơn"] }).issues, [{ title: "Mất hoá đơn", detail: null }]);
+  assertEquals(toIssuesViewModel(CHECK, { signals: [" ", ""] }).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+  assertEquals(toIssuesViewModel(CHECK, {}).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+});
+
+Deno.test("toJiraViewModel: rỗng/null → []; nhiều ticket giữ nguyên thứ tự; Done đã báo khách vẫn được liệt kê khi server còn gửi (việc ẩn là phía server)", () => {
+  assertEquals(toJiraViewModel([], NOW), []);
+  assertEquals(toJiraViewModel(null, NOW), []);
+  assertEquals(toJiraViewModel(undefined, NOW), []);
+  const mk = (key, over = {}) => ({
+    issue_key: key, url: `https://firegroup.atlassian.net/browse/${key}`, summary: null, status: "Done",
+    has_update: false, status_changed: false, prev_status: null, awaiting_report: false, new_comments: [], ...over,
+  });
+  const vm = toJiraViewModel([mk("TNT-9"), mk("TNT-10"), mk("TNT-11")], NOW);
+  assertEquals(vm.map((j) => j.key), ["TNT-9", "TNT-10", "TNT-11"]);
+  // Done + đã báo (awaiting_report=false, has_update=false): widget KHÔNG tự lọc —
+  // server không trả ticket dạng này nữa thì panel mới ẩn; còn trả thì còn hiện, không badge.
+  assertEquals(vm[0].awaitingReport, false);
+  assertEquals(vm[0].hasUpdate, false);
+  assertEquals(vm[0].news, []);
+});
+
+Deno.test("toJiraViewModel: server thiếu new_comments (bản ghi cũ) không được làm sập render panel", () => {
+  const vm = toJiraViewModel([{
+    issue_key: "TNT-7", url: "https://firegroup.atlassian.net/browse/TNT-7", summary: "Legacy", status: "Open",
+    has_update: false, status_changed: false, prev_status: null, awaiting_report: false,
+  }], NOW);
+  assertEquals(vm[0].news, []);
+  assertEquals(vm[0].title, "TNT-7 · Open");
+});
+
+Deno.test("toStorefrontViewModel: results 0 findings → totalCount 0 và 3 nhóm đều rỗng (panel hiện 'Không phát hiện lỗi')", () => {
+  const vm = toStorefrontViewModel({ status: "ok", store: "shop.myshopify.com", scannedAt: "2026-10-16T09:59:00Z", new: [], acknowledged: [], inProgress: [] }, NOW);
+  assertEquals(vm.kind, "results");
+  assertEquals(vm.totalCount, 0);
+  assertEquals(vm.groups.map((g) => g.items.length), [0, 0, 0]);
+  assertEquals(vm.scannedLabel, "1 phút trước");
+});
+
+Deno.test("toStorefrontViewModel: nhận cả key in_progress (snake_case) như inProgress; scannedAt null → scannedLabel null", () => {
+  const vm = toStorefrontViewModel({
+    status: "ok", store: "shop.myshopify.com", scannedAt: null,
+    in_progress: [{ title: "Đang xử lý 1", meta: "CS đã liên hệ" }],
+  }, NOW);
+  assertEquals(vm.groups[2].items.map((i) => i.title), ["Đang xử lý 1"]);
+  assertEquals(vm.scannedLabel, null);
+  assertEquals(vm.totalCount, 1);
 });

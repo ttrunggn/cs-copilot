@@ -1,11 +1,14 @@
 export interface N8n {
   refreshConversation(websiteId: string, sessionId: string): Promise<{ stale: boolean }>;
-  postNote(websiteId: string, sessionId: string, content: string): Promise<boolean>;
   sendSurvey(websiteId: string, sessionId: string, agentName: string): Promise<boolean>;
+  /** Kích hoạt workflow Jira Sync quét ngay (webhook jira-sync-now) thay vì chờ lịch 5 phút. */
+  triggerJiraSync(websiteId: string, sessionId: string): Promise<boolean>;
 }
 
-const BOT_MARK = "🤖";
 // Refresh qua n8n (Crisp API + RPC) mất ~3s trên production.
+// KHÔNG có method đăng note/message lên Crisp ở đây — và không được thêm:
+// CRISP WRITE RULE (Ethan chốt 2026-10-23), copilot chỉ soạn, CS tự gửi
+// trong Crisp. postNote cũ đã bị xoá hẳn cùng workflow copilot-post-note.
 export const DEFAULT_REFRESH_TIMEOUT_MS = 5000;
 
 /** n8n trả 200 body rỗng khi workflow lỗi trước node Respond, nên chỉ tin body {"ok": true}. */
@@ -68,10 +71,12 @@ export function createN8n(opts: {
       }
     },
 
-    async postNote(websiteId, sessionId, content) {
-      const text = content.startsWith(BOT_MARK) ? content : `${BOT_MARK} ${content}`;
+    // Webhook jira-sync-now của workflow Jira Sync: verify secret ở node đầu,
+    // chạy đúng chuỗi quét như lịch rồi Respond {"ok": true} ở cuối — chỉ tin
+    // body đó (200 rỗng = workflow lỗi/chưa có node Respond, coi như thất bại).
+    async triggerJiraSync(websiteId, sessionId) {
       try {
-        const res = await post("copilot-post-note", { website_id: websiteId, session_id: sessionId, content: text });
+        const res = await post("jira-sync-now", { website_id: websiteId, session_id: sessionId });
         return await confirmed(res);
       } catch {
         return false;

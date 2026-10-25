@@ -1,10 +1,13 @@
 // Gộp các workflow nguồn thành 1 workflow "Copilot v5 — Gateway" để import một lần.
 // Tên node được thêm tiền tố để không trùng, và mọi tham chiếu $('Tên node') được đổi theo.
-// Chạy: node n8n/build-gateway.mjs  (4 file nguồn vẫn là bản gốc, có test riêng)
+// Chạy: node n8n/build-gateway.mjs  (các file nguồn vẫn là bản gốc, có test riêng)
+// KHÔNG đưa workflow ghi vào Crisp vào gateway: CRISP WRITE RULE (Ethan chốt
+// 2026-10-23) — server/copilot không tự đăng bất cứ thứ gì lên Crisp, nên
+// workflow post-note cũ đã bị xoá hẳn khỏi repo thay vì để một đường ghi
+// chờ sẵn chỉ chờ có caller. Mọi node Crisp trong gateway đều là GET (đọc).
 export const SOURCES = [
   { file: "ingest-crisp.json", prefix: "Ingest" },
   { file: "copilot-refresh.json", prefix: "Refresh" },
-  { file: "copilot-post-note.json", prefix: "Note" },
   { file: "crisp-sync.json", prefix: "Sync" },
   { file: "helpdesk-sync.json", prefix: "Helpdesk" },
   { file: "jira-sync.json", prefix: "Jira" },

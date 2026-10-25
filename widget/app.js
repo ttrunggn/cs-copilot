@@ -1,8 +1,8 @@
-import { actionButtonState, askAnswerToHint, describeShape, mapError, operatorIdFrom, operatorNameFrom, readContext, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
-import { buttonContent, el, show } from "./dom.js";
-import { state } from "./state.js";
+import { askAnswerToHint, describeShape, enabledModules, explanationTemplate, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { el, show } from "./dom.js";
+import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
-import { chipsRow, csatPanel, draftPanel, extensionHint, handoffPanel, insightPanel, jiraPanel, knowledgePanel, pendingMessageCard, storefrontPanel, storefrontStrip, suggestionCard, summaryPanel } from "./panels.js";
+import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, storefrontPanel } from "./panels.js";
 
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
@@ -12,12 +12,44 @@ const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
 const extension = createExtensionClient(render, setNotice);
-function toggleSuggestion() {
-  state.suggestionExpanded = !state.suggestionExpanded;
+
+/** Mở popup của một lệnh (draft | note | ask | csat) — panel gọn v4. */
+function openModal(name) {
+  state.modal = name;
+  if (name === "draft") state.composeOpen = !state.draft;
+  if (name === "csat") {
+    state.csatChoice = "";
+    if (!state.reviewText) state.reviewText = REVIEW_TEMPLATE;
+  }
   render();
 }
 
-const handlers = { copy, onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onToggleSuggestion: toggleSuggestion, sendInsert: extension.sendInsert, detectExtension: extension.detectExtension };
+function closeModal() {
+  state.modal = null;
+  render();
+}
+
+/**
+ * Hỏi cách điền khi ô soạn đang có chữ (extension trả not_empty): dùng cho
+ * draft, tin xin review, mẫu giải thích (ô Reply) lẫn private note (ô Note)
+ * — nút gửi đi theo state.choiceFor. Hiện trong popup đang mở (panels.js gọi qua handlers)
+ * hoặc ngay trên panel khi không có popup.
+ */
+function insertChoiceNode() {
+  if (!state.choice) return null;
+  const send = state.choiceFor === "review" ? extension.sendReviewInsert : state.choiceFor === "note" ? extension.sendNoteInsert : state.choiceFor === "explain" ? extension.sendExplainInsert : extension.sendInsert;
+  const box = state.choiceFor === "note" ? "Ô Note" : "Ô Reply";
+  return el("div", { className: "insert-choice" }, [
+    el("p", { className: "success-line", textContent: `${box} đang có chữ: thay thế, chèn xuống cuối hay huỷ?` }),
+    el("div", { className: "row" }, [
+      el("button", { className: "button-primary", textContent: "Thay thế", disabled: state.insertPending, onclick: () => send("replace") }),
+      el("button", { className: "button-secondary", textContent: "Chèn xuống cuối", disabled: state.insertPending, onclick: () => send("append") }),
+      el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), clearNotice(), render()) }),
+    ]),
+  ]);
+}
+
+const handlers = { onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onInsertNote, onJiraSync, onJiraUnlink, onStorefrontLoad, onStorefrontFinding, onExplain, sendInsert: extension.sendInsert, sendReviewInsert: extension.sendReviewInsert, sendNoteInsert: extension.sendNoteInsert, sendExplainInsert: extension.sendExplainInsert, detectExtension: extension.detectExtension, onOpenModal: openModal, onCloseModal: closeModal, progressCard, insertChoice: insertChoiceNode, rerender: render };
 
 let noticeTimer = null;
 
@@ -62,6 +94,23 @@ function onEditInCrisp() {
   extension.sendInsert("replace");
 }
 
+/**
+ * Điền private note vào ô Note của Crisp (nút chính trong popup Private
+ * note): chưa điền thì gửi lệnh insert "auto" (extension tự chuyển sang tab
+ * Note, chỉ điền khi xác nhận được Note mode; ô Note có chữ thì panel hỏi
+ * cách điền). Đã điền rồi thì không điền lại — tránh ghi đè phần CS vừa
+ * sửa — chỉ nhắc sang ô Note để sửa và tự đăng ở đó.
+ */
+function onInsertNote() {
+  if (!state.handoff) return;
+  if (state.notePlacement === "inserted") {
+    setNotice("Note đang nằm trong ô Note của Crisp — bấm vào tab Note để sửa trực tiếp và tự đăng ở đó.", "info");
+    render();
+    return;
+  }
+  extension.sendNoteInsert("auto");
+}
+
 function showMessage(text, retry) {
   show(el("section", { className: "state-card" }, [
     el("p", { className: "state-title", textContent: text }),
@@ -83,33 +132,16 @@ function showLoading(text) {
   );
 }
 
-let copyTimer = null;
 
-/** Copy + phản hồi ngay tại nút vừa bấm (key: draft | handoff | summary | ask). */
-async function copy(text, key = "") {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    const t = el("textarea", { value: text });
-    document.body.append(t);
-    t.select();
-    document.execCommand("copy");
-    t.remove();
-  }
-  if (state.draft && text === state.draft.vm.text) state.draftPlacement = "copied";
-  setNotice("Đã copy, dán vào ô Reply bằng Ctrl+V", "success");
-  if (key) {
-    state.copiedKey = key;
-    clearTimeout(copyTimer);
-    copyTimer = setTimeout(() => {
-      state.copiedKey = "";
-      render();
-    }, 1600);
-  }
-  render();
-}
 
 // ---------- API ----------
+
+// Các action KHÔNG có nút Huỷ riêng (check, survey, jira_sync, jira_unlink,
+// storefront, storefront_finding) bị giới hạn bởi timeout này: fetch treo
+// (mạng rớt lặng, gateway không trả lời) không được phép để spinner quay mãi.
+// 4 action AI có AbortController riêng (nút Huỷ trên thẻ tiến trình) thì giữ
+// nguyên signal của caller — soạn AI chạy lâu là bình thường, CS tự huỷ.
+const CALL_TIMEOUT_MS = 20000;
 
 async function call(action, extra = {}, signal) {
   const ctx = readContext(location.search);
@@ -118,42 +150,37 @@ async function call(action, extra = {}, signal) {
   // Tên account đi kèm để server lấy tên trong draft theo đúng account đang
   // đăng nhập (DB chỉ là dự phòng khi SDK không trả tên).
   if (state.operatorName) payload.operator_name = state.operatorName;
-  const res = await fetch(API, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-    signal,
-  }).catch((err) => {
-    if (signal?.aborted) throw { aborted: true };
-    return null;
-  });
-  const body = res ? await res.json().catch(() => ({})) : {};
-  // Response về khi CS đã chuyển sang chat khác thì bỏ (spec 6.4 #2).
-  if (readContext(location.search).sessionId !== ctx.sessionId) throw { stale: true };
-  if (!res || !res.ok) throw mapError(res ? res.status : 0, body);
-  return body;
+  let timedOut = false;
+  let timer = null;
+  if (!signal) {
+    const ctrl = new AbortController();
+    signal = ctrl.signal;
+    timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, CALL_TIMEOUT_MS);
+  }
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      signal,
+    }).catch((err) => {
+      if (signal?.aborted) throw timedOut ? { kind: "retry", message: "Hết thời gian chờ phản hồi, thử lại" } : { aborted: true };
+      return null;
+    });
+    const body = res ? await res.json().catch(() => ({})) : {};
+    // Response về khi CS đã chuyển sang chat khác thì bỏ (spec 6.4 #2).
+    if (readContext(location.search).sessionId !== ctx.sessionId) throw { stale: true };
+    if (!res || !res.ok) throw mapError(res ? res.status : 0, body);
+    return body;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 // ---------- thẻ tiến trình (kiểu simulator) ----------
-
-const PROGRESS_STEPS = {
-  generate: ["Đọc hội thoại", "Đối chiếu bài helpdesk", "Soạn theo giọng của bạn", "Kiểm tra lại nội dung"],
-  analyze: ["Đọc tin nhắn của khách", "Phân tích tâm trạng"],
-  ask: ["Tìm trong tài liệu", "Đọc bài liên quan", "Soạn câu trả lời kèm nguồn"],
-  handoff: ["Đọc hội thoại", "Viết private note"],
-};
-// Mốc thời gian (ms) chuyển sang bước kế — nhịp hiển thị để CS thấy việc đang
-// chạy tới đâu; bước cuối giữ nguyên cho tới khi server trả kết quả thật.
-const PROGRESS_MARKS = [0, 900, 2200, 4200];
+// Bảng bước + mốc thời gian + progressStepIndex nằm ở core.js (logic thuần, có test).
 
 let progressTimer = null;
-
-function progressStepIndex(action, elapsedMs) {
-  const steps = PROGRESS_STEPS[action] ?? [];
-  let idx = 0;
-  while (idx < steps.length - 1 && elapsedMs >= (PROGRESS_MARKS[idx + 1] ?? Number.POSITIVE_INFINITY)) idx++;
-  return idx;
-}
 
 function startProgress(action) {
   stopProgress();
@@ -195,7 +222,6 @@ function progressCard() {
   const idx = progressStepIndex(p.action, elapsed);
   return el("div", { className: "prog" }, [
     el("div", { className: "prog-head" }, [
-      el("span", { className: "prog-spark", textContent: "✦" }),
       el("b", { textContent: state.busy }),
       el("span", { className: "prog-elapsed", textContent: `${(elapsed / 1000).toFixed(1)}s` }),
       state.abortController
@@ -231,6 +257,7 @@ async function onGenerate(force) {
     const out = await call("generate", extra, ctrl.signal);
     state.draft = { output_id: out.output_id, session_id: sessionId, vm: toDraftViewModel(out) };
     if (out.sentiment) state.sentiment = out.sentiment;
+    state.composeOpen = false; // soạn xong thì popup Draft thu form, chỉ còn draft + nút điền
     state.draftPlacement = "";
     state.busy = "";
     state.busyAction = "";
@@ -339,9 +366,11 @@ async function onAsk() {
   render();
 }
 
-/** Đáp án tài liệu → ý của CS trong draft panel, rồi generate như bấm Soạn tin. */
+/** Đáp án tài liệu → ý của CS trong popup Draft, rồi generate như bấm Soạn tin. */
 function onAskCompose(answer) {
   state.hint = askAnswerToHint(answer);
+  state.modal = "draft"; // tiến trình soạn + draft hiện ở popup Draft, không kẹt trong popup Ask
+  state.composeOpen = true;
   onGenerate(false);
 }
 
@@ -364,7 +393,11 @@ async function onHandoff(force) {
   render();
   try {
     const out = await call("handoff", force ? { force: true } : {}, ctrl.signal);
-    state.handoff = { note: out.note, posted: out.posted, cached: out.cached };
+    state.handoff = { note: out.note, cached: out.cached };
+    // Note mới (hoặc note khác) thì mốc "đã điền" phải reset: output_id tổng
+    // hợp mới để extension không chặn duplicate, placement về chưa điền.
+    state.noteInsertId = "";
+    state.notePlacement = "";
     state.busy = "";
     state.busyAction = "";
     stopProgress();
@@ -379,67 +412,174 @@ async function onHandoff(force) {
   }
 }
 
+/** Chờ bấy nhiêu sau khi kích hoạt quét Jira rồi tự check lại một lần: lượt
+ *  quét (n8n → Jira API → jira-sync function) thường xong trong vài giây. */
+const JIRA_RECHECK_MS = 12000;
+
+/** Nút "Sync ngay" ở module Jira: gọi action jira_sync_now kích hoạt workflow
+ *  quét ngay — quét chạy bất đồng bộ bên n8n nên chỉ báo đã kích hoạt, rồi hẹn
+ *  check lại sau JIRA_RECHECK_MS để panel tự cập nhật (chỉ khi vẫn ở chat đó). */
+async function onJiraSync() {
+  if (state.busy) return;
+  state.busyAction = "jira_sync";
+  state.busy = "Đang kích hoạt quét Jira…";
+  clearNotice();
+  render();
+  try {
+    const out = await call("jira_sync_now");
+    if (out.triggered) {
+      setNotice("Đã kích hoạt quét Jira — dữ liệu sẽ cập nhật sau ít giây.", "success");
+      const sessionId = state.shownSession;
+      setTimeout(() => { if (state.shownSession === sessionId) load(); }, JIRA_RECHECK_MS);
+    } else {
+      setNotice(out.error ?? "Không kích hoạt được lượt quét Jira.", "error");
+    }
+  } catch (e) {
+    if (!e.stale) setNotice(e.message ?? "Không kích hoạt được lượt quét Jira, thử lại sau", "error");
+  }
+  state.busy = "";
+  state.busyAction = "";
+  render();
+}
+
+/** Nút "✕ Gỡ" trên một ticket: gọi action jira_unlink (server chỉ tắt link
+ *  của đúng chat này), xong check lại ngay để ticket biến mất khỏi panel. */
+async function onJiraUnlink(issueKey) {
+  if (state.busy) return;
+  state.busyAction = "jira_unlink";
+  state.busy = "Đang gỡ liên kết…";
+  clearNotice();
+  render();
+  try {
+    const out = await call("jira_unlink", { issue_key: issueKey });
+    state.unlinkConfirm = "";
+    setNotice(out.removed ? `Đã gỡ ticket ${issueKey} khỏi panel.` : `Ticket ${issueKey} không còn được theo dõi trong chat này.`, "success");
+    state.busy = "";
+    state.busyAction = "";
+    render();
+    load();
+    return;
+  } catch (e) {
+    if (!e.stale) setNotice(e.message ?? "Không gỡ được liên kết, thử lại sau", "error");
+  }
+  state.busy = "";
+  state.busyAction = "";
+  state.unlinkConfirm = "";
+  render();
+}
+
+/**
+ * Module Storefront Watch: nạp dữ liệu thật qua action `storefront` (server
+ * gọi MCP Storefront Watch trực tiếp và tự chia 3 trạng thái). Shop được
+ * resolve PHÍA SERVER: widget đã biết shop của chat này (CS nhập từ trước)
+ * thì truyền lên; chưa biết thì gọi KHÔNG kèm shop — server tự lấy
+ * `shopify_domain` từ custom data của phiên Crisp (ingest merge session data
+ * vào conversations.custom_data). Server trả need_shop (phiên không có sẵn
+ * shopify_domain) thì module mới hiện ô nhập tay làm fallback. Kết quả/lỗi
+ * đều hiện trong module, không bịa dữ liệu.
+ */
+async function onStorefrontLoad() {
+  if (state.busyAction === "storefront") return;
+  const typed = (state.storefrontShopInput || state.storefrontShop || "").trim();
+  state.busyAction = "storefront";
+  // Đặt cả nhãn busy: các handler khác chặn song song bằng `if (state.busy)`
+  // và actionButtonState đã khoá mọi nút theo busyAction — trước đây SF chỉ
+  // đặt busyAction nên Enter trong ô hỏi/gõ phím vẫn lọt qua gọi API song song.
+  state.busy = "Đang kiểm tra storefront…";
+  state.storefront = { status: "loading" };
+  state.storefrontDetail = null;
+  render();
+  try {
+    const out = await call("storefront", typed ? { shop: typed } : {});
+    if (out.status === "need_shop") {
+      state.storefront = { status: "need-shop" };
+    } else if (out.status === "ok" || out.status === "not_watched") {
+      if (out.store) {
+        state.storefrontShop = out.store;
+        state.storefrontShopInput = out.store;
+      }
+      state.storefront = {
+        status: "ok",
+        store: out.store,
+        scannedAt: out.scanned_at,
+        notWatched: out.status === "not_watched",
+        new: out.groups?.new ?? [],
+        acknowledged: out.groups?.acknowledged ?? [],
+        inProgress: out.groups?.in_progress ?? [],
+      };
+    } else {
+      state.storefront = { status: out.status === "unconfigured" ? "unconfigured" : "error", error: out.error ?? undefined };
+    }
+  } catch (e) {
+    if (!e.stale) state.storefront = { status: "error", error: e.message ?? "Không gọi được Storefront Watch, thử lại sau" };
+  }
+  state.busyAction = "";
+  state.busy = "";
+  render();
+}
+
+/**
+ * Bấm "Mẫu giải thích" ở một finding: dựng đoạn mẫu tĩnh theo loại lỗi của
+ * finding đó (explanationTemplate ở core.js) rồi mở popup Mẫu giải thích —
+ * trong popup CS bấm điền vào ô Reply qua extension như mọi draft (tự đọc/
+ * sửa và tự gửi trong Crisp). Reset explainInsertId để lệnh điền của finding
+ * này không bị chặn "duplicate" bởi lần điền của finding trước.
+ */
+function onExplain(finding) {
+  state.explainFinding = finding;
+  state.explainText = explanationTemplate(finding);
+  state.explainInsertId = "";
+  state.modal = "explain";
+  render();
+}
+
+/** Bấm một finding trong module Storefront: mở chi tiết (get_finding) ngay dưới dòng đó; bấm lại = đóng. */
+async function onStorefrontFinding(fingerprint) {
+  if (!fingerprint || state.storefrontDetailLoading) return;
+  if (state.storefrontDetail?.fingerprint === fingerprint) {
+    state.storefrontDetail = null;
+    render();
+    return;
+  }
+  state.storefrontDetailLoading = fingerprint;
+  render();
+  try {
+    const out = await call("storefront_finding", { fingerprint });
+    state.storefrontDetail = out.status === "ok" && out.detail
+      ? out.detail
+      : { fingerprint, error: out.error ?? "Không tải được chi tiết finding" };
+  } catch (e) {
+    if (!e.stale) state.storefrontDetail = { fingerprint, error: e.message ?? "Không tải được chi tiết finding" };
+  }
+  state.storefrontDetailLoading = "";
+  render();
+}
+
 // ---------- render ----------
 
-const TONE_OPTIONS = [
-  ["default", "Mặc định"],
-  ["friendly", "Thân thiện"],
-  ["formal", "Trang trọng"],
-  ["concise", "Ngắn gọn"],
-];
-
+/**
+ * Panel gọn (preview v4 Ethan duyệt): mặc định chỉ xổ 3 module — Tâm trạng
+ * khách, Vấn đề của khách, Issue logs (Storefront + Jira khi có) — rồi thông
+ * báo, hàng lệnh, và popup của lệnh đang mở. Draft/note/ask/CSAT không còn
+ * nằm thường trực trên panel; chúng sống trong popup (panels.js modalView).
+ * Tiến trình/hỏi-cách-điền hiện trong popup khi có popup, ngược lại trên panel.
+ */
 function render() {
   if (!state.check) return;
   const vm = toViewModel(state.check, Date.now());
-  const genBtn = actionButtonState(state.busyAction, "generate");
-  const noteBtn = actionButtonState(state.busyAction, "handoff");
-  // Điều khiển soạn draft nằm TRƯỚC nút soạn: CS chọn ý + giọng văn trước,
-  // draft sinh ra mới theo đúng lựa chọn — không còn cảnh soạn xong mới thấy chỗ chọn.
-  const toneSelect = el("select", {
-    className: "tone-select",
-    title: "Giọng văn cho draft",
-    onchange: (e) => { state.tone = e.target.value; },
-  }, TONE_OPTIONS.map(([v, label]) => el("option", { value: v, textContent: label })));
-  toneSelect.value = state.tone;
-  const hintBox = el("textarea", {
-    className: "field draft-hint",
-    rows: 2,
-    placeholder: "vd: lỗi 502, chờ dev, mai trả lời",
-    value: state.hint,
-    oninput: (e) => { state.hint = e.target.value; },
-  });
+  const modalOpen = Boolean(state.modal);
   show(
     el("header", { className: "inbox-header" }, [
       el("div", {}, [el("h1", { textContent: vm.header }), el("p", { className: "subtitle", textContent: vm.subtitle })]),
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
     vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
-    chipsRow(),
-    storefrontStrip(),
     insightPanel(handlers),
-    summaryPanel(handlers),
-    vm.pendingMessages.length ? el("section", { className: "pending-section" }, [
-      ...vm.pendingMessages.map(pendingMessageCard),
-      vm.hiddenPendingCount ? el("p", { className: "muted", textContent: `Đang hiện ${vm.pendingMessages.length} trong ${vm.pendingCount} tin` }) : null,
-    ]) : el("div", { className: "empty-state" }, [
-      el("h2", { textContent: "Hết tin chờ rồi" }),
-      el("p", { className: "subtitle", textContent: vm.subtitle }),
-    ]),
-    !state.draft && vm.pendingMessages.length ? suggestionCard(handlers, vm.pendingMessages[vm.pendingMessages.length - 1].text) : null,
-    (vm.pendingMessages.length || state.draft) ? el("section", { className: "card compose-card" }, [
-      el("p", { className: "muted", textContent: "Thêm ý của bạn (không bắt buộc). Để trống thì AI tự soạn từ tin khách; có ý thì ý của bạn được ưu tiên." }),
-      hintBox,
-      el("div", { className: "row draft-actions" }, [
-        toneSelect,
-        el("button", { className: "button-primary compose-button", disabled: genBtn.disabled, onclick: () => onGenerate(Boolean(state.draft)) }, buttonContent(genBtn.running, state.busy, state.draft ? "Soạn lại tin trả lời" : "Soạn tin trả lời")),
-      ]),
-    ]) : null,
-    el("div", { className: "actions" }, [
-      el("button", { className: "button-secondary private-button", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "Private note")),
-      el("button", { className: "button-secondary knowledge-button", textContent: "Knowledge Base Asking", onclick: () => ((state.knowledgeOpen = !state.knowledgeOpen), render()) }),
-    ]),
-    knowledgePanel(handlers),
-    state.progress ? progressCard() : state.busy ? el("div", { className: "loading-card" }, [
+    issuesPanel(vm),
+    storefrontPanel(handlers),
+    jiraPanel(handlers),
+    extensionHint(handlers),
+    state.progress && !modalOpen ? progressCard() : !modalOpen && state.busy ? el("div", { className: "loading-card" }, [
       el("p", { className: "muted", textContent: state.busy }),
       el("div", { className: "skeleton" }, [el("i"), el("i"), el("i")]),
     ]) : null,
@@ -447,23 +587,9 @@ function render() {
       el("span", { textContent: state.notice }),
       el("button", { className: "notice-close", textContent: "×", title: "Đóng thông báo", onclick: () => (clearNotice(), render()) }),
     ]) : null,
-    state.choice ? el("div", { className: "insert-choice" }, [
-      el("p", { className: "success-line", textContent: "Ô Reply đang có chữ: thay thế, chèn xuống cuối hay huỷ?" }),
-      el("div", { className: "row" }, [
-        el("button", { className: "button-primary", textContent: "Thay thế", disabled: state.insertPending, onclick: () => extension.sendInsert("replace") }),
-        el("button", { className: "button-secondary", textContent: "Chèn xuống cuối", disabled: state.insertPending, onclick: () => extension.sendInsert("append") }),
-        el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), clearNotice(), render()) }),
-      ]),
-    ]) : null,
-    draftPanel(handlers),
-    jiraPanel(),
-    el("section", { className: "meta-section" }, vm.metaRows.map((m) => el("div", { className: "meta-row" }, [
-      el("span", { className: "muted", textContent: m.label }), el("span", { textContent: m.value }),
-    ]))),
-    handoffPanel(handlers),
-    extensionHint(handlers),
-    storefrontPanel(),
-    csatPanel(handlers),
+    !modalOpen ? insertChoiceNode() : null,
+    commandsRow(handlers),
+    modalView(handlers),
   );
 }
 
@@ -490,23 +616,11 @@ async function load() {
     if (sessionId !== state.shownSession) {
       state.shownSession = sessionId;
       stopProgress();
-      state.draft = null;
-      state.sentiment = null;
-      state.sentimentMsgCount = 0;
-      state.csat = null;
-      state.csatError = false;
-      state.csatErrorMsg = "";
-      state.handoff = null;
-      state.knowledgeOpen = false;
-      state.askQuestion = "";
-      state.askResult = null;
-      state.choice = false;
-      state.draftPlacement = "";
-      state.hint = "";
-      clearNotice();
-      state.copiedKey = "";
-      state.suggestionExpanded = false;
-      state.check = null;
+      // Đổi chat: xoá MỌI trạng thái của chat cũ (kể cả shop Storefront đã
+      // resolve/đã nhập) trước khi nạp chat mới — hàm thuần ở state.js,
+      // có test khoá riêng ở session-isolation.test.js.
+      resetSessionScopedState(state);
+      clearNotice(); // huỷ hẹn giờ tự tắt của thông báo cũ (trạng thái đã reset ở trên)
       const cached = checkCache.get(sessionId);
       if (cached) {
         state.check = cached;
@@ -526,6 +640,10 @@ async function load() {
     checkCache.set(sessionId, state.check);
     applyCheck(sessionId);
     render();
+    // Module Storefront được server bật mà chat này chưa có dữ liệu: tự nạp
+    // luôn — server tự resolve shop từ custom data của phiên; phiên không có
+    // sẵn shopify_domain thì server trả need_shop và module hiện ô nhập tay.
+    if (enabledModules(state.check).storefront && !state.storefront) onStorefrontLoad();
   } finally {
     loadInFlight = false;
   }
@@ -550,6 +668,10 @@ const ctx = readContext(location.search);
 if ("error" in ctx) showMessage(ctx.error);
 else showLoading("Đang xác định CS đang đăng nhập…");
 extension.detectExtension();
+// Esc đóng popup đang mở (bấm ra ngoài hộp cũng đóng — xem modalView ở panels.js).
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && state.modal) closeModal();
+});
 window.addEventListener("focus", () => {
   if (state.bridge !== "ready") extension.detectExtension();
 });

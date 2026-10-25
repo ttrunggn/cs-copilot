@@ -1,4 +1,4 @@
-import { assert, assertEquals } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
 
 // Mỗi 5 phút: ticket đang theo dõi → Jira search → Edge Function jira-sync (logic so sánh + đăng note nằm ở Supabase).
 const wf = JSON.parse(await Deno.readTextFile(new URL("./jira-sync.json", import.meta.url)));
@@ -15,6 +15,57 @@ Deno.test("jira-sync chain order", () => {
   assertEquals(next("Run Manually"), ["Get Active Links"]);
   for (const [a, b] of [["Get Active Links", "Build JQL"], ["Build JQL", "Search Jira"], ["Search Jira", "Collect Issues"], ["Collect Issues", "Jira Sync"]]) {
     assertEquals(next(a), [b], a);
+  }
+});
+
+Deno.test("sync-now webhook joins the same scan chain and ends in Respond OK", () => {
+  const next = (n: string) => wf.connections[n]?.main[0].map((t: { node: string }) => t.node);
+  const hook = node("Sync Now Webhook");
+  assertEquals(hook.type, "n8n-nodes-base.webhook");
+  assertEquals(hook.parameters.httpMethod, "POST");
+  assertEquals(hook.parameters.path, "jira-sync-now");
+  assertEquals(hook.parameters.responseMode, "responseNode");
+  assertEquals(next("Sync Now Webhook"), ["Verify Secret"]);
+  assertEquals(next("Verify Secret"), ["Get Active Links"]);
+  assertEquals(next("Jira Sync"), ["Respond OK"]);
+  const respond = node("Respond OK");
+  assertEquals(respond.type, "n8n-nodes-base.respondToWebhook");
+  assertEquals(JSON.parse(respond.parameters.responseBody), { ok: true });
+});
+
+function runVerify(item: { json: unknown }): Promise<unknown[]> {
+  const fn = new Function("$input", `return (async function () { ${node("Verify Secret").parameters.jsCode} }).call(this);`);
+  return fn.call({}, { first: () => item });
+}
+const VERIFY_BODY = { website_id: "ws1", session_id: "session_1" };
+
+Deno.test("Verify Secret: placeholder chưa thay -> fail closed; không dùng require", async () => {
+  assertEquals(node("Verify Secret").parameters.jsCode.includes("require("), false);
+  await assertRejects(
+    () => runVerify({ json: { headers: { "x-copilot-secret": "REPLACE_N8N_SHARED_SECRET" }, body: VERIFY_BODY } }),
+    Error,
+    "chưa được cấu hình",
+  );
+});
+
+Deno.test("Verify Secret: sai secret -> unauthorized; đúng secret + ids hợp lệ -> cho qua", async () => {
+  const good = "0123456789abcdef0123456789abcdef";
+  const original = node("Verify Secret").parameters.jsCode;
+  node("Verify Secret").parameters.jsCode = original.replace("REPLACE_N8N_SHARED_SECRET", good);
+  try {
+    await assertRejects(
+      () => runVerify({ json: { headers: { "x-copilot-secret": good.replace("0", "1") }, body: VERIFY_BODY } }),
+      Error,
+      "unauthorized",
+    );
+    await assertRejects(
+      () => runVerify({ json: { headers: { "x-copilot-secret": good }, body: { website_id: "ws1", session_id: "x/y" } } }),
+      Error,
+      "bad input",
+    );
+    assertEquals(await runVerify({ json: { headers: { "x-copilot-secret": good }, body: VERIFY_BODY } }), [{ json: {} }]);
+  } finally {
+    node("Verify Secret").parameters.jsCode = original;
   }
 });
 

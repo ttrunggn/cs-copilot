@@ -1,8 +1,9 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
 import { AiUnavailable } from "../_shared/gemini.ts";
+import type { StorefrontFinding, StorefrontMcp } from "../_shared/storefront.ts";
 import type { HelpdeskChunk, OutputRow } from "../_shared/types.ts";
-import { CONV, fakeAi, makeDeps, msg, TOKEN } from "./fakes.ts";
+import { CONV, fakeAi, makeDeps, msg, TOKEN, WS } from "./fakes.ts";
 
 const REQ = { website_id: "ws1", session_id: "session_1", action: "generate" };
 const HD: HelpdeskChunk = { title: "Currency", url: "https://help.transcy.io/en/article/currency", text: "Enable auto currency.", similarity: 0.8 };
@@ -235,10 +236,10 @@ const JIRA_ROWS = [{
   },
 }];
 
-Deno.test("check lists linked Jira tickets with a NEW flag for tech news after the last agent reply", async () => {
+Deno.test("check lists linked Jira tickets with the update flag for news after the last agent reply", async () => {
   const m = makeDeps({ db: { getJiraRows: () => Promise.resolve(JIRA_ROWS) } });
-  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { jira: { issue_key: string; is_new: boolean }[] };
-  assertEquals(body.jira.map((j) => [j.issue_key, j.is_new]), [["TNT-9184", true]]);
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as { jira: { issue_key: string; has_update: boolean }[] };
+  assertEquals(body.jira.map((j) => [j.issue_key, j.has_update]), [["TNT-9184", true]]);
 });
 
 Deno.test("draft prompt carries Jira context so the reply can relay tech updates", async () => {
@@ -249,4 +250,79 @@ Deno.test("draft prompt carries Jira context so the reply can relay tech updates
   assertEquals(p.includes("TNT-9184 (Pending Dev): Switcher missing"), true);
   assertEquals(p.includes("[tech] Dev Minh: Fixed, deploying tomorrow"), true);
   assertEquals(p.includes("never paste ticket links"), true);
+});
+
+// ---------- ngữ cảnh Storefront cho draft ----------
+
+const SF_FINDING = (over: Partial<StorefrontFinding> = {}): StorefrontFinding => ({
+  fingerprint: "a".repeat(40), title: "Region missing", meta: "", severity: "critical",
+  locale: "ja", page: "/", text: null, kind: "Region missing", texts: [], ...over,
+});
+
+function sfGenerateSetup(mcp: StorefrontMcp | null, dbOver = {}, messages = [msg("user", "Trang chủ bản tiếng Nhật bị thiếu nguyên một vùng nội dung", 1)]) {
+  const f = fakeAi({ draft: "ok", verify: '{"warnings":[]}' });
+  const m = makeDeps({
+    ai: f.ai,
+    messages,
+    db: {
+      getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
+      getConversation: () => Promise.resolve({ ...CONV, custom_data: { shopify_domain: "shop-a.myshopify.com" } }),
+      matchHelpdesk: () => Promise.resolve([HD]),
+      ...dbOver,
+    },
+  });
+  return { deps: { ...m.deps, storefront: mcp }, calls: f.calls };
+}
+const sfMcp = (findings: StorefrontFinding[]): StorefrontMcp => ({
+  findStore: () => Promise.reject(new Error("draft context không gọi find_store")),
+  listFindings: () => Promise.resolve(findings),
+  getFinding: () => Promise.reject(new Error("draft context không gọi get_finding")),
+});
+
+Deno.test("generate: finding khớp hội thoại (kim page) → vào ngữ cảnh draft; finding không liên quan bị loại", async () => {
+  // Finding "/" — kim "/" quá ngắn nên khớp qua đoạn text lỗi mà khách mô tả lại trong tin của họ.
+  const related = SF_FINDING({ text: "thiếu nguyên một vùng nội dung" });
+  const unrelated = SF_FINDING({
+    fingerprint: "b".repeat(40), kind: "Graphic lost", title: "Graphic lost", locale: "es",
+    page: "/products/khong-lien-quan", text: "Rosa",
+  });
+  const { deps, calls } = sfGenerateSetup(sfMcp([related, unrelated]));
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  const p = calls.find((c) => c.task === "draft")!.prompt;
+  assertStringIncludes(p, "<storefront>");
+  assertStringIncludes(p, "critical · Region missing · ja · /");
+  assertEquals(p.includes("Graphic lost"), false);
+  assertEquals(p.includes("/products/khong-lien-quan"), false);
+});
+
+Deno.test("generate: không cấu hình MCP hoặc MCP lỗi → draft vẫn soạn bình thường, không có khối storefront", async () => {
+  const noMcp = sfGenerateSetup(null);
+  const r1 = await handle(REQ, TOKEN, noMcp.deps);
+  assertEquals(r1.status, 200);
+  assertEquals(noMcp.calls.find((c) => c.task === "draft")!.prompt.includes("<storefront>"), false);
+
+  const boom = sfGenerateSetup({
+    findStore: () => Promise.reject(new Error("unused")),
+    listFindings: () => Promise.reject(new Error("SW sập")),
+    getFinding: () => Promise.reject(new Error("unused")),
+  });
+  const r2 = await handle(REQ, TOKEN, boom.deps);
+  assertEquals(r2.status, 200);
+  assertEquals(boom.calls.find((c) => c.task === "draft")!.prompt.includes("<storefront>"), false);
+});
+
+Deno.test("generate: cổng Storefront chưa bật cho chat (workspace không phải Transcy, không ticket) → không gọi list_findings, draft không có ngữ cảnh SW", async () => {
+  let listCalls = 0;
+  const mcp: StorefrontMcp = {
+    findStore: () => Promise.reject(new Error("unused")),
+    listFindings: () => (listCalls++, Promise.resolve([SF_FINDING({ text: "thiếu nguyên một vùng nội dung" })])),
+    getFinding: () => Promise.reject(new Error("unused")),
+  };
+  const { deps, calls } = sfGenerateSetup(mcp, { getWorkspace: () => Promise.resolve({ ...WS, jira_project: null }) });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(listCalls, 0);
+  assertEquals(calls.find((c) => c.task === "draft")!.prompt.includes("<storefront>"), false);
+  assert(calls.length > 0);
 });

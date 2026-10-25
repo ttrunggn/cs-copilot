@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assert, assertEquals } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
 import { sha256Hex } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
@@ -11,6 +11,8 @@ const WS: Workspace = {
   name: "App A",
   topics: [{ key: "billing", label: "Billing", segments: ["billing"] }],
   default_profile: {},
+  jira_project: null,
+  storefront_watch: false,
 };
 const CONV: ConversationRow = {
   website_id: "ws1",
@@ -23,6 +25,7 @@ const CONV: ConversationRow = {
   last_customer_at: "2026-10-15T03:03:00+00:00",
   last_human_operator_at: "2026-10-15T03:02:00+00:00",
   updated_at: "2026-10-15T03:03:00+00:00",
+  custom_data: {},
 };
 const MSGS: MessageRow[] = [
   { id: 1, content_en: null, from: "user", type: "text", is_bot: false, content: "a", created_at: "2026-10-15T03:01:00+00:00", operator_name: null },
@@ -52,23 +55,31 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
-    markPosted: () => Promise.resolve(),
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),
+    unlinkJira: () => Promise.resolve(false),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
+    getStorefrontSeen: () => Promise.resolve([]),
+    markStorefrontSeen: () => Promise.resolve(),
+    getStorefrontStoreStatus: () => Promise.resolve(null),
+    upsertStorefrontStoreStatus: () => Promise.resolve(),
+    getRecentShopDomains: () => Promise.resolve([]),
+    listStorefrontStoreStatus: () => Promise.resolve([]),
+    getStorefrontSegmentCandidates: () => Promise.resolve([]),
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
+    releaseCsatSend: () => Promise.resolve(),
     ...over,
   };
   const n8n: N8n = {
     refreshConversation: () => Promise.resolve({ stale }),
-    postNote: () => Promise.resolve(true),
     sendSurvey: () => Promise.resolve(true),
+    triggerJiraSync: () => Promise.resolve(true),
   };
   return { db, n8n, ai: fakeAi({}).ai };
 }
@@ -94,10 +105,107 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     last_customer_at: CONV.last_customer_at,
     last_human_operator_at: CONV.last_human_operator_at,
     jira: [],
+    modules: { jira: false, storefront: false },
+    storefront_status: null,
     sentiment: null,
     csat: { sent: false, sent_at: null },
     latest_draft: null,
   });
+});
+
+const JIRA_ROW = (key: string) => ({
+  link: {
+    website_id: "ws1", session_id: "session_1", issue_key: key,
+    url: `https://firegroup.atlassian.net/browse/${key}`,
+    silent_baseline: false, last_seen_status: null, last_seen_comment_at: null,
+  },
+  issue: null,
+});
+const modulesOf = (r: { body: unknown }) => (r.body as { modules: { jira: boolean; storefront: boolean } }).modules;
+
+Deno.test("check modules: ticket thuộc project của workspace → bật Jira + Storefront", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT" }),
+    getJiraRows: () => Promise.resolve([JIRA_ROW("TNT-9184")]),
+  }));
+  assertEquals(r.status, 200);
+  assertEquals(modulesOf(r), { jira: true, storefront: true });
+});
+
+Deno.test("check modules: ticket project khác → chỉ Jira, không Storefront", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT" }),
+    getJiraRows: () => Promise.resolve([JIRA_ROW("OES-15")]),
+  }));
+  assertEquals(modulesOf(r), { jira: true, storefront: false });
+});
+
+Deno.test("check modules: workspace chưa set jira_project → Storefront tắt dù có ticket", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getJiraRows: () => Promise.resolve([JIRA_ROW("TNT-9184")]),
+  }));
+  assertEquals(modulesOf(r), { jira: true, storefront: false });
+});
+
+const SF_STATUS = (over: Record<string, unknown> = {}) => ({
+  website_id: "ws1", shop: "shop-a.myshopify.com", watched: true,
+  open_critical: 1, open_high: 2, open_medium: 0, open_low: 0, open_total: 3,
+  worst_severity: "critical", last_good_check: "2026-10-22", fetched_at: "2026-10-23T00:00:00.000Z",
+  ...over,
+});
+const CONV_WITH_SHOP = { ...CONV, custom_data: { shopify_domain: "shop-a.myshopify.com" } };
+const sfStatusOf = (r: { body: unknown }) => (r.body as { storefront_status: unknown }).storefront_status;
+
+Deno.test("check modules: Transcy (cờ storefront_watch bật) + chat có shopify_domain, CHƯA có bản chụp → Storefront bật theo domain, không cần ticket; storefront_status = null", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
+    getConversation: () => Promise.resolve(CONV_WITH_SHOP),
+  }));
+  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(sfStatusOf(r), null);
+});
+
+Deno.test("check modules: bản chụp nói SW đang theo dõi + có lỗi mở → Storefront bật và storefront_status đi kèm để widget hiện badge", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
+    getConversation: () => Promise.resolve(CONV_WITH_SHOP),
+    getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS()),
+  }));
+  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(sfStatusOf(r), SF_STATUS());
+});
+
+Deno.test("check modules: bản chụp xác nhận SW KHÔNG theo dõi domain → Storefront tắt dù chat có shopify_domain", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
+    getConversation: () => Promise.resolve(CONV_WITH_SHOP),
+    getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS({ watched: false, open_critical: 0, open_high: 0, open_total: 0, worst_severity: null })),
+  }));
+  assertEquals(modulesOf(r), { jira: false, storefront: false });
+});
+
+Deno.test("check modules: workspace OE (jira_project = OES, cờ storefront_watch TẮT) + chat có shopify_domain + có bản chụp watched → Storefront vẫn tắt và badge KHÔNG rò (storefront_status = null)", async () => {
+  // Khoá hồi quy lỗi định danh cũ: OE cũng có jira_project (OES) — trước đây
+  // điều đó đủ để mở cổng domain và lộ badge cho OE. Nay phạm vi SW chỉ do
+  // cờ storefront_watch quyết; cờ tắt thì check không trả bản chụp nào cả.
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "OES" }),
+    getConversation: () => Promise.resolve(CONV_WITH_SHOP),
+    getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS()),
+  }));
+  assertEquals(modulesOf(r), { jira: false, storefront: false });
+  assertEquals(sfStatusOf(r), null);
+});
+
+Deno.test("check modules: đọc bản chụp lỗi → coi như chưa có bản chụp, check vẫn chạy và cổng domain vẫn mở", async () => {
+  const r = await handle(REQ, TOKEN, deps({
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
+    getConversation: () => Promise.resolve(CONV_WITH_SHOP),
+    getStorefrontStoreStatus: () => Promise.reject(new Error("db down")),
+  }));
+  assertEquals(r.status, 200);
+  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(sfStatusOf(r), null);
 });
 
 Deno.test("check passes through stale flag", async () => {
@@ -155,4 +263,54 @@ Deno.test("widget request (no personal token) authenticates with Crisp token + o
 
 Deno.test("widget request with forged Crisp token -> 401", async () => {
   assertEquals((await handle({ ...REQ, crisp_token: "forged", operator_id: "op-lan" }, "", deps())).status, 401);
+});
+
+Deno.test("jira_sync_now: webhook n8n xác nhận ok -> triggered true", async () => {
+  const r = await handle({ ...REQ, action: "jira_sync_now" }, TOKEN, deps());
+  assertEquals(r.status, 200);
+  assertEquals(r.body, { action: "jira_sync_now", triggered: true, error: null });
+});
+
+Deno.test("jira_sync_now: n8n không xác nhận -> triggered false kèm lý do, không nuốt lỗi", async () => {
+  const d = deps();
+  d.n8n = { ...d.n8n, triggerJiraSync: () => Promise.resolve(false) };
+  const r = await handle({ ...REQ, action: "jira_sync_now" }, TOKEN, d);
+  assertEquals(r.status, 200);
+  const body = r.body as { triggered: boolean; error: string | null };
+  assertEquals(body.triggered, false);
+  assert(typeof body.error === "string" && body.error.length > 0);
+});
+
+Deno.test("jira_unlink: gỡ đúng (website, session, key) gửi lên và báo removed", async () => {
+  const calls: string[][] = [];
+  const d = deps({
+    unlinkJira: (w, s, k) => {
+      calls.push([w, s, k]);
+      return Promise.resolve(true);
+    },
+  });
+  const r = await handle({ ...REQ, action: "jira_unlink", issue_key: "TNT-9192" }, TOKEN, d);
+  assertEquals(r.status, 200);
+  assertEquals(r.body, { action: "jira_unlink", issue_key: "TNT-9192", removed: true });
+  assertEquals(calls, [["ws1", "session_1", "TNT-9192"]]);
+});
+
+Deno.test("jira_unlink: chat không theo dõi ticket đó -> removed false, vẫn 200", async () => {
+  const r = await handle({ ...REQ, action: "jira_unlink", issue_key: "OES-15" }, TOKEN, deps());
+  assertEquals(r.status, 200);
+  assertEquals(r.body, { action: "jira_unlink", issue_key: "OES-15", removed: false });
+});
+
+Deno.test("jira_unlink: issue_key sai định dạng -> 400, không gọi db", async () => {
+  let called = false;
+  const d = deps({
+    unlinkJira: () => {
+      called = true;
+      return Promise.resolve(true);
+    },
+  });
+  for (const bad of ["bad key", "tnt-9192", "TNT9192", "TNT-", "TNT-1 OR 1=1", ""]) {
+    assertEquals((await handle({ ...REQ, action: "jira_unlink", issue_key: bad }, TOKEN, d)).status, 400, bad);
+  }
+  assertEquals(called, false);
 });

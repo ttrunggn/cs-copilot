@@ -21,6 +21,10 @@
   --csat: #e8334f;
   --highlight-bg: #f2b84b;
   --highlight-text: #2a1a00;
+  /* Private note: vàng hổ phách pha loãng (Ethan chốt lại 2026-10-23 — vàng là
+     màu nhận diện private note như trong Crisp; chỉ bỏ khoá, không bỏ vàng). */
+  --note-bg: rgba(242, 184, 75, .10);
+  --note-border: rgba(242, 184, 75, .45);
   /* Tên cũ của stylesheet — alias về token để class hiện có không đổi hành vi. */
   --surface: var(--card);
   --surface-raised: var(--bubble);
@@ -62,6 +66,8 @@
     --warn-bg: #fff4d6;
     --warn-border: #e5c176;
     --error-border: #e5a49d;
+    --note-bg: rgba(242, 184, 75, .16);
+    --note-border: rgba(242, 184, 75, .55);
     --accent-hover: #2756cb;
     --accent-soft: #e8f0eb;
     --danger-bg: #fbe4df;
@@ -82,7 +88,7 @@ a { color: var(--link); }
 
 .inbox-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .inbox-header > div { min-width: 0; }
-.refresh-button { flex: none; width: 38px; min-height: 38px; padding: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--input); color: var(--muted); font-size: 21px; line-height: 1; }
+.refresh-button { flex: none; width: 38px; min-height: 38px; padding: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--bubble); color: var(--muted); font-size: 21px; line-height: 1; }
 .refresh-button:hover:not(:disabled) { color: var(--fg); }
 .stale-line { color: var(--warn-fg); font-size: 12px; }
 
@@ -98,7 +104,9 @@ a { color: var(--link); }
 .empty-state { padding: 12px 0 4px; }
 .empty-state h2 { margin-bottom: 4px; }
 
-button { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; background: var(--input); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+/* Nền nút là --bubble (xám nổi), không dùng đen tuyền --surface-inset nữa:
+   nút chìm vào nền panel rất khó nhìn (feedback của Ethan trên preview v4). */
+button { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; background: var(--bubble); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .15s ease, filter .15s ease; }
 button:hover:not(:disabled) { border-color: #455063; background: #17191e; }
 button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: .55; cursor: default; }
@@ -108,7 +116,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 @keyframes spin { to { transform: rotate(360deg); } }
 .button-primary { border-color: var(--accent); background: var(--accent); color: #fff; }
 .button-primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
-.button-secondary { background: var(--input); }
+.button-secondary { background: var(--bubble); }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 .button-link:hover:not(:disabled) { background: transparent; color: #b8caff; }
 .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
@@ -175,19 +183,57 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .suggestion-label { font-size: 12px; }
 .suggestion-toggle { align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; }
 
-/* Storefront Watch */
-.card.storefront-strip { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 10px; }
+/* Storefront Watch — issue gom theo 3 trạng thái (Mới / Đã xác nhận / Đang xử lý) */
 .link-text { color: var(--link); font-size: 13px; font-weight: 600; }
 .error-text { color: var(--error); }
 .success-text { color: var(--success); }
 .storefront-card { gap: 10px; }
 .error-card { border-color: var(--error-border); }
 .sf-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
-.sf-chip { flex: none; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; color: var(--muted); }
-.sf-chip.critical { color: var(--error); border-color: var(--error); }
-.sf-chip.confirmed { color: var(--warn); border-color: var(--warn); }
-.sf-chip.new { color: var(--link); border-color: var(--link); }
-.sf-collapsed { border-top: 1px solid var(--line); padding-top: 8px; }
+.storefront-card input.input { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--input); color: var(--fg); font: inherit; }
+button.sf-item.sf-clickable { width: 100%; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+button.sf-item.sf-clickable:hover > div { text-decoration: underline; }
+.sf-detail { display: grid; gap: 4px; margin: 2px 0 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--input); font-size: 12.5px; }
+.sf-group { display: grid; gap: 6px; }
+.sf-group-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.sf-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.sf-dot.sf-new { background: var(--error); }
+.sf-dot.sf-ack { background: var(--warn); }
+.sf-dot.sf-prog { background: var(--link); }
+.sf-group-head b.sf-new { color: var(--error); }
+.sf-group-head b.sf-ack { color: var(--warn); }
+.sf-group-head b.sf-prog { color: var(--link); }
+/* Mục finding đã gom (trùng căn nguyên, nhiều locale) + từng entry riêng */
+.sf-item-group { display: grid; gap: 4px; }
+.sf-item-head { font-size: 13px; }
+.sf-locale { display: inline-block; margin-right: 4px; padding: 0 6px; border: 1px solid var(--line); border-radius: 999px; font-size: 11px; }
+.sf-entry { display: grid; gap: 2px; }
+.sf-entry-actions { display: flex; gap: 10px; align-items: center; font-size: 12px; }
+.sf-console { color: var(--link); font-weight: 600; text-decoration: none; }
+.sf-console:hover { text-decoration: underline; }
+button.sf-explain { padding: 2px 8px; font-size: 12px; }
+.sf-badge { margin-left: auto; }
+.explain-text { white-space: pre-wrap; font-size: 13px; }
+
+/* Màu nhận diện từng module (preview v4): vệt trái + nền pha loãng cùng tông,
+   đủ để phân biệt khi lướt nhanh mà không đậm. */
+.mod-sent { border-left: 3px solid var(--ai); background: rgba(176, 140, 255, .05); }
+.mod-issues { border-left: 3px solid #ff9e6b; background: rgba(255, 158, 107, .06); }
+.mod-issues .eyebrow { color: #ff9e6b; }
+.mod-store { border-left: 3px solid var(--error); background: rgba(255, 138, 128, .05); }
+.mod-jira { border-left: 3px solid var(--link); background: rgba(141, 176, 255, .06); }
+.mod-jira .jtitle { color: var(--link); }
+.mod-jira .jira { border: 0; background: transparent; padding: 6px 0; }
+
+/* Module Vấn đề của khách (cấu trúc Ethan chốt 2026-10-23): dòng tiêu đề nhỏ
+   trên cùng, mỗi issue một card riêng có nhãn ISSUE n cùng tông cam đào. */
+.issues-module { display: grid; gap: 9px; }
+.issues-head { display: flex; align-items: baseline; gap: 6px; padding: 0 2px; }
+.issues-head .eyebrow { color: #ff9e6b; }
+.issue-card { gap: 6px; }
+.issue-tag { display: inline-flex; align-items: center; gap: 6px; color: #ff9e6b; font-size: 11px; font-weight: 750; letter-spacing: .045em; }
+.issue-tag .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff9e6b; flex: none; }
+.issues-pending-card { gap: 9px; }
 
 .meta-section { display: grid; gap: 5px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
@@ -224,12 +270,39 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .compose-card .draft-actions { grid-template-columns: auto 1fr; }
 .draft-actions.single { grid-template-columns: 1fr; }
 
+/* Hàng lệnh + popup (panel gọn v4): mỗi lệnh một sắc nhạt riêng để nổi khỏi nền */
+.cmds { display: flex; gap: 8px; flex-wrap: wrap; }
+.cmd { --tint: var(--bubble); border: 1px solid var(--border); background: var(--tint); border-radius: 10px; padding: 10px 12px; font-weight: 600; font-size: 13px; min-height: 44px; }
+.cmd b { color: var(--ai); font-weight: 700; }
+.cmd-draft { --tint: rgba(176, 140, 255, .15); border-color: rgba(176, 140, 255, .50); }
+.cmd-note { --tint: rgba(242, 184, 75, .14); border-color: rgba(242, 184, 75, .52); }
+.cmd-ask { --tint: rgba(141, 176, 255, .14); border-color: rgba(141, 176, 255, .48); }
+.cmd-csat { --tint: rgba(232, 51, 79, .13); border-color: rgba(232, 51, 79, .42); }
+.cmds .cmd:hover:not(:disabled) { background: var(--tint); filter: brightness(1.18); }
+.cmds .cmd:active:not(:disabled) { transform: scale(.98); }
+
+.overlay { position: fixed; inset: 0; background: rgba(5, 6, 10, .62); display: grid; place-items: center; padding: 12px; z-index: 50; }
+.modal { width: 100%; max-height: 88vh; overflow: auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: grid; gap: 10px; align-content: start; }
+.mhead { display: flex; align-items: center; gap: 8px; }
+.mhead b { flex: 1; font-size: 15px; }
+.mclose { min-height: 36px; padding: 4px 10px; }
+.modal .csat-panel { border-top: 0; padding-top: 0; }
+.opt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: var(--surface-inset); border: 1px solid var(--border); border-radius: 10px; padding: 12px; min-height: 44px; font-size: 13px; }
+.opt b { display: block; font-size: 14px; }
+.opt .opt-desc { display: block; font-size: 12px; font-weight: 400; }
+.opt.on { border-color: var(--link); }
+.opt:hover:not(:disabled) { background: var(--surface-inset); filter: brightness(1.15); }
+.compose-form { display: grid; gap: 8px; }
+.compose-form .draft-actions { grid-template-columns: auto 1fr; }
+.compose-form .compose-button { grid-column: auto; min-height: 44px; font-size: 14px; }
+.review-editor { display: grid; gap: 8px; }
+.review-text { min-height: 110px; }
+
 /* Thẻ tiến trình từng bước (theo simulator Ethan duyệt): bước đang chạy quay
    spinner, bước xong hiện ✓, đồng hồ đếm giây thật — thay thẻ loading chung. */
 .prog { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-ai); }
 .prog-head { display: flex; align-items: center; gap: 10px; }
 .prog-head b { flex: 1; }
-.prog-spark { color: var(--ai); font-size: 18px; animation: pulse 1.3s ease-in-out infinite alternate; }
 .prog-elapsed { font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
 .prog-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
 .prog-bar i { display: block; height: 100%; width: 0; border-radius: 3px; background: linear-gradient(90deg, var(--primary), var(--ai)); transition: width .25s linear; }
@@ -248,13 +321,19 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .jira a { font-weight: 750; text-underline-offset: 3px; }
 .badge { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-fg); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .badge.new { background: var(--danger-bg); color: var(--danger); }
+.badge.wait { background: var(--warn-bg); color: var(--warn-fg); }
 .jira-news { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .jira-news li { overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
+.jira-actions { display: flex; justify-content: flex-end; }
+.unlink-button { color: var(--muted); font-size: 12px; min-height: 32px; }
+.unlink-confirm { display: inline-flex; align-items: center; gap: 8px; }
 
-/* Private note dùng nền trung tính như các thẻ khác (Ethan: bỏ sơn vàng + bỏ khoá). */
-.handoff-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+/* Private note màu VÀNG mặc định (Ethan chốt lại 2026-10-23, thắng chỉ đạo
+   "bỏ sơn vàng" ban sáng): vàng hổ phách pha loãng theo token --note-*, khớp
+   màu nhận diện private note của Crisp. Biểu tượng khoá vẫn bỏ như đã chốt. */
+.handoff-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--note-border); border-radius: 14px; background: var(--note-bg); }
 .note-text { line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
-.handoff-card .button-link { color: #6b510e; }
+.handoff-card .button-link { color: var(--warn); }
 .handoff-card .row:last-child { justify-content: flex-start; }
 
 /* Khung xương cho các trạng thái chờ lần đầu (vẽ tĩnh trong index.html và
@@ -316,6 +395,8 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
     --warn-bg: #fff1d5;
     --warn-line: #e5c176;
     --warn-fg: #845100;
+    --note-bg: rgba(242, 184, 75, .16);
+    --note-border: rgba(242, 184, 75, .55);
     --danger: #b52b21;
     --danger-bg: #fbe4df;
     --danger-line: #e5a49d;

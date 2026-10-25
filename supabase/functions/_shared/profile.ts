@@ -66,11 +66,17 @@ export const MIN_CONVS_FOR_DEFAULT = 5;
  * Chọn dòng "_all" học tốt nhất trong workspace (nhiều hội thoại nhất, hoà thì mới học nhất).
  * Chỉ lấy phần đã học — manual_override là cài đặt riêng cho từng CS, không rò sang mặc định chung.
  */
+/** Mốc học → epoch ms. KHÔNG so chuỗi ngày thô (bài học vụ spam Jira: đuôi ".000Z" và "+00:00" làm thứ tự chuỗi ≠ thứ tự thời gian). Không parse được/thiếu → 0 (cũ nhất). */
+const learnedMs = (r: ProfileRow): number => {
+  const t = Date.parse(r.learned_at ?? "");
+  return Number.isNaN(t) ? 0 : t;
+};
+
 export function pickBestProfileRow(rows: ProfileRow[]): ProfileRow | null {
   const candidates = rows.filter((r) => r.topic === "_all" && (r.conversations_used ?? 0) >= MIN_CONVS_FOR_DEFAULT);
   candidates.sort((a, b) =>
     (b.conversations_used ?? 0) - (a.conversations_used ?? 0) ||
-    String(b.learned_at ?? "").localeCompare(String(a.learned_at ?? ""))
+    learnedMs(b) - learnedMs(a)
   );
   return candidates[0] ?? null;
 }

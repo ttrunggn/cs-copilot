@@ -34,6 +34,35 @@
     },
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "jira-sync-now",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b6a00000-0000-4000-8000-000000000008",
+      "name": "Sync Now Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Secret dùng chung với Edge Function. Chưa cấu hình thì từ chối mọi request.\n// So sánh không phụ thuộc vị trí ký tự sai (n8n chặn module crypto nên không dùng timingSafeEqual).\nconst SECRET = 'REPLACE_N8N_SHARED_SECRET';\nif (SECRET.startsWith('REPLACE_') || SECRET.length < 32) throw new Error('N8N shared secret chưa được cấu hình');\nconst req = $input.first().json;\nconst got = String((req.headers || {})['x-copilot-secret'] || '');\nlet diff = got.length ^ SECRET.length;\nfor (let i = 0; i < SECRET.length; i++) diff |= SECRET.charCodeAt(i) ^ (got.charCodeAt(i) || 0);\nif (diff !== 0) throw new Error('unauthorized');\nconst { website_id, session_id } = req.body || {};\nif (!/^[\\w-]+$/.test(website_id || '') || !/^session_[\\w-]+$/.test(session_id || '')) throw new Error('bad input');\nreturn [{ json: {} }];"
+      },
+      "id": "b6a00000-0000-4000-8000-000000000009",
+      "name": "Verify Secret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
         "method": "GET",
         "url": "https://YOUR-PROJECT.supabase.co/rest/v1/jira_links",
         "authentication": "predefinedCredentialType",
@@ -160,6 +189,21 @@
           "name": "Supabase API"
         }
       }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"ok\": true}",
+        "options": {}
+      },
+      "id": "b6a00000-0000-4000-8000-000000000010",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1320,
+        100
+      ]
     }
   ],
   "connections": {
@@ -223,6 +267,39 @@
         [
           {
             "node": "Jira Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync Now Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Secret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Secret": {
+      "main": [
+        [
+          {
+            "node": "Get Active Links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jira Sync": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
             "type": "main",
             "index": 0
           }

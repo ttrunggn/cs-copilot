@@ -15,12 +15,18 @@ import {
   VERIFY_SCHEMA,
   verifyPrompt,
 } from "../_shared/prompts.ts";
-import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
+import { enabledModules, jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
+import {
+  mentionedInConversation,
+  type StorefrontMcp,
+  storefrontPromptBlock,
+} from "../_shared/storefront.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
 import type { Sentiment } from "../_shared/sentiment.ts";
-import type { CaseMatch, HelpdeskChunk, MessageRow, Warning, Workspace } from "../_shared/types.ts";
+import type { CaseMatch, ConversationRow, HelpdeskChunk, MessageRow, Warning, Workspace } from "../_shared/types.ts";
 import { resolveSentiment } from "./analyze.ts";
 import { loadConversation } from "./load.ts";
+import { shopFromCustomData } from "./storefront-actions.ts";
 
 export const HELPDESK_K = 5;
 // Đo trên helpdesk Transcy: câu liên quan ≥ 0.70, câu lạc đề ~0.52.
@@ -46,7 +52,44 @@ export interface GenerateResult {
   sentiment: Sentiment | null;
 }
 
-type Deps = { db: Db; n8n: N8n; ai: Ai };
+type Deps = { db: Db; n8n: N8n; ai: Ai; storefront?: StorefrontMcp | null };
+
+/**
+ * Ngữ cảnh Storefront cho draft: finding của store thuộc CHÍNH conversation
+ * này, và CHỈ những finding khớp nội dung hội thoại (kim page/text — cùng cơ
+ * chế khớp với nhóm Đang xử lý) mới vào prompt, để CS soạn trả lời không
+ * phải tự tra chéo sang module Storefront. Best-effort tuyệt đối: chưa cấu
+ * hình MCP, cổng module chưa bật cho chat này, không có shop, hay MCP lỗi —
+ * đều trả "" và draft vẫn soạn bình thường (ngữ cảnh phụ không được phép
+ * làm gãy việc chính).
+ */
+async function storefrontContext(
+  deps: Deps,
+  ws: Workspace,
+  websiteId: string,
+  conv: ConversationRow,
+  jiraItems: ReturnType<typeof jiraForConversation>,
+  messages: MessageRow[],
+): Promise<string> {
+  try {
+    if (!deps.storefront) return "";
+    const shop = shopFromCustomData(conv);
+    if (!shop) return "";
+    const snapshot = await deps.db.getStorefrontStoreStatus(websiteId, shop).catch(() => null);
+    const gate = { storefrontWatchEnabled: ws.storefront_watch, shopDomain: shop, snapshotWatched: snapshot ? snapshot.watched : null };
+    if (!enabledModules(jiraItems, ws.jira_project, gate).storefront) return "";
+    const findings = await deps.storefront.listFindings(websiteId, shop);
+    if (!findings.length) return "";
+    // Khớp trên toàn bộ tin hiển thị của hội thoại (khách + CS, không note,
+    // không bot): khách mô tả đúng trang/text lỗi trong tin của họ cũng là
+    // "liên quan" — không chỉ khi CS đã nhắc tới như nhóm Đang xử lý.
+    const texts = messages.filter((m) => m.type === "text" && !m.is_bot).map((m) => m.content);
+    return storefrontPromptBlock(findings.filter((f) => mentionedInConversation(f, texts)));
+  } catch (e) {
+    console.error("storefront context failed", e);
+    return "";
+  }
+}
 
 /** Topic từ segment nếu có; chưa có thì AI phân loại và lưu lại. Lỗi thì bỏ qua (draft vẫn soạn được). */
 async function resolveTopic(deps: Deps, ws: Workspace, websiteId: string, sessionId: string, current: string | null, transcript: string) {
@@ -153,7 +196,9 @@ export async function runGenerate(
     if (donor?.display_name) promptProfile = rebindIdentity(profile, donor.display_name, agentName);
   }
   const variant = pickVariant(variants);
-  const jira = jiraPromptBlock(jiraForConversation(jiraRows, conv.last_human_operator_at));
+  const jiraItems = jiraForConversation(jiraRows, conv.last_human_operator_at);
+  const jira = jiraPromptBlock(jiraItems);
+  const storefront = await storefrontContext(deps, ws, req.website_id, conv, jiraItems, messages);
 
   const { text, model } = await deps.ai.generate("draft", draftPrompt({
     profile: promptProfile,
@@ -164,6 +209,7 @@ export async function runGenerate(
     cases: found.cases,
     variantNotes: variant.template_notes,
     jira,
+    storefront,
     sentiment: mood.sentiment,
     hint,
     tone,

@@ -1,6 +1,6 @@
 // Chạy trong iframe widget (domain Netlify). Cầu nối window.postMessage ↔ chrome.runtime.
 const WIDGET_ORIGIN = "__WIDGET_ORIGIN__";
-const PROTOCOL = 1;
+const PROTOCOL = 2; // 2: thêm target "note" cho copilot:insert — widget cũ hiểu là outdated để khỏi điền note vào ô Reply
 
 window.addEventListener("message", (ev) => {
   if (ev.origin !== WIDGET_ORIGIN || !isCopilotMessage(ev, window)) return;

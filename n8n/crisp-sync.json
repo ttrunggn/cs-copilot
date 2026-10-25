@@ -258,7 +258,7 @@
     },
     {
       "parameters": {
-        "jsCode": "return $input.all().map((item, i) => {\n  const c = $('Split Conversations').itemMatching(i).json;\n  const msgs = Array.isArray(item.json.data) ? item.json.data : [];\n  const events = [{ website_id: c.website_id, event: 'session:meta', data: { session_id: c.session_id, email: c.meta.email || null, nickname: c.meta.nickname || null, segments: c.meta.segments || [], state: c.state } }];\n  for (const m of msgs) events.push({ website_id: c.website_id, event: 'message:import', data: { ...m, session_id: c.session_id } });\n  return { json: { p_events: events } };\n});"
+        "jsCode": "return $input.all().map((item, i) => {\n  const c = $('Split Conversations').itemMatching(i).json;\n  const msgs = Array.isArray(item.json.data) ? item.json.data : [];\n  const events = [{ website_id: c.website_id, event: 'session:meta', data: { session_id: c.session_id, email: c.meta.email || null, nickname: c.meta.nickname || null, segments: c.meta.segments || [], state: c.state, data: c.meta.data || {} } }];\n  for (const m of msgs) events.push({ website_id: c.website_id, event: 'message:import', data: { ...m, session_id: c.session_id } });\n  return { json: { p_events: events } };\n});"
       },
       "id": "b4a00000-0000-4000-8000-00000000000a",
       "name": "Build Events",

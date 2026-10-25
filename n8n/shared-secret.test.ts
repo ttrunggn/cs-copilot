@@ -16,7 +16,7 @@ function run(code: string, headers: Record<string, string>): Promise<unknown[]> 
   return fn.call({}, { first: () => ({ json: { headers, body: BODY } }) }, req, Buffer);
 }
 
-for (const file of ["copilot-refresh.json", "copilot-post-note.json"]) {
+for (const file of ["copilot-refresh.json"]) {
   Deno.test(`${file}: Verify Secret does not use require (n8n blocks the crypto module)`, async () => {
     const code = await verifyCode(file);
     assertEquals(code.includes("require("), false);

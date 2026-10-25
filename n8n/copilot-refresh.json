@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const { website_id, session_id } = $('Verify Secret').first().json;\nconst conv = $('Get Conversation').first().json.data || {};\nconst meta = conv.meta || {};\nconst raw = $('Get Messages').first().json.data;\nconst msgs = Array.isArray(raw) ? raw : [];\nconst events = [{ website_id, event: 'session:meta', data: { session_id, email: meta.email || null, nickname: meta.nickname || null, segments: meta.segments || [], state: conv.state || null } }];\nfor (const m of msgs) events.push({ website_id, event: 'message:import', data: { ...m, session_id } });\nreturn [{ json: { p_events: events } }];"
+        "jsCode": "const { website_id, session_id } = $('Verify Secret').first().json;\nconst conv = $('Get Conversation').first().json.data || {};\nconst meta = conv.meta || {};\nconst raw = $('Get Messages').first().json.data;\nconst msgs = Array.isArray(raw) ? raw : [];\nconst events = [{ website_id, event: 'session:meta', data: { session_id, email: meta.email || null, nickname: meta.nickname || null, segments: meta.segments || [], state: conv.state || null, data: meta.data || {} } }];\nfor (const m of msgs) events.push({ website_id, event: 'message:import', data: { ...m, session_id } });\nreturn [{ json: { p_events: events } }];"
       },
       "id": "b2a00000-0000-4000-8000-000000000005",
       "name": "Build Events",

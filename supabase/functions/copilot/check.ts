@@ -1,10 +1,12 @@
 import { unansweredCustomerMessages } from "../_shared/context.ts";
-import { type ConversationJira, jiraForConversation } from "../_shared/jira.ts";
+import { type ConversationJira, enabledModules, type EnabledModules, jiraForConversation } from "../_shared/jira.ts";
 import type { Db } from "../_shared/db.ts";
 import { pickBestProfileRow, type ProfileSource, resolveProfile } from "../_shared/profile.ts";
 import type { Sentiment } from "../_shared/sentiment.ts";
+import type { StorefrontStoreStatus } from "../_shared/storefront.ts";
 import type { Warning, Workspace } from "../_shared/types.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
+import { shopFromCustomData } from "./storefront-actions.ts";
 
 export interface CheckResult {
   action: "check";
@@ -23,6 +25,19 @@ export interface CheckResult {
   last_customer_at: string | null;
   last_human_operator_at: string | null;
   jira: ConversationJira[];
+  /** Module bật theo ngữ cảnh (internal connections): widget chỉ render module được bật. Client cũ bỏ qua trường này vẫn chạy. */
+  modules: EnabledModules;
+  /**
+   * Bản chụp Storefront Watch của store thuộc conversation này (job
+   * storefront_sweep ghi vào storefront_store_status): widget hiện badge số
+   * lỗi đang mở ngay tại khối Issue logs + cổng Storefront dùng watched để
+   * quyết tức thì. CHỈ trả khi workspace bật cờ storefront_watch — ngoài
+   * phạm vi SW thì luôn null, badge không được rò sang workspace khác.
+   * null = workspace ngoài phạm vi SW, chat không có shopify_domain, hoặc
+   * job nền chưa quét tới domain này (khi đó cổng vẫn mở theo domain và
+   * action nạp trực tiếp sẽ quyết định — xem enabledModules).
+   */
+  storefront_status: StorefrontStoreStatus | null;
   sentiment: Sentiment | null;
   csat: { sent: boolean; sent_at: string | null };
   latest_draft: {
@@ -55,6 +70,18 @@ export async function runCheck(
   const unanswered = unansweredCustomerMessages(messages);
   const pendingMessages = pendingCustomerMessages(messages);
   const { source } = resolveProfile(profiles, conv.topic, ws.default_profile, pickBestProfileRow(allProfiles));
+  const jira = jiraForConversation(jiraRows, conv.last_human_operator_at);
+  // Cổng Storefront đường domain (chỉ workspace trong phạm vi SW —
+  // enabledModules khoá bằng cờ ws.storefront_watch): shop lấy từ custom
+  // data của CHÍNH conversation này. Bản chụp chỉ được đọc khi cờ bật:
+  // ngoài phạm vi SW thì storefront_status luôn null để badge không rò
+  // sang workspace khác. Bản chụp lỗi thì coi như chưa có (cổng mở theo
+  // domain, action nạp trực tiếp quyết định) — bản chụp là dữ kiện phụ,
+  // không được làm gãy check.
+  const shop = shopFromCustomData(conv);
+  const storefrontStatus = shop && ws.storefront_watch
+    ? await deps.db.getStorefrontStoreStatus(req.website_id, shop).catch(() => null)
+    : null;
   return {
     action: "check",
     stale,
@@ -70,7 +97,13 @@ export async function runCheck(
     bot_replied_count: pendingMessages.filter((m) => m.bot_replied).length,
     last_customer_at: conv.last_customer_at,
     last_human_operator_at: conv.last_human_operator_at,
-    jira: jiraForConversation(jiraRows, conv.last_human_operator_at),
+    jira,
+    modules: enabledModules(jira, ws.jira_project, {
+      storefrontWatchEnabled: ws.storefront_watch,
+      shopDomain: shop || null,
+      snapshotWatched: storefrontStatus ? storefrontStatus.watched : null,
+    }),
+    storefront_status: storefrontStatus,
     sentiment: sentimentRow ? (({ input_fp: _fp, ...rest }) => rest)(sentimentRow) : null,
     csat: { sent: Boolean(csatSend), sent_at: csatSend?.sent_at ?? null },
     // Draft viết trước tin khách mới nhất là của lượt trước: không hiện để tránh "Điền lại" nhầm.
