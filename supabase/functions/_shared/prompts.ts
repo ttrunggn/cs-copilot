@@ -354,9 +354,15 @@ export const HANDOFF_SCHEMA = {
   required: ["summary", "issues", "waiting_on", "next_step"],
 };
 
-export function handoffPrompt(transcript: string, topicLabel: string | null, jiraBlock: string): string {
+export function handoffPrompt(transcript: string, topicLabel: string | null, jiraBlock: string, previousNote?: string): string {
   return [
     "Write an internal handoff note so another support agent can take over this conversation in under 30 seconds of reading.",
+    ...(previousNote
+      ? [
+        "A previous version of this note exists below and the agent explicitly asked for a rewrite. Write a genuinely fresh version: different wording and sentence order, never copy sentences from the previous version. Keep every fact that is still true, drop facts the conversation has overtaken, and add anything new.",
+        `<previous_note>\n${neutralize(previousNote)}\n</previous_note>`,
+      ]
+      : []),
     "Write every field in Vietnamese; keep feature names, plan names, prices, URLs, ticket keys and error messages verbatim.",
     "summary: one sentence, at most 20 words: who/what the customer wants.",
     "issues: one item per distinct problem or request the customer raised (merge duplicates, usually 1-4 items). " +
@@ -390,6 +396,21 @@ export function parseHandoff(text: string): HandoffFields {
 }
 
 const STATE_LABEL: Record<HandoffState, string> = {
+  done: "Xong",
+  in_progress: "Đang xử lý",
+  waiting_customer: "Chờ khách",
+  waiting_tech: "Chờ tech",
+  not_started: "Chưa xử lý",
+};
+
+/**
+ * Nhãn trạng thái KÈM ký hiệu — CHỈ dùng khi format học theo CS ghi rõ
+ * state_style "emoji" (thói quen riêng của chính CS đó trong note của họ,
+ * học nguyên như giọng cá nhân). Format mặc định của hệ thống không dùng:
+ * Ethan chốt bỏ ký hiệu trang trí khỏi nội dung hệ thống sinh (2026-10-26,
+ * sau khi note mặc định vẫn còn 📋/⏳/➡️ trên bản live).
+ */
+const STATE_LABEL_EMOJI: Record<HandoffState, string> = {
   done: "✅ Xong",
   in_progress: "🔄 Đang xử lý",
   waiting_customer: "⏳ Chờ khách",
@@ -445,11 +466,11 @@ export function formatHandoffNote(h: HandoffFields, operatorName: string, fmt?: 
   if (!fmt) {
     const waiting = WAITING_LABEL[h.waiting_on];
     return [
-      `📋 Handoff — ${operatorName}`,
+      `Handoff — ${operatorName}`,
       h.summary,
       ...h.issues.map((i, n) => `${n + 1}. ${i.issue} — ${STATE_LABEL[i.state]}${i.detail ? `: ${i.detail}` : ""}`),
       ...(h.more ? [`… và ${h.more} vấn đề khác`] : []),
-      `➡️ Tiếp theo${waiting ? ` (chờ ${waiting})` : ""}: ${h.next_step}`,
+      `Tiếp theo${waiting ? ` (chờ ${waiting})` : ""}: ${h.next_step}`,
     ].join("\n");
   }
   return formatHandoffNoteLearned(h, operatorName, fmt);
@@ -473,7 +494,7 @@ const FIELD_ORDER: NoteSectionField[] = ["summary", "issues", "next_step"];
  */
 function formatHandoffNoteLearned(h: HandoffFields, operatorName: string, fmt: NoteFormat): string {
   const en = fmt.language === "en";
-  const stateLabel = (s: HandoffState) => (fmt.state_style === "text" ? STATE_LABEL_TEXT[s] : STATE_LABEL[s]);
+  const stateLabel = (s: HandoffState) => (fmt.state_style === "text" ? STATE_LABEL_TEXT[s] : STATE_LABEL_EMOJI[s]);
   const block = (field: NoteSectionField, label: string): string[] => {
     if (field === "summary") return [label ? `${label} ${h.summary}` : h.summary];
     if (field === "issues") {
