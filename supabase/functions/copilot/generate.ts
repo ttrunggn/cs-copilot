@@ -9,9 +9,13 @@ import {
   classifySchema,
   type DraftTone,
   draftPrompt,
+  parsePolish,
   parseTopic,
   parseWarnings,
   pickVariant,
+  POLISH_SCHEMA,
+  polishPrompt,
+  stripEmDashes,
   VERIFY_SCHEMA,
   verifyPrompt,
 } from "../_shared/prompts.ts";
@@ -50,6 +54,8 @@ export interface GenerateResult {
   profile_source: ProfileSource;
   prompt_version: string;
   sentiment: Sentiment | null;
+  /** Gợi ý tối ưu cho draft (cơ chế gợi ý — Ethan 2026-10-26): bản gọn hơn + lý do khi draft còn đoạn người bản xứ đọc sẽ khựng; null = draft đã tự nhiên, hoặc bản cache (không chạy bước kiểm tra cho bản cache). */
+  draft_suggestion: { reason: string; text: string } | null;
 }
 
 type Deps = { db: Db; n8n: N8n; ai: Ai; storefront?: StorefrontMcp | null };
@@ -124,6 +130,22 @@ async function retrieve(deps: Deps, websiteId: string, messages: MessageRow[]) {
   }
 }
 
+/**
+ * Kiểm tra tối ưu draft (cơ chế gợi ý): draft còn đoạn người bản xứ đọc sẽ
+ * khựng → trả {reason, text} cho panel hiện thẻ gợi ý; draft không bị sửa —
+ * CS tự quyết. Best-effort tuyệt đối: lỗi gọi/parse → null (không có gợi ý),
+ * không bao giờ làm hỏng luồng soạn draft chính.
+ */
+async function polish(deps: Deps, draft: string): Promise<{ reason: string; text: string } | null> {
+  try {
+    const { text } = await deps.ai.generate("polish", polishPrompt(draft), { schema: POLISH_SCHEMA });
+    return parsePolish(text, draft);
+  } catch (e) {
+    console.error("polish failed", e);
+    return null;
+  }
+}
+
 /** Đối chiếu draft với helpdesk. Lỗi gọi hoặc parse → chưa đối chiếu, không cảnh báo. */
 async function verify(deps: Deps, draft: string, helpdesk: HelpdeskChunk[]): Promise<{ verified: boolean; warnings: Warning[] }> {
   try {
@@ -167,7 +189,7 @@ export async function runGenerate(
         action: "generate", stale, cached: true, output_id: hit.id, draft: hit.content, warnings: hit.warnings,
         verified: hit.verified ?? false, helpdesk_matches: hit.helpdesk_matches ?? 0, sources: [], topic: hit.topic,
         topic_label: label(hit.topic), profile_source: resolveProfile(profiles, hit.topic, ws.default_profile, bestRow).source,
-        prompt_version: hit.prompt_version ?? "", sentiment: null,
+        prompt_version: hit.prompt_version ?? "", sentiment: null, draft_suggestion: null,
       };
     }
   }
@@ -214,7 +236,9 @@ export async function runGenerate(
     hint,
     tone,
   }));
-  const draft = text.trim();
+  // Gọt cơ học dấu gạch ngang dài (luật Ethan 2026-10-26) trước mọi khâu sau:
+  // bản lưu/cache/trả về đều là bản đã sạch dấu, khớp đúng chữ CS sẽ điền.
+  const draft = stripEmDashes(text.trim());
   // Draft rỗng (bị chặn an toàn, model không trả gì) thì không lưu, không cache 24h.
   if (!draft) throw new AiBadOutput("draft rỗng");
   // Không có bài helpdesk liên quan thì không có gì để đối chiếu; chỉ "chưa đối chiếu" khi tìm kiếm hoặc verify lỗi.
@@ -236,10 +260,12 @@ export async function runGenerate(
     prompt_version: variant.prompt_version,
     posted: null,
   });
+  const draftSuggestion = await polish(deps, draft);
   return {
     action: "generate", stale, cached: false, output_id: outputId, draft, warnings: checked.warnings,
     verified: checked.verified, helpdesk_matches: found.helpdesk.length,
     sources: found.helpdesk.map((c) => ({ title: c.title, url: c.url })), topic, topic_label: label(topic),
     profile_source: source, prompt_version: variant.prompt_version, sentiment: mood.sentiment,
+    draft_suggestion: draftSuggestion,
   };
 }
