@@ -79,6 +79,22 @@ Deno.test("generate sends responseSchema when schema given", async () => {
   assertEquals(body.contents[0].parts[0].text, "p");
 });
 
+Deno.test("generate sends temperature when given, merged with schema config; absent otherwise", async () => {
+  const f1 = fakeFetch({ m1: [ok("{}")] });
+  await createGemini({ apiKeys: ["k"], store: store(["m1"]).s, fetch: f1.fn })
+    .generate("handoff", "p", { schema: { type: "OBJECT" }, temperature: 1.2 });
+  assertEquals(JSON.parse(String(f1.calls[0].init.body)).generationConfig, {
+    responseMimeType: "application/json", responseSchema: { type: "OBJECT" }, temperature: 1.2,
+  });
+  const f2 = fakeFetch({ m1: [ok("{}")] });
+  await createGemini({ apiKeys: ["k"], store: store(["m1"]).s, fetch: f2.fn })
+    .generate("draft", "p", { temperature: 0.5 });
+  assertEquals(JSON.parse(String(f2.calls[0].init.body)).generationConfig, { temperature: 0.5 });
+  const f3 = fakeFetch({ m1: [ok("{}")] });
+  await createGemini({ apiKeys: ["k"], store: store(["m1"]).s, fetch: f3.fn }).generate("draft", "p");
+  assertEquals("generationConfig" in JSON.parse(String(f3.calls[0].init.body)), false);
+});
+
 Deno.test("generate sends api key in x-goog-api-key header, not in URL", async () => {
   const f = fakeFetch({ m1: [ok("x")] });
   await createGemini({ apiKeys: ["secret-key"], store: store(["m1"]).s, fetch: f.fn }).generate("draft", "p");
