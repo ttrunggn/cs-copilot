@@ -36,11 +36,39 @@ Deno.test("sentimentPrompt: rubric có neo điểm, trục urgency riêng và v�
 });
 
 Deno.test("sentimentGuidance: khách bực/khẩn cấp thì cấm emoji và cấm xin review", () => {
-  const g = sentimentGuidance({ score: 20, mood: "frustrated", urgency: "low", confidence: 0.9, summary: "", signals: [] });
+  const g = sentimentGuidance({ score: 20, mood: "frustrated", urgency: "low", confidence: 0.9, summary: "", signals: [], issues: [] });
   assertStringIncludes(g, "no emoji anywhere");
   assertStringIncludes(g, "Never ask for a review");
-  const calm = sentimentGuidance({ score: 50, mood: "neutral", urgency: "low", confidence: 0.9, summary: "", signals: [] });
+  const calm = sentimentGuidance({ score: 50, mood: "neutral", urgency: "low", confidence: 0.9, summary: "", signals: [], issues: [] });
   assertEquals(calm, "");
+});
+
+Deno.test("parseSentiment: issues được chuẩn hoá — giữ câu tóm tắt + bằng chứng, bỏ rác, khử trùng, tối đa 3", () => {
+  const s = parseSentiment(JSON.stringify({
+    score: 40, issues: [
+      { summary: "Khách bị trừ tiền sau khi đã gỡ app", evidence: "it is still charging" },
+      { summary: "Khách bị trừ tiền sau khi đã gỡ app", evidence: "trùng" },
+      { summary: "   ", evidence: "summary rỗng" },
+      { evidence: "thiếu summary" },
+      "không phải object",
+      { summary: "Khách chờ hoàn tiền quá lâu" },
+      { summary: "Khách không đăng nhập được vào store" },
+      { summary: "Vấn đề thứ tư — phải bị cắt vì vượt tối đa 3" },
+    ],
+  }));
+  assertEquals(s.issues, [
+    { summary: "Khách bị trừ tiền sau khi đã gỡ app", evidence: "it is still charging" },
+    { summary: "Khách chờ hoàn tiền quá lâu", evidence: "" },
+    { summary: "Khách không đăng nhập được vào store", evidence: "" },
+  ]);
+  assertEquals(parseSentiment('{"score":50}').issues, []); // AI không trả issues → mảng rỗng, không lỗi
+});
+
+Deno.test("sentimentPrompt: có hướng dẫn issues — câu tóm tắt vấn đề, tin tiến độ không thành issue", () => {
+  const p = sentimentPrompt("User: I have accepted you");
+  assertStringIncludes(p, "issues");
+  assertStringIncludes(p, "NOT an issue");
+  assertStringIncludes(p, "problem statement");
 });
 
 Deno.test("customerMessageCount: chỉ đếm tin của khách", () => {

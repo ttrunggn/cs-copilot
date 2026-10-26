@@ -18,6 +18,7 @@ export const WS: Workspace = {
   default_profile: {},
   jira_project: null,
   storefront_watch: false,
+  review_link: null,
 };
 
 export const CONV: ConversationRow = {

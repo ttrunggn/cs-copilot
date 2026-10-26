@@ -28,36 +28,24 @@ jobs:
         id: filter
         with:
           filters: |
+            # Mọi function đều phụ thuộc _shared/**: liệt kê từng file đã từng
+            # làm deploy thiếu (sentiment.ts/review.ts từng không nằm trong bộ
+            # lọc của copilot — sửa riêng hai file đó thì copilot không hề
+            # deploy lại). Đổi bất kỳ file _shared nào → deploy lại cả 4
+            # function cho chắc; thừa một lần deploy rẻ hơn thiếu một lần.
             mcp:
               - 'supabase/functions/mcp/**'
               - 'supabase/functions/copilot/**'
               - 'supabase/functions/_shared/**'
             copilot:
               - 'supabase/functions/copilot/**'
-              - 'supabase/functions/_shared/auth.ts'
-              - 'supabase/functions/_shared/context.ts'
-              - 'supabase/functions/_shared/db.ts'
-              - 'supabase/functions/_shared/gemini.ts'
-              - 'supabase/functions/_shared/jira.ts'
-              - 'supabase/functions/_shared/n8n.ts'
-              - 'supabase/functions/_shared/profile.ts'
-              - 'supabase/functions/_shared/prompts.ts'
-              - 'supabase/functions/_shared/translate.ts'
-              - 'supabase/functions/_shared/types.ts'
+              - 'supabase/functions/_shared/**'
             embed_helpdesk:
               - 'supabase/functions/embed-helpdesk/**'
-              - 'supabase/functions/_shared/chunk.ts'
-              - 'supabase/functions/_shared/db.ts'
-              - 'supabase/functions/_shared/gemini.ts'
-              - 'supabase/functions/_shared/secret.ts'
-              - 'supabase/functions/_shared/types.ts'
+              - 'supabase/functions/_shared/**'
             jira_sync:
               - 'supabase/functions/jira-sync/**'
-              - 'supabase/functions/_shared/db.ts'
-              - 'supabase/functions/_shared/jira.ts'
-              - 'supabase/functions/_shared/n8n.ts'
-              - 'supabase/functions/_shared/secret.ts'
-              - 'supabase/functions/_shared/types.ts'
+              - 'supabase/functions/_shared/**'
   test:
     runs-on: ubuntu-latest
     steps:

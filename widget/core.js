@@ -230,6 +230,9 @@ const INSERT_MESSAGES = {
   duplicate: "Draft này đã được điền rồi",
   composer_not_found: "Không tìm thấy ô soạn trong Crisp — tải lại trang Crisp rồi thử lại",
   note_unconfirmed: "Chưa xác nhận được ô Note trong Crisp — chưa điền gì cả. Mở sẵn tab Note trong Crisp rồi thử lại",
+  // Extension đã ghi nhưng đọc lại không thấy chữ khớp (Lỗi 1+2, 2026-10-26):
+  // không được báo "đã điền" như inserted — nói rõ để CS tự nhìn lại ô soạn.
+  insert_unverified: "Đã thử điền nhưng chưa xác nhận được chữ có vào ô Reply — nhìn lại ô Reply trong Crisp, nếu trống thì thử điền lại",
 };
 
 const NOTE_INSERT_MESSAGES = {
@@ -237,6 +240,7 @@ const NOTE_INSERT_MESSAGES = {
   session_mismatch: "Note của chat khác, mở lại đúng chat để điền",
   not_empty: "Ô Note đang có chữ",
   duplicate: "Note này đã được điền rồi",
+  insert_unverified: "Đã thử điền nhưng chưa xác nhận được chữ có vào ô Note — nhìn lại ô Note trong Crisp, nếu trống thì thử điền lại",
 };
 
 /** Lời nhắn theo kết quả extension trả về; target "note" dùng bộ chữ riêng cho ô Note. */
@@ -246,22 +250,33 @@ export function insertResultMessage(status, target = "reply") {
 }
 
 /**
- * Template xin review mặc định (fallback toàn cục): bê đúng khuôn mẫu trong
- * preview v4 Ethan duyệt. Khi server học được template theo từng CS (như note
- * format), widget sẽ nhận template của CS đang đăng nhập qua check/generate
- * và giá trị này chỉ còn là dự phòng cuối cùng.
+ * Template xin review mặc định (fallback toàn cục cuối cùng): bê đúng khuôn
+ * mẫu trong preview v4 Ethan duyệt. Đường chính từ 2026-10-26: server phân
+ * giải template theo profile của CS qua check.review_template (link thay
+ * theo workspace) và widget nạp sẵn vào state.reviewText — giá trị này chỉ
+ * còn dùng khi check chưa về hoặc workspace chưa cấu hình gì cả.
  */
 export const REVIEW_TEMPLATE = "Hi, thank you for reaching out to us. I hope your issue has been resolved. If you are satisfied with my support, I would really appreciate it if you could take a moment to leave a review of your experience. It means a lot to our team. Thank you so much!";
 
 /**
- * "Vấn đề của khách" cho panel gọn. Backend KHÔNG trả issues riêng, nên nguồn
- * trung thực nhất đang có là `signals` của phân tích sentiment — các vấn đề AI
- * rút từ chính hội thoại. Chưa có sentiment thì lùi về topic của hội thoại;
- * không có cả hai thì trả rỗng (panel hiện trạng thái chưa ghi nhận, không bịa).
+ * "Vấn đề của khách" cho panel gọn. Nguồn đúng là `issues` do lớp phân tích
+ * sinh riêng (từ 2026-10-26): mỗi issue là một CÂU PHÁT BIỂU VẤN ĐỀ do AI
+ * tổng hợp từ toàn cảnh hội thoại, kèm trích ngắn nguyên văn làm bằng chứng
+ * (detail). signals KHÔNG còn được dùng làm issue nữa — chúng là trích nguyên
+ * văn (kể cả tin cập nhật tiến độ cũng từng biến thành thẻ ISSUE — Lỗi 4);
+ * signals chỉ hiển thị trong thẻ tâm trạng. Sentiment chưa có issues (dòng cũ
+ * hoặc AI chưa sinh) thì lùi về topic; không có gì thì rỗng, không bịa.
  */
 export function toIssuesViewModel(check, sentiment) {
-  const signals = (sentiment?.signals ?? []).filter((s) => typeof s === "string" && s.trim());
-  if (signals.length) return { issues: signals.map((title) => ({ title, detail: null })) };
+  const raw = Array.isArray(sentiment?.issues) ? sentiment.issues : [];
+  const issues = raw
+    .filter((i) => i && typeof i.summary === "string" && i.summary.trim())
+    .slice(0, 3)
+    .map((i) => ({
+      title: i.summary.trim(),
+      detail: typeof i.evidence === "string" && i.evidence.trim() ? `Khách nhắn: "${i.evidence.trim()}"` : null,
+    }));
+  if (issues.length) return { issues };
   const topic = check?.topic_label ?? check?.topic ?? null;
   if (topic) return { issues: [{ title: topic, detail: "Chủ đề của hội thoại" }] };
   return { issues: [] };

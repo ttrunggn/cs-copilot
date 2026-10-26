@@ -1,9 +1,11 @@
 // Học giọng văn từng CS từ chatlog 90 ngày. Chạy tay khi muốn cập nhật (vd mỗi tuần):
-//   deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id> [--skip-classify] [--skip-profiles] [--skip-note-formats] [--skip-cases]
+//   deno run --env-file=.env --allow-net --allow-env --allow-read scripts/learn-profiles.ts <website_id> [--skip-classify] [--skip-profiles] [--skip-note-formats] [--skip-review-templates] [--skip-cases]
 // 1) Phân loại topic theo lô cho hội thoại chưa có topic (theo bộ topic của workspace).
 // 2) Mỗi CS: profile "_all" + profile riêng cho topic có ≥ min_conversations_per_topic hội thoại.
 //    Bỏ chat email hệ thống. Trường nào có trong manual_override vẫn thắng lúc dùng (không bị ghi đè).
 // 2b) Format private note theo từng CS, học từ note cũ (type='note') của chính CS, lưu ở dòng "_all".
+// 2c) Template xin review theo từng CS: cụm tin xin review lặp lại nhiều nhất của chính CS,
+//     link chuẩn hoá thành biến {{review_link}} (link đích thuộc workspace, không thuộc profile).
 // 3) Tóm tắt hội thoại đã resolve chưa có trong `cases` thành case tương tự cho Soạn tin.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createAiStore } from "../supabase/functions/_shared/db.ts";
@@ -27,6 +29,7 @@ import {
   SKIP_TOPICS,
 } from "../supabase/functions/_shared/learn.ts";
 import { casePrompt, caseSchema, lastAgentReply, parseCases } from "../supabase/functions/_shared/cases.ts";
+import { mineReviewTemplate } from "../supabase/functions/_shared/review.ts";
 import { humanTranscript } from "../supabase/functions/_shared/context.ts";
 import type { MessageRow, Topic } from "../supabase/functions/_shared/types.ts";
 
@@ -175,6 +178,32 @@ if (!flags.includes("--skip-profiles") && !flags.includes("--skip-note-formats")
     } catch (e) {
       console.warn(`- ${name} / note format: lỗi ${e instanceof Error ? e.message : e}`);
     }
+  }
+}
+
+// ---------- 2c) học template xin review theo từng CS ----------
+// Xác định hoàn toàn (không gọi AI): cụm tin xin review lặp nhất của chính CS,
+// link → biến {{review_link}}. Template là thói quen cá nhân nên áp cho mọi
+// dòng profile của CS trong workspace. Không tìm thấy thì GIỮ NGUYÊN template
+// đã có (cửa sổ 90 ngày có thể không chứa đợt CS xin review — không được xoá
+// dữ liệu học cũ chỉ vì lần chạy này không thấy).
+if (!flags.includes("--skip-profiles") && !flags.includes("--skip-review-templates")) {
+  const byOp = new Map<string, string[]>();
+  for (const m of opMsgs) {
+    if (!byOp.has(m.operator_id)) byOp.set(m.operator_id, []);
+    byOp.get(m.operator_id)!.push(m.content);
+  }
+  for (const [opId, contents] of byOp) {
+    const name = nameOf.get(opId) ?? opId;
+    const template = mineReviewTemplate(contents);
+    if (!template) {
+      console.log(`- ${name} / review template: không thấy khuôn lặp lại, giữ nguyên hiện trạng`);
+      continue;
+    }
+    const { error } = await sb.from("agent_profiles").update({ review_template: template })
+      .eq("crisp_user_id", opId).eq("website_id", websiteId);
+    if (error) { console.warn(`- ${name} / review template: lỗi ${error.message}`); continue; }
+    console.log(`- ${name} / review template: đã cập nhật từ tin thật của CS`);
   }
 }
 

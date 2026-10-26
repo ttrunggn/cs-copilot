@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { confirmNoteMode, decideInsert, isCopilotMessage, isYellowishColor, sessionFromUrl, tabLooksActive } from "./composer-core.js";
+import { confirmNoteMode, decideInsert, isCopilotMessage, isYellowishColor, placeholderKind, sessionFromUrl, tabLooksActive, verifyWritten } from "./composer-core.js";
 
 Deno.test("sessionFromUrl reads the open conversation", () => {
   assertEquals(sessionFromUrl("https://app.crisp.chat/website/ws1/inbox/session_abc-123/"), "session_abc-123");
@@ -51,11 +51,30 @@ Deno.test("isYellowishColor nhận nền vàng Note mode, loại trắng/xám/t�
   assertEquals(isYellowishColor("rgb(255, 249, 196)"), true); // vàng nhạt kiểu Crisp note
   assertEquals(isYellowishColor("rgba(250, 230, 140, 1)"), true);
   assertEquals(isYellowishColor("rgb(146, 124, 32)"), true); // vàng sẫm (dark mode)
+  assertEquals(isYellowishColor("rgb(58, 53, 32)"), true); // vàng olive sẫm trên giao diện tối — phiên dò 2026-10-26 (bản cũ đòi r>=120 nên trượt ca này)
   assertEquals(isYellowishColor("rgb(255, 255, 255)"), false);
   assertEquals(isYellowishColor("rgb(24, 24, 27)"), false);
+  assertEquals(isYellowishColor("rgb(20, 24, 36)"), false); // nền tối ngả xanh của ô Reply (giao diện tối) — lạnh, không ấm
   assertEquals(isYellowishColor("rgb(120, 120, 120)"), false);
   assertEquals(isYellowishColor("transparent"), false);
   assertEquals(isYellowishColor(""), false);
+});
+
+Deno.test("placeholderKind nhận diện placeholder render thật của hai mode", () => {
+  assertEquals(placeholderKind("Send a private note to your team…"), "note");
+  assertEquals(placeholderKind("  Send a private note…"), "note");
+  assertEquals(placeholderKind("Send your message to trung nguyen in chat…"), "reply");
+  assertEquals(placeholderKind("Write a private note…"), null); // chỉ là dự phòng thuộc tính, không phải chữ render chuẩn
+  assertEquals(placeholderKind(""), null);
+  assertEquals(placeholderKind(null), null);
+});
+
+Deno.test("verifyWritten: ô phải chứa dòng đầu của nội dung vừa ghi", () => {
+  assertEquals(verifyWritten("Hi there, thanks…\n\nBody", "Hi there, thanks…\n\nBody"), true);
+  assertEquals(verifyWritten("", "Hi there"), false);
+  assertEquals(verifyWritten("nội dung khác hẳn", "Hi there"), false);
+  assertEquals(verifyWritten("Hi there", "  \nHi there"), true); // dòng đầu bỏ qua dòng trống
+  assertEquals(verifyWritten("bất cứ", ""), false);
 });
 
 Deno.test("tabLooksActive qua aria-selected / data-state / class", () => {
@@ -69,12 +88,17 @@ Deno.test("tabLooksActive qua aria-selected / data-state / class", () => {
   assertEquals(tabLooksActive({}), false);
 });
 
-Deno.test("confirmNoteMode: phải có tab active VÀ một tín hiệu phía editor — thiếu một phía là không xác nhận", () => {
+Deno.test("confirmNoteMode: tab active + 1 tín hiệu editor, HOẶC 2 tín hiệu editor độc lập (class tab trên Crisp thật là chuỗi băm — không đọc được active)", () => {
   assertEquals(confirmNoteMode({ tabActive: true, yellowBg: true }), true);
   assertEquals(confirmNoteMode({ tabActive: true, noteClass: true }), true);
   assertEquals(confirmNoteMode({ tabActive: true, notePlaceholder: true }), true);
   assertEquals(confirmNoteMode({ tabActive: true }), false); // chỉ tab active, editor chưa đổi → chưa tin
-  assertEquals(confirmNoteMode({ yellowBg: true }), false); // editor vàng nhưng tab chưa active → chưa tin
+  assertEquals(confirmNoteMode({ yellowBg: true }), false); // MỘT tín hiệu editor đơn lẻ → chưa tin
+  assertEquals(confirmNoteMode({ notePlaceholder: true }), false);
+  // Hai tín hiệu phía editor cùng lúc: chỉ tồn tại ở Note mode → đủ tin dù tab không đọc được trạng thái active
+  assertEquals(confirmNoteMode({ notePlaceholder: true, notePill: true }), true);
+  assertEquals(confirmNoteMode({ notePlaceholder: true, yellowBg: true }), true);
+  assertEquals(confirmNoteMode({ notePill: true, yellowBg: true }), true);
   assertEquals(confirmNoteMode({}), false);
   assertEquals(confirmNoteMode(), false);
 });

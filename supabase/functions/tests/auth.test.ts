@@ -3,7 +3,7 @@ import { authorize, authorizeWidget, HttpError, sha256Hex } from "../_shared/aut
 import type { Db } from "../_shared/db.ts";
 import type { Workspace } from "../_shared/types.ts";
 
-const WS: Workspace = { website_id: "ws1", name: "App A", topics: [], default_profile: {}, jira_project: null, storefront_watch: false };
+const WS: Workspace = { website_id: "ws1", name: "App A", topics: [], default_profile: {}, jira_project: null, storefront_watch: false, review_link: null };
 const TOKEN = "tok-lan";
 const CRISP_TOKEN = "11111111-2222-3333-4444-555555555555";
 

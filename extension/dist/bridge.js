@@ -28,14 +28,31 @@ function isCopilotMessage(ev, win) {
 /**
  * Màu nền editor có phải tông VÀNG của Note mode không (Crisp chuyển ô soạn
  * sang nền vàng khi ở chế độ private note — bằng chứng từ Crisp thật
- * 2026-10-23). Nhận chuỗi computed style "rgb(r, g, b)"/"rgba(...)"; màu
- * trắng/xám/tối (Reply mode) phải trả false.
+ * 2026-10-23; phiên dò DOM 2026-10-26 xác nhận trên giao diện tối đó là tông
+ * vàng olive SẪM, không phải vàng sáng). Nhận chuỗi computed style
+ * "rgb(r, g, b)"/"rgba(...)"; màu trắng/xám/tối-trung-tính/lạnh của Reply
+ * mode phải trả false. Tiêu chí là độ ẤM (đỏ và xanh lá đều vượt xanh dương
+ * một khoảng rõ), áp cho cả vàng sáng (theme sáng) lẫn olive sẫm (theme tối).
  */
 function isYellowishColor(css) {
   const m = String(css ?? "").match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/);
   if (!m) return false;
   const [r, g, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
-  return r >= 120 && g >= 95 && b <= r - 45 && g >= b + 25;
+  return r >= 35 && r >= g && r - b >= 20 && g - b >= 10;
+}
+
+/**
+ * Nhận diện placeholder của ô soạn theo VĂN BẢN hiển thị thật (phiên dò
+ * 2026-10-26 trên Crisp thật: placeholder là chữ render trong vùng soạn chứ
+ * không nằm ở thuộc tính của editor — bản cũ đọc data-placeholder/aria-label
+ * nên luôn trượt). "Send a private note…" = Note mode; "Send your message
+ * to…" = Reply mode. Không khớp thì null.
+ */
+function placeholderKind(text) {
+  const t = String(text ?? "").trim();
+  if (/^send a private note/i.test(t)) return "note";
+  if (/^send your message to/i.test(t)) return "reply";
+  return null;
 }
 
 /** Tab chuyển mode (Reply/Note/…) có đang ở trạng thái active không, theo class/aria composer.js trích ra. */
@@ -45,14 +62,33 @@ function tabLooksActive({ className = "", ariaSelected = null, dataState = "" } 
 }
 
 /**
- * Cổng xác nhận Note mode trước khi điền private note — an toàn là trên hết:
- * BẮT BUỘC tab Note báo active VÀ có thêm ít nhất một tín hiệu phía editor
- * (nền vàng / class note / placeholder nhắc note). Chỉ một phía thì KHÔNG đủ
- * tin: composer huỷ và không điền gì cả, thà báo lỗi còn hơn điền nội dung
- * nội bộ vào ô Reply cho khách thấy.
+ * Cổng xác nhận Note mode trước khi điền private note — an toàn là trên hết,
+ * thà huỷ không điền còn hơn điền nội dung nội bộ vào ô Reply cho khách thấy.
+ * Bằng chứng phiên dò 2026-10-26: class của tab trên Crisp thật là chuỗi băm
+ * (không mang token active/selected) nên tabActive KHÔNG còn là điều kiện bắt
+ * buộc như bản cũ — đó chính là gốc Lỗi 1 (điền Note không chạy trên máy
+ * thật). Xác nhận đạt khi:
+ * - tab Note báo active VÀ có ít nhất 1 tín hiệu phía editor; HOẶC
+ * - có ít nhất 2 tín hiệu phía editor độc lập (nền vàng ấm / class note /
+ *   placeholder "Send a private note…" / nhãn Note trong vùng soạn) — các tín
+ *   hiệu này chỉ tồn tại ở Note mode, không thể xuất hiện ở ô Reply.
  */
-function confirmNoteMode({ tabActive = false, yellowBg = false, noteClass = false, notePlaceholder = false } = {}) {
-  return Boolean(tabActive) && Boolean(yellowBg || noteClass || notePlaceholder);
+function confirmNoteMode({ tabActive = false, yellowBg = false, noteClass = false, notePlaceholder = false, notePill = false } = {}) {
+  const editorSignals = [yellowBg, noteClass, notePlaceholder, notePill].filter(Boolean).length;
+  return (Boolean(tabActive) && editorSignals >= 1) || editorSignals >= 2;
+}
+
+/**
+ * Kiểm chứng sau khi ghi: ô soạn phải chứa dòng đầu tiên (không rỗng) của nội
+ * dung vừa ghi. Editor rich-text (Lexical) có thể nuốt sự kiện paste tổng hợp
+ * mà không báo lỗi — không kiểm chứng thì extension báo "đã điền" trong khi ô
+ * trống hoặc chữ rơi chỗ khác (gốc Lỗi 2: dán dính/không tách đoạn mà panel
+ * không hề biết). Không khớp → caller báo insert_unverified thay vì inserted.
+ */
+function verifyWritten(readBack, text) {
+  const line = String(text ?? "").split("\n").map((s) => s.trim()).find((s) => s.length > 0);
+  if (!line) return false;
+  return String(readBack ?? "").includes(line.slice(0, 60));
 }
 
 

@@ -37,6 +37,7 @@ function dirtyState() {
     askResult: { question: "câu hỏi của A", found: true, answer: "đáp án A", sources: [] },
     sentiment: { mood: "frustrated", score: 20 },
     sentimentMsgCount: 5,
+    sentimentRefreshing: true,
     csat: { sent: true, sent_at: "2026-10-23T00:00:00Z" },
     csatError: true,
     csatErrorMsg: "lỗi gửi của A",
@@ -55,6 +56,7 @@ Deno.test("resetSessionScopedState: quên sạch dữ liệu chat cũ — draft,
   assertEquals(s.draft, null);
   assertEquals(s.sentiment, null);
   assertEquals(s.sentimentMsgCount, 0);
+  assertEquals(s.sentimentRefreshing, false);
   assertEquals(s.csat, null);
   assertEquals(s.csatError, false);
   assertEquals(s.csatErrorMsg, "");

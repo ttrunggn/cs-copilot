@@ -13,6 +13,7 @@ const WS: Workspace = {
   default_profile: {},
   jira_project: null,
   storefront_watch: false,
+  review_link: null,
 };
 const CONV: ConversationRow = {
   website_id: "ws1",
@@ -97,6 +98,11 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     topic_label: "Billing",
     profile_source: "topic",
     profile_name: "Lan Nguyen",
+    profile_coverage: { conversations_used: 9, learned_at: null }, // từ dòng profile fake của CS này
+    review_template: {
+      source: "default",
+      text: "Hi there,\n\nThank you for reaching out to us. I hope your issue has been resolved. If you're happy with our app and the support you received, we'd be grateful if you could spend a few seconds leaving a review on the Shopify App Store. Your feedback means a lot to us and helps us keep improving.\n\nThank you so much!",
+    },
     conversation_state: "unresolved",
     needs_reply: true,
     unanswered: ["c"],
@@ -108,6 +114,7 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     modules: { jira: false, storefront: false },
     storefront_status: null,
     sentiment: null,
+    sentiment_stale: true, // chưa từng phân tích mà đã có tin khách → panel tự làm tươi khi mở
     csat: { sent: false, sent_at: null },
     latest_draft: null,
   });

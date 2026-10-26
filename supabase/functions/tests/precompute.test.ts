@@ -31,7 +31,7 @@ Deno.test("precompute: dấu vân tay khớp thì dùng cache, không gọi AI l
     db: {
       getSentiment: () => Promise.resolve({
         input_fp: fp, score: 35, mood: "frustrated" as const, urgency: "high" as const,
-        confidence: 0.9, summary: "s", signals: [],
+        confidence: 0.9, summary: "s", signals: [], issues: [],
       }),
     },
   });

@@ -2,7 +2,7 @@ import { askAnswerToHint, describeShape, enabledModules, explanationTemplate, ma
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
-import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, storefrontPanel } from "./panels.js";
+import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, profileFooter, storefrontPanel } from "./panels.js";
 
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
@@ -19,7 +19,7 @@ function openModal(name) {
   if (name === "draft") state.composeOpen = !state.draft;
   if (name === "csat") {
     state.csatChoice = "";
-    if (!state.reviewText) state.reviewText = REVIEW_TEMPLATE;
+    if (!state.reviewText) state.reviewText = state.check?.review_template?.text ?? REVIEW_TEMPLATE;
   }
   render();
 }
@@ -306,6 +306,40 @@ async function onAnalyze(force) {
   render();
 }
 
+/**
+ * Compute-on-view (Lỗi 5): check báo sentiment đã lưu không còn khớp tin khách
+ * hiện tại → tự gọi analyze NGẦM (không khoá panel bằng busy) để panel luôn
+ * hiện phân tích mới nhất, không phụ thuộc precompute qua n8n. Chìa khoá
+ * chống lặp: session + mốc tin khách cuối — cùng một trạng thái hội thoại
+ * chỉ tự làm tươi một lần (AI lỗi cũng không bắn vòng lặp); khách nhắn thêm
+ * (mốc đổi) thì được làm tươi lại.
+ */
+let autoRefreshKey = "";
+
+async function maybeAutoRefreshSentiment(sessionId) {
+  if (!state.check?.sentiment_stale || state.busy) return;
+  const key = `${sessionId}|${state.check.last_customer_at ?? ""}`;
+  if (autoRefreshKey === key) return;
+  autoRefreshKey = key;
+  state.sentimentRefreshing = true;
+  render();
+  try {
+    const out = await call("analyze", {});
+    if (readContext(location.search).sessionId !== sessionId) return; // đã chuyển chat khác
+    if (out.sentiment) {
+      state.sentiment = out.sentiment;
+      if (state.check) state.check.sentiment = out.sentiment;
+    }
+    if (typeof out.msg_count === "number") state.sentimentMsgCount = out.msg_count;
+    if (state.check) state.check.sentiment_stale = false;
+  } catch {
+    // Lỗi thì giữ bản phân tích cũ đang hiện — im lặng, không báo lỗi chen
+    // ngang; nút "Phân tích lại" thủ công vẫn còn đó cho CS.
+  }
+  state.sentimentRefreshing = false;
+  render();
+}
+
 async function onSurvey() {
   if (state.busy) return;
   state.busyAction = "survey";
@@ -589,6 +623,7 @@ function render() {
     ]) : null,
     !modalOpen ? insertChoiceNode() : null,
     commandsRow(handlers),
+    profileFooter(),
     modalView(handlers),
   );
 }
@@ -600,6 +635,10 @@ const checkCache = new Map();
 function applyCheck(sessionId) {
   if (state.check.sentiment) state.sentiment = state.check.sentiment;
   if (state.check.csat) state.csat = state.check.csat;
+  // Template xin review theo profile do server phân giải — nạp sẵn để popup
+  // Review mở ra là có mẫu của chính CS; CS đã sửa tay trong phiên thì giữ
+  // nguyên bản sửa, không ghi đè.
+  if (state.check.review_template?.text && !state.reviewText) state.reviewText = state.check.review_template.text;
   if (state.check.latest_draft && !state.draft) {
     state.draft = { output_id: state.check.latest_draft.output_id, session_id: sessionId, vm: toDraftViewModel(state.check.latest_draft) };
   }
@@ -640,6 +679,7 @@ async function load() {
     checkCache.set(sessionId, state.check);
     applyCheck(sessionId);
     render();
+    maybeAutoRefreshSentiment(sessionId);
     // Module Storefront được server bật mà chat này chưa có dữ liệu: tự nạp
     // luôn — server tự resolve shop từ custom data của phiên; phiên không có
     // sẵn shopify_domain thì server trả need_shop và module hiện ô nhập tay.
