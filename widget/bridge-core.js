@@ -13,7 +13,7 @@ export const PING_TIMEOUT_MS = 1000;
  * đang ở bản cũ, thay vì báo "sẵn sàng" rồi CS lãnh đủ lỗi cũ (Ethan test
  * live 2026-10-26: tưởng đã cài 1.2.1 nhưng Chrome vẫn chạy bản cũ).
  */
-export const EXPECTED_EXTENSION_VERSION = "1.2.1";
+export const EXPECTED_EXTENSION_VERSION = "1.2.2";
 
 /** So sánh semver rút gọn (các thành phần số, cách nhau bởi dấu chấm). */
 function versionParts(v) {
@@ -53,6 +53,21 @@ export function acceptReply(ev, win, pendingId) {
 export function bridgeState(pong) {
   if (!pong) return "missing";
   return pong.protocol === PROTOCOL ? "ready" : "outdated";
+}
+
+/**
+ * Tổng kết các pong nhận được trong một cửa sổ ping. Mỗi bản extension cài
+ * trong Chrome inject bridge riêng vào iframe widget và trả pong kèm mã
+ * định danh của nó (trường ext) — HAI mã khác nhau nghĩa là hai bản đang
+ * chạy song song (bản cũ chưa gỡ hẳn): mọi lệnh điền bị thực thi hai lần,
+ * ô Reply gấp đôi nội dung, ô Note thì hai bản giành nhau (ca live
+ * 2026-10-26). Panel phải cảnh báo thay vì báo "sẵn sàng" mù.
+ */
+export function respondersSummary(pongs) {
+  const list = (pongs ?? []).filter(Boolean);
+  const ids = new Set(list.map((p) => (typeof p.ext === "string" && p.ext) || "anon"));
+  const versions = [...new Set(list.map((p) => p.version).filter((v) => typeof v === "string" && v !== ""))];
+  return { count: list.length, conflict: ids.size > 1, versions };
 }
 
 /** Lệnh chèn cho một draft: luôn dùng session của chính draft, và từ chối nếu đang mở chat khác. */

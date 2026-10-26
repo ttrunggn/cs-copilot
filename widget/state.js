@@ -52,6 +52,9 @@ export const state = {
   insertPending: false, // đang chờ extension trả lời lệnh điền — khoá các nút điền/chọn cách điền
   bridge: "checking", // checking | missing | outdated | ready
   bridgeVersion: "", // version extension tự khai trong pong (rỗng = chưa rõ)
+  bridgeResponders: [], // mọi pong trong cửa sổ ping gần nhất (gom theo mã ext)
+  bridgeConflict: false, // true = ≥2 bản extension đang chạy song song (mã ext khác nhau)
+  lastInsertTrace: "", // vết chẩn đoán của lần điền gần nhất (extension trả kèm kết quả)
   bridgeProbe: null,
 };
 
