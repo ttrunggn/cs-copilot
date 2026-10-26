@@ -1,5 +1,5 @@
 import { assertEquals, assertNotEquals } from "jsr:@std/assert@1";
-import { acceptReply, bridgeState, draftInsert, insertMessage, newRequestId, PROTOCOL } from "./bridge-core.js";
+import { acceptReply, bridgeState, draftInsert, EXPECTED_EXTENSION_VERSION, extensionOutdated, insertMessage, newRequestId, PROTOCOL } from "./bridge-core.js";
 
 Deno.test("insertMessage shape matches protocol 2 with reply target by default", () => {
   assertEquals(insertMessage({ requestId: "r1", outputId: 9, sessionId: "session_1", text: "Hi", mode: "auto" }), {
@@ -43,6 +43,23 @@ Deno.test("draftInsert uses the draft's own session and refuses another conversa
     type: "copilot:insert", protocol: 2, request_id: "r1", output_id: 9, session_id: "session_A", text: "Hi", mode: "auto", target: "reply",
   });
   assertEquals(draftInsert(null, "session_A", "r1", "auto"), null);
+});
+
+Deno.test("extensionOutdated: thấp hơn bản kỳ vọng thì true; bằng/cao hơn/không rõ thì false", () => {
+  assertEquals(extensionOutdated("1.2.0"), true);
+  assertEquals(extensionOutdated("1.1.9"), true);
+  assertEquals(extensionOutdated("1.2.1"), false);
+  assertEquals(extensionOutdated("1.2.2"), false);
+  assertEquals(extensionOutdated("1.3.0"), false);
+  assertEquals(extensionOutdated(""), false);
+  assertEquals(extensionOutdated(undefined), false);
+  assertEquals(extensionOutdated("abc"), false);
+  assertEquals(extensionOutdated("1.2"), true); // 1.2 = 1.2.0 < 1.2.1
+});
+
+Deno.test("khoá chống lệch version: EXPECTED_EXTENSION_VERSION khớp manifest extension", async () => {
+  const manifest = JSON.parse(await Deno.readTextFile(new URL("../extension/manifest.template.json", import.meta.url)));
+  assertEquals(EXPECTED_EXTENSION_VERSION, manifest.version);
 });
 
 Deno.test("khoá chống lệch protocol: extension/bridge.js khai báo đúng PROTOCOL của widget", async () => {
