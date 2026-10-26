@@ -65,6 +65,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),
     unlinkJira: () => Promise.resolve(false),
+    mergeConversationCustomData: () => Promise.resolve(true),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
     getStorefrontSeen: () => Promise.resolve([]),
@@ -275,20 +276,117 @@ Deno.test("widget request with forged Crisp token -> 401", async () => {
   assertEquals((await handle({ ...REQ, crisp_token: "forged", operator_id: "op-lan" }, "", deps())).status, 401);
 });
 
-Deno.test("jira_sync_now: webhook n8n xác nhận ok -> triggered true", async () => {
+const RAW_JIRA_ISSUE = {
+  key: "TNT-9184",
+  fields: {
+    summary: "Switcher missing",
+    status: { name: "Pending Dev", statusCategory: { key: "indeterminate" } },
+    assignee: null,
+    updated: "2026-10-15T03:10:00.000Z",
+    comment: { comments: [] },
+  },
+};
+
+function fakeJiraStore(saved: unknown[], onSave?: () => void) {
+  return {
+    csNames: () => Promise.resolve([] as string[]),
+    saveIssue: (i: unknown) => {
+      saved.push(i);
+      onSave?.();
+      return Promise.resolve({ status_changed_at: null, prev_status: null });
+    },
+    linksFor: () => Promise.resolve([]),
+    updateLink: () => Promise.resolve(),
+    lastHumanOperatorAt: () => Promise.resolve(null),
+  };
+}
+
+Deno.test("jira_sync_now: chưa cấu hình Jira API -> triggered false kèm lý do cấu hình", async () => {
   const r = await handle({ ...REQ, action: "jira_sync_now" }, TOKEN, deps());
   assertEquals(r.status, 200);
-  assertEquals(r.body, { action: "jira_sync_now", triggered: true, error: null });
+  const body = r.body as { triggered: boolean; error: string | null };
+  assertEquals(body.triggered, false);
+  assert(typeof body.error === "string" && body.error.includes("JIRA_EMAIL"));
 });
 
-Deno.test("jira_sync_now: n8n không xác nhận -> triggered false kèm lý do, không nuốt lỗi", async () => {
-  const d = deps();
-  d.n8n = { ...d.n8n, triggerJiraSync: () => Promise.resolve(false) };
+Deno.test("jira_sync_now: gọi thẳng Jira REST và áp vào mirror -> triggered true", async () => {
+  const saved: unknown[] = [];
+  const d = {
+    ...deps({ getJiraRows: () => Promise.resolve([JIRA_ROW("TNT-9184")]) }),
+    jira: {
+      searchIssues: (keys: string[]) => {
+        assertEquals(keys, ["TNT-9184"]);
+        return Promise.resolve([RAW_JIRA_ISSUE]);
+      },
+    },
+    jiraStore: fakeJiraStore(saved),
+  };
+  const r = await handle({ ...REQ, action: "jira_sync_now" }, TOKEN, d);
+  assertEquals(r.status, 200);
+  assertEquals(r.body, { action: "jira_sync_now", triggered: true, error: null });
+  assertEquals(saved.length, 1);
+});
+
+Deno.test("jira_sync_now: Jira lỗi -> triggered false kèm lý do, không nuốt lỗi", async () => {
+  const d = {
+    ...deps({ getJiraRows: () => Promise.resolve([JIRA_ROW("TNT-9184")]) }),
+    jira: { searchIssues: () => Promise.reject(new Error("Jira search lỗi (HTTP 500)")) },
+    jiraStore: fakeJiraStore([]),
+  };
   const r = await handle({ ...REQ, action: "jira_sync_now" }, TOKEN, d);
   assertEquals(r.status, 200);
   const body = r.body as { triggered: boolean; error: string | null };
   assertEquals(body.triggered, false);
-  assert(typeof body.error === "string" && body.error.length > 0);
+  assert(typeof body.error === "string" && body.error.includes("HTTP 500"));
+});
+
+Deno.test("check: mirror Jira đã cũ -> tự sync khi mở panel rồi hiện bản mới", async () => {
+  let synced = false;
+  const row = (summary: string, syncedAt: string) => ({
+    link: {
+      website_id: "ws1", session_id: "session_1", issue_key: "TNT-9184",
+      url: "https://firegroup.atlassian.net/browse/TNT-9184",
+      silent_baseline: false, last_seen_status: "Pending Dev", last_seen_comment_at: null,
+    },
+    issue: {
+      issue_key: "TNT-9184", summary, status: "Pending Dev", status_category: "indeterminate", assignee: null,
+      updated_at: null, status_changed_at: null, synced_at: syncedAt, comments: [],
+    },
+  });
+  const saved: unknown[] = [];
+  const d = {
+    ...deps({ getJiraRows: () => Promise.resolve([row(synced ? "Bản mới từ Jira" : "Bản cũ", "2026-10-15T02:00:00+00:00")]) }),
+    jira: { searchIssues: () => Promise.resolve([RAW_JIRA_ISSUE]) },
+    jiraStore: fakeJiraStore(saved, () => { synced = true; }),
+  };
+  const r = await handle(REQ, TOKEN, d);
+  assertEquals(r.status, 200);
+  const body = r.body as { jira: { summary: string }[] };
+  assertEquals(body.jira[0].summary, "Bản mới từ Jira");
+  assertEquals(saved.length, 1);
+});
+
+Deno.test("check: mirror Jira còn tươi -> không gọi Jira lại", async () => {
+  let calls = 0;
+  const row = {
+    link: {
+      website_id: "ws1", session_id: "session_1", issue_key: "TNT-9184",
+      url: "https://firegroup.atlassian.net/browse/TNT-9184",
+      silent_baseline: false, last_seen_status: "Pending Dev", last_seen_comment_at: null,
+    },
+    issue: {
+      issue_key: "TNT-9184", summary: "Đang tươi", status: "Pending Dev", status_category: "indeterminate", assignee: null,
+      updated_at: null, status_changed_at: null, synced_at: new Date().toISOString(), comments: [],
+    },
+  };
+  const d = {
+    ...deps({ getJiraRows: () => Promise.resolve([row]) }),
+    jira: { searchIssues: () => { calls++; return Promise.resolve([]); } },
+    jiraStore: fakeJiraStore([]),
+  };
+  const r = await handle(REQ, TOKEN, d);
+  assertEquals(r.status, 200);
+  assertEquals(calls, 0);
 });
 
 Deno.test("jira_unlink: gỡ đúng (website, session, key) gửi lên và báo removed", async () => {
