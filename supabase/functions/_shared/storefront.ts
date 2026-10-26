@@ -325,6 +325,10 @@ export function parseFindingsText(text: string): StorefrontFinding[] {
     if (!line.trim()) continue;
     if (/^\d+\.\s+/.test(line)) blocks.push([line]);
     else if (/^\s/.test(line) && blocks.length) blocks[blocks.length - 1].push(line);
+    // Dòng chốt hạ của SW khi danh sách bị cắt ở 25 lỗi đầu ("The console
+    // lists the rest." — ca live tantaly 2026-10-26): câu thông tin trỏ về
+    // console, không phải finding — bỏ qua thay vì văng lỗi định dạng.
+    else if (/^the console\b/i.test(line.trim()) && blocks.length) continue;
     else throw new StorefrontError(`list_findings trả dòng lạ ngoài finding: "${line.trim()}"`);
   }
   if (blocks.length !== declared) {
