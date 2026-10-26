@@ -88,6 +88,8 @@ export interface ProfileRow extends Partial<Profile> {
   note_format?: NoteFormat | null; // chỉ có ở dòng "_all" (cột jsonb, migration 20261022000016)
   /** Template xin review đã học của chính CS này (migration 20261030000026); link đích là biến {{review_link}} theo workspace, không nằm cứng trong template. null = chưa học được. */
   review_template?: string | null;
+  /** Gợi ý tối ưu cho review_template (migration 20261030000027): {text, reason} — text cũng chứa biến {{review_link}}; reason tiếng Việt chỉ đúng đoạn yếu. null = không có gợi ý. CS duyệt "Lưu làm mẫu mới" thì text này thành review_template và cờ manual_override.review_template_manual = true chặn học lại ghi đè. */
+  review_template_suggestion?: { text: string; reason: string } | null;
 }
 
 export interface ConversationRow {

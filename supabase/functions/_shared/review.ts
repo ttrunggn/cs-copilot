@@ -11,9 +11,17 @@ export const REVIEW_LINK_PLACEHOLDER = "{{review_link}}";
 
 export type ReviewTemplateSource = "profile" | "default";
 
+/** Bản tối ưu gợi ý cho template của CS: text đã thay link theo workspace; reason tiếng Việt chỉ đúng đoạn yếu (cơ chế gợi ý — Ethan chốt 2026-10-26). */
+export interface TemplateSuggestion {
+  text: string;
+  reason: string;
+}
+
 export interface ResolvedReviewTemplate {
   text: string;
   source: ReviewTemplateSource;
+  /** Chỉ có khi template đến từ profile VÀ profile có gợi ý khác với template gốc. Mẫu mặc định không có gợi ý. */
+  suggestion: TemplateSuggestion | null;
 }
 
 /** Template mặc định khi CS chưa có mẫu đã học: trung tính, có chỗ cho link của workspace. */
@@ -73,6 +81,16 @@ export function mineReviewTemplate(contents: string[]): string | null {
  * của conversation, rồi bất kỳ dòng nào của chính CS có template; không có
  * thì mặc định. Chỉ đọc profile của CHÍNH CS — không mượn template người khác.
  */
+/** Gợi ý lưu trong profile → dạng trả về panel: validate hình dạng, thay link theo workspace, và chỉ giữ khi thật sự khác template gốc (gợi ý trùng gốc thì vô nghĩa). */
+function resolveSuggestion(row: ProfileRow, templateText: string, reviewLink: string | null): TemplateSuggestion | null {
+  const raw = row.review_template_suggestion;
+  if (!raw || typeof raw.text !== "string" || typeof raw.reason !== "string") return null;
+  if (!raw.text.trim() || !raw.reason.trim()) return null;
+  const text = applyReviewLink(raw.text, reviewLink);
+  if (text === templateText) return null;
+  return { text, reason: raw.reason.trim() };
+}
+
 export function resolveReviewTemplate(
   profiles: ProfileRow[],
   topic: string | null,
@@ -80,6 +98,9 @@ export function resolveReviewTemplate(
 ): ResolvedReviewTemplate {
   const usable = profiles.filter((p) => typeof p.review_template === "string" && p.review_template.trim());
   const row = usable.find((p) => topic !== null && p.topic === topic) ?? usable[0];
-  if (row) return { text: applyReviewLink(row.review_template as string, reviewLink), source: "profile" };
-  return { text: applyReviewLink(DEFAULT_REVIEW_TEMPLATE, reviewLink), source: "default" };
+  if (row) {
+    const text = applyReviewLink(row.review_template as string, reviewLink);
+    return { text, source: "profile", suggestion: resolveSuggestion(row, text, reviewLink) };
+  }
+  return { text: applyReviewLink(DEFAULT_REVIEW_TEMPLATE, reviewLink), source: "default", suggestion: null };
 }
