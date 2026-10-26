@@ -20,11 +20,19 @@ export interface AiStore {
   logUsage(model: string, task: AiTask, is429: boolean): Promise<void>;
 }
 
+/**
+ * Nhiệt độ riêng cho lượt VIẾT LẠI (force): không đặt thì Gemini chạy mặc
+ * định và với cùng một đầu vào + format cứng, bản "viết lại" hội tụ gần như
+ * y hệt bản cũ (Ethan test live 2026-10-26: bấm Viết lại mà như không).
+ * Lượt sinh thường KHÔNG truyền temperature — giữ hành vi hiện tại.
+ */
+export const REWRITE_TEMPERATURE = 1.2;
+
 export interface Ai {
   generate(
     task: Exclude<AiTask, "embed">,
     prompt: string,
-    opts?: { schema?: Record<string, unknown> },
+    opts?: { schema?: Record<string, unknown>; temperature?: number },
   ): Promise<{ text: string; model: string }>;
   embed(texts: string[], kind: "document" | "query"): Promise<number[][]>;
 }
@@ -93,9 +101,13 @@ export function createGemini(opts: { apiKeys: string[]; store: AiStore; fetch?: 
 
   return {
     async generate(task, prompt, o = {}) {
+      const generationConfig = {
+        ...(o.schema ? { responseMimeType: "application/json", responseSchema: o.schema } : {}),
+        ...(o.temperature != null ? { temperature: o.temperature } : {}),
+      };
       const { json, model } = await call(task, "generateContent", () => ({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        ...(o.schema ? { generationConfig: { responseMimeType: "application/json", responseSchema: o.schema } } : {}),
+        ...(Object.keys(generationConfig).length ? { generationConfig } : {}),
       }));
       const parts: { text?: string; thought?: boolean }[] = json?.candidates?.[0]?.content?.parts ?? [];
       return { text: parts.filter((p) => !p.thought).map((p) => p.text ?? "").join(""), model };

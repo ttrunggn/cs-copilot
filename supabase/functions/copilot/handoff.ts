@@ -1,7 +1,7 @@
 import { sha256Hex } from "../_shared/auth.ts";
 import { humanTranscript, inputFingerprint } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
-import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
+import { type Ai, AiBadOutput, REWRITE_TEMPERATURE } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
 import { pickBestNoteFormat, resolveNoteFormat } from "../_shared/profile.ts";
@@ -64,6 +64,9 @@ export async function runHandoff(
   // Bot reply là trạng thái hỗ trợ đã nói với khách, không được bỏ khỏi handoff.
   const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES, true), topicLabel, jira, previousNote), {
     schema: HANDOFF_SCHEMA,
+    // Viết lại: thêm nhiệt độ biến thiên — chỉ prompt "viết khác đi" thôi
+    // chưa đủ, model vẫn hội tụ về cùng cách diễn đạt với format cứng này.
+    ...(previousNote ? { temperature: REWRITE_TEMPERATURE } : {}),
   });
   let fields;
   try {
