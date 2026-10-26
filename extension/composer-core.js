@@ -118,3 +118,29 @@ export function textsMatch(readBack, expected) {
   const b = normalizeComposerText(expected);
   return b.length > 0 && a === b;
 }
+
+/**
+ * Kiểm chứng điền theo kiểu GẬP KHOẢNG TRẮNG: mọi chuỗi khoảng trắng (kể cả
+ * xuống dòng) gập thành một dấu cách trước khi so. Lý do cần thêm lớp này
+ * bên cạnh textsMatch: innerText của editor Lexical nối các đoạn bằng \n
+ * hay \n\n và có thể chèn ngắt dòng theo chiều rộng ô — khác biệt trình bày
+ * đó từng làm textsMatch trượt, fillEditor điền LẠI lần hai chồng lên lần
+ * một (nội dung gấp đôi trên bản live 2026-10-26). Gập khoảng trắng vẫn bắt
+ * được gấp đôi thật: bản gấp đôi dài gấp hai và khác hẳn sau khi gập.
+ */
+export function fillVerified(readBack, expected) {
+  const squash = (s) => normalizeComposerText(s).replace(/\s+/g, " ").trim();
+  const a = squash(readBack);
+  const b = squash(expected);
+  return b.length > 0 && a === b;
+}
+
+/**
+ * Vết chẩn đoán gọn của một lần điền (panel hiện kèm thông báo lỗi để lần
+ * test live nào lỗi là thấy ngay khâu nào, khỏi đoán): tín hiệu Note mode
+ * dạng tab/yel/cls/ph/pil kèm 0/1.
+ */
+export function signalTrace(signals = {}) {
+  const bit = (v) => (v ? "1" : "0");
+  return `tab${bit(signals.tabActive)} yel${bit(signals.yellowBg)} cls${bit(signals.noteClass)} ph${bit(signals.notePlaceholder)} pil${bit(signals.notePill)}`;
+}
