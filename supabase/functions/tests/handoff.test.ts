@@ -27,7 +27,7 @@ Deno.test("handoff returns the formatted Vietnamese note and stores the output �
   assertEquals(body.cached, false);
   assertEquals(body.output_id, 42);
   assertEquals("posted" in body, false); // quy tắc ghi Crisp: handler chỉ trả text, không có khái niệm đã đăng
-  assertEquals((body.note as string).startsWith("📋 Handoff — Lan Nguyen\nKhách cần sửa switcher"), true);
+  assertEquals((body.note as string).startsWith("Handoff — Lan Nguyen\nKhách cần sửa switcher"), true);
   assertEquals(inserted[0].kind, "handoff");
   assertEquals(inserted[0].content, body.note);
   assertEquals(inserted[0].operator_id, "op-lan");
@@ -38,7 +38,7 @@ Deno.test("handoff note lists each issue from a multi-issue message", async () =
   const { ai } = fakeAi({ handoff: JSON.stringify(FIELDS) });
   const { deps } = makeDeps({ ai, messages: [msg("user", "1) switcher broken 2) change plan 3) translate theme", 1)] });
   const note = ((await handle(REQ, TOKEN, deps)).body as { note: string }).note;
-  for (const line of ["1. Switcher không hiện trên mobile — 🛠 Chờ tech", "2. Đổi sang gói annual — ✅ Xong", "3. Dịch theme mới — ❗ Chưa xử lý"]) {
+  for (const line of ["1. Switcher không hiện trên mobile — Chờ tech", "2. Đổi sang gói annual — Xong", "3. Dịch theme mới — Chưa xử lý"]) {
     assertEquals(note.includes(line), true, line);
   }
 });
@@ -73,14 +73,14 @@ Deno.test("handoff uses content_en in prompt", async () => {
 });
 
 const CACHED = {
-  id: 7, kind: "handoff" as const, content: "📋 Handoff — cũ", warnings: [], verified: null, helpdesk_matches: null,
+  id: 7, kind: "handoff" as const, content: "Handoff — cũ", warnings: [], verified: null, helpdesk_matches: null,
   topic: "billing", prompt_version: null, posted: true, created_at: "2026-10-15T03:05:00+00:00",
 };
 
 Deno.test("cached handoff is returned as-is — no repost concept anymore, whatever the legacy posted flag says", async () => {
   const { deps } = makeDeps({ cached: { ...CACHED, posted: false } });
   const r = await handle(REQ, TOKEN, deps);
-  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ" });
+  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "Handoff — cũ" });
 });
 
 Deno.test("handoff CANNOT post to Crisp: the deps interfaces have no postNote/markPosted at all", async () => {
@@ -101,7 +101,7 @@ Deno.test("handoff cached skips AI and returns the stored note", async () => {
   const { deps } = makeDeps({ ai, cached: CACHED });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
-  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "📋 Handoff — cũ" });
+  assertEquals(r.body, { action: "handoff", stale: false, cached: true, output_id: 7, note: "Handoff — cũ" });
   assertEquals(calls.filter((c) => c.task === "handoff").length, 0);
 });
 
@@ -183,7 +183,7 @@ Deno.test("handoff without a learned note format keeps the fixed template and re
   const { deps, inserted } = makeDeps({ ai });
   await handle(REQ, TOKEN, deps);
   assertEquals(inserted[0].profile_used, "default");
-  assertEquals((inserted[0].content as string).startsWith("📋 Handoff — Lan Nguyen\n"), true);
+  assertEquals((inserted[0].content as string).startsWith("Handoff — Lan Nguyen\n"), true);
 });
 
 Deno.test("handoff ignores a note format learned from too few notes", async () => {
@@ -192,7 +192,7 @@ Deno.test("handoff ignores a note format learned from too few notes", async () =
   const { deps, inserted } = makeDeps({ ai, db: { getProfiles: () => Promise.resolve([thin]) } });
   await handle(REQ, TOKEN, deps);
   assertEquals(inserted[0].profile_used, "default");
-  assertEquals((inserted[0].content as string).startsWith("📋 Handoff — Lan Nguyen\n"), true);
+  assertEquals((inserted[0].content as string).startsWith("Handoff — Lan Nguyen\n"), true);
 });
 
 Deno.test("handoff prompt includes the linked Jira tickets", async () => {

@@ -42,22 +42,27 @@ export async function runHandoff(
   const noteFormat = resolveNoteFormat(ownProfiles, pickBestNoteFormat(allProfiles));
   const baseFp = await inputFingerprint("handoff", operatorId, raw);
   const inputFp = noteFormat ? await sha256Hex(`${baseFp}|note-format:${JSON.stringify(noteFormat)}`) : baseFp;
-  if (!req.force) {
-    const hit = await deps.db.findCachedOutput({
-      websiteId: req.website_id, sessionId: req.session_id, operatorId, kind: "handoff", inputFp,
-    });
-    if (hit) {
+  // Viết lại (force): lấy bản note gần nhất cùng dấu vân tay làm "bản trước" để
+  // prompt yêu cầu diễn đạt mới hẳn — trước đây force chỉ bỏ cache, AI nhận
+  // đúng prompt cũ nên trả note gần như y hệt, CS bấm Viết lại mà như không.
+  let previousNote: string | undefined;
+  const hit = await deps.db.findCachedOutput({
+    websiteId: req.website_id, sessionId: req.session_id, operatorId, kind: "handoff", inputFp,
+  }).catch(() => null);
+  if (hit) {
+    if (!req.force) {
       // Cache hit: trả nguyên note cũ trong panel — không có khái niệm "đăng lại",
       // vì copilot không đăng note (CS tự dán vào Crisp).
       return { action: "handoff", stale, cached: true, output_id: hit.id, note: hit.content };
     }
+    previousNote = hit.content;
   }
 
   const messages = await ensureEnglish(raw, deps.ai, (rows) => deps.db.saveTranslations(rows));
   const topicLabel = ws.topics.find((t) => t.key === conv.topic)?.label ?? null;
   const jira = jiraPromptBlock(jiraForConversation(await deps.db.getJiraRows(req.website_id, req.session_id), conv.last_human_operator_at));
   // Bot reply là trạng thái hỗ trợ đã nói với khách, không được bỏ khỏi handoff.
-  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES, true), topicLabel, jira), {
+  const { text, model } = await deps.ai.generate("handoff", handoffPrompt(humanTranscript(messages, TRANSCRIPT_LINES, true), topicLabel, jira, previousNote), {
     schema: HANDOFF_SCHEMA,
   });
   let fields;

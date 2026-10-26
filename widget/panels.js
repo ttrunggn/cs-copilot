@@ -37,9 +37,10 @@ export function extensionHint({ detectExtension }) {
 /**
  * Thẻ draft gọn: nội dung + nguồn + cảnh báo, và MỘT hành động duy nhất.
  * Draft đi thẳng vào ô Reply của Crisp qua extension — không còn nút Copy,
- * không sửa trong panel: cần sửa thì bấm "Sửa trong Crisp" và sửa ngay tại
- * ô Reply (chỗ CS sẽ bấm Send). Ý + giọng văn chọn ở form soạn trong popup
- * Draft, trước khi bấm soạn.
+ * không sửa trong panel: cần sửa thì sửa ngay tại ô Reply (chỗ CS sẽ bấm
+ * Send). Nút "Sửa trong Crisp" cũ đã bỏ (Ethan chê khó hiểu, 2026-10-26) —
+ * sau khi điền, nút đổi thành "Điền lại vào Reply". Ý + giọng văn chọn ở
+ * form soạn trong popup Draft, trước khi bấm soạn.
  */
 /**
  * Thẻ gợi ý tối ưu (Ethan chốt 2026-10-26, preview v8): bản gốc giữ nguyên,
@@ -128,7 +129,7 @@ export function draftPanel(handlers) {
     state.bridge === "ready"
       ? el("div", { className: "row draft-actions single" }, [
         state.draftPlacement === "inserted"
-          ? el("button", { className: "button-secondary", textContent: "Sửa trong Crisp", onclick: () => onEditInCrisp() })
+          ? el("button", { className: "button-secondary", textContent: "Điền lại vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() })
           : el("button", { className: "button-primary draft-insert", textContent: "Điền vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() }),
       ])
       : null,
@@ -157,7 +158,7 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
     el("div", { className: "note-text", textContent: handoff.note }),
     el("div", { className: "row" }, [
       state.bridge === "ready"
-        ? el("button", { className: inserted ? "button-secondary" : "button-primary", textContent: inserted ? "Sửa trong Crisp" : "Điền vào ô Note", disabled: state.insertPending, onclick: () => onInsertNote() })
+        ? el("button", { className: inserted ? "button-secondary" : "button-primary", textContent: inserted ? "Điền lại vào ô Note" : "Điền vào ô Note", disabled: state.insertPending, onclick: () => onInsertNote() })
         : null,
       el("button", { className: "button-link", disabled: noteBtn.disabled, onclick: () => onHandoff(true) }, buttonContent(noteBtn.running, "Đang viết…", "Viết lại")),
     ]),
@@ -273,6 +274,7 @@ export function insightPanel({ onAnalyze }) {
     s ? el("div", { className: "score-bar" }, [fill]) : null,
     state.sentimentRefreshing ? el("p", { className: "muted", textContent: "Đang cập nhật phân tích theo tin mới nhất…" }) : null,
     state.sentimentMsgCount > 0 && s ? el("p", { className: "muted", textContent: `Tính trên ${state.sentimentMsgCount} tin của khách. Cùng chỉ số dùng cho khảo sát CSAT.` }) : null,
+    state.sentimentAt && s ? el("p", { className: "muted", textContent: `Phân tích lúc ${state.sentimentAt}. Khách nhắn thêm thì số mới đổi.` }) : null,
     s?.urgency === "high" ? el("p", { className: "warn", textContent: "Mức khẩn cấp cao — ưu tiên xử lý case này." }) : null,
     s?.summary ? el("p", { className: "muted", textContent: s.summary }) : null,
     ...(s?.signals ?? []).map((t) => el("p", { className: "muted", textContent: `• ${t}` })),
@@ -290,9 +292,29 @@ export function insightPanel({ onAnalyze }) {
  * sentiment.issues (câu tóm tắt vấn đề + dòng bằng chứng), lùi về topic khi
  * chưa có (toIssuesViewModel ở core.js), chỉ đổi cách render ở đây.
  */
+/**
+ * Tin khách đang chờ trả lời — khối RIÊNG, không nằm trong "Vấn đề của
+ * khách" nữa (Ethan 2026-10-26: tin nguyên văn đặt dưới tiêu đề Vấn đề làm
+ * cả khối trông như chép nguyên văn câu hỏi thay vì tóm tắt issue, dù issue
+ * thật đã là câu tổng hợp từ sentiment.issues). Ở đây trích nguyên văn là
+ * đúng bản chất (tin đang chờ, kèm ảnh khách gửi); khối Vấn đề chỉ còn các
+ * issue đã tóm tắt.
+ */
+export function pendingPanel(vm) {
+  if (!vm.pendingMessages.length) return null;
+  return el("div", { className: "issues-module pending-module" }, [
+    el("div", { className: "issues-head" }, [
+      el("span", { className: "eyebrow", textContent: "TIN KHÁCH ĐANG CHỜ" }),
+    ]),
+    el("section", { className: "card issues-pending-card" }, [
+      ...vm.pendingMessages.map(pendingMessageCard),
+      vm.hiddenPendingCount ? el("p", { className: "muted", textContent: `Đang hiện ${vm.pendingMessages.length} trong ${vm.pendingCount} tin` }) : null,
+    ]),
+  ]);
+}
+
 export function issuesPanel(vm) {
   const { issues } = toIssuesViewModel(state.check, state.sentiment);
-  const empty = !issues.length && !vm.pendingMessages.length;
   // Badge lỗi storefront đang mở của store thuộc chat này — để CS thấy ngay
   // ở khối Issue logs mà không cần mở module Storefront hay tự đi search
   // (điểm mù Ethan chỉ ra: SW quét theo domain, không search là không biết).
@@ -305,6 +327,9 @@ export function issuesPanel(vm) {
     : sfVm?.kind === "results"
     ? sfVm.totalCount
     : (state.check?.storefront_status?.watched ? (state.check.storefront_status.open_total ?? 0) : 0);
+  // Không issue đã tóm tắt và không badge Storefront thì ẩn hẳn module —
+  // thẻ "Hết tin chờ rồi" cũ bỏ: header panel đã nói trạng thái tin chờ.
+  if (!issues.length && !sfOpen) return null;
   return el("div", { className: "issues-module" }, [
     el("div", { className: "issues-head" }, [
       el("span", { className: "eyebrow", textContent: "VẤN ĐỀ CỦA KHÁCH" }),
@@ -319,14 +344,6 @@ export function issuesPanel(vm) {
       el("b", { textContent: issue.title }),
       issue.detail ? el("div", { className: "muted", textContent: issue.detail }) : null,
     ])),
-    vm.pendingMessages.length ? el("section", { className: "card issues-pending-card" }, [
-      ...vm.pendingMessages.map(pendingMessageCard),
-      vm.hiddenPendingCount ? el("p", { className: "muted", textContent: `Đang hiện ${vm.pendingMessages.length} trong ${vm.pendingCount} tin` }) : null,
-    ]) : null,
-    empty ? el("section", { className: "card mod-issues issue-card" }, [
-      el("strong", { textContent: "Hết tin chờ rồi" }),
-      el("p", { className: "muted", textContent: vm.subtitle }),
-    ]) : null,
   ]);
 }
 
@@ -409,7 +426,7 @@ export function csatPanel({ onSurvey }) {
     csat?.sent
       ? el("div", { className: "csat-sent" }, [
         el("p", { className: "success-line", textContent: sentTime ? `✓ Đã gửi lúc ${sentTime}` : "✓ Đã gửi survey" }),
-        el("p", { className: "muted", textContent: "Nút gửi đã tắt, chờ khách trả lời." }),
+        el("p", { className: "muted", textContent: "Cần xin lại thì cứ bấm gửi lại, survey mới sẽ vào chat." }),
       ])
       : state.csatError
       ? el("div", { className: "csat-error" }, [
@@ -424,7 +441,7 @@ export function csatPanel({ onSurvey }) {
       : el("p", { className: "muted", textContent: "Gửi phiếu đánh giá CSAT (4 lựa chọn) vào đoạn chat cho khách." }),
     state.csatError && !csat?.sent
       ? null
-      : el("button", { className: "csat-button", disabled: Boolean(csat?.sent) || svBtn.disabled, onclick: () => onSurvey() }, buttonContent(svBtn.running, "Đang gửi…", "Send CSAT Survey")),
+      : el("button", { className: "csat-button", disabled: svBtn.disabled, onclick: () => onSurvey() }, buttonContent(svBtn.running, "Đang gửi…", csat?.sent ? "Gửi lại CSAT Survey" : "Send CSAT Survey")),
   ]);
 }
 

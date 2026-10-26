@@ -14,7 +14,12 @@ const inserted = new Set();
 
 function visible(el) {
   const r = el.getBoundingClientRect();
-  return r.width > 0 && r.height > 0;
+  if (!(r.width > 0 && r.height > 0)) return false;
+  // Editor của mode không active có thể vẫn còn trong DOM với kích thước > 0
+  // (Crisp giữ cả hai editor) — loại thêm theo computed style để khỏi chọn
+  // nhầm ô của mode kia.
+  const cs = getComputedStyle(el);
+  return cs.display !== "none" && cs.visibility !== "hidden";
 }
 
 function findComposer() {
@@ -41,7 +46,31 @@ function selectAll(el) {
   sel.addRange(range);
 }
 
-// Lexical bỏ xuống dòng khi dùng insertText, nhưng nhận paste thành từng đoạn. Xoá bằng beforeinput như phím Backspace.
+/**
+ * Xoá SẠCH ô soạn và kiểm chứng rỗng thật. Bản cũ chỉ bắn MỘT beforeinput
+ * deleteContentBackward tổng hợp — Lexical nuốt sự kiện đó mà không xoá, nên
+ * bước paste sau đó dán bản mới LÊN TRÊN bản cũ: "thay thế" thành chèn thêm,
+ * nội dung lặp 2-3 lần (Ethan test live 2026-10-26). Nay thử lần lượt:
+ * execCommand("delete") trên vùng chọn toàn bộ → beforeinput → xoá node qua
+ * Selection API; cách nào làm ô rỗng thật mới tính là xong.
+ */
+function clearEditor(el) {
+  if (!readText(el).trim()) return true;
+  selectAll(el);
+  document.execCommand("delete", false, null);
+  if (!readText(el).trim()) return true;
+  selectAll(el);
+  el.dispatchEvent(new InputEvent("beforeinput", { inputType: "deleteContentBackward", bubbles: true, cancelable: true }));
+  if (!readText(el).trim()) return true;
+  const sel = getSelection();
+  if (sel && sel.rangeCount) {
+    selectAll(el);
+    sel.getRangeAt(0).deleteContents();
+  }
+  return !readText(el).trim();
+}
+
+// Lexical bỏ xuống dòng khi dùng insertText, nhưng nhận paste thành từng đoạn.
 function writeText(el, text) {
   if (el.tagName === "TEXTAREA") {
     el.focus();
@@ -49,15 +78,32 @@ function writeText(el, text) {
     document.execCommand("insertText", false, text);
     return;
   }
-  selectAll(el);
-  if (el.innerText.trim()) {
-    el.dispatchEvent(new InputEvent("beforeinput", { inputType: "deleteContentBackward", bubbles: true, cancelable: true }));
-    selectAll(el);
-  }
+  el.focus();
   const data = new DataTransfer();
   data.setData("text/plain", text);
   const handled = !el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
   if (!handled) document.execCommand("insertText", false, text);
+}
+
+/**
+ * Điền = THAY TOÀN BỘ ô soạn bằng text kỳ vọng (decideInsert đã tính sẵn
+ * text cuối cùng cho cả replace lẫn append). Xoá không sạch thì DỪNG, không
+ * dán chồng lên bản cũ. Sau khi dán, so khớp toàn văn (textsMatch); lệch thì
+ * xoá và điền lại đúng một lần nữa trước khi chịu thua.
+ */
+function fillEditor(el, text) {
+  if (el.tagName === "TEXTAREA") {
+    writeText(el, text);
+    return textsMatch(readText(el), text);
+  }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    // Không xoá sạch được thì dừng ngay: dán chồng lên bản cũ còn tệ hơn
+    // không điền (panel sẽ báo insert_unverified để CS biết).
+    if (!clearEditor(el)) return false;
+    writeText(el, text);
+    if (textsMatch(readText(el), text)) return true;
+  }
+  return false;
 }
 
 // ---------- chuyển sang Note mode ----------
@@ -93,7 +139,7 @@ function findTabIn(scope, editor, label) {
 
 function findModeTab(editor, label) {
   let scope = editor;
-  for (let i = 0; i < 7 && scope; i++) {
+  for (let i = 0; i < 10 && scope; i++) {
     const tab = findTabIn(scope, editor, label);
     if (tab) return tab;
     scope = scope.parentElement;
@@ -176,8 +222,13 @@ async function insertIntoNote(msg, reply) {
   let editor = findComposer();
   if (!editor) return reply("composer_not_found");
   let { tab, signals } = collectNoteSignals(editor);
-  if (!tab) return reply("note_unconfirmed");
-  if (!confirmNoteMode(signals)) {
+  // BẢN CŨ bắt buộc tìm thấy tab Note rồi mới xét tín hiệu — mà tìm tab là
+  // khâu dễ trượt nhất (class băm, tab nằm ngoài tầm leo DOM), nên Note mode
+  // đã bật sẵn vẫn bị trả note_unconfirmed (Ethan test live 2026-10-26: tab
+  // Note đang mở, placeholder "Send a private note…" hiện rõ mà vẫn lỗi).
+  // Nay: tín hiệu phía editor là quyết định chính (đúng thiết kế cổng v2);
+  // tab chỉ dùng để BẤM CHUYỂN mode khi tín hiệu chưa đạt.
+  if (!confirmNoteMode(signals) && tab) {
     tab.click();
     // Chuyển mode là bất đồng bộ (Crisp thay node editor/nền): chờ tối đa ~1s.
     for (let i = 0; i < 12; i++) {
@@ -185,7 +236,7 @@ async function insertIntoNote(msg, reply) {
       editor = findComposer();
       if (!editor) continue;
       ({ tab, signals } = collectNoteSignals(editor));
-      if (tab && confirmNoteMode(signals)) break;
+      if (confirmNoteMode(signals)) break;
     }
   }
   editor = findComposer();
@@ -194,10 +245,9 @@ async function insertIntoNote(msg, reply) {
   if (!confirmNoteMode(signals)) return reply("note_unconfirmed");
   const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted });
   if (d.status !== "inserted") return reply(d.status);
-  writeText(editor, d.text);
-  // Kiểm chứng sau ghi: editor không chứa nội dung vừa ghi thì không được
-  // báo inserted — thà báo lỗi rõ ràng để panel xử lý còn hơn im lặng.
-  if (!verifyWritten(readText(editor), msg.text)) return reply("insert_unverified");
+  // Điền và kiểm chứng TOÀN VĂN: lệch là báo insert_unverified, không báo
+  // inserted giả (xem fillEditor).
+  if (!fillEditor(editor, d.text)) return reply("insert_unverified");
   inserted.add(msg.output_id);
   reply("inserted");
 }
@@ -213,8 +263,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (!el) return reply("composer_not_found");
   const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted });
   if (d.status !== "inserted") return reply(d.status);
-  writeText(el, d.text);
-  if (!verifyWritten(readText(el), msg.text)) return reply("insert_unverified");
+  if (!fillEditor(el, d.text)) return reply("insert_unverified");
   inserted.add(msg.output_id);
   reply("inserted");
 });

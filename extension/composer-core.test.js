@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { confirmNoteMode, decideInsert, isCopilotMessage, isYellowishColor, placeholderKind, sessionFromUrl, tabLooksActive, verifyWritten } from "./composer-core.js";
+import { confirmNoteMode, decideInsert, isCopilotMessage, isYellowishColor, placeholderKind, sessionFromUrl, tabLooksActive, textsMatch, verifyWritten } from "./composer-core.js";
 
 Deno.test("sessionFromUrl reads the open conversation", () => {
   assertEquals(sessionFromUrl("https://app.crisp.chat/website/ws1/inbox/session_abc-123/"), "session_abc-123");
@@ -75,6 +75,21 @@ Deno.test("verifyWritten: ô phải chứa dòng đầu của nội dung vừa g
   assertEquals(verifyWritten("nội dung khác hẳn", "Hi there"), false);
   assertEquals(verifyWritten("Hi there", "  \nHi there"), true); // dòng đầu bỏ qua dòng trống
   assertEquals(verifyWritten("bất cứ", ""), false);
+});
+
+Deno.test("textsMatch: so TOÀN VĂN sau khi điền — bắt được lỗi dán chồng làm nội dung lặp, dung sai khác biệt render vô hại", () => {
+  const draft = "Hi,\n\nThis is Ethan from Transcy.\n\nHow can I help you today?";
+  assertEquals(textsMatch(draft, draft), true);
+  // Lỗi live 2026-10-26: bản cũ còn nguyên + bản mới dán thêm → verifyWritten
+  // cũ cho qua (dòng đầu tồn tại), textsMatch phải bắt được.
+  assertEquals(textsMatch(`Nội dung cũ của CS\n\n${draft}`, draft), false);
+  assertEquals(textsMatch(`${draft}\n\n${draft}`, draft), false);
+  assertEquals(textsMatch(draft.replace("today?", "today?Hi,"), draft), false); // dán dính vào giữa câu
+  // Dung sai: khoảng trắng cuối dòng, zero-width, 3+ dòng trống gộp, xuống dòng thừa ở cuối.
+  assertEquals(textsMatch("Hi,  \n\n\nThis is Ethan from Transcy.\n\nHow can I help you today?\n", draft), true);
+  assertEquals(textsMatch(draft.replace("Hi,", "Hi,\u200B"), draft), true);
+  assertEquals(textsMatch("", draft), false);
+  assertEquals(textsMatch(draft, ""), false);
 });
 
 Deno.test("tabLooksActive qua aria-selected / data-state / class", () => {

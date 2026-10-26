@@ -24,14 +24,31 @@ export interface SurveyResult {
  * thì NHẢ claim để CS bấm lại được — đánh đổi đã biết: nếu n8n thật ra đã gửi
  * mà response lỗi, lần bấm lại vẫn có thể trùng; cửa sổ đó hẹp hơn nhiều so
  * với race đồng thời và không có cách phân biệt hai trường hợp từ response.
+ *
+ * Claim KHÔNG còn là khoá vĩnh viễn theo conversation (thay đổi 2026-10-26):
+ * bản trước trả "đã gửi" mãi mãi và panel tắt nút, Ethan chốt bỏ — team CS tự
+ * quyết khi nào xin lại. Claim cũ ngoài cửa sổ RESEND_GUARD_MS được nhả để
+ * lần bấm mới claim lại và gửi thật; trong cửa sổ thì vẫn chặn như race.
  */
+/** Cửa sổ chống bấm đúp/bắn trùng đồng thời: trong khoảng này, request thứ hai
+ * được coi là cùng một lần gửi. Ngoài cửa sổ, CS bấm là gửi lại thật — Ethan
+ * chốt 2026-10-26: không khoá nút survey, team tự biết khi nào nên xin. */
+const RESEND_GUARD_MS = 30_000;
+
 export async function runSurvey(
   req: { website_id: string; session_id: string; operator_name?: string },
   operatorId: string,
   deps: { db: Db; n8n: N8n },
 ): Promise<SurveyResult> {
   const existing = await deps.db.getCsatSend(req.website_id, req.session_id);
-  if (existing) return { action: "survey", sent: true, already: true, sent_at: existing.sent_at, error: null };
+  if (existing) {
+    const ageMs = Date.now() - Date.parse(existing.sent_at);
+    if (Number.isFinite(ageMs) && ageMs < RESEND_GUARD_MS) {
+      return { action: "survey", sent: true, already: true, sent_at: existing.sent_at, error: null };
+    }
+    // Đã gửi từ trước và ngoài cửa sổ chống trùng: nhả claim cũ để gửi lại.
+    await deps.db.releaseCsatSend(req.website_id, req.session_id).catch(() => {});
+  }
 
   // Tên trong survey phải theo ACCOUNT Crisp đang đăng nhập (widget gửi lên,
   // thắng bản sao trong DB có thể cũ) — cùng chuẩn generate/handoff.
