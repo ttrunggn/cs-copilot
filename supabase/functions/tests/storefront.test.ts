@@ -588,10 +588,12 @@ Deno.test("action storefront: shopify_domain trong custom data THẮNG shop truy
   assertEquals(seenShop, "resolved.myshopify.com");
 });
 
-Deno.test("action storefront: cổng action khớp cổng check — ticket Done ĐÃ báo khách thì action cũng 403", async () => {
+Deno.test("action storefront: cổng action khớp cổng check — workspace cờ TẮT, ticket Done ĐÃ báo khách thì action cũng 403", async () => {
   // check loại ticket Done-đã-báo khỏi danh sách → modules.storefront = false.
   // Action từng tính cổng bằng jiraForConversation(rows, null) nên vẫn cho qua
-  // đúng ca này; nay action dùng cùng mốc CS nhắn khách như check.
+  // đúng ca này; nay action dùng cùng mốc CS nhắn khách như check. Ca này xét
+  // ở workspace cờ storefront_watch TẮT (đường ticket là đường duy nhất) —
+  // workspace Transcy cờ bật thì module luôn mở theo chốt 2026-10-26.
   const doneRow = {
     link: { ...TNT_LINK.link },
     issue: {
@@ -600,6 +602,7 @@ Deno.test("action storefront: cổng action khớp cổng check — ticket Done 
     },
   };
   const { deps } = sfDeps(fakeMcp(), {
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: false }),
     getJiraRows: () => Promise.resolve([doneRow]),
     getConversation: () => Promise.resolve({ ...CONV, last_human_operator_at: "2026-10-21T00:00:00.000Z" }),
   });
@@ -929,4 +932,20 @@ Deno.test("sweep: một domain lỗi MCP → tính failed, các domain còn lạ
   const r2 = await handleStorefrontSweep({ website_id: "ws1" }, { db: h2.deps.db, storefront: null });
   assertEquals(r2.status, 200);
   assertEquals((r2.body as { skipped: string | null }).skipped, "unconfigured");
+});
+
+Deno.test("parseFindingsText: store sạch (0 lỗi) trả [] thay vì văng lỗi định dạng; header biến thể không '(s)' vẫn đọc", () => {
+  assertEquals(parseFindingsText("No open problems on tantaly-de.myshopify.com."), []);
+  const one = `1 open problems on amirobeauty.com, worst first:
+1. CRITICAL · Region missing · ja / (1440px)
+   Seen 2 time(s), first 2026-10-14, last 2026-10-22
+   Fingerprint: aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
+   Console: https://sw.transcy.io/#/f/aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7`;
+  assertEquals(parseFindingsText(one).length, 1);
+});
+
+Deno.test("parseFindingsText: định dạng lạ → lỗi kèm đầu nội dung thật để truy được SW trả gì", () => {
+  let msg = "";
+  try { parseFindingsText("Invalid shop identifier: tantaly_de@myshopify.com"); } catch (e) { msg = (e as Error).message; }
+  assertEquals(msg.includes("Invalid shop identifier"), true);
 });

@@ -203,8 +203,8 @@ const convItem = (key: string): ConversationJira => ({
   has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, updated_at: null, new_comments: [], recent_comments: [],
 });
 
-Deno.test("enabledModules: không có ticket → cả hai module tắt", () => {
-  assertEquals(enabledModules([], "TNT"), { jira: false, storefront: false });
+Deno.test("enabledModules: workspace có Jira project → module Jira luôn hiện kể cả chưa có ticket (Ethan 2026-10-26); Storefront vẫn cần đường mở riêng", () => {
+  assertEquals(enabledModules([], "TNT"), { jira: true, storefront: false });
 });
 
 Deno.test("enabledModules: ticket thuộc project của workspace → bật cả Jira và Storefront", () => {
@@ -225,9 +225,9 @@ Deno.test("enabledModules: workspace chưa set jira_project → Storefront khôn
 
 Deno.test("enabledModules: đường domain — cờ storefront_watch BẬT + shopify_domain + SW có dữ kiện → Storefront bật KHÔNG cần ticket", () => {
   // Chưa có bản chụp (snapshotWatched null): cổng mở theo domain, action nạp trực tiếp quyết định.
-  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: null }), { jira: false, storefront: true });
+  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: null }), { jira: true, storefront: true });
   // Bản chụp xác nhận đang theo dõi → bật.
-  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: false, storefront: true });
+  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: true });
   // Có ticket project khác vẫn chỉ bật Jira theo đường ticket — domain là đường cộng thêm độc lập.
   assertEquals(enabledModules([convItem("ABC-12")], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: true });
 });
@@ -236,7 +236,7 @@ Deno.test("enabledModules: đường domain — bản chụp nói SW KHÔNG theo
   // Hồi quy cho ca live 2026-10-26: store có bug thật ở SW nhưng panel không
   // hiện module vì bản chụp sweep nói watched=false. Nay có domain + cờ bật
   // là hiện; SW có theo dõi thật hay không do action nạp trực tiếp quyết.
-  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: false }), { jira: false, storefront: true });
+  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: false }), { jira: true, storefront: true });
 });
 
 Deno.test("enabledModules: đường domain bị khoá khi cờ storefront_watch TẮT — jira_project của workspace KHÔNG tự mở được cổng (ca OE/OES)", () => {
@@ -244,16 +244,16 @@ Deno.test("enabledModules: đường domain bị khoá khi cờ storefront_watch
   // coi là "workspace Transcy" — workspace OE có jira_project = OES nên cổng
   // domain mở nhầm cho OE. Nay chỉ cờ storefront_watch mới quyết phạm vi SW.
   // OE: jira_project OES + domain + bản chụp watched, cờ tắt/thiếu → đóng.
-  assertEquals(enabledModules([], "OES", { shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: false, storefront: false });
-  assertEquals(enabledModules([], "OES", { storefrontWatchEnabled: false, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: false, storefront: false });
+  assertEquals(enabledModules([], "OES", { shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: false });
+  assertEquals(enabledModules([], "OES", { storefrontWatchEnabled: false, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: false });
   // Kể cả jira_project = TNT mà cờ tắt → đường domain vẫn đóng (cờ là định
   // danh duy nhất; đường ticket bên dưới không bị ảnh hưởng bởi cờ).
-  assertEquals(enabledModules([], "TNT", { shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: false, storefront: false });
+  assertEquals(enabledModules([], "TNT", { shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: false });
   assertEquals(enabledModules([], null, { shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: false, storefront: false });
   // Cờ bật nhưng không có shopDomain (chat không có custom data) → đường domain đóng, y như trước.
-  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: null, snapshotWatched: true }), { jira: false, storefront: false });
-  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "  ", snapshotWatched: null }), { jira: false, storefront: false });
-  assertEquals(enabledModules([], "TNT"), { jira: false, storefront: false });
+  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: null, snapshotWatched: true }), { jira: true, storefront: true });
+  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "  ", snapshotWatched: null }), { jira: true, storefront: true });
+  assertEquals(enabledModules([], "TNT"), { jira: true, storefront: false });
 });
 
 Deno.test("enabledModules: so khớp tiền tố không phân biệt hoa thường, không hardcode mã nào", () => {

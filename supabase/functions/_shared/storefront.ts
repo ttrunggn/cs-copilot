@@ -310,8 +310,15 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
 export function parseFindingsText(text: string): StorefrontFinding[] {
   if (text.includes(NOT_WATCHED_MARK)) return [];
   const lines = textLines(text);
-  const headerIdx = lines.findIndex((l) => /^\d+ open problem\(s\) on .+, worst first:\s*$/.test(l));
-  if (headerIdx < 0) throw new StorefrontError("list_findings trả định dạng lạ (thiếu dòng mở đầu 'N open problem(s) …'), không đọc được");
+  // Store đang theo dõi nhưng không còn lỗi mở: SW trả một dòng báo trống
+  // thay cho khối danh sách — đó là kết quả HỢP LỆ (0 lỗi), không phải lỗi
+  // định dạng (ca live 2026-10-26: parser cũ văng lỗi oan ở đúng ca này).
+  if (lines.some((l) => /no open problems?\b/i.test(l))) return [];
+  const headerIdx = lines.findIndex((l) => /^\d+ open problems?\b.*$/i.test(l));
+  if (headerIdx < 0) {
+    const head = lines.filter((l) => l.trim()).slice(0, 3).map((l) => l.trim().slice(0, 120)).join(" | ");
+    throw new StorefrontError(`list_findings trả định dạng lạ (thiếu dòng mở đầu 'N open problem(s) …'), không đọc được. Đầu nội dung thật: ${head}`);
+  }
   const declared = Number(lines[headerIdx].match(/^(\d+) /)![1]);
   const blocks: string[][] = [];
   for (const line of lines.slice(headerIdx + 1)) {
@@ -330,7 +337,7 @@ export function parseFindingDetailText(text: string): StorefrontFindingDetail {
   const lines = textLines(text);
   const first = (lines[0] ?? "").trim();
   const fm = first.match(/^Finding ([0-9a-f]{40})$/);
-  if (!fm) throw new StorefrontError("get_finding trả định dạng lạ (thiếu dòng 'Finding <fingerprint>'), không đọc được");
+  if (!fm) throw new StorefrontError(`get_finding trả định dạng lạ (thiếu dòng 'Finding <fingerprint>'), không đọc được. Dòng đầu thật: ${first.slice(0, 120)}`);
   const fingerprint = fm[1];
   let severity: string | null = null;
   let kind: string | null = null;
