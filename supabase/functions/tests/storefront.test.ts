@@ -955,6 +955,18 @@ Deno.test("parseFindingsText: header 'The first N open problem(s)' (SW cắt tra
   assertEquals(out[0].kind, "Graphic lost");
 });
 
+Deno.test("parseFindingsText: dòng chốt 'The console lists the rest.' sau danh sách cắt trang được bỏ qua (ca live tantaly 2026-10-26)", () => {
+  const block = (n: number) => `${n}. MEDIUM · Layout degraded · de / (1920px)
+   Seen 2 time(s), first 2026-10-20, last 2026-10-22
+   Fingerprint: ${String(n).padStart(40, "b")}
+   Console: https://sw.transcy.io/#/f/${String(n).padStart(40, "b")}`;
+  const text = `The first 2 open problem(s) on www.tantaly.de, worst first:
+${block(1)}
+${block(2)}
+The console lists the rest.`;
+  assertEquals(parseFindingsText(text).length, 2);
+});
+
 Deno.test("parseFindingsText: định dạng lạ → lỗi kèm đầu nội dung thật để truy được SW trả gì", () => {
   let msg = "";
   try { parseFindingsText("Invalid shop identifier: tantaly_de@myshopify.com"); } catch (e) { msg = (e as Error).message; }
