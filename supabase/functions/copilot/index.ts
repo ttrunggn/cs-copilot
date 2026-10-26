@@ -2,7 +2,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { crispFromEnv } from "../_shared/crisp.ts";
 import { createAiStore, createDb, createJiraStore } from "../_shared/db.ts";
 import { jiraFromEnv } from "../_shared/jira-api.ts";
-import { createGemini } from "../_shared/gemini.ts";
+import { createOpenAi } from "../_shared/openai.ts";
+import { aiTraceSink } from "../_shared/trace.ts";
 import { createN8n } from "../_shared/n8n.ts";
 import { secretOk } from "../_shared/secret.ts";
 import { storefrontFromEnv } from "../_shared/storefront.ts";
@@ -23,8 +24,9 @@ function json(status: number, body: unknown): Response {
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const db = createDb(sb);
-// Nhiều key free tier, ngăn cách bằng dấu phẩy; key hết quota tự xoay sang key kế tiếp.
-const ai = createGemini({ apiKeys: (Deno.env.get("GEMINI_API_KEYS") ?? Deno.env.get("GEMINI_API_KEY") ?? "").split(","), store: createAiStore(sb) });
+// Nhiều key OpenAI, ngăn cách bằng dấu phẩy; key hết quota tự xoay sang key kế tiếp.
+// Mọi lần thử gọi AI đều ghi tracing (model, thời lượng, token) vào trace_log.
+const ai = createOpenAi({ apiKeys: (Deno.env.get("OPENAI_API_KEYS") ?? Deno.env.get("OPENAI_API_KEY") ?? "").split(","), store: createAiStore(sb), trace: aiTraceSink(db) });
 const n8n = createN8n({ baseUrl: Deno.env.get("N8N_WEBHOOK_BASE")!, secret: Deno.env.get("N8N_SHARED_SECRET")! });
 // Storefront Watch MCP (gọi trực tiếp, ký HMAC phía server): thiếu
 // SW_API_TOKEN/SW_MCP_SIGNING_SECRET trong env → null, action trả unconfigured.
