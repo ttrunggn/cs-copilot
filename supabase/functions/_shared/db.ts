@@ -33,6 +33,10 @@ export interface Db {
   getOperator(operatorId: string): Promise<{ display_name: string | null } | null>;
   findCachedOutput(q: { websiteId: string; sessionId: string; operatorId: string; kind: "draft" | "handoff"; inputFp: string }): Promise<OutputRow | null>;
   insertOutput(row: NewOutput): Promise<number>;
+  /** CS duyệt "Lưu làm mẫu mới" cho template review: ghi text thành review_template của CHÍNH CS trong workspace, xoá gợi ý, và đánh dấu manual_override.review_template_manual = true để học lại không ghi đè (migration 027). */
+  saveReviewTemplate(operatorId: string, websiteId: string, text: string): Promise<void>;
+  /** Mẫu CS đã duyệt lưu từ luồng Draft/Review (bảng profile_style_samples, migration 027): đầu vào ưu tiên cho vòng học profile sau này. */
+  addStyleSample(operatorId: string, websiteId: string, kind: "draft" | "review", text: string): Promise<void>;
   getLatestDraft(websiteId: string, sessionId: string, operatorId: string): Promise<OutputRow | null>;
   setAiTopic(websiteId: string, sessionId: string, topic: string): Promise<void>;
   matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
@@ -155,6 +159,21 @@ export function createDb(sb: SupabaseClient): Db {
       const { data, error } = await sb.from("outputs").insert(row).select("id").single();
       if (error) throw error;
       return data.id as number;
+    },
+    async saveReviewTemplate(operatorId, websiteId, text) {
+      const rows = await this.getProfiles(operatorId, websiteId);
+      for (const row of rows) {
+        const manual = { ...(row.manual_override ?? {}), review_template_manual: true } as Record<string, unknown>;
+        const { error } = await sb.from("agent_profiles")
+          .update({ review_template: text, review_template_suggestion: null, manual_override: manual })
+          .eq("crisp_user_id", operatorId).eq("website_id", websiteId).eq("topic", row.topic);
+        if (error) throw error;
+      }
+    },
+    async addStyleSample(operatorId, websiteId, kind, text) {
+      const { error } = await sb.from("profile_style_samples")
+        .insert({ crisp_user_id: operatorId, website_id: websiteId, kind, text });
+      if (error) throw error;
     },
     async getLatestDraft(websiteId, sessionId, operatorId) {
       const { data, error } = await sb.from("outputs").select(OUTPUT_COLUMNS)
