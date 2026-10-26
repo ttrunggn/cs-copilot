@@ -11,11 +11,12 @@ function fakeCsatDb() {
   let row: { sent_by: string; sent_at: string } | null = null;
   return {
     row: () => row,
+    setRow: (v: { sent_by: string; sent_at: string } | null) => { row = v; },
     db: {
       getCsatSend: () => Promise.resolve(row),
       recordCsatSend: () => {
         if (row) return Promise.resolve(null);
-        row = { sent_by: "op-lan", sent_at: "2026-10-15T03:05:00+00:00" };
+        row = { sent_by: "op-lan", sent_at: new Date().toISOString() };
         return Promise.resolve({ sent_at: row.sent_at });
       },
       releaseCsatSend: () => (row = null, Promise.resolve()),
@@ -23,7 +24,7 @@ function fakeCsatDb() {
   };
 }
 
-Deno.test("survey: gửi qua n8n gate, ghi trạng thái, lần hai không gửi lại", async () => {
+Deno.test("survey: gửi qua n8n gate, ghi trạng thái, bấm lại NGAY thì không gửi trùng (cửa sổ chống bấm đúp)", async () => {
   const csat = fakeCsatDb();
   let surveyCalls = 0;
   const { deps } = makeDeps({ db: csat.db });
@@ -35,7 +36,23 @@ Deno.test("survey: gửi qua n8n gate, ghi trạng thái, lần hai không gửi
   assertEquals((r1.body as { already: boolean }).already, false);
   const r2 = await handle(req, TOKEN, deps);
   assertEquals((r2.body as { already: boolean }).already, true);
-  assertEquals(surveyCalls, 1); // chống gửi trùng
+  assertEquals(surveyCalls, 1); // chống gửi trùng trong cửa sổ guard
+});
+
+Deno.test("survey: đã gửi từ lâu (ngoài cửa sổ chống trùng) thì bấm là GỬI LẠI thật — nút không bị khoá vĩnh viễn (Ethan, 2026-10-26)", async () => {
+  const csat = fakeCsatDb();
+  csat.setRow({ sent_by: "op-lan", sent_at: new Date(Date.now() - 10 * 60_000).toISOString() });
+  let surveyCalls = 0;
+  const { deps } = makeDeps({ db: csat.db });
+  deps.n8n.sendSurvey = () => (surveyCalls++, Promise.resolve(true));
+  const req = { website_id: "ws1", session_id: "session_1", action: "survey" };
+  const r = await handle(req, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { sent: boolean; already: boolean }).sent, true);
+  assertEquals((r.body as { already: boolean }).already, false);
+  assertEquals(surveyCalls, 1); // gửi lại thật qua n8n
+  // Claim mới mang mốc thời gian mới (không còn kẹt ở lần gửi 10 phút trước).
+  assertEquals(Date.now() - Date.parse(csat.row()!.sent_at) < 30_000, true);
 });
 
 Deno.test("survey: hai request ĐỒNG THỜI chỉ gửi đúng một lần (claim trước khi gửi)", async () => {

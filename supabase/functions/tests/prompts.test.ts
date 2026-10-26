@@ -182,12 +182,12 @@ Deno.test("formatHandoffNote is short: summary, one line per issue with state, n
     next_step: "khách đồng ý thì áp ưu đãi $49 và báo lại",
   }, "Ethan Nguyen");
   assertEquals(note, [
-    "📋 Handoff — Ethan Nguyen",
+    "Handoff — Ethan Nguyen",
     "Khách muốn xác nhận giá tri ân khi nâng Growth → Continental",
-    "1. Giá MSRP hiện cho khách EU — ✅ Xong: khách tự ẩn compare price trong theme",
-    "2. Ưu đãi nâng gói — ⏳ Chờ khách: Raymond báo giá tri ân $49 cho Continental, áp dụng 1 tháng",
-    "3. Lỗi dịch menu — 🛠 Chờ tech: đã tạo TNT-9184",
-    "➡️ Tiếp theo (chờ khách): khách đồng ý thì áp ưu đãi $49 và báo lại",
+    "1. Giá MSRP hiện cho khách EU — Xong: khách tự ẩn compare price trong theme",
+    "2. Ưu đãi nâng gói — Chờ khách: Raymond báo giá tri ân $49 cho Continental, áp dụng 1 tháng",
+    "3. Lỗi dịch menu — Chờ tech: đã tạo TNT-9184",
+    "Tiếp theo (chờ khách): khách đồng ý thì áp ưu đãi $49 và báo lại",
   ].join("\n"));
 });
 
@@ -267,7 +267,7 @@ Deno.test("formatHandoffNote learned format in Vietnamese keeps emoji states and
 
 Deno.test("formatHandoffNote omits the waiting label when nobody is waited on", () => {
   const note = formatHandoffNote({ summary: "s", issues: [{ issue: "i", state: "done", detail: "d" }], waiting_on: "none", next_step: "đóng chat" }, "Lan");
-  assertEquals(note.endsWith("➡️ Tiếp theo: đóng chat"), true);
+  assertEquals(note.endsWith("Tiếp theo: đóng chat"), true);
 });
 
 Deno.test("countTodos counts [[CS: …]] markers", () => {
