@@ -445,6 +445,28 @@ export function csatPanel({ onSurvey }) {
   ]);
 }
 
+/** Class màu pill theo trạng thái Storefront. */
+const SF_STATUS_CLASS = { new: "sf-new", acknowledged: "sf-ack", in_progress: "sf-prog" };
+
+/**
+ * Một dòng bug (Ethan chốt lại 2026-10-26 23:24): pill trạng thái (Mới / Đã
+ * xác nhận / Đang xử lý — Đang xử lý = team đã báo khách, server tự phân
+ * loại) + nhãn bug ngắn + meta dữ kiện + đúng 1 link ↗ unit sang Console.
+ * Không mở chi tiết, không hiện nội dung/message của SW trong panel.
+ */
+function sfRow(row) {
+  return el("div", { className: "sf-line" }, [
+    el("span", { className: `pill-sf ${SF_STATUS_CLASS[row.status] ?? ""}`, textContent: row.pill }),
+    el("div", {}, [
+      el("div", { textContent: row.shortLabel }),
+      row.meta ? el("div", { className: "muted", textContent: row.meta }) : null,
+    ]),
+    row.consoleLink && /^https:\/\//.test(row.consoleLink)
+      ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "↗", title: "Mở bug này trong Storefront Watch" })
+      : null,
+  ]);
+}
+
 export function storefrontPanel(handlers = {}) {
   if (!enabledModules(state.check).storefront) return null;
   const vm = toStorefrontViewModel(state.storefront);
@@ -511,6 +533,13 @@ export function storefrontPanel(handlers = {}) {
     vm.scannedLabel ? el("p", { className: "muted", textContent: `Quét ${vm.scannedLabel}` }) : null,
     vm.notWatched
       ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
+      : null,
+    ...(vm.rows ?? []).map((r) => sfRow(r)),
+    !vm.notWatched
+      ? el("div", { className: "row sf-footer" }, [
+        el("button", { className: "button-secondary", disabled: sfBtn.disabled, onclick: () => handlers.onStorefrontLoad?.() },
+          buttonContent(sfBtn.running, "Đang kiểm tra…", "Kiểm tra lại")),
+      ])
       : null,
   ]);
 }
