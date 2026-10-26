@@ -1,4 +1,4 @@
-import { askAnswerToHint, describeShape, enabledModules, explanationTemplate, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -49,7 +49,7 @@ function insertChoiceNode() {
   ]);
 }
 
-const handlers = { onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onInsertNote, onJiraSync, onJiraUnlink, onStorefrontLoad, onStorefrontFinding, onExplain, sendInsert: extension.sendInsert, sendReviewInsert: extension.sendReviewInsert, sendNoteInsert: extension.sendNoteInsert, sendExplainInsert: extension.sendExplainInsert, detectExtension: extension.detectExtension, onOpenModal: openModal, onCloseModal: closeModal, progressCard, insertChoice: insertChoiceNode, rerender: render };
+const handlers = { onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onInsertNote, onJiraSync, onJiraUnlink, onStorefrontLoad, onStorefrontFinding, onExplain, onSuggTry, onSuggOrig, onSuggAdopt, onSuggSave, sendInsert: extension.sendInsert, sendReviewInsert: extension.sendReviewInsert, sendNoteInsert: extension.sendNoteInsert, sendExplainInsert: extension.sendExplainInsert, detectExtension: extension.detectExtension, onOpenModal: openModal, onCloseModal: closeModal, progressCard, insertChoice: insertChoiceNode, rerender: render };
 
 let noticeTimer = null;
 
@@ -256,6 +256,9 @@ async function onGenerate(force) {
     if (state.tone !== "default") extra.tone = state.tone;
     const out = await call("generate", extra, ctrl.signal);
     state.draft = { output_id: out.output_id, session_id: sessionId, vm: toDraftViewModel(out) };
+    state.draftSugg = out.draft_suggestion ?? null;
+    state.draftSuggPhase = "";
+    state.draftSuggOrig = "";
     if (out.sentiment) state.sentiment = out.sentiment;
     state.composeOpen = false; // soạn xong thì popup Draft thu form, chỉ còn draft + nút điền
     state.draftPlacement = "";
@@ -272,6 +275,70 @@ async function onGenerate(force) {
     else if (!e.stale) setNotice(e.message ?? "Không soạn được, thử lại sau", "error");
     render();
   }
+}
+
+/* Thẻ gợi ý tối ưu (preview v8 Ethan duyệt): Thử → Dùng bản gợi ý / Dùng
+ * bản gốc → Lưu làm mẫu mới (chỉ sau khi đã dùng bản gợi ý). Áp cho cả
+ * Draft (gợi ý runtime từ generate) và Review (gợi ý lưu trong profile). */
+function onSuggTry(kind) {
+  if (kind === "draft") {
+    if (!state.draft || !state.draftSugg) return;
+    state.draftSuggOrig = state.draft.vm.text;
+    state.draft.vm.text = state.draftSugg.text;
+    state.draft.vm.todos = countPlaceholders(state.draftSugg.text);
+    state.draftPlacement = "";
+    state.draftSuggPhase = "trying";
+  } else {
+    const t = state.check?.review_template;
+    if (!t?.suggestion) return;
+    state.reviewSuggOrig = state.reviewText || t.text;
+    state.reviewText = t.suggestion.text;
+    state.reviewInsertId = "";
+    state.reviewSuggPhase = "trying";
+  }
+  render();
+}
+
+function onSuggOrig(kind) {
+  if (kind === "draft") {
+    if (!state.draft) return;
+    state.draft.vm.text = state.draftSuggOrig;
+    state.draft.vm.todos = countPlaceholders(state.draftSuggOrig);
+    state.draftSuggPhase = "";
+  } else {
+    state.reviewText = state.reviewSuggOrig;
+    state.reviewInsertId = "";
+    state.reviewSuggPhase = "";
+  }
+  render();
+}
+
+function onSuggAdopt(kind) {
+  if (kind === "draft") state.draftSuggPhase = "adopted";
+  else state.reviewSuggPhase = "adopted";
+  render();
+}
+
+async function onSuggSave(kind) {
+  const text = kind === "draft" ? state.draft?.vm.text : state.reviewText;
+  if (!text?.trim()) return;
+  try {
+    await call("save_suggestion", { suggestion_kind: kind, suggestion_text: text });
+    if (kind === "draft") {
+      state.draftSuggPhase = "saved";
+    } else {
+      state.reviewSuggPhase = "saved";
+      // Mẫu mới đã là template chính thức: cập nhật ngay để thẻ biến mất và
+      // khối profile hiện đúng, khỏi chờ check lại.
+      if (state.check?.review_template) {
+        state.check.review_template = { text, source: "profile", suggestion: null };
+      }
+    }
+    setNotice("Đã lưu bản gợi ý làm mẫu mới của bạn.", "success");
+  } catch (e) {
+    setNotice(e.message ?? "Chưa lưu được mẫu, thử lại sau", "error");
+  }
+  render();
 }
 
 async function onAnalyze(force) {
@@ -641,6 +708,9 @@ function applyCheck(sessionId) {
   if (state.check.review_template?.text && !state.reviewText) state.reviewText = state.check.review_template.text;
   if (state.check.latest_draft && !state.draft) {
     state.draft = { output_id: state.check.latest_draft.output_id, session_id: sessionId, vm: toDraftViewModel(state.check.latest_draft) };
+    state.draftSugg = null;
+    state.draftSuggPhase = "";
+    state.draftSuggOrig = "";
   }
 }
 

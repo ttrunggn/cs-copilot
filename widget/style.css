@@ -186,6 +186,14 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .suggestion-label { font-size: 12px; }
 .suggestion-toggle { align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; }
 
+/* Thẻ gợi ý tối ưu (preview v8): viền hổ phách như vùng chú ý nhẹ, không lấn draft */
+.sugg-card { border: 1px solid var(--warn-border); background: var(--warn-bg); border-radius: 10px; padding: 10px 12px; margin-top: 10px; display: grid; gap: 7px; }
+.sugg-card.done { border-color: var(--line); background: var(--card); }
+.sugg-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--warn); }
+.sugg-reason { font-size: 12.5px; line-height: 1.55; margin: 0; }
+.sugg-stat { font-size: 12px; color: var(--success); margin: 0; }
+.sugg-actions { justify-content: flex-start; gap: 8px; }
+
 /* Storefront Watch — issue gom theo 3 trạng thái (Mới / Đã xác nhận / Đang xử lý) */
 .link-text { color: var(--link); font-size: 13px; font-weight: 600; }
 .error-text { color: var(--error); }

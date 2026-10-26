@@ -122,6 +122,10 @@ export function draftPrompt(i: {
       "- A line labelled Bot is a reply the customer has already received. Do not call that question unanswered, repeat it, or contradict a product fact in it unless a help center article explicitly says otherwise.",
       "- For backup, storage, plan, quota, availability, or other product-policy claims: use the help center as the source of truth. If its answer is missing or conflicting, add a [[CS: …]] check instead of making a definite claim.",
       "- Output only the message text. No placeholders like [Name].",
+      // Luật cứng của Ethan (2026-10-26): câu trả lời người-với-người mà có
+      // dấu gạch ngang dài là lộ dấu vết AI. Prompt là lớp chính; lớp phụ là
+      // stripEmDashes() gọt cơ học ở đầu ra (generate.ts + parsePolish).
+      "- Never use the em dash character (—) anywhere in the reply. Use a period or a comma instead.",
     ].join("\n"),
     [
       "Agent's style:",
@@ -192,6 +196,61 @@ export function draftPrompt(i: {
 /** Số chỗ CS phải tự điền trong draft. */
 export function countTodos(draft: string): number {
   return (draft.match(/\[\[CS:[^\]]*\]\]/g) ?? []).length;
+}
+
+/**
+ * Gọt dấu gạch ngang dài khỏi văn bản trả khách (luật Ethan 2026-10-26):
+ * " — " và "—" đều thành ", ". Lớp phụ cơ học sau prompt — draft nào lọt
+ * dấu này qua prompt vẫn bị gọt trước khi tới tay CS/khách.
+ */
+export function stripEmDashes(text: string): string {
+  return text.replace(/\s*—\s*/g, ", ").replace(/,\s*,/g, ",");
+}
+
+export const POLISH_SCHEMA = {
+  type: "object",
+  properties: {
+    needs_polish: { type: "boolean" },
+    reason: { type: "string" },
+    improved: { type: "string" },
+  },
+  required: ["needs_polish", "reason", "improved"],
+} as const;
+
+/**
+ * Bước kiểm tra tối ưu cho draft vừa soạn (cơ chế gợi ý — Ethan 2026-10-26):
+ * draft bám giọng CS nhưng có thể còn câu lủng củng/sai ngữ pháp kiểu người
+ * bản xứ đọc là khựng. Bước này KHÔNG viết lại draft — nó chỉ đề xuất một
+ * bản gọn hơn kèm lý do, CS tự quyết dùng hay không ở panel.
+ */
+export function polishPrompt(draft: string): string {
+  return [
+    "You are reviewing one draft reply that a human support agent is about to send to a customer.",
+    "The draft was written to match the agent's personal voice. Your only job: check whether a native English speaker would stumble over any phrase (grammar mistakes, unnatural or tangled wording).",
+    "If the draft already reads naturally, answer needs_polish=false and leave reason and improved empty.",
+    "If something would make a native speaker stumble:",
+    "- needs_polish=true.",
+    "- improved: the same message rewritten to fix ONLY those weak spots. Keep the agent's voice, greetings, sign-off, emoji and every fact exactly as they are. Do not add or remove information. Never use the em dash character (—).",
+    "- reason: ONE short explanation in Vietnamese, naming the exact weak phrase(s) you fixed, in plain words an agent understands, e.g. 'Người bản xứ sẽ khựng ở \"is being showed\" (sai ngữ pháp)'. No lecture, no list of more than two phrases.",
+    "Output only the JSON object.",
+    "",
+    `<draft>\n${neutralize(draft)}\n</draft>`,
+  ].join("\n");
+}
+
+/** Parse kết quả polish: chỉ nhận khi bản gợi ý hợp lệ, khác bản gốc và sạch dấu gạch ngang dài (gọt cơ học lần cuối). */
+export function parsePolish(text: string, original: string): { reason: string; text: string } | null {
+  let obj: { needs_polish?: unknown; reason?: unknown; improved?: unknown };
+  try {
+    obj = parseJson<typeof obj>(text);
+  } catch {
+    return null;
+  }
+  if (obj.needs_polish !== true) return null;
+  const reason = typeof obj.reason === "string" ? obj.reason.trim() : "";
+  const improved = stripEmDashes(typeof obj.improved === "string" ? obj.improved.trim() : "");
+  if (!reason || !improved || improved === stripEmDashes(original.trim())) return null;
+  return { reason, text: improved };
 }
 
 // ---------- verify ----------

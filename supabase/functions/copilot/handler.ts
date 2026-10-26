@@ -12,6 +12,7 @@ import { runHandoff } from "./handoff.ts";
 import { runJiraSyncNow, runJiraUnlink } from "./jira-actions.ts";
 import type { StorefrontMcp } from "../_shared/storefront.ts";
 import { runStorefront, runStorefrontFinding } from "./storefront-actions.ts";
+import { runSaveSuggestion, SUGGESTION_TEXT_MAX } from "./suggestions.ts";
 
 export type { AskResult } from "./ask.ts";
 export type { CheckResult } from "./check.ts";
@@ -19,8 +20,9 @@ export type { GenerateResult } from "./generate.ts";
 export type { HandoffResult } from "./handoff.ts";
 export type { JiraSyncNowResult, JiraUnlinkResult } from "./jira-actions.ts";
 export type { StorefrontFindingResult, StorefrontResult } from "./storefront-actions.ts";
+export type { SaveSuggestionResult } from "./suggestions.ts";
 
-const ACTIONS = ["check", "handoff", "generate", "analyze", "survey", "ask", "jira_sync_now", "jira_unlink", "storefront", "storefront_finding"] as const;
+const ACTIONS = ["check", "handoff", "generate", "analyze", "survey", "ask", "jira_sync_now", "jira_unlink", "storefront", "storefront_finding", "save_suggestion"] as const;
 type Action = typeof ACTIONS[number];
 // session_id/website_id đi vào URL Crisp ở phía n8n nên phải đúng định dạng Crisp.
 const SESSION_ID = /^session_[\w-]+$/;
@@ -48,6 +50,10 @@ export interface CopilotRequest {
   shop: string;
   /** Finding cần xem chi tiết (chỉ action storefront_finding dùng; validate 40-hex ở runStorefrontFinding). */
   fingerprint: string;
+  /** Loại mẫu CS lưu từ thẻ gợi ý (chỉ action save_suggestion dùng): draft | review. */
+  suggestion_kind: string;
+  /** Nội dung mẫu CS đã duyệt để lưu (chỉ action save_suggestion dùng). */
+  suggestion_text: string;
 }
 
 export const HINT_MAX_CHARS = 500;
@@ -87,6 +93,8 @@ function parseRequest(body: unknown): CopilotRequest {
     issue_key: str("issue_key"),
     shop: str("shop").slice(0, 300),
     fingerprint: str("fingerprint"),
+    suggestion_kind: str("suggestion_kind"),
+    suggestion_text: str("suggestion_text").slice(0, SUGGESTION_TEXT_MAX),
   };
 }
 
@@ -118,6 +126,8 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
         return { status: 200, body: await runStorefront(req, ws, deps) };
       case "storefront_finding":
         return { status: 200, body: await runStorefrontFinding(req, ws, deps) };
+      case "save_suggestion":
+        return { status: 200, body: await runSaveSuggestion(req, operatorId, deps) };
     }
   } catch (e) {
     if (e instanceof HttpError) return { status: e.status, body: { error: e.message } };

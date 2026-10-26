@@ -56,6 +56,8 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
+    saveReviewTemplate: () => Promise.resolve(),
+    addStyleSample: () => Promise.resolve(),
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),
@@ -101,6 +103,7 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     profile_coverage: { conversations_used: 9, learned_at: null }, // từ dòng profile fake của CS này
     review_template: {
       source: "default",
+      suggestion: null,
       text: "Hi there,\n\nThank you for reaching out to us. I hope your issue has been resolved. If you're happy with our app and the support you received, we'd be grateful if you could spend a few seconds leaving a review on the Shopify App Store. Your feedback means a lot to us and helps us keep improving.\n\nThank you so much!",
     },
     conversation_state: "unresolved",

@@ -57,3 +57,31 @@ Deno.test("applyReviewLink: workspace chưa cấu hình link → bỏ dòng link
   const out = applyReviewLink("Dòng một.\n\nBelow is the direct link:\n{{review_link}}\n\nCảm ơn!", null);
   assertEquals(out, "Dòng một.\n\nCảm ơn!");
 });
+
+Deno.test("resolveReviewTemplate: profile có gợi ý → trả suggestion đã thay link theo workspace", () => {
+  const r = resolveReviewTemplate([row({
+    review_template: "Mẫu gốc của tôi.\n{{review_link}}",
+    review_template_suggestion: { text: "Mẫu gọn hơn.\n{{review_link}}", reason: "Câu đầu hơi dài." },
+  })], null, LINK);
+  assertEquals(r.source, "profile");
+  assertEquals(r.suggestion?.text, `Mẫu gọn hơn.\n${LINK}`);
+  assertEquals(r.suggestion?.reason, "Câu đầu hơi dài.");
+});
+
+Deno.test("resolveReviewTemplate: gợi ý trùng template gốc → không trả suggestion", () => {
+  const r = resolveReviewTemplate([row({
+    review_template: "Mẫu của tôi.\n{{review_link}}",
+    review_template_suggestion: { text: "Mẫu của tôi.\n{{review_link}}", reason: "gì đó" },
+  })], null, LINK);
+  assertEquals(r.suggestion, null);
+});
+
+Deno.test("resolveReviewTemplate: mẫu mặc định không bao giờ có suggestion; gợi ý hỏng hình dạng bị bỏ", () => {
+  const d = resolveReviewTemplate([row({ review_template: null })], null, LINK);
+  assertEquals(d.suggestion, null);
+  const bad = resolveReviewTemplate([row({
+    review_template: "Mẫu.\n{{review_link}}",
+    review_template_suggestion: { text: "  ", reason: "" },
+  })], null, LINK);
+  assertEquals(bad.suggestion, null);
+});

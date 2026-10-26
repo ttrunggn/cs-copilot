@@ -43,6 +43,7 @@ Deno.test("generate returns draft, warnings and stores output", async () => {
     profile_source: "default",
     prompt_version: "draft-v1",
     sentiment: null,
+    draft_suggestion: null,
   });
   assertEquals(inserted[0].kind, "draft");
   assertEquals(inserted[0].prompt_version, "draft-v1");
