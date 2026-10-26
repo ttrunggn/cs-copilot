@@ -325,10 +325,13 @@ export function parseFindingsText(text: string): StorefrontFinding[] {
     if (!line.trim()) continue;
     if (/^\d+\.\s+/.test(line)) blocks.push([line]);
     else if (/^\s/.test(line) && blocks.length) blocks[blocks.length - 1].push(line);
-    // Dòng chốt hạ của SW khi danh sách bị cắt ở 25 lỗi đầu ("The console
-    // lists the rest." — ca live tantaly 2026-10-26): câu thông tin trỏ về
-    // console, không phải finding — bỏ qua thay vì văng lỗi định dạng.
-    else if (/^the console\b/i.test(line.trim()) && blocks.length) continue;
+    // SW hay thêm câu chốt THÔNG TIN sau danh sách ("The console lists the
+    // rest." khi cắt ở 25 lỗi đầu; "4 page(s) could not be checked, so this
+    // list may be incomplete." — cả hai đều gặp live ở tantaly 2026-10-26).
+    // Finding luôn đánh số nên câu văn xuôi sau khi đã có finding không thể
+    // là finding: bỏ qua. Hàng rào toàn vẹn là đối chiếu số block với số
+    // khai báo ở header ngay dưới đây — thiếu finding thật vẫn văng lỗi.
+    else if (blocks.length) continue;
     else throw new StorefrontError(`list_findings trả dòng lạ ngoài finding: "${line.trim()}"`);
   }
   if (blocks.length !== declared) {
