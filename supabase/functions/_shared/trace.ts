@@ -1,6 +1,32 @@
 import type { Db, TraceRow } from "./db.ts";
+import type { AiTraceEvent } from "./openai.ts";
 
 export type { TraceRow };
+
+/**
+ * Cầu nối tracing cho client AI: mỗi lần thử gọi API thành một dòng trace_log
+ * (action = tác vụ, stage = model, detail chứa attempt/keyIndex/status/token).
+ * Sự kiện mang error ghi kind "error", còn lại kind "timing".
+ */
+export function aiTraceSink(db: Db): (e: AiTraceEvent) => Promise<void> {
+  return (e) =>
+    writeTrace(db, {
+      action: e.task,
+      kind: e.error ? "error" : "timing",
+      stage: e.model,
+      duration_ms: e.durationMs,
+      message: e.error ?? null,
+      detail: {
+        provider: "openai",
+        attempt: e.attempt,
+        key_index: e.keyIndex,
+        status: e.status,
+        ...(e.promptTokens != null ? { prompt_tokens: e.promptTokens } : {}),
+        ...(e.completionTokens != null ? { completion_tokens: e.completionTokens } : {}),
+        ...(e.totalTokens != null ? { total_tokens: e.totalTokens } : {}),
+      },
+    });
+}
 
 /**
  * Ghi một dòng truy vết (tracing) vào bảng trace_log (migration 028).
