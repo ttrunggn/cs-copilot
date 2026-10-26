@@ -1,6 +1,7 @@
 import { HttpError } from "../_shared/auth.ts";
 import type { Db } from "../_shared/db.ts";
-import type { N8n } from "../_shared/n8n.ts";
+import type { JiraClient } from "../_shared/jira-api.ts";
+import { applyJiraIssues, type JiraStore } from "../jira-sync/handler.ts";
 
 // Định dạng issue key Jira (khớp bộ lọc ở workflow n8n và jira-sync handler):
 // chữ hoa/số/gạch dưới, gạch ngang, số — chặn key rác/chèn ký tự lạ từ client.
@@ -9,7 +10,7 @@ export const ISSUE_KEY = /^[A-Z][A-Z0-9_]+-\d+$/;
 export interface JiraSyncNowResult {
   action: "jira_sync_now";
   triggered: boolean;
-  /** Lý do kích hoạt không thành (khi triggered = false) để panel hiện đúng thay vì đoán. */
+  /** Lý do đồng bộ không thành (khi triggered = false) để panel hiện đúng thay vì đoán. */
   error: string | null;
 }
 
@@ -21,25 +22,76 @@ export interface JiraUnlinkResult {
 }
 
 /**
- * Nút "Sync ngay" trên panel: kích hoạt workflow Jira Sync qua webhook
- * jira-sync-now thay vì chờ lịch 5 phút. Chỉ kích hoạt — lượt quét chạy bất
- * đồng bộ bên n8n, panel tự check lại sau ít giây. Webhook không phản hồi
- * {"ok": true} (chưa import node webhook / workflow chưa Active / sai secret)
- * thì trả triggered=false kèm lý do, không nuốt lỗi.
+ * Mirror Jira coi là còn tươi trong khoảng này: mở panel mà bản lưu mới hơn
+ * thì khỏi gọi Jira lại (mở/refresh liên tục không nện API). Quá mốc này —
+ * hoặc ticket chưa từng có dữ liệu — mở panel là tự sync ngay trong request
+ * check (Ethan chốt 2026-10-26: tự sync khi bấm vào, CS không click thủ
+ * công, không chờ lịch quét của n8n).
+ */
+export const JIRA_FRESH_MS = 90_000;
+
+export interface JiraSyncDeps {
+  db: Db;
+  /** Kho lưu mirror (createJiraStore) — dùng chung pipeline với jira-sync. */
+  jiraStore?: JiraStore | null;
+  /** Client Jira REST chỉ-đọc; null = chưa cấu hình JIRA_EMAIL/JIRA_API_TOKEN. */
+  jira?: JiraClient | null;
+  now?: () => number;
+}
+
+/**
+ * Đồng bộ mirror Jira cho ĐÚNG các ticket đang liên kết với conversation
+ * này: lấy issue thô từ Jira REST rồi áp qua applyJiraIssues (cùng pipeline
+ * chuẩn hoá/lưu/diff như đường n8n cũ — CHỈ MỘT nguồn sync active tại một
+ * thời điểm, luật Ethan 2026-10-23). force = bỏ qua cửa sổ tươi (nút Sync
+ * ngay). Lỗi gọi Jira văng ra cho caller quyết (check nuốt lỗi giữ dữ liệu
+ * cũ; sync_now báo lỗi trung thực).
+ */
+export async function syncJiraForSession(
+  deps: JiraSyncDeps,
+  websiteId: string,
+  sessionId: string,
+  opts: { force?: boolean } = {},
+): Promise<{ synced: boolean; reason: "no_links" | "fresh" | "unconfigured" | "synced" }> {
+  const rows = await deps.db.getJiraRows(websiteId, sessionId);
+  if (!rows.length) return { synced: false, reason: "no_links" };
+  const now = (deps.now ?? Date.now)();
+  const staleKeys = rows
+    .filter((r) => !r.issue || !r.issue.synced_at || now - Date.parse(r.issue.synced_at) > JIRA_FRESH_MS)
+    .map((r) => r.link.issue_key);
+  const keys = opts.force ? rows.map((r) => r.link.issue_key) : staleKeys;
+  if (!keys.length) return { synced: false, reason: "fresh" };
+  if (!deps.jira || !deps.jiraStore) return { synced: false, reason: "unconfigured" };
+  const raw = await deps.jira.searchIssues(keys);
+  await applyJiraIssues(deps.jiraStore, { issues: raw });
+  return { synced: true, reason: "synced" };
+}
+
+const UNCONFIGURED_MSG = "Server chưa cấu hình Jira API (cần JIRA_EMAIL + JIRA_API_TOKEN trong Supabase secrets) nên chưa tự đồng bộ được.";
+
+/**
+ * Nút "Sync ngay" trên panel: nay là ép đồng bộ NGAY trong Edge Function
+ * (không qua webhook n8n nữa) — panel check lại sau là thấy dữ liệu mới.
+ * Chưa cấu hình credential hoặc Jira lỗi → triggered=false kèm lý do, không
+ * nuốt lỗi.
  */
 export async function runJiraSyncNow(
   req: { website_id: string; session_id: string },
-  deps: { n8n: N8n },
+  deps: JiraSyncDeps,
 ): Promise<JiraSyncNowResult> {
-  const triggered = await deps.n8n.triggerJiraSync(req.website_id, req.session_id);
-  if (!triggered) {
+  if (!deps.jira || !deps.jiraStore) {
+    return { action: "jira_sync_now", triggered: false, error: UNCONFIGURED_MSG };
+  }
+  try {
+    await syncJiraForSession(deps, req.website_id, req.session_id, { force: true });
+    return { action: "jira_sync_now", triggered: true, error: null };
+  } catch (e) {
     return {
       action: "jira_sync_now",
       triggered: false,
-      error: "Không kích hoạt được lượt quét Jira (kiểm tra workflow Jira Sync đã Active và đã có node webhook jira-sync-now trên n8n).",
+      error: `Không đồng bộ được Jira: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
-  return { action: "jira_sync_now", triggered: true, error: null };
 }
 
 /**

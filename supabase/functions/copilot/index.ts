@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { crispFromEnv } from "../_shared/crisp.ts";
-import { createAiStore, createDb } from "../_shared/db.ts";
+import { createAiStore, createDb, createJiraStore } from "../_shared/db.ts";
+import { jiraFromEnv } from "../_shared/jira-api.ts";
 import { createGemini } from "../_shared/gemini.ts";
 import { createN8n } from "../_shared/n8n.ts";
 import { secretOk } from "../_shared/secret.ts";
@@ -32,6 +33,12 @@ const storefront = storefrontFromEnv((k) => Deno.env.get(k));
 // (ngoại lệ ghi duy nhất Ethan đã duyệt, xem _shared/crisp.ts). Thiếu
 // CRISP_PLUGIN_IDENTIFIER/CRISP_PLUGIN_KEY → null, job trả unconfigured.
 const crisp = crispFromEnv((k) => Deno.env.get(k));
+// Jira REST chỉ-đọc cho đường tự sync khi mở panel (Ethan chốt 2026-10-26):
+// thiếu JIRA_EMAIL/JIRA_API_TOKEN → null, check giữ mirror cũ và nút Sync
+// ngay báo unconfigured trung thực. Kho mirror dùng chung với function
+// jira-sync (cùng pipeline applyJiraIssues — chỉ MỘT nguồn sync active).
+const jira = jiraFromEnv((k) => Deno.env.get(k));
+const jiraStore = createJiraStore(sb);
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -68,6 +75,6 @@ Deno.serve(async (req) => {
     if (rt?.waitUntil) rt.waitUntil(task);
     else void task;
   };
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront });
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp });
   return json(r.status, r.body);
 });

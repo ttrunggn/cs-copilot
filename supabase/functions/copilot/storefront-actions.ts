@@ -1,4 +1,5 @@
 import { HttpError } from "../_shared/auth.ts";
+import type { CrispClient } from "../_shared/crisp.ts";
 import type { Db } from "../_shared/db.ts";
 import { enabledModules, jiraForConversation } from "../_shared/jira.ts";
 import {
@@ -63,14 +64,14 @@ const UNCONFIGURED_MSG = "Storefront Watch chưa được cấu hình trên serv
 async function assertStorefrontEnabled(
   req: { website_id: string; session_id: string },
   ws: Workspace,
-  deps: { db: Db },
+  deps: { db: Db; crisp?: CrispClient | null; now?: () => number },
 ): Promise<ConversationRow | null> {
   const [rows, conv] = await Promise.all([
     deps.db.getJiraRows(req.website_id, req.session_id),
     deps.db.getConversation(req.website_id, req.session_id),
   ]);
   const items = jiraForConversation(rows, conv?.last_human_operator_at ?? null);
-  const shop = shopFromCustomData(conv);
+  const shop = await resolveShopDomain(deps, req.website_id, req.session_id, conv);
   const snapshot = shop
     ? await deps.db.getStorefrontStoreStatus(req.website_id, shop).catch(() => null)
     : null;
@@ -118,6 +119,48 @@ export function shopFromCustomData(conv: ConversationRow | null): string {
   return typeof fromData === "string" && SHOP_OK(fromData.trim()) ? fromData.trim() : "";
 }
 
+// Lần thử đọc Crisp gần nhất cho từng phiên (theo tiến trình function):
+// phiên mà Crisp cũng không có domain thì đừng hỏi lại Crisp ở mọi lần mở
+// panel — chờ cửa sổ này rồi mới thử lại (domain có thể được set sau).
+const crispLookupAt = new Map<string, number>();
+export const CRISP_LOOKUP_TTL_MS = 5 * 60_000;
+
+/**
+ * Resolve shopify_domain cho một conversation theo thứ tự: (1) custom_data
+ * trong DB (ingest mang về — nguồn chính), (2) đọc thẳng meta.data từ Crisp
+ * khi DB chưa có (Ethan chốt 2026-10-26: tự lấy, CS không nhập tay — ca
+ * live: domain có sẵn trong Custom data của Crisp mà panel vẫn bắt nhập vì
+ * ingest chưa/chậm mang về). Domain lấy được từ Crisp được LƯU LẠI vào
+ * custom_data (merge, không đè key khác) và gắn vào chính conv đang cầm để
+ * caller dùng tiếp trong cùng request. Lỗi đọc Crisp → coi như chưa có,
+ * giữ đường nhập tay làm dự phòng cuối.
+ */
+export async function resolveShopDomain(
+  deps: { db: Db; crisp?: CrispClient | null; now?: () => number },
+  websiteId: string,
+  sessionId: string,
+  conv: ConversationRow | null,
+): Promise<string> {
+  const known = shopFromCustomData(conv);
+  if (known) return known;
+  if (!deps.crisp || !conv) return "";
+  const key = `${websiteId}|${sessionId}`;
+  const now = (deps.now ?? Date.now)();
+  if (now - (crispLookupAt.get(key) ?? 0) < CRISP_LOOKUP_TTL_MS) return "";
+  crispLookupAt.set(key, now);
+  try {
+    const data = await deps.crisp.getConversationCustomData(websiteId, sessionId);
+    const domain = data?.shopify_domain;
+    if (typeof domain !== "string" || !SHOP_OK(domain.trim())) return "";
+    const shop = domain.trim();
+    await deps.db.mergeConversationCustomData(websiteId, sessionId, { shopify_domain: shop }).catch(() => false);
+    conv.custom_data = { ...(conv.custom_data ?? {}), shopify_domain: shop };
+    return shop;
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Nạp dữ liệu Storefront cho panel: find_store (store có được theo dõi, lần
  * check cuối) + list_findings (mọi lỗi đang mở), rồi chia đúng 3 trạng thái
@@ -128,7 +171,7 @@ export function shopFromCustomData(conv: ConversationRow | null): string {
 export async function runStorefront(
   req: { website_id: string; session_id: string; shop?: string },
   ws: Workspace,
-  deps: { db: Db; storefront?: StorefrontMcp | null },
+  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; now?: () => number },
 ): Promise<StorefrontResult> {
   const conv = await assertStorefrontEnabled(req, ws, deps);
   const explicit = (req.shop ?? "").trim();
@@ -191,7 +234,7 @@ export async function runStorefront(
 export async function runStorefrontFinding(
   req: { website_id: string; session_id: string; fingerprint: string },
   ws: Workspace,
-  deps: { db: Db; storefront?: StorefrontMcp | null },
+  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; now?: () => number },
 ): Promise<StorefrontFindingResult> {
   const conv = await assertStorefrontEnabled(req, ws, deps);
   if (!FINGERPRINT.test(req.fingerprint ?? "")) throw new HttpError(400, `fingerprint không hợp lệ: ${req.fingerprint}`);
