@@ -68,6 +68,9 @@ export function toViewModel(check, now) {
       ? `Khách nhắn ${timeAgo(check.last_customer_at, now)}${check.bot_replied_count ? ` · Bot đã phản hồi ${check.bot_replied_count} tin, CS chưa trả lời` : " · Chưa có CS trả lời"}`
       : `Khách nhắn ${timeAgo(check.last_customer_at, now)} · CS trả lời ${timeAgo(check.last_human_operator_at, now)}`,
     stale: check.stale,
+    // Đầu panel (Ethan chốt 2026-10-26): tên khách + shopify domain của họ.
+    customerName: check.customer_name ?? check.customer_email ?? null,
+    shopDomain: check.shopify_domain ?? null,
     needsReply: check.needs_reply,
     unanswered: visibleMessages.map((m) => m.text),
     pendingMessages: visibleMessages,
@@ -282,6 +285,17 @@ export function toIssuesViewModel(check, sentiment) {
   return { issues: [] };
 }
 
+/** Nhãn bug ngắn hardcode theo kind của SW (Ethan chốt 2026-10-26: panel chỉ cần nói ngắn gọn là bug gì). Kind lạ → dùng nguyên tên kind. */
+const SF_SHORT_LABELS = {
+  "Graphic lost": "Mất hình ảnh",
+  "Region missing": "Thiếu vùng nội dung",
+  "Layout degraded": "Lệch giao diện",
+  "Block collapsed": "Khối nội dung bị sập",
+  "Height jump": "Trang giật khi tải",
+  "Raw template visible": "Lộ mã template",
+  "Option unidentifiable": "Không phân biệt được tuỳ chọn sản phẩm",
+};
+
 /** 3 trạng thái issue Storefront Ethan chốt (2026-10-23) — thay taxonomy mức độ/tín hiệu cũ. */
 export const SF_GROUPS = [
   { status: "new", label: "Mới" }, // issue mới được update
@@ -372,18 +386,21 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
     const raw = buckets[g.status];
     return { ...g, items: groupSameRootCause(raw), count: raw.length };
   });
-  // Danh sách PHẲNG cho card gọn (Ethan chốt 2026-10-26): hết tiêu đề nhóm,
-  // mỗi mục một dòng với pill trạng thái; thứ tự nhóm giữ nguyên SF_GROUPS.
+  // Danh sách PHẲNG cho card gọn (Ethan chốt 2026-10-26): mỗi mục một dòng
+  // duy nhất — nhãn bug ngắn + số bug tương tự + link Console của bug đó,
+  // không thêm chữ nào khác. Thứ tự nhóm giữ nguyên SF_GROUPS.
   const rows = groups.flatMap((g) => g.items.map((d) => ({
     status: g.status,
     label: g.label,
     title: d.title,
+    shortLabel: SF_SHORT_LABELS[d.kind ?? d.title] ?? d.title,
     kind: d.kind ?? null,
     page: d.page ?? null,
     count: d.count,
     locales: d.locales ?? [],
     entries: d.entries ?? [],
     fingerprint: d.entries?.[0]?.fingerprint ?? null,
+    consoleLink: d.entries?.[0]?.consoleLink ?? null,
     meta: d.entries?.[0]?.meta ?? "",
   })));
   return {

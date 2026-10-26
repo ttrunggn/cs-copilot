@@ -2,7 +2,7 @@ import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, expl
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
-import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, profileFooter, storefrontPanel } from "./panels.js";
+import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, storefrontPanel } from "./panels.js";
 
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
@@ -666,7 +666,21 @@ function render() {
   const modalOpen = Boolean(state.modal);
   show(
     el("header", { className: "inbox-header" }, [
-      el("div", {}, [el("h1", { textContent: vm.header }), el("p", { className: "subtitle", textContent: vm.subtitle })]),
+      el("div", {}, [
+        el("h1", { textContent: vm.header }),
+        el("p", { className: "subtitle", textContent: vm.subtitle }),
+        // Tên khách + shopify domain của họ ngay đầu panel (Ethan chốt
+        // 2026-10-26). Domain ưu tiên bản check đã resolve; panel Storefront
+        // nạp xong thì lấy store thật của nó.
+        (vm.customerName || vm.shopDomain || state.storefront?.store)
+          ? el("p", { className: "customer-line" }, [
+            vm.customerName ? el("b", { textContent: vm.customerName }) : null,
+            (vm.shopDomain ?? state.storefront?.store)
+              ? el("span", { className: "muted", textContent: ` · ${vm.shopDomain ?? state.storefront?.store}` })
+              : null,
+          ])
+          : null,
+      ]),
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
     vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
@@ -686,10 +700,6 @@ function render() {
     !modalOpen ? insertChoiceNode() : null,
     commandsRow(handlers),
     modalView(handlers),
-    // Profile LUÔN ở dưới cùng panel (Ethan chốt 2026-10-26) — sau cả hàng
-    // lệnh và popup; modalView là lớp phủ nên thứ tự DOM này không đổi vị
-    // trí hiển thị của popup, chỉ khoá profile ở đáy luồng nội dung.
-    profileFooter(),
   );
 }
 

@@ -27,6 +27,9 @@ export type CheckDeps = LoadDeps & {
 
 export interface CheckResult {
   action: "check";
+  customer_name: string | null;
+  customer_email: string | null;
+  shopify_domain: string | null;
   stale: boolean;
   workspace: string;
   topic: string | null;
@@ -152,6 +155,9 @@ export async function runCheck(
     action: "check",
     stale,
     workspace: ws.name,
+    customer_name: conv.customer_name ?? null,
+    customer_email: conv.customer_email ?? null,
+    shopify_domain: shop || null,
     topic: conv.topic,
     topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
     profile_source: source,

@@ -445,107 +445,22 @@ export function csatPanel({ onSurvey }) {
   ]);
 }
 
-/** Class màu theo trạng thái Storefront cho pill trên từng dòng. */
-const SF_STATUS_CLASS = { new: "sf-new", acknowledged: "sf-ack", in_progress: "sf-prog" };
-
-
-/** Chi tiết một finding (get_finding) hiện ngay dưới dòng của nó khi CS bấm mở. */
-function sfDetail(detail, handlers, row) {
-  if (!detail) return null;
-  if (detail.error) {
-    return el("div", { className: "sf-detail" }, [
-      el("p", { className: "muted", textContent: detail.error }),
-    ]);
-  }
-  const rows = [];
-  if (detail.where) rows.push(el("div", { textContent: `Vị trí: ${detail.where}` }));
-  if (detail.text) rows.push(el("div", {}, [
-    el("span", { className: "muted", textContent: "Text trong vùng lỗi: " }),
-    document.createTextNode(`“${detail.text}”`),
-  ]));
-  if (detail.judgement) rows.push(el("div", { className: "muted", textContent: detail.judgement }));
-  const flags = [detail.dismissed ? "Đã bỏ qua" : null, detail.fixed ? "Đã đánh dấu sửa" : null].filter(Boolean).join(" · ");
-  if (flags) rows.push(el("div", { className: "muted", textContent: flags }));
-  if (detail.consoleLink && /^https:\/\//.test(detail.consoleLink)) {
-    rows.push(el("a", { href: detail.consoleLink, target: "_blank", rel: "noreferrer", textContent: "Mở trong Storefront Watch ↗" }));
-  }
-  // Mục đã gom nhiều locale: link Console của TỪNG finding nằm ở đây, bấm
-  // dòng chỉ mở chi tiết của finding đầu — link riêng vẫn tới được đúng bug.
-  if (row && row.count > 1) {
-    for (const e of row.entries) {
-      if (e.consoleLink && /^https:\/\//.test(e.consoleLink)) {
-        rows.push(el("div", {}, [
-          el("span", { className: "muted", textContent: `${e.locale ?? ""}: ` }),
-          el("a", { href: e.consoleLink, target: "_blank", rel: "noreferrer", textContent: "Console ↗" }),
-        ]));
-      }
-    }
-  }
-  if (handlers?.onExplain && row) {
-    const first = row.entries[0] ?? {};
-    rows.push(el("button", {
-      className: "button-secondary sf-explain",
-      textContent: "Mẫu giải thích",
-      onclick: () => handlers.onExplain({ fingerprint: row.fingerprint, kind: row.kind ?? row.title, locale: first.locale, page: row.page, text: first.text, title: row.title }),
-    }));
-  }
-  return el("div", { className: "sf-detail" }, rows.length ? rows : [
-    el("p", { className: "muted", textContent: "Không có thêm chi tiết." }),
+/**
+ * Một dòng bug trong card Storefront (Ethan chốt 2026-10-26): CHỈ nhãn bug
+ * ngắn + số bug tương tự (khi gom nhiều) + link ↗ tới đúng URL bug đó trên
+ * Console. Không meta, không chi tiết mở rộng, không nút phụ — cần thêm
+ * thông tin thì bấm link sang Console.
+ */
+function sfRow(row) {
+  return el("div", { className: "sf-line" }, [
+    el("span", { textContent: row.shortLabel }),
+    row.count > 1 ? el("span", { className: "muted", textContent: `×${row.count}` }) : null,
+    row.consoleLink && /^https:\/\//.test(row.consoleLink)
+      ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "↗", title: "Mở bug này trong Storefront Watch" })
+      : null,
   ]);
 }
 
-/** Một dòng finding trong card gọn: pill trạng thái + tiêu đề + meta. Bấm dòng mở chi tiết. */
-function sfRow(row, handlers) {
-  const fp = row.fingerprint;
-  const open = Boolean(fp) && state.storefrontDetail?.fingerprint === fp;
-  const loadingDetail = Boolean(fp) && state.storefrontDetailLoading === fp;
-  const metaText = row.count > 1
-    ? [row.page, row.locales.join(", ")].filter(Boolean).join(" · ")
-    : (row.meta || row.entries[0]?.locale || "");
-  const head = el("div", { className: "sf-row-head" }, [
-    el("span", { className: `pill-sf ${SF_STATUS_CLASS[row.status] ?? ""}`, textContent: row.label }),
-    el("div", {}, [
-      el("div", { textContent: row.title }),
-      metaText ? el("div", { className: "muted", textContent: metaText }) : null,
-    ]),
-  ]);
-  const rowEl = fp && handlers.onStorefrontFinding
-    ? el("button", { className: "sf-row", title: "Bấm để xem chi tiết", onclick: () => handlers.onStorefrontFinding(fp) }, [head])
-    : el("div", { className: "sf-row" }, [head]);
-  return el("div", { className: "sf-entry" }, [
-    rowEl,
-    loadingDetail ? el("p", { className: "muted", textContent: "Đang tải chi tiết…" }) : null,
-    open ? sfDetail(state.storefrontDetail, handlers, row) : null,
-  ]);
-}
-
-/**
- * Một entry = MỘT finding thật trong mục (mục đã gom vẫn giữ từng entry
- * riêng): dòng chính bấm mở chi tiết (get_finding) của đúng fingerprint đó;
- * link "Console ↗" trỏ thẳng URL console của CHÍNH finding (từ dữ kiện
- * MCP) — sang đó CS tự Mark fixed/Dismiss, panel không đổi trạng thái phía
- * SW; nút "Mẫu giải thích" mở popup đoạn mẫu theo loại lỗi để điền vào ô
- * Reply. Link chỉ nhận https (dữ kiện MCP nhưng vẫn là dữ kiện ngoài).
- */
-
-/**
- * Một mục finding sau gom (core.js groupSameRootCause): nhiều entry cùng
- * căn nguyên (cùng kind+page, khác locale) thì có thêm dòng đầu mục với
- * chip từng locale; một entry thì render như một finding thường.
- */
-
-/**
- * Module Storefront Watch (màu đỏ) — internal connection: CHỈ render khi
- * server bật trong check.modules (chat có ticket thuộc Jira của chính
- * workspace, hoặc — chỉ trong workspace Transcy — chat có shopify_domain mà
- * SW đang theo dõi); response thiếu modules (server cũ) → ẩn hẳn (fallback ở
- * enabledModules, core.js). Dữ liệu thật qua action `storefront` (server gọi
- * MCP Storefront Watch trực tiếp, tự chia 3 trạng thái Ethan chốt). Shop do
- * server tự resolve từ custom data của phiên Crisp (key shopify_domain);
- * phiên không có sẵn key đó server mới trả need_shop → ô nhập tay là fallback
- * cuối cùng. Lỗi/chưa cấu hình → thông báo trung thực trong module, không
- * bịa issue.
- */
 export function storefrontPanel(handlers = {}) {
   if (!enabledModules(state.check).storefront) return null;
   const vm = toStorefrontViewModel(state.storefront);
@@ -605,11 +520,10 @@ export function storefrontPanel(handlers = {}) {
         : el("b", { className: "success-text", textContent: "✓ Không phát hiện lỗi" }),
       vm.scannedLabel ? el("span", { className: "muted", textContent: `Quét ${vm.scannedLabel}` }) : null,
     ]),
-    el("p", { className: "muted", textContent: vm.store }),
     vm.notWatched
       ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
       : null,
-    ...(vm.rows ?? []).map((r) => sfRow(r, handlers)),
+    ...(vm.rows ?? []).map((r) => sfRow(r)),
     vm.isStale ? el("div", { className: "warn", textContent: "Kết quả cũ. Bấm Kiểm tra lại trước khi dựa vào nó." }) : null,
     el("div", { className: "row sf-footer" }, [
       el("button", { className: "button-secondary", disabled: sfBtn.disabled, onclick: () => handlers.onStorefrontLoad?.() },
@@ -628,36 +542,6 @@ export function commandsRow({ onOpenModal }) {
     el("button", { className: "cmd cmd-note", textContent: "Private note", onclick: () => onOpenModal("note") }),
     el("button", { className: "cmd cmd-ask", textContent: "Knowledge Base Asking", onclick: () => onOpenModal("ask") }),
     el("button", { className: "cmd cmd-csat", textContent: "Xin CSAT / Review", onclick: () => onOpenModal("csat") }),
-  ]);
-}
-
-/**
- * Khối trạng thái profile ở cuối panel (Ethan duyệt ở preview v6): nói rõ
- * giọng đang dùng đến từ đâu, đã học từ bao nhiêu dữ liệu, template review
- * là của chính CS hay mặc định, và kiến thức sản phẩm lấy theo workspace —
- * minh bạch thay vì im lặng thay thế khi chưa đủ dữ liệu học.
- */
-export function profileFooter() {
-  const c = state.check;
-  if (!c) return null;
-  const voice = c.profile_source === "best"
-    ? "Giọng: profile mẫu của team (bạn chưa có profile riêng)"
-    : c.profile_source === "default"
-    ? "Giọng: mặc định hệ thống (chưa học được)"
-    : "Giọng: theo profile của bạn";
-  const coverage = c.profile_coverage
-    ? `Dữ liệu học: ${c.profile_coverage.conversations_used} cuộc trò chuyện`
-    : "Dữ liệu học: chưa đủ — đang dùng mặc định";
-  const review = c.review_template?.source === "profile"
-    ? "Template review: theo profile của bạn"
-    : "Template review: mặc định của workspace";
-  return el("section", { className: "card profile-status-card" }, [
-    el("span", { className: "eyebrow", textContent: "PROFILE" }),
-    el("p", { textContent: c.profile_name }),
-    el("p", { className: "muted", textContent: voice }),
-    el("p", { className: "muted", textContent: coverage }),
-    el("p", { className: "muted", textContent: review }),
-    el("p", { className: "muted", textContent: `Product knowledge: theo workspace ${c.workspace}` }),
   ]);
 }
 

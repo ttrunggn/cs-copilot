@@ -33,7 +33,7 @@ globalThis.document = {
   createElement: (tag) => new FakeEl(tag),
   createTextNode: (t) => new FakeText(String(t)),
 };
-const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, profileFooter, storefrontPanel } = await import("./panels.js");
+const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, storefrontPanel } = await import("./panels.js");
 
 // ---------- helpers ----------
 function walk(node, out = []) {
@@ -82,23 +82,6 @@ const CHECK = {
   stale: false, topic: "billing", topic_label: "Billing", profile_source: "topic", profile_name: "Lan",
   needs_reply: true, unanswered: ["tin 1"], last_customer_at: null, last_human_operator_at: null, jira: [],
 };
-
-Deno.test("panels: profileFooter nói rõ nguồn giọng, độ phủ dữ liệu học và nguồn template review", () => {
-  reset();
-  state.check = { ...CHECK, workspace: "Transcy", profile_coverage: { conversations_used: 42, learned_at: "2026-10-20T00:00:00Z" }, review_template: { source: "profile", text: "x" } };
-  const t = allText(profileFooter());
-  assertEquals(t.includes("Lan"), true);
-  assertEquals(t.includes("Giọng: theo profile của bạn"), true);
-  assertEquals(t.includes("Dữ liệu học: 42 cuộc trò chuyện"), true);
-  assertEquals(t.includes("Template review: theo profile của bạn"), true);
-  assertEquals(t.includes("Product knowledge: theo workspace Transcy"), true);
-  // CS chưa có dữ liệu học: phải nói thẳng là chưa đủ + đang dùng mặc định, không im lặng
-  state.check = { ...CHECK, workspace: "Transcy", profile_source: "best", profile_coverage: null, review_template: { source: "default", text: "x" } };
-  const t2 = allText(profileFooter());
-  assertEquals(t2.includes("profile mẫu của team"), true);
-  assertEquals(t2.includes("Dữ liệu học: chưa đủ — đang dùng mặc định"), true);
-  assertEquals(t2.includes("Template review: mặc định của workspace"), true);
-});
 
 Deno.test("panels: form Draft — lựa chọn giọng mặc định ghi rõ 'Mặc định (theo profile CS)'", () => {
   reset();
@@ -326,25 +309,28 @@ Deno.test("panels: storefrontPanel need-shop → gõ vào ô giữ state, Enter 
   assertEquals(calls, [["sfLoad"], ["sfLoad"]]);
 });
 
-Deno.test("panels: storefrontPanel results → card gọn: header tổng lỗi, pill trạng thái từng dòng, bấm dòng mở chi tiết, stale có cảnh báo", () => {
+Deno.test("panels: storefrontPanel results → card tối giản: header tổng lỗi, mỗi bug một dòng nhãn ngắn + link Console, stale có cảnh báo", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const fp = "a".repeat(40);
   state.storefront = {
     status: "ok", store: "shop.myshopify.com", scannedAt: null, isStale: true,
-    new: [{ title: "Lỗi mới", meta: "de", fingerprint: fp }], acknowledged: [], inProgress: [{ title: "Đang xử lý", meta: "" }],
+    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "de", fingerprint: fp, consoleLink: `https://sw.transcy.io/#/f/${fp}` }],
+    acknowledged: [],
+    inProgress: [{ title: "Layout degraded", kind: "Layout degraded", meta: "", fingerprint: "b".repeat(40), consoleLink: `https://sw.transcy.io/#/f/${"b".repeat(40)}` }],
   };
-  const calls = [];
-  const p = storefrontPanel(makeHandlers(calls));
+  const p = storefrontPanel(makeHandlers([]));
   const t = allText(p);
   assertEquals(t.includes("2 lỗi đã xác nhận"), true);
-  assertEquals(t.includes("Mới") && t.includes("Đang xử lý"), true);
+  // Nhãn ngắn tiếng Việt theo kind, không kèm meta/diễn giải nào khác.
+  assertEquals(t.includes("Mất hình ảnh"), true);
+  assertEquals(t.includes("Lệch giao diện"), true);
   assertEquals(t.includes("Kết quả cũ"), true);
-  buttonByText(p, "Lỗi mới").onclick();
-  assertEquals(calls, [["sfFinding", fp]]);
+  const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
+  assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/${fp}`), true);
 });
 
-Deno.test("panels: storefrontPanel gom finding trùng căn nguyên — một dòng, meta liệt kê locale; mở chi tiết có link Console từng finding + Mẫu giải thích", () => {
+Deno.test("panels: storefrontPanel gom bug trùng căn nguyên — một dòng, hiện số bug tương tự ×N và một link", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const F = (fp, locale) => ({
@@ -356,29 +342,13 @@ Deno.test("panels: storefrontPanel gom finding trùng căn nguyên — một dò
     status: "ok", store: "amirobeauty.com", scannedAt: null,
     new: [F(fa, "ja"), F(fb, "zh"), F(fc, "es")], acknowledged: [], inProgress: [],
   };
-  const calls = [];
-  const h = makeHandlers(calls);
-  const p = storefrontPanel(h);
+  const p = storefrontPanel(makeHandlers([]));
   const t = allText(p);
-  // Tổng ở header đếm finding THẬT (3).
   assertEquals(t.includes("3 lỗi đã xác nhận"), true);
-  // Một dòng đã gom: title + meta liệt kê đủ 3 locale.
-  assertEquals(t.includes("Region missing"), true);
-  for (const l of ["ja", "zh", "es"]) assertEquals(t.includes(l), true, l);
-  // Bấm dòng → mở chi tiết của finding đầu (đại diện mục đã gom).
-  buttonByText(p, "Region missing").onclick();
-  assertEquals(calls, [["sfFinding", fa]]);
-  // Chi tiết mở: link Console của TỪNG finding trong mục đều có mặt.
-  state.storefrontDetail = { fingerprint: fa, where: "Storefront · ja · / · 1440px wide", consoleLink: `https://sw.transcy.io/#/f/${fa}` };
-  const p2 = storefrontPanel(h);
-  const hrefs = walk(p2).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
-  for (const fp of [fa, fb, fc]) assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/${fp}`), true, fp);
-  // Mẫu giải thích trong chi tiết → onExplain nhận finding đại diện.
-  calls.length = 0;
-  const explainBtns = buttons(p2).filter((b) => allText(b).includes("Mẫu giải thích"));
-  assertEquals(explainBtns.length, 1);
-  explainBtns[0].onclick();
-  assertEquals(calls, [["explain", { fingerprint: fa, kind: "Region missing", locale: "ja", page: "/", text: null, title: "Region missing" }]]);
+  assertEquals(t.includes("Thiếu vùng nội dung"), true);
+  assertEquals(t.includes("×3"), true);
+  const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
+  assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/${fa}`), true);
 });
 
 Deno.test("panels: issuesPanel badge Storefront — từ bản chụp trong check khi module chưa nạp; cổng tắt thì không hiện badge", () => {
