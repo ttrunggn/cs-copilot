@@ -196,18 +196,15 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
 }
 
 /**
- * Module Issue log — Jira (màu xanh dương): chỉ hiện khi server bật module
- * Jira trong check.modules (chat có ticket liên kết đang active). Ticket đã
- * gỡ liên kết, hoặc Done VÀ CS đã nhắn cho khách sau mốc Done, thì server
- * không trả nữa. Ticket Done CHƯA báo khách vẫn ở lại, kèm nhãn "Chờ báo
- * khách" — Done trên Jira không có nghĩa khách đã được báo (Ethan, 2026-10-23).
- * Mỗi card có badge "Cập nhật mới" khi có thay đổi sau lần CS trả lời gần
- * nhất (đổi trạng thái — hiện "từ <cũ> → <mới>" — hoặc comment mới); CS trả
- * lời khách là badge tự tắt, không cần nút "đã xem".
- * Hai thao tác của CS: "↻ Sync ngay" (kích hoạt workflow Jira Sync quét ngay
- * thay vì chờ lịch 5 phút; quét bất đồng bộ, panel tự check lại sau) và nút
- * "✕ Gỡ" trên từng ticket (gỡ liên kết khỏi chat này, xác nhận 2 bước ngay
- * tại chỗ để tránh bấm nhầm).
+ * Module Jira (màu xanh dương): chỉ hiện khi server bật module Jira trong
+ * check.modules (chat có ticket liên kết đang active). UI theo mẫu Ethan
+ * chốt 2026-10-26: mỗi ticket một card — tiêu đề "Jira - {tên ticket}",
+ * pill Status bên phải, dòng "{KEY} · Cập nhật …", comment mới nhất của
+ * team Tech. Badge "Cập nhật mới" khi có thay đổi sau lần CS trả lời gần
+ * nhất; ticket Done chưa báo khách ở lại với nhãn "Chờ báo khách" (Done
+ * trên Jira không có nghĩa khách đã được báo). Hai thao tác: "↻ Sync ngay"
+ * (server đồng bộ ngay rồi panel nạp lại) và "✕ Gỡ" từng ticket (xác nhận 2
+ * bước tại chỗ).
  */
 export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
   if (!enabledModules(state.check).jira) return null;
@@ -215,20 +212,30 @@ export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
   if (!items.length) return null;
   const syncBtn = actionButtonState(state.busyAction, "jira_sync");
   const unlinkBtn = actionButtonState(state.busyAction, "jira_unlink");
-  return el("section", { className: "card mod-jira jira-section" }, [
-    el("div", { className: "row" }, [
-      el("h2", { className: "section-title jtitle", textContent: `Issue log — Jira · ${items.length}` }),
-      el("button", { className: "button-secondary compact-button", disabled: syncBtn.disabled, onclick: () => onJiraSync() }, buttonContent(syncBtn.running, "Đang kích hoạt…", "↻ Sync ngay")),
+  return el("div", { className: "jira-section" }, [
+    el("div", { className: "jira-toolbar" }, [
+      el("button", { className: "button-secondary compact-button", disabled: syncBtn.disabled, onclick: () => onJiraSync() }, buttonContent(syncBtn.running, "Đang đồng bộ…", "↻ Sync ngay")),
     ]),
     ...items.map((j) =>
-    el("div", { className: "jira" }, [
+    el("section", { className: "card mod-jira jira-card" }, [
       el("div", { className: "row" }, [
-        j.url ? el("a", { href: j.url, target: "_blank", rel: "noopener noreferrer", textContent: j.title }) : el("strong", { textContent: j.title }),
+        j.url ? el("a", { className: "jira-title", href: j.url, target: "_blank", rel: "noopener noreferrer", textContent: `Jira - ${j.name}` }) : el("strong", { className: "jira-title", textContent: `Jira - ${j.name}` }),
+        el("span", { className: `pill-status${j.done ? " done" : ""}`, textContent: j.status }),
+      ]),
+      el("p", { className: "muted", textContent: j.updatedLabel ? `${j.key} · ${j.updatedLabel}` : j.key }),
+      j.hasUpdate || j.awaitingReport ? el("div", { className: "row jira-badges" }, [
         j.hasUpdate ? el("span", { className: "badge new", textContent: "Cập nhật mới" }) : null,
         j.awaitingReport ? el("span", { className: "badge wait", textContent: "Chờ báo khách" }) : null,
-      ]),
-      j.summary ? el("p", { className: "muted", textContent: j.summary }) : null,
-      j.news.length ? el("ul", { className: "jira-news" }, j.news.map((t) => el("li", { textContent: t }))) : el("p", { className: "muted", textContent: "Chưa có tóm tắt hay cập nhật mới." }),
+      ]) : null,
+      j.statusLine ? el("p", { className: "muted", textContent: j.statusLine }) : null,
+      j.latestTech ? el("div", { className: "jira-comment" }, [
+        el("p", {}, [
+          el("b", { textContent: `Tech · ${j.latestTech.author}` }),
+          document.createTextNode(" "),
+          el("span", { className: "muted", textContent: `(${j.latestTech.ago})` }),
+        ]),
+        el("p", { textContent: j.latestTech.body }),
+      ]) : null,
       el("div", { className: "jira-actions" }, [
         state.unlinkConfirm === j.key
           ? el("span", { className: "unlink-confirm" }, [
@@ -241,7 +248,6 @@ export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
     ),
   ]);
 }
-
 
 
 // Nhãn tâm trạng: chỉ chữ, không emoji mặt cảm xúc (Ethan chốt: bỏ icon
@@ -283,12 +289,10 @@ export function insightPanel({ onAnalyze }) {
       : el("strong", { className: "future-title", textContent: "Chưa có dữ liệu phân tích" }),
     s ? el("div", { className: "score-bar" }, [fill]) : null,
     state.sentimentRefreshing ? el("p", { className: "muted", textContent: "Đang cập nhật phân tích theo tin mới nhất…" }) : null,
-    state.sentimentMsgCount > 0 && s ? el("p", { className: "muted", textContent: `Tính trên ${state.sentimentMsgCount} tin của khách. Cùng chỉ số dùng cho khảo sát CSAT.` }) : null,
-    state.sentimentAt && s ? el("p", { className: "muted", textContent: `Phân tích lúc ${state.sentimentAt}. Khách nhắn thêm thì số mới đổi.` }) : null,
     s?.urgency === "high" ? el("p", { className: "warn", textContent: "Mức khẩn cấp cao — ưu tiên xử lý case này." }) : null,
     s?.summary ? el("p", { className: "muted", textContent: s.summary }) : null,
     ...(s?.signals ?? []).map((t) => el("p", { className: "muted", textContent: `• ${t}` })),
-    !s ? el("p", { className: "muted", textContent: "Bấm Phân tích để đọc tâm trạng khách từ đoạn chat; kết quả được nhớ lại, khách nhắn thêm mới tính lại." }) : null,
+    !s ? el("p", { className: "muted", textContent: "Chưa có dữ liệu phân tích." }) : null,
     s && s.confidence < 0.4 ? el("p", { className: "muted", textContent: "Độ tin cậy thấp (ít tín hiệu) — chỉ tham khảo." }) : null,
   ]);
 }
@@ -390,7 +394,6 @@ export function knowledgePanel({ onAsk, onAskCompose, onAskRetry, onHandoff }) {
     r && !r.found ? el("div", { className: "ask-notfound" }, [
       el("div", { className: "warn" }, [
         el("b", { textContent: "Mình không tìm thấy bài nào nói về việc này." }),
-        el("p", { textContent: "Không có nguồn thì mình không đoán chính sách." }),
       ]),
       el("div", { className: "row" }, [
         el("button", { className: "button-secondary", textContent: "Thử từ khoá khác", onclick: () => onAskRetry() }),
@@ -417,7 +420,6 @@ export function csatPanel({ onSurvey }) {
     csat?.sent
       ? el("div", { className: "csat-sent" }, [
         el("p", { className: "success-line", textContent: sentTime ? `✓ Đã gửi lúc ${sentTime}` : "✓ Đã gửi survey" }),
-        el("p", { className: "muted", textContent: "Cần xin lại thì cứ bấm gửi lại, survey mới sẽ vào chat." }),
       ])
       : state.csatError
       ? el("div", { className: "csat-error" }, [
@@ -429,7 +431,7 @@ export function csatPanel({ onSurvey }) {
       ? el("p", { className: "warn", textContent: convState
         ? "Chat chưa đóng và khách đang Frustrated. Gửi lúc này dễ nhận điểm thấp."
         : "Khách đang bực — gửi survey lúc này dễ nhận đánh giá thấp. Cân nhắc xử lý xong vấn đề trước." })
-      : el("p", { className: "muted", textContent: "Gửi phiếu đánh giá CSAT (4 lựa chọn) vào đoạn chat cho khách." }),
+      : null,
     state.csatError && !csat?.sent
       ? null
       : el("button", { className: "csat-button", disabled: svBtn.disabled, onclick: () => onSurvey() }, buttonContent(svBtn.running, "Đang gửi…", csat?.sent ? "Gửi lại CSAT Survey" : "Send CSAT Survey")),
@@ -553,7 +555,7 @@ export function storefrontPanel(handlers = {}) {
   if (vm.kind === "need-shop") {
     return el("section", { className: "card storefront-card mod-store" }, [
       el("h3", { textContent: "Storefront Watch" }),
-      el("p", { className: "muted", textContent: "Chat này chưa có sẵn shopify domain. Nhập domain Shopify (hoặc link store) để kiểm tra lỗi bố cục bản dịch:" }),
+      el("p", { className: "muted", textContent: "Nhập domain Shopify của store:" }),
       el("input", {
         className: "input",
         type: "text",
@@ -601,7 +603,7 @@ export function storefrontPanel(handlers = {}) {
     ]),
     el("p", { className: "muted", textContent: vm.store }),
     vm.notWatched
-      ? el("p", { className: "muted", textContent: "Store này chưa nằm trong danh sách theo dõi của Storefront Watch nên chưa có dữ liệu quét." })
+      ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
       : null,
     ...vm.groups.map((g) => el("div", { className: "sf-group" }, [
       sfGroupHead(g, g.count ?? g.items.length),
@@ -686,7 +688,7 @@ export function draftCompose({ onGenerate }) {
     oninput: (e) => { state.hint = e.target.value; },
   });
   return el("div", { className: "compose-form" }, [
-    el("p", { className: "muted", textContent: "Thêm ý của bạn (không bắt buộc). Để trống thì AI tự soạn từ tin khách; có ý thì ý của bạn được ưu tiên." }),
+    el("p", { className: "muted", textContent: "Ý của bạn (không bắt buộc)." }),
     hintBox,
     el("div", { className: "row draft-actions" }, [
       toneSelect,
@@ -696,10 +698,18 @@ export function draftCompose({ onGenerate }) {
 }
 
 function draftModal(handlers) {
-  const canCompose = Boolean(state.check?.needs_reply || state.draft);
+  // Cho soạn khi: có tin khách chờ (trả lời thường), đã có draft, HOẶC có
+  // ticket với cập nhật từ Dev chưa báo khách — chế độ follow-up chủ động
+  // (Ethan chốt 2026-10-26: case có ticket + update từ dev thì dùng chính
+  // ngữ cảnh đó để soạn tin báo lại cho khách, không khoá draft).
+  const followUpKeys = (state.check?.jira ?? []).filter((j) => j.has_update).map((j) => j.issue_key);
+  const openIssues = (state.sentiment?.issues ?? []).length;
+  const followUpOnly = !state.check?.needs_reply && !state.draft && followUpKeys.length > 0;
+  const canCompose = Boolean(state.check?.needs_reply || state.draft || followUpKeys.length || openIssues);
   return [
     state.progress?.action === "generate" ? handlers.progressCard() : null,
     !canCompose ? el("p", { className: "muted", textContent: "Chưa có tin khách đang chờ trong conversation này." }) : null,
+    followUpOnly ? el("p", { className: "muted", textContent: `Ticket ${followUpKeys.join(", ")} · Cập nhật mới từ Dev` }) : null,
     canCompose && (state.composeOpen || !state.draft) ? draftCompose(handlers) : null,
     state.draft && !state.composeOpen ? el("button", { className: "button-secondary", textContent: "Soạn lại với ý / giọng khác", onclick: () => { state.composeOpen = true; handlers.rerender(); } }) : null,
     state.draft ? draftPanel(handlers) : null,
@@ -716,7 +726,6 @@ function noteModal(handlers) {
     // popup khi không có popup nào mở, thiếu dòng này thì CS kẹt không thấy nút.
     state.choice && state.choiceFor === "note" ? handlers.insertChoice() : null,
     state.handoff ? handoffPanel(handlers) : el("div", { className: "compose-form" }, [
-      el("p", { className: "muted", textContent: "Viết private note (handoff) từ nội dung hội thoại theo format đã học của bạn. Note được điền vào ô Note của Crisp để bạn sửa và tự đăng — copilot không tự đăng." }),
       el("button", { className: "button-primary", disabled: noteBtn.disabled, onclick: () => handlers.onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "Viết private note")),
     ]),
   ];
@@ -753,8 +762,8 @@ function reviewEditor(handlers) {
   });
   return el("div", { className: "review-editor" }, [
     el("p", { className: "muted", textContent: fromProfile
-      ? "Template theo profile của bạn, đã học từ tin bạn từng gửi, link đích lấy theo workspace đang làm việc. Sửa thêm nếu cần."
-      : "Template mặc định của workspace (bạn chưa có mẫu đã học riêng), đã chèn sẵn link đích của workspace. Sửa thêm nếu cần." }),
+      ? "Template theo profile của bạn."
+      : "Template mặc định của workspace." }),
     area,
     suggestionCard("review", handlers),
     state.choice && state.choiceFor === "review" ? handlers.insertChoice() : null,
@@ -796,7 +805,6 @@ function explainModal(handlers) {
   return [
     head ? el("p", { className: "muted", textContent: head }) : null,
     el("p", { className: "explain-text", textContent: state.explainText }),
-    el("p", { className: "muted", textContent: "Đoạn mẫu tiếng Anh theo loại lỗi — điền vào ô Reply, đọc/sửa thêm trong Crisp rồi tự bấm Send." }),
     state.choice && state.choiceFor === "explain" ? handlers.insertChoice() : null,
     el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendExplainInsert("auto") }),
     !ready ? el("p", { className: "muted", textContent: "Cài extension để điền mẫu giải thích thẳng vào ô Reply của Crisp." }) : null,
