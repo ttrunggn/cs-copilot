@@ -253,12 +253,14 @@ const JIRA_ITEM = {
   has_update: true, status_changed: false, prev_status: null, awaiting_report: true, new_comments: [],
   recent_comments: [{ author: "Đình Lương", role: "tech", body: "Đã fix, chờ deploy.", created_at: "2026-10-20T09:00:00Z" }],
 };
-Deno.test("panels: jiraPanel ẩn hẳn khi module tắt HOẶC không còn ticket nào (kể cả khi module bật)", () => {
+Deno.test("panels: jiraPanel ẩn khi module tắt; module bật mà chưa có ticket → card trống 'Không có ticket Jira.'", () => {
   reset();
   state.check = { modules: { jira: false, storefront: false }, jira: [JIRA_ITEM] };
   assertEquals(jiraPanel(makeHandlers()), null);
   state.check = { modules: { jira: true, storefront: false }, jira: [] };
-  assertEquals(jiraPanel(makeHandlers()), null);
+  const p = jiraPanel(makeHandlers());
+  assertEquals(p === null, false);
+  assertEquals(allText(p).includes("Không có ticket Jira."), true);
 });
 
 Deno.test("panels: jiraPanel hiện badge Cập nhật mới + Chờ báo khách, nút Sync gọi onJiraSync, gỡ liên kết 2 bước", () => {

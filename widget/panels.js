@@ -209,9 +209,16 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
 export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
   if (!enabledModules(state.check).jira) return null;
   const items = toJiraViewModel(state.check?.jira);
-  if (!items.length) return null;
   const syncBtn = actionButtonState(state.busyAction, "jira_sync");
   const unlinkBtn = actionButtonState(state.busyAction, "jira_unlink");
+  if (!items.length) {
+    return el("div", { className: "jira-section" }, [
+      el("section", { className: "card mod-jira jira-card" }, [
+        el("strong", { className: "jira-title", textContent: "Jira" }),
+        el("p", { className: "muted", textContent: "Không có ticket Jira." }),
+      ]),
+    ]);
+  }
   return el("div", { className: "jira-section" }, [
     el("div", { className: "jira-toolbar" }, [
       el("button", { className: "button-secondary compact-button", disabled: syncBtn.disabled, onclick: () => onJiraSync() }, buttonContent(syncBtn.running, "Đang đồng bộ…", "↻ Sync ngay")),
