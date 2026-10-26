@@ -758,6 +758,15 @@ async function load() {
     applyCheck(sessionId);
     render();
     maybeAutoRefreshSentiment(sessionId);
+    // Mirror Jira cũ lúc mở panel: server đã cho sync chạy nền (check
+    // không còn chờ Jira nữa) — nạp lại ĐÚNG một lần sau 3 giây để card
+    // Jira nhận bản mới, lần mở đầu vẫn hiện ngay.
+    if (state.check?.jira_stale && state.jiraReloadFor !== sessionId) {
+      state.jiraReloadFor = sessionId;
+      setTimeout(() => {
+        if (readContext(location.search).sessionId === sessionId) load();
+      }, 3000);
+    }
     // Module Storefront được server bật mà chat này chưa có dữ liệu: tự nạp
     // luôn — server tự resolve shop từ custom data của phiên; phiên không có
     // sẵn shopify_domain thì server trả need_shop và module hiện ô nhập tay.

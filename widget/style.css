@@ -465,3 +465,4 @@ button.sf-row { cursor: pointer; }
 .sf-open { text-decoration: none; display: inline-flex; align-items: center; }
 .sf-line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
 .sf-bug-link { text-decoration: none; font-weight: 700; }
+.sf-line .sf-bug-link { margin-left: auto; }
