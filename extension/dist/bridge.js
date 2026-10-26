@@ -119,6 +119,32 @@ function textsMatch(readBack, expected) {
   return b.length > 0 && a === b;
 }
 
+/**
+ * Kiểm chứng điền theo kiểu GẬP KHOẢNG TRẮNG: mọi chuỗi khoảng trắng (kể cả
+ * xuống dòng) gập thành một dấu cách trước khi so. Lý do cần thêm lớp này
+ * bên cạnh textsMatch: innerText của editor Lexical nối các đoạn bằng \n
+ * hay \n\n và có thể chèn ngắt dòng theo chiều rộng ô — khác biệt trình bày
+ * đó từng làm textsMatch trượt, fillEditor điền LẠI lần hai chồng lên lần
+ * một (nội dung gấp đôi trên bản live 2026-10-26). Gập khoảng trắng vẫn bắt
+ * được gấp đôi thật: bản gấp đôi dài gấp hai và khác hẳn sau khi gập.
+ */
+function fillVerified(readBack, expected) {
+  const squash = (s) => normalizeComposerText(s).replace(/\s+/g, " ").trim();
+  const a = squash(readBack);
+  const b = squash(expected);
+  return b.length > 0 && a === b;
+}
+
+/**
+ * Vết chẩn đoán gọn của một lần điền (panel hiện kèm thông báo lỗi để lần
+ * test live nào lỗi là thấy ngay khâu nào, khỏi đoán): tín hiệu Note mode
+ * dạng tab/yel/cls/ph/pil kèm 0/1.
+ */
+function signalTrace(signals = {}) {
+  const bit = (v) => (v ? "1" : "0");
+  return `tab${bit(signals.tabActive)} yel${bit(signals.yellowBg)} cls${bit(signals.noteClass)} ph${bit(signals.notePlaceholder)} pil${bit(signals.notePill)}`;
+}
+
 
 // Chạy trong iframe widget (domain Netlify). Cầu nối window.postMessage ↔ chrome.runtime.
 const WIDGET_ORIGIN = "https://copilot-oe.netlify.app";
@@ -128,7 +154,11 @@ window.addEventListener("message", (ev) => {
   if (ev.origin !== WIDGET_ORIGIN || !isCopilotMessage(ev, window)) return;
   const m = ev.data;
   if (m.type === "copilot:ping") {
-    window.postMessage({ type: "copilot:pong", protocol: PROTOCOL, version: chrome.runtime.getManifest().version }, WIDGET_ORIGIN);
+    // Kèm mã định danh của CHÍNH bản cài này (chrome.runtime.id): widget gom
+    // mọi pong trong cửa sổ ping — hai mã khác nhau = hai bản extension đang
+    // chạy song song trong cùng Chrome (bản cũ chưa gỡ), mỗi lệnh điền bị cả
+    // hai cùng thực thi (ca live 2026-10-26: nội dung gấp đôi, note lỗi).
+    window.postMessage({ type: "copilot:pong", protocol: PROTOCOL, version: chrome.runtime.getManifest().version, ext: chrome.runtime.id ?? "" }, WIDGET_ORIGIN);
   } else if (m.type === "copilot:insert") {
     chrome.runtime.sendMessage(m, (res) => {
       const fallback = { type: "copilot:insert_result", request_id: m.request_id, status: "composer_not_found" };

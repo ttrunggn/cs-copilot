@@ -765,7 +765,10 @@ Deno.test("action storefront: KHÔNG có ticket TNT nhưng chat có shopify_doma
   assertEquals((r.body as { status: string }).status, "ok");
 });
 
-Deno.test("action storefront: bản chụp xác nhận SW không theo dõi domain + không ticket → 403 (cổng đóng theo bản chụp)", async () => {
+Deno.test("action storefront: bản chụp nói SW không theo dõi domain + không ticket → cổng VẪN mở, SW trực tiếp quyết (fake SW nói đang theo dõi → ok)", async () => {
+  // Hồi quy ca live 2026-10-26: bản chụp sweep cũ/phủ quyết nhầm khiến store
+  // có bug thật không hiện trên panel. Ethan chốt: có shopify_domain + cờ
+  // workspace là qua cổng; watched hay không do lần gọi SW trực tiếp quyết.
   const { deps } = sfDeps(fakeMcp(), {
     getJiraRows: () => Promise.resolve([]),
     getConversation: () => Promise.resolve({ ...CONV, custom_data: { shopify_domain: "shop-x.myshopify.com" } }),
@@ -776,7 +779,8 @@ Deno.test("action storefront: bản chụp xác nhận SW không theo dõi domai
     }),
   });
   const r = await handle(SF_REQ, TOKEN, deps);
-  assertEquals(r.status, 403);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { status: string }).status, "ok");
 });
 
 Deno.test("action storefront: workspace OE (jira_project = OES, cờ storefront_watch TẮT) + có shopify_domain + không ticket → vẫn 403, cổng domain không mở ngoài phạm vi SW", async () => {

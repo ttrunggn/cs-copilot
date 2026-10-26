@@ -185,13 +185,13 @@ Deno.test("check modules: bản chụp nói SW đang theo dõi + có lỗi mở 
   assertEquals(sfStatusOf(r), SF_STATUS());
 });
 
-Deno.test("check modules: bản chụp xác nhận SW KHÔNG theo dõi domain → Storefront tắt dù chat có shopify_domain", async () => {
+Deno.test("check modules: bản chụp nói SW KHÔNG theo dõi domain → Storefront VẪN bật (bản chụp không còn quyền phủ quyết, Ethan chốt 2026-10-26)", async () => {
   const r = await handle(REQ, TOKEN, deps({
     getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
     getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS({ watched: false, open_critical: 0, open_high: 0, open_total: 0, worst_severity: null })),
   }));
-  assertEquals(modulesOf(r), { jira: false, storefront: false });
+  assertEquals(modulesOf(r), { jira: false, storefront: true });
 });
 
 Deno.test("check modules: workspace OE (jira_project = OES, cờ storefront_watch TẮT) + chat có shopify_domain + có bản chụp watched → Storefront vẫn tắt và badge KHÔNG rò (storefront_status = null)", async () => {

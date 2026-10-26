@@ -1,5 +1,5 @@
 import { assertEquals, assertNotEquals } from "jsr:@std/assert@1";
-import { acceptReply, bridgeState, draftInsert, EXPECTED_EXTENSION_VERSION, extensionOutdated, insertMessage, newRequestId, PROTOCOL } from "./bridge-core.js";
+import { acceptReply, bridgeState, draftInsert, EXPECTED_EXTENSION_VERSION, extensionOutdated, insertMessage, newRequestId, PROTOCOL, respondersSummary } from "./bridge-core.js";
 
 Deno.test("insertMessage shape matches protocol 2 with reply target by default", () => {
   assertEquals(insertMessage({ requestId: "r1", outputId: 9, sessionId: "session_1", text: "Hi", mode: "auto" }), {
@@ -48,13 +48,25 @@ Deno.test("draftInsert uses the draft's own session and refuses another conversa
 Deno.test("extensionOutdated: thấp hơn bản kỳ vọng thì true; bằng/cao hơn/không rõ thì false", () => {
   assertEquals(extensionOutdated("1.2.0"), true);
   assertEquals(extensionOutdated("1.1.9"), true);
-  assertEquals(extensionOutdated("1.2.1"), false);
+  assertEquals(extensionOutdated("1.2.1"), true);
   assertEquals(extensionOutdated("1.2.2"), false);
   assertEquals(extensionOutdated("1.3.0"), false);
   assertEquals(extensionOutdated(""), false);
   assertEquals(extensionOutdated(undefined), false);
   assertEquals(extensionOutdated("abc"), false);
-  assertEquals(extensionOutdated("1.2"), true); // 1.2 = 1.2.0 < 1.2.1
+  assertEquals(extensionOutdated("1.2"), true); // 1.2 = 1.2.0 < 1.2.2
+});
+
+Deno.test("respondersSummary: hai mã ext khác nhau = xung đột hai bản; cùng mã/không mã thì không", () => {
+  assertEquals(respondersSummary([]), { count: 0, conflict: false, versions: [] });
+  assertEquals(respondersSummary([{ ext: "aaa", version: "1.2.2" }]), { count: 1, conflict: false, versions: ["1.2.2"] });
+  assertEquals(respondersSummary([{ ext: "aaa", version: "1.2.2" }, { ext: "aaa", version: "1.2.2" }]).conflict, false);
+  const dual = respondersSummary([{ ext: "aaa", version: "1.2.1" }, { ext: "bbb", version: "1.2.2" }]);
+  assertEquals(dual.count, 2);
+  assertEquals(dual.conflict, true);
+  assertEquals(dual.versions, ["1.2.1", "1.2.2"]);
+  // Pong thiếu ext (bridge cũ) tính là một responder ẩn danh duy nhất.
+  assertEquals(respondersSummary([{ version: "1.2.1" }, { version: "1.2.1" }]).conflict, false);
 });
 
 Deno.test("khoá chống lệch version: EXPECTED_EXTENSION_VERSION khớp manifest extension", async () => {

@@ -232,8 +232,11 @@ Deno.test("enabledModules: đường domain — cờ storefront_watch BẬT + sh
   assertEquals(enabledModules([convItem("ABC-12")], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: true });
 });
 
-Deno.test("enabledModules: đường domain — bản chụp xác nhận SW KHÔNG theo dõi domain → Storefront tắt dù cờ bật và có shopify_domain", () => {
-  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: false }), { jira: false, storefront: false });
+Deno.test("enabledModules: đường domain — bản chụp nói SW KHÔNG theo dõi vẫn BẬT (bản chụp không còn quyền phủ quyết, Ethan chốt 2026-10-26)", () => {
+  // Hồi quy cho ca live 2026-10-26: store có bug thật ở SW nhưng panel không
+  // hiện module vì bản chụp sweep nói watched=false. Nay có domain + cờ bật
+  // là hiện; SW có theo dõi thật hay không do action nạp trực tiếp quyết.
+  assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: false }), { jira: false, storefront: true });
 });
 
 Deno.test("enabledModules: đường domain bị khoá khi cờ storefront_watch TẮT — jira_project của workspace KHÔNG tự mở được cổng (ca OE/OES)", () => {

@@ -33,7 +33,7 @@ globalThis.document = {
   createElement: (tag) => new FakeEl(tag),
   createTextNode: (t) => new FakeText(String(t)),
 };
-const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, pendingPanel, profileFooter, storefrontPanel } = await import("./panels.js");
+const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, profileFooter, storefrontPanel } = await import("./panels.js");
 
 // ---------- helpers ----------
 function walk(node, out = []) {
@@ -57,6 +57,7 @@ function reset() {
     check: null, draft: null, handoff: null, sentiment: null, sentimentMsgCount: 0,
     csat: null, csatError: false, csatErrorMsg: "", modal: null, busy: "", busyAction: "",
     progress: null, choice: false, choiceFor: "draft", insertPending: false, bridge: "ready", bridgeVersion: "",
+    bridgeResponders: [], bridgeConflict: false, lastInsertTrace: "",
     draftPlacement: "", notePlacement: "", unlinkConfirm: "", storefront: null,
     storefrontShopInput: "", storefrontShop: "", storefrontDetail: null, storefrontDetailLoading: "",
     askQuestion: "", askResult: null, hint: "", tone: "default", csatChoice: "",
@@ -208,7 +209,7 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   assertEquals(Boolean(buttonByText(p, "Phân tích lại")), true);
 });
 
-Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); tin chờ nằm ở pendingPanel riêng, không lẫn vào khối Vấn đề; không issue thì ẩn module", () => {
+Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); không còn khối tin khách nguyên văn trên panel (Ethan bỏ 2026-10-26 — đọc ngay trong chat, chừa chỗ cho Jira/Storefront); không issue thì ẩn module", () => {
   reset();
   state.check = CHECK;
   state.sentiment = { issues: [{ summary: "Khách bị trừ phí 2 lần", evidence: "charged twice" }, { summary: "Khách chưa được hoàn tiền", evidence: "" }] };
@@ -219,15 +220,10 @@ Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ senti
   assertEquals(t.includes("— 2 issues"), true);
   assertEquals(t.includes("Khách bị trừ phí 2 lần"), true);
   assertEquals(t.includes("Khách nhắn: \"charged twice\""), true);
-  // Tin khách đang chờ (nguyên văn) thuộc khối riêng "TIN KHÁCH ĐANG CHỜ",
-  // không còn nằm dưới tiêu đề Vấn đề của khách (Ethan, 2026-10-26).
   assertEquals(t.includes("tin 1"), false);
-  const pp = allText(pendingPanel(vm));
-  assertEquals(pp.includes("TIN KHÁCH ĐANG CHỜ") && pp.includes("tin 1"), true);
   reset();
   state.check = { ...CHECK, topic: null, topic_label: null, needs_reply: false, unanswered: [] };
   assertEquals(issuesPanel(toViewModel(state.check, Date.now())), null);
-  assertEquals(pendingPanel(toViewModel(state.check, Date.now())), null);
 });
 
 // ---------- Jira ----------
@@ -498,11 +494,22 @@ Deno.test("panels: extensionHint — bridge ready nhưng version cũ hơn bản 
   const hint = extensionHint(makeHandlers());
   assertEquals(hint === null, false);
   assertEquals(allText(hint).includes("Extension đang ở bản cũ v1.2.0"), true);
-  assertEquals(allText(hint).includes("1.2.1"), true);
-  state.bridgeVersion = "1.2.1";
+  assertEquals(allText(hint).includes("1.2.2"), true);
+  state.bridgeVersion = "1.2.2";
   assertEquals(extensionHint(makeHandlers()), null);
   state.bridgeVersion = "";
   assertEquals(extensionHint(makeHandlers()), null);
+});
+
+Deno.test("panels: extensionHint — hai bản extension cùng chạy thì cảnh báo xung đột, ưu tiên hơn cả trạng thái ready", () => {
+  reset();
+  state.bridge = "ready";
+  state.bridgeVersion = "1.2.2";
+  state.bridgeConflict = true;
+  const hint = extensionHint(makeHandlers());
+  assertEquals(hint === null, false);
+  assertEquals(allText(hint).includes("Đang có 2 bản extension cùng chạy"), true);
+  assertEquals(allText(hint).includes("gấp đôi"), true);
 });
 
 // ---------- Knowledge Base Asking ----------

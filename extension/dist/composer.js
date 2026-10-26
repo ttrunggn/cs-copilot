@@ -119,11 +119,41 @@ function textsMatch(readBack, expected) {
   return b.length > 0 && a === b;
 }
 
+/**
+ * Kiểm chứng điền theo kiểu GẬP KHOẢNG TRẮNG: mọi chuỗi khoảng trắng (kể cả
+ * xuống dòng) gập thành một dấu cách trước khi so. Lý do cần thêm lớp này
+ * bên cạnh textsMatch: innerText của editor Lexical nối các đoạn bằng \n
+ * hay \n\n và có thể chèn ngắt dòng theo chiều rộng ô — khác biệt trình bày
+ * đó từng làm textsMatch trượt, fillEditor điền LẠI lần hai chồng lên lần
+ * một (nội dung gấp đôi trên bản live 2026-10-26). Gập khoảng trắng vẫn bắt
+ * được gấp đôi thật: bản gấp đôi dài gấp hai và khác hẳn sau khi gập.
+ */
+function fillVerified(readBack, expected) {
+  const squash = (s) => normalizeComposerText(s).replace(/\s+/g, " ").trim();
+  const a = squash(readBack);
+  const b = squash(expected);
+  return b.length > 0 && a === b;
+}
+
+/**
+ * Vết chẩn đoán gọn của một lần điền (panel hiện kèm thông báo lỗi để lần
+ * test live nào lỗi là thấy ngay khâu nào, khỏi đoán): tín hiệu Note mode
+ * dạng tab/yel/cls/ph/pil kèm 0/1.
+ */
+function signalTrace(signals = {}) {
+  const bit = (v) => (v ? "1" : "0");
+  return `tab${bit(signals.tabActive)} yel${bit(signals.yellowBg)} cls${bit(signals.noteClass)} ph${bit(signals.notePlaceholder)} pil${bit(signals.notePill)}`;
+}
+
 
 // Chạy ở top frame app.crisp.chat: tìm ô soạn và chèn nội dung như người gõ để editor của Crisp nhận.
 // Hai đích: ô Reply (draft/review, mặc định) và ô Note (private note — msg.target === "note").
 // Note là nội dung nội bộ: chỉ điền khi ĐÃ XÁC NHẬN đang ở Note mode (xem
 // confirmNoteMode ở composer-core), không xác nhận được thì huỷ, không điền gì cả.
+// Mọi lần điền đều để lại "trace" — vết chẩn đoán gọn trả kèm kết quả để panel
+// hiện trong thông báo lỗi: lần test live nào lỗi là thấy ngay khâu nào
+// (tín hiệu Note, xoá, ghi, khớp) thay vì đoán (Ethan test live 2026-10-26:
+// điền Note + gấp đôi nội dung ở bản 1.2.1 mà không có dữ kiện nào để truy).
 const COMPOSER_SELECTORS = [
   // Dò trên app.crisp.chat thật 2026-10-19: ô Reply là editor Lexical (contenteditable). Thứ tự = ưu tiên.
   ".c-conversation-box-field__field-composer-field",
@@ -159,6 +189,24 @@ function readText(el) {
   return String(raw ?? "").replace(/[\u200B-\u200D\uFEFF]/g, "");
 }
 
+/**
+ * Phần tử contenteditable THẬT bên trong phần tử selector khớp: selector đầu
+ * có thể trúng wrapper của editor — sự kiện paste/focus phải rơi đúng vào
+ * contenteditable, rơi vào wrapper thì Lexical không nhận (sự kiện chỉ nổi
+ * lên trên, không chìm xuống con). Không có contenteditable con thì dùng
+ * chính phần tử đã khớp.
+ */
+function editableOf(el) {
+  if (!el || el.tagName === "TEXTAREA") return el;
+  if (el.getAttribute?.("contenteditable") === "true") return el;
+  if (typeof el.querySelectorAll === "function") {
+    for (const kid of el.querySelectorAll("[contenteditable]")) {
+      if (kid.getAttribute?.("contenteditable") === "true" && visible(kid)) return kid;
+    }
+  }
+  return el;
+}
+
 function selectAll(el) {
   el.focus();
   const range = document.createRange();
@@ -168,28 +216,51 @@ function selectAll(el) {
   sel.addRange(range);
 }
 
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Xoá SẠCH ô soạn và kiểm chứng rỗng thật. Bản cũ chỉ bắn MỘT beforeinput
  * deleteContentBackward tổng hợp — Lexical nuốt sự kiện đó mà không xoá, nên
  * bước paste sau đó dán bản mới LÊN TRÊN bản cũ: "thay thế" thành chèn thêm,
  * nội dung lặp 2-3 lần (Ethan test live 2026-10-26). Nay thử lần lượt:
- * execCommand("delete") trên vùng chọn toàn bộ → beforeinput → xoá node qua
- * Selection API; cách nào làm ô rỗng thật mới tính là xong.
+ * execCommand("delete") trên vùng chọn toàn bộ → phím Backspace → beforeinput
+ * → xoá node qua Selection API; cách nào làm ô rỗng thật mới tính là xong.
+ * Bước xoá DOM thẳng phải CHỜ rồi đọc lại: Lexical có thể dựng lại nội dung
+ * cũ từ state của nó ngay sau khi DOM bị đụng vào — đọc ngay thấy rỗng giả,
+ * dán tiếp là gấp đôi (đúng ca gấp đôi ở ô Reply trên bản 1.2.1).
  */
-function clearEditor(el) {
-  if (!readText(el).trim()) return true;
+async function clearEditor(el, trace) {
+  if (!readText(el).trim()) { trace?.push("clr:empty"); return true; }
+  const gone = () => !readText(el).trim();
+  // Mỗi cách xoá phải được xác nhận SAU một nhịp chờ mới tin: editor có thể
+  // "dựng lại" nội dung cũ từ state riêng của nó ngay sau khi DOM bị xoá
+  // thẳng — đọc ngay lập tức thấy rỗng giả, tưởng đã sạch mà dán tiếp là
+  // gấp đôi (đúng ca gấp đôi ở ô Reply trên bản live 2026-10-26).
+  const confirmGone = async (how) => {
+    if (!gone()) return false;
+    await delay(55);
+    if (!gone()) return false;
+    trace?.push(how);
+    return true;
+  };
   selectAll(el);
   document.execCommand("delete", false, null);
-  if (!readText(el).trim()) return true;
+  if (await confirmGone("clr:exec")) return true;
+  selectAll(el);
+  el.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true, cancelable: true }));
+  el.dispatchEvent(new KeyboardEvent("keyup", { key: "Backspace", bubbles: true }));
+  if (await confirmGone("clr:key")) return true;
   selectAll(el);
   el.dispatchEvent(new InputEvent("beforeinput", { inputType: "deleteContentBackward", bubbles: true, cancelable: true }));
-  if (!readText(el).trim()) return true;
+  if (await confirmGone("clr:bi")) return true;
   const sel = getSelection();
   if (sel && sel.rangeCount) {
     selectAll(el);
     sel.getRangeAt(0).deleteContents();
   }
-  return !readText(el).trim();
+  const ok = await confirmGone("clr:dom");
+  if (!ok) trace?.push("clr:fail");
+  return ok;
 }
 
 // Lexical bỏ xuống dòng khi dùng insertText, nhưng nhận paste thành từng đoạn.
@@ -210,20 +281,24 @@ function writeText(el, text) {
 /**
  * Điền = THAY TOÀN BỘ ô soạn bằng text kỳ vọng (decideInsert đã tính sẵn
  * text cuối cùng cho cả replace lẫn append). Xoá không sạch thì DỪNG, không
- * dán chồng lên bản cũ. Sau khi dán, so khớp toàn văn (textsMatch); lệch thì
- * xoá và điền lại đúng một lần nữa trước khi chịu thua.
+ * dán chồng lên bản cũ. Sau khi dán, chờ editor settle rồi so khớp theo
+ * fillVerified (gập khoảng trắng — innerText của Lexical nối đoạn bằng \n
+ * hay \n\n tuỳ render, khác biệt trình bày đó không phải lỗi điền); lệch
+ * thì tìm lại editor (Crisp có thể đã thay node) và điền lại đúng một lần.
  */
-function fillEditor(el, text) {
+async function fillEditor(el, text, trace, refind) {
   if (el.tagName === "TEXTAREA") {
     writeText(el, text);
-    return textsMatch(readText(el), text);
+    return fillVerified(readText(el), text);
   }
   for (let attempt = 0; attempt < 2; attempt++) {
-    // Không xoá sạch được thì dừng ngay: dán chồng lên bản cũ còn tệ hơn
-    // không điền (panel sẽ báo insert_unverified để CS biết).
-    if (!clearEditor(el)) return false;
-    writeText(el, text);
-    if (textsMatch(readText(el), text)) return true;
+    const node = editableOf(attempt === 0 || !refind ? el : (refind() ?? el));
+    if (!(await clearEditor(node, trace))) return false;
+    writeText(node, text);
+    await delay(60);
+    const ok = fillVerified(readText(node), text);
+    trace?.push(`a${attempt + 1}:${ok ? "ok" : "mismatch"}(${readText(node).length})`);
+    if (ok) return true;
   }
   return false;
 }
@@ -269,30 +344,43 @@ function findModeTab(editor, label) {
   return null;
 }
 
-/** Các lá văn bản quanh editor trong vùng soạn (ngoài chính editor), leo tối đa maxClimb tầng tổ tiên. */
-function fieldLeaves(editor, maxClimb = 6) {
-  const out = [];
-  let scope = editor.parentElement;
-  for (let i = 0; i < maxClimb && scope; i++) {
-    for (const el of scope.querySelectorAll("*")) {
-      if (el === editor || editor.contains(el)) continue;
-      if (el.children.length === 0) out.push(el);
+/**
+ * Phạm vi gom tín hiệu Note mode: leo từ editor lên (tối đa 8 tầng) tới
+ * container chứa CẢ thanh tab (có lá "Reply" và lá "Note"). Bản cũ dừng ở
+ * .c-conversation-box-field — nhưng trên Crisp thật, phần "trang trí" của
+ * Note mode (nền vàng phủ cả hàng tab, pill "Note", placeholder) nằm ở
+ * container composer PHÍA TRÊN box-field (phiên dò 2026-10-26: nền vàng phủ
+ * cả hàng tab lẫn hàng soạn), nên tín hiệu không bao giờ lọt vào phạm vi cũ
+ * và cổng xác nhận không qua nổi dù CS đã mở sẵn tab Note (ca live
+ * 2026-10-26: tab tự chuyển sang Note mà ô vẫn trống).
+ */
+function signalScope(editor) {
+  let root = editor;
+  for (let i = 0; i < 8 && root.parentElement; i++) {
+    root = root.parentElement;
+    let hasReply = false;
+    let hasNote = false;
+    for (const el of root.querySelectorAll("*")) {
+      if (el.children.length) continue;
+      const t = (el.textContent || "").trim();
+      if (t === "Reply") hasReply = true;
+      if (t === "Note") hasNote = true;
     }
-    if (scope.classList?.contains("c-conversation-box-field")) break;
-    scope = scope.parentElement;
+    if (hasReply && hasNote) break;
   }
-  return out;
+  return root;
 }
 
 /** Gom các tín hiệu Note mode tại thời điểm gọi (editor có thể bị Crisp thay node khi chuyển mode). */
 function collectNoteSignals(editor) {
+  const root = signalScope(editor);
   const tab = findModeTab(editor, "Note");
   let yellowBg = false;
   let noteClass = false;
-  for (let node = editor; node && !noteClass; node = node.parentElement) {
+  for (let node = editor; node; node = node.parentElement) {
     if (/(^|[\s_-])note(?=$|[\s_-])/i.test(classOf(node))) noteClass = true;
     if (!yellowBg) yellowBg = isYellowishColor(getComputedStyle(node).backgroundColor);
-    if (node.classList?.contains("c-conversation-box-field")) break;
+    if (node === root) break;
   }
   const attrPh = editor.getAttribute("data-placeholder")
     ?? editor.closest("[data-placeholder]")?.getAttribute("data-placeholder")
@@ -301,26 +389,25 @@ function collectNoteSignals(editor) {
   // Placeholder trên Crisp thật là CHỮ RENDER quanh editor ("Send a private
   // note to your team…" / "Send your message to … in chat…", phiên dò
   // 2026-10-26), không nằm ở thuộc tính — đọc cả hai đường, thuộc tính chỉ là
-  // dự phòng. Nhãn "Note" trong vùng soạn (pill ở đầu dòng soạn) cũng là tín
-  // hiệu riêng của Note mode; chỉ tìm trong wrapper sát editor để không nhầm
-  // nhãn của tab Note trên thanh tab.
+  // dự phòng. Quét MỌI lá trong phạm vi tín hiệu: thấy placeholder Note ở
+  // bất cứ đâu là tính Note (placeholder Reply cũ còn sót trong DOM không
+  // được phủ quyết). Nhãn "Note" dạng pill ở đầu dòng soạn cũng là tín hiệu
+  // riêng; lá thuộc thanh tab (chính tab Note hoặc cùng hàng tab) bị loại
+  // để không tính trùng — pill nằm ở hàng soạn, không ở hàng tab.
   let phKind = placeholderKind(attrPh) ?? (/note/i.test(attrPh) ? "note" : null);
+  let sawNotePh = phKind === "note";
   let notePill = false;
-  const field = editor.parentElement;
-  if (field) {
-    for (const el of field.querySelectorAll("*")) {
-      if (el === editor || editor.contains(el) || el.children.length) continue;
-      const t = (el.textContent || "").trim();
-      if (!phKind) phKind = placeholderKind(t);
-      if (t === "Note") notePill = true;
-    }
+  const tabBar = tab?.parentElement ?? null;
+  for (const el of root.querySelectorAll("*")) {
+    if (el === editor || editor.contains(el) || el.children.length) continue;
+    const t = (el.textContent || "").trim();
+    if (!t) continue;
+    const k = placeholderKind(t);
+    if (k === "note") sawNotePh = true;
+    else if (k && !phKind) phKind = k;
+    if (t === "Note" && tab !== el && !tab?.contains(el) && !(tabBar && tabBar.contains(el))) notePill = true;
   }
-  if (!phKind) {
-    for (const el of fieldLeaves(editor)) {
-      const k = placeholderKind((el.textContent || "").trim());
-      if (k) { phKind = k; break; }
-    }
-  }
+  if (sawNotePh) phKind = "note";
   return {
     tab,
     signals: {
@@ -333,17 +420,17 @@ function collectNoteSignals(editor) {
   };
 }
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
  * Điền private note vào ô Note: bấm tab Note → chờ + xác nhận Note mode bằng
  * confirmNoteMode → kiểm tra lại lần cuối ngay trước khi ghi. Bất kỳ bước nào
  * không chắc chắn đều trả "note_unconfirmed" và KHÔNG ghi ký tự nào.
  */
 async function insertIntoNote(msg, reply) {
+  const trace = [];
   let editor = findComposer();
-  if (!editor) return reply("composer_not_found");
+  if (!editor) return reply("composer_not_found", trace);
   let { tab, signals } = collectNoteSignals(editor);
+  trace.push(`sig0 ${signalTrace(signals)}`);
   // BẢN CŨ bắt buộc tìm thấy tab Note rồi mới xét tín hiệu — mà tìm tab là
   // khâu dễ trượt nhất (class băm, tab nằm ngoài tầm leo DOM), nên Note mode
   // đã bật sẵn vẫn bị trả note_unconfirmed (Ethan test live 2026-10-26: tab
@@ -352,6 +439,7 @@ async function insertIntoNote(msg, reply) {
   // tab chỉ dùng để BẤM CHUYỂN mode khi tín hiệu chưa đạt.
   if (!confirmNoteMode(signals) && tab) {
     tab.click();
+    trace.push("click");
     // Chuyển mode là bất đồng bộ (Crisp thay node editor/nền): chờ tối đa ~1s.
     for (let i = 0; i < 12; i++) {
       await delay(80);
@@ -362,30 +450,35 @@ async function insertIntoNote(msg, reply) {
     }
   }
   editor = findComposer();
-  if (!editor) return reply("composer_not_found");
+  if (!editor) return reply("composer_not_found", trace);
   ({ signals } = collectNoteSignals(editor));
-  if (!confirmNoteMode(signals)) return reply("note_unconfirmed");
+  trace.push(`sig1 ${signalTrace(signals)}`);
+  if (!confirmNoteMode(signals)) return reply("note_unconfirmed", trace);
   const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted });
-  if (d.status !== "inserted") return reply(d.status);
+  if (d.status !== "inserted") return reply(d.status, trace);
   // Điền và kiểm chứng TOÀN VĂN: lệch là báo insert_unverified, không báo
   // inserted giả (xem fillEditor).
-  if (!fillEditor(editor, d.text)) return reply("insert_unverified");
+  if (!(await fillEditor(editor, d.text, trace, findComposer))) return reply("insert_unverified", trace);
   inserted.add(msg.output_id);
-  reply("inserted");
+  reply("inserted", trace);
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type !== "copilot:insert") return;
-  const reply = (status) => sendResponse({ type: "copilot:insert_result", request_id: msg.request_id, status });
+  const reply = (status, trace) => sendResponse({ type: "copilot:insert_result", request_id: msg.request_id, status, ...(trace?.length ? { trace } : {}) });
   if (msg.target === "note") {
     insertIntoNote(msg, reply).catch(() => reply("note_unconfirmed"));
     return true; // trả lời bất đồng bộ — giữ kênh sendResponse
   }
-  const el = findComposer();
-  if (!el) return reply("composer_not_found");
-  const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted });
-  if (d.status !== "inserted") return reply(d.status);
-  if (!fillEditor(el, d.text)) return reply("insert_unverified");
-  inserted.add(msg.output_id);
-  reply("inserted");
+  (async () => {
+    const trace = [];
+    const el = findComposer();
+    if (!el) return reply("composer_not_found", trace);
+    const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted });
+    if (d.status !== "inserted") return reply(d.status, trace);
+    if (!(await fillEditor(el, d.text, trace, findComposer))) return reply("insert_unverified", trace);
+    inserted.add(msg.output_id);
+    reply("inserted", trace);
+  })().catch(() => reply("insert_unverified"));
+  return true;
 });

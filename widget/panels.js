@@ -19,6 +19,20 @@ function draftText(text) {
 }
 
 export function extensionHint({ detectExtension }) {
+  // HAI bản extension cùng chạy (hai mã ext khác nhau cùng trả pong): cảnh
+  // báo này ưu tiên trên mọi trạng thái khác — chừng nào còn hai bản, mọi
+  // lệnh điền đều bị thực thi hai lần và panel không thể báo "sẵn sàng".
+  if (state.bridgeConflict) {
+    return el("details", { className: "hint warn", open: true }, [
+      el("summary", { textContent: "Đang có 2 bản extension cùng chạy" }),
+      el("strong", { textContent: "Mỗi lệnh điền bị cả hai bản cùng bấm: ô Reply bị gấp đôi nội dung, ô Note thì lỗi. Gỡ bản cũ, chỉ giữ bản mới nhất." }),
+      el("ol", {}, [
+        el("li", { textContent: "Mở chrome://extensions" }),
+        el("li", { textContent: `Gỡ (Remove) mọi thẻ "CS Copilot — chèn draft" trừ bản v${EXPECTED_EXTENSION_VERSION}` }),
+        el("li", { textContent: "Tải lại trang Crisp" }),
+      ]),
+    ]);
+  }
   // Bridge sẵn sàng nhưng SỐ VERSION cũ hơn bản đi kèm widget: vẫn phải
   // cảnh báo (trước đây panel báo "sẵn sàng" vô điều kiện theo protocol,
   // mà protocol không đổi giữa các bản 1.2.x — CS tưởng đã cập nhật trong
@@ -228,27 +242,7 @@ export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
   ]);
 }
 
-export function pendingMessageCard(m) {
-  const children = [el("p", { textContent: m.text })];
-  if (m.imageUrl) {
-    const image = el("img", { src: m.imageUrl, alt: "Ảnh khách gửi", loading: "lazy", referrerPolicy: "no-referrer" });
-    const fallback = el("span", { className: "image-fallback", textContent: "Không tải được ảnh · Mở ảnh gốc" });
-    fallback.hidden = true;
-    image.onerror = () => {
-      image.hidden = true;
-      fallback.hidden = false;
-    };
-    children.push(el("a", {
-      className: "customer-image-link",
-      href: m.imageUrl,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      title: "Mở ảnh khách gửi ở tab mới",
-    }, [image, fallback]));
-  }
-  if (m.botReplied) children.push(el("span", { className: "bot-replied", textContent: "Bot đã phản hồi · cần CS rà soát" }));
-  return el("article", { className: `pending-message${m.imageUrl ? " has-image" : ""}` }, children);
-}
+
 
 // Nhãn tâm trạng: chỉ chữ, không emoji mặt cảm xúc (Ethan chốt: bỏ icon
 // trang trí khỏi nội dung hiển thị — cần phân biệt thì đã có màu module).
@@ -308,26 +302,7 @@ export function insightPanel({ onAnalyze }) {
  * sentiment.issues (câu tóm tắt vấn đề + dòng bằng chứng), lùi về topic khi
  * chưa có (toIssuesViewModel ở core.js), chỉ đổi cách render ở đây.
  */
-/**
- * Tin khách đang chờ trả lời — khối RIÊNG, không nằm trong "Vấn đề của
- * khách" nữa (Ethan 2026-10-26: tin nguyên văn đặt dưới tiêu đề Vấn đề làm
- * cả khối trông như chép nguyên văn câu hỏi thay vì tóm tắt issue, dù issue
- * thật đã là câu tổng hợp từ sentiment.issues). Ở đây trích nguyên văn là
- * đúng bản chất (tin đang chờ, kèm ảnh khách gửi); khối Vấn đề chỉ còn các
- * issue đã tóm tắt.
- */
-export function pendingPanel(vm) {
-  if (!vm.pendingMessages.length) return null;
-  return el("div", { className: "issues-module pending-module" }, [
-    el("div", { className: "issues-head" }, [
-      el("span", { className: "eyebrow", textContent: "TIN KHÁCH ĐANG CHỜ" }),
-    ]),
-    el("section", { className: "card issues-pending-card" }, [
-      ...vm.pendingMessages.map(pendingMessageCard),
-      vm.hiddenPendingCount ? el("p", { className: "muted", textContent: `Đang hiện ${vm.pendingMessages.length} trong ${vm.pendingCount} tin` }) : null,
-    ]),
-  ]);
-}
+
 
 export function issuesPanel(vm) {
   const { issues } = toIssuesViewModel(state.check, state.sentiment);

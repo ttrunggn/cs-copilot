@@ -234,9 +234,12 @@ export interface EnabledModules {
  *   đọc ở DB; thiếu/false = workspace nằm ngoài phạm vi SW, đường domain
  *   đóng bất kể các trường còn lại.
  * - shopDomain: shopify_domain trong custom_data của chính conversation này.
- * - snapshotWatched: bản chụp storefront_store_status nói SW có theo dõi
- *   domain không — true = đang theo dõi; false = SW xác nhận KHÔNG theo dõi;
- *   null = chưa có bản chụp cho domain (job nền chưa quét tới).
+ * - snapshotWatched: bản chụp storefront_store_status — TỪ 2026-10-26 KHÔNG
+ *   còn tham gia cổng (Ethan chốt: cứ có shopify_domain + cờ workspace là
+ *   hiện module, store có bug ở SW là phải hiện; bản chụp sweep từng phủ
+ *   quyết nhầm store đang được theo dõi thật). Chỉ còn là dữ kiện phụ cho
+ *   badge storefront_status; action nạp SW trực tiếp mới là nơi quyết định
+ *   store có được theo dõi hay không (trả not_watched).
  */
 export interface StorefrontGateContext {
   storefrontWatchEnabled?: boolean;
@@ -252,9 +255,11 @@ export interface StorefrontGateContext {
  * không hardcode mã của bất kỳ workspace nào. Đường này cũng là dự phòng cho
  * workspace trong phạm vi SW khi domain không có/không được theo dõi.
  *
- * (b) Đường domain (Ethan duyệt 2026-10-23 — CHỈ trong phạm vi Storefront
- * Watch): chat có shopify_domain trong custom_data và domain đang được SW
- * theo dõi/có dữ kiện thì module hiện, KHÔNG cần ticket Jira liên kết.
+ * (b) Đường domain (Ethan duyệt 2026-10-23, nới 2026-10-26 — CHỈ trong
+ * phạm vi Storefront Watch): chat có shopify_domain trong custom_data là
+ * module hiện, KHÔNG cần ticket Jira liên kết và KHÔNG cần bản chụp sweep
+ * xác nhận — store có bug ở SW là phải hiện; action nạp trực tiếp trả
+ * not_watched nếu SW thật sự không theo dõi domain đó.
  * Phạm vi SW được định danh TƯỜNG MINH bằng cờ workspaces.storefront_watch
  * (migration 023, gate.storefrontWatchEnabled) — đây là định danh DUY NHẤT.
  * TUYỆT ĐỐI không suy phạm vi từ jira_project: workspace khác (OE) cũng có
@@ -280,7 +285,7 @@ export function enabledModules(
   const project = (jiraProject ?? "").trim().toUpperCase();
   const viaTicket = project !== "" && items.some((j) => j.issue_key.split("-")[0].trim().toUpperCase() === project);
   const domain = (gate?.shopDomain ?? "").trim();
-  const viaDomain = gate?.storefrontWatchEnabled === true && domain !== "" && gate?.snapshotWatched !== false;
+  const viaDomain = gate?.storefrontWatchEnabled === true && domain !== "";
   return {
     jira: items.length > 0,
     storefront: viaTicket || viaDomain,

@@ -139,7 +139,11 @@ Deno.test("composer DOM (a): note — bấm tab Note, đủ tín hiệu (tab act
   const page = buildPage();
   const send = await loadComposer(page);
   const res = await send({ ...NOTE_MSG });
-  assertEquals(res, { type: "copilot:insert_result", request_id: "r-note", status: "inserted" });
+  assertEquals(res.type, "copilot:insert_result");
+  assertEquals(res.request_id, "r-note");
+  assertEquals(res.status, "inserted");
+  // Kết quả kèm trace chẩn đoán (panel hiện khi lỗi; có cả khi thành công).
+  assertEquals(Array.isArray(res.trace), true);
   assertEquals(page.noteTab.clickCount, 1); // phải tự bấm chuyển tab
   assertEquals(page.noteEditor.value, "NOTE NỘI BỘ");
   assertEquals(page.replyEditor.value, ""); // ô Reply không bị đụng vào
@@ -274,4 +278,69 @@ Deno.test("composer DOM (d): khoá lệch protocol nằm phía widget — pong p
   // khoá lại sự thật kiến trúc đó để lần sửa sau không tưởng nhầm là đã khoá 2 phía.
   assertEquals(bridgeState({ type: "copilot:pong", protocol: 1, version: "1.0.0" }), "outdated");
   assertEquals(bridgeState({ type: "copilot:pong", protocol: 2, version: "1.1.0" }), "ready");
+});
+
+/**
+ * Mô phỏng cấu trúc composer mà phiên dò 2026-10-26 gợi ý trên Crisp thật:
+ * phần "trang trí" Note mode nằm ở CONTAINER phía trên .c-conversation-box-field
+ * (nền vàng phủ cả hàng tab; pill + placeholder là con của container, anh em
+ * của box-field). Bản cũ gom tín hiệu chỉ trong box-field → không bao giờ đủ
+ * tín hiệu → note_unconfirmed dù tab đã chuyển (ca live 2026-10-26 16:35:
+ * tab tự sang Note, ô trống nguyên).
+ */
+function buildWidePage() {
+  const doc = { focused: null, current: null };
+  const container = new FakeEl("div", { bg: "rgb(20, 24, 36)" });
+  const toolbar = new FakeEl("div");
+  const field = new FakeEl("div", { className: "c-conversation-box-field" });
+  const wrap = new FakeEl("div");
+  const mkTab = (label) => {
+    const div = new FakeEl("div", { className: "css-h4sh", cursor: "pointer" });
+    div.append(new FakeEl("span", { text: label, cursor: "pointer" }));
+    return div;
+  };
+  const replyTab = mkTab("Reply");
+  const noteTab = mkTab("Note");
+  toolbar.append(replyTab, noteTab);
+  const replyEditor = new FakeEl("textarea", { attrs: { name: "message" } });
+  const noteEditor = new FakeEl("textarea", { attrs: { name: "message" } });
+  for (const e of [replyEditor, noteEditor]) e.ownerDoc = doc;
+  const replyPh = new FakeEl("div", { text: "Send your message to trung nguyen in chat…" });
+  const notePh = new FakeEl("div", { text: "Send a private note to your team…" });
+  const notePill = new FakeEl("span", { text: "Note" });
+  doc.current = replyEditor;
+  wrap.append(replyEditor);
+  field.append(wrap);
+  container.append(toolbar, field, replyPh);
+  const activate = () => {
+    noteTab.clickCount++;
+    container.__bg = "rgb(58, 53, 32)"; // nền vàng phủ cả container (gồm hàng tab)
+    doc.current = noteEditor;
+    wrap.children = [noteEditor];
+    noteEditor.parentElement = wrap;
+    container.children = [toolbar, field, notePh, notePill];
+    notePh.parentElement = container;
+    notePill.parentElement = container;
+  };
+  noteTab.onClick = activate;
+  noteTab.children[0].onClick = activate;
+  const documentFake = {
+    querySelectorAll: (sel) => (doc.current && matchesComposerSelector(doc.current, sel) ? [doc.current] : []),
+    execCommand: (cmd, _ui, val) => {
+      if (cmd === "insertText" && doc.focused) { doc.focused.value = val; doc.focused.innerText = val; }
+      return true;
+    },
+  };
+  return { doc, documentFake, root: container, replyTab, noteTab, replyEditor, noteEditor };
+}
+
+Deno.test("composer DOM (g): trang trí Note mode nằm TRÊN box-field (container) → vẫn đủ tín hiệu và điền được (hồi quy ca live 16:35)", async () => {
+  const page = buildWidePage();
+  const send = await loadComposer(page);
+  const res = await send({ ...NOTE_MSG, output_id: "note-7" });
+  assertEquals(res.status, "inserted");
+  assertEquals(page.noteEditor.value, "NOTE NỘI BỘ");
+  assertEquals(page.replyEditor.value, "");
+  // Trace phải ghi nhận tín hiệu đã thấy ở phạm vi rộng (yel/ph/pil).
+  assertEquals(res.trace.some((t) => t.includes("yel1") && t.includes("ph1")), true);
 });
