@@ -42,6 +42,8 @@ async function fakeDb(member = true): Promise<Db> {
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve(null),
     releaseCsatSend: () => Promise.resolve(),
+    saveReviewTemplate: () => Promise.resolve(),
+    addStyleSample: () => Promise.resolve(),
   };
 }
 

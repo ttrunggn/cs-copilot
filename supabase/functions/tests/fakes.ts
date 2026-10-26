@@ -115,6 +115,8 @@ export function makeDeps(opts: {
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
     releaseCsatSend: () => Promise.resolve(),
+    saveReviewTemplate: () => Promise.resolve(),
+    addStyleSample: () => Promise.resolve(),
     ...over,
   };
   const n8n: N8n = {

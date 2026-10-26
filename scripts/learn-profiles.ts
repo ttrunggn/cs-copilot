@@ -195,6 +195,14 @@ if (!flags.includes("--skip-profiles") && !flags.includes("--skip-review-templat
   }
   for (const [opId, contents] of byOp) {
     const name = nameOf.get(opId) ?? opId;
+    // CS đã tự lưu mẫu của mình qua thẻ gợi ý (manual_override.review_template_manual)
+    // → lựa chọn tay thắng học lại, bỏ qua CS này (nguyên tắc sửa tay thắng).
+    const { data: existingRows } = await sb.from("agent_profiles")
+      .select("manual_override").eq("crisp_user_id", opId).eq("website_id", websiteId);
+    if ((existingRows ?? []).some((r) => (r.manual_override as Record<string, unknown> | null)?.review_template_manual === true)) {
+      console.log(`- ${name} / review template: CS đã lưu mẫu thủ công, học lại không ghi đè`);
+      continue;
+    }
     const template = mineReviewTemplate(contents);
     if (!template) {
       console.log(`- ${name} / review template: không thấy khuôn lặp lại, giữ nguyên hiện trạng`);
