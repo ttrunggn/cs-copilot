@@ -101,11 +101,11 @@ Deno.test("analyze: AI lỗi và chưa có cache → reason ai_unavailable, sent
   assertEquals(body.reason, "ai_unavailable");
 });
 
-Deno.test("sentimentFingerprint: chỉ đổi khi khách nhắn, CS trả lời không đổi", async () => {
+Deno.test("sentimentFingerprint: đổi khi khách nhắn thêm VÀ khi CS trả lời thêm (v3 — issues tính lại sau khi CS đã trả lời)", async () => {
   const base = [msg({ content: "help" })];
   const fp1 = await sentimentFingerprint(base);
   const fp2 = await sentimentFingerprint([...base, msg({ from: "operator", content: "sure", created_at: "2026-01-01T00:01:00Z" })]);
   const fp3 = await sentimentFingerprint([...base, msg({ content: "still broken", created_at: "2026-01-01T00:02:00Z" })]);
-  assertEquals(fp1, fp2);
+  assert(fp1 !== fp2);
   assert(fp1 !== fp3);
 });

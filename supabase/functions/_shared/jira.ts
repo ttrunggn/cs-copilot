@@ -296,9 +296,14 @@ export function enabledModules(
   const viaTicket = project !== "" && items.some((j) => j.issue_key.split("-")[0].trim().toUpperCase() === project);
   const domain = (gate?.shopDomain ?? "").trim();
   const viaDomain = gate?.storefrontWatchEnabled === true && domain !== "";
+  // Ethan chốt 2026-10-26: workspace ĐÃ cấu hình tích hợp (có Jira project,
+  // hoặc bật cờ Storefront Watch — tức workspace Transcy) thì hai module
+  // LUÔN hiện trên panel, kể cả khi chat chưa có gì (card hiện trạng thái
+  // trống) — panel đủ rộng, CS khỏi đoán là thiếu dữ liệu hay module tắt.
+  // Workspace chưa cấu hình thì giữ cổng theo ngữ cảnh như cũ.
   return {
-    jira: items.length > 0,
-    storefront: viaTicket || viaDomain,
+    jira: items.length > 0 || project !== "",
+    storefront: gate?.storefrontWatchEnabled === true || viaTicket || viaDomain,
   };
 }
 
