@@ -445,20 +445,12 @@ export function csatPanel({ onSurvey }) {
   ]);
 }
 
-/** Màu chấm + nhãn của từng nhóm trạng thái Storefront (khớp v4). */
+/** Class màu theo trạng thái Storefront cho pill trên từng dòng. */
 const SF_STATUS_CLASS = { new: "sf-new", acknowledged: "sf-ack", in_progress: "sf-prog" };
 
-function sfGroupHead(g, count) {
-  const cls = SF_STATUS_CLASS[g.status] ?? "";
-  return el("div", { className: "sf-group-head" }, [
-    el("span", { className: `sf-dot ${cls}` }),
-    el("b", { className: cls, textContent: g.label }),
-    el("span", { className: "muted", textContent: `${count} issue` }),
-  ]);
-}
 
 /** Chi tiết một finding (get_finding) hiện ngay dưới dòng của nó khi CS bấm mở. */
-function sfDetail(detail) {
+function sfDetail(detail, handlers, row) {
   if (!detail) return null;
   if (detail.error) {
     return el("div", { className: "sf-detail" }, [
@@ -477,8 +469,53 @@ function sfDetail(detail) {
   if (detail.consoleLink && /^https:\/\//.test(detail.consoleLink)) {
     rows.push(el("a", { href: detail.consoleLink, target: "_blank", rel: "noreferrer", textContent: "Mở trong Storefront Watch ↗" }));
   }
+  // Mục đã gom nhiều locale: link Console của TỪNG finding nằm ở đây, bấm
+  // dòng chỉ mở chi tiết của finding đầu — link riêng vẫn tới được đúng bug.
+  if (row && row.count > 1) {
+    for (const e of row.entries) {
+      if (e.consoleLink && /^https:\/\//.test(e.consoleLink)) {
+        rows.push(el("div", {}, [
+          el("span", { className: "muted", textContent: `${e.locale ?? ""}: ` }),
+          el("a", { href: e.consoleLink, target: "_blank", rel: "noreferrer", textContent: "Console ↗" }),
+        ]));
+      }
+    }
+  }
+  if (handlers?.onExplain && row) {
+    const first = row.entries[0] ?? {};
+    rows.push(el("button", {
+      className: "button-secondary sf-explain",
+      textContent: "Mẫu giải thích",
+      onclick: () => handlers.onExplain({ fingerprint: row.fingerprint, kind: row.kind ?? row.title, locale: first.locale, page: row.page, text: first.text, title: row.title }),
+    }));
+  }
   return el("div", { className: "sf-detail" }, rows.length ? rows : [
     el("p", { className: "muted", textContent: "Không có thêm chi tiết." }),
+  ]);
+}
+
+/** Một dòng finding trong card gọn: pill trạng thái + tiêu đề + meta. Bấm dòng mở chi tiết. */
+function sfRow(row, handlers) {
+  const fp = row.fingerprint;
+  const open = Boolean(fp) && state.storefrontDetail?.fingerprint === fp;
+  const loadingDetail = Boolean(fp) && state.storefrontDetailLoading === fp;
+  const metaText = row.count > 1
+    ? [row.page, row.locales.join(", ")].filter(Boolean).join(" · ")
+    : (row.meta || row.entries[0]?.locale || "");
+  const head = el("div", { className: "sf-row-head" }, [
+    el("span", { className: `pill-sf ${SF_STATUS_CLASS[row.status] ?? ""}`, textContent: row.label }),
+    el("div", {}, [
+      el("div", { textContent: row.title }),
+      metaText ? el("div", { className: "muted", textContent: metaText }) : null,
+    ]),
+  ]);
+  const rowEl = fp && handlers.onStorefrontFinding
+    ? el("button", { className: "sf-row", title: "Bấm để xem chi tiết", onclick: () => handlers.onStorefrontFinding(fp) }, [head])
+    : el("div", { className: "sf-row" }, [head]);
+  return el("div", { className: "sf-entry" }, [
+    rowEl,
+    loadingDetail ? el("p", { className: "muted", textContent: "Đang tải chi tiết…" }) : null,
+    open ? sfDetail(state.storefrontDetail, handlers, row) : null,
   ]);
 }
 
@@ -490,51 +527,12 @@ function sfDetail(detail) {
  * SW; nút "Mẫu giải thích" mở popup đoạn mẫu theo loại lỗi để điền vào ô
  * Reply. Link chỉ nhận https (dữ kiện MCP nhưng vẫn là dữ kiện ngoài).
  */
-function sfEntryRow(entry, group, handlers) {
-  const fp = entry.fingerprint;
-  const open = Boolean(fp) && state.storefrontDetail?.fingerprint === fp;
-  const loadingDetail = Boolean(fp) && state.storefrontDetailLoading === fp;
-  const head = el("div", {}, [
-    el("div", { textContent: group.count > 1 ? (entry.meta || entry.locale || entry.title) : group.title }),
-    group.count > 1 || !entry.meta ? null : el("div", { className: "muted", textContent: entry.meta }),
-  ]);
-  const row = fp && handlers.onStorefrontFinding
-    ? el("button", { className: "sf-item sf-clickable", title: "Bấm để xem chi tiết", onclick: () => handlers.onStorefrontFinding(fp) }, [head])
-    : el("div", { className: "sf-item" }, [head]);
-  return el("div", { className: "sf-entry" }, [
-    row,
-    el("div", { className: "sf-entry-actions" }, [
-      entry.consoleLink && /^https:\/\//.test(entry.consoleLink)
-        ? el("a", { className: "sf-console", href: entry.consoleLink, target: "_blank", rel: "noreferrer", textContent: "Console ↗" })
-        : null,
-      handlers.onExplain
-        ? el("button", { className: "button-secondary sf-explain", textContent: "Mẫu giải thích", onclick: () => handlers.onExplain({ fingerprint: fp, kind: group.kind, locale: entry.locale, page: group.page, text: entry.text, title: group.title }) })
-        : null,
-    ]),
-    loadingDetail ? el("p", { className: "muted", textContent: "Đang tải chi tiết…" }) : null,
-    open ? sfDetail(state.storefrontDetail) : null,
-  ]);
-}
 
 /**
  * Một mục finding sau gom (core.js groupSameRootCause): nhiều entry cùng
  * căn nguyên (cùng kind+page, khác locale) thì có thêm dòng đầu mục với
  * chip từng locale; một entry thì render như một finding thường.
  */
-function sfItem(d, handlers) {
-  const grouped = d.count > 1;
-  return el("div", { className: "sf-item-group" }, [
-    grouped ? el("div", { className: "sf-item-head" }, [
-      el("div", { textContent: d.title }),
-      el("div", { className: "muted" }, [
-        document.createTextNode(d.page ? `${d.page} · ` : ""),
-        document.createTextNode(`${d.count} ngôn ngữ: `),
-        ...d.locales.map((l) => el("span", { className: "sf-locale", textContent: l })),
-      ]),
-    ]) : null,
-    ...(d.entries ?? []).map((entry) => sfEntryRow(entry, d, handlers)),
-  ]);
-}
 
 /**
  * Module Storefront Watch (màu đỏ) — internal connection: CHỈ render khi
@@ -556,7 +554,6 @@ export function storefrontPanel(handlers = {}) {
     return el("section", { className: "card storefront-card mod-store" }, [
       el("h3", { textContent: "Storefront Watch" }),
       el("p", { className: "muted", textContent: "Chưa có dữ liệu kiểm tra storefront cho chat này." }),
-      ...SF_GROUPS.map((g) => sfGroupHead(g, 0)),
     ]);
   }
   if (vm.kind === "need-shop") {
@@ -604,7 +601,7 @@ export function storefrontPanel(handlers = {}) {
       vm.notWatched
         ? el("b", { textContent: "Storefront Watch — chưa theo dõi store này" })
         : vm.totalCount
-        ? el("b", { textContent: `Storefront Watch — ${vm.totalCount} issues` })
+        ? el("b", { className: "error-text", textContent: `${vm.totalCount} lỗi đã xác nhận` })
         : el("b", { className: "success-text", textContent: "✓ Không phát hiện lỗi" }),
       vm.scannedLabel ? el("span", { className: "muted", textContent: `Quét ${vm.scannedLabel}` }) : null,
     ]),
@@ -612,14 +609,12 @@ export function storefrontPanel(handlers = {}) {
     vm.notWatched
       ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
       : null,
-    ...vm.groups.map((g) => el("div", { className: "sf-group" }, [
-      sfGroupHead(g, g.count ?? g.items.length),
-      ...g.items.map((d) => sfItem(d, handlers)),
-    ])),
+    ...(vm.rows ?? []).map((r) => sfRow(r, handlers)),
     vm.isStale ? el("div", { className: "warn", textContent: "Kết quả cũ. Bấm Kiểm tra lại trước khi dựa vào nó." }) : null,
-    el("div", { className: "row" }, [
+    el("div", { className: "row sf-footer" }, [
       el("button", { className: "button-secondary", disabled: sfBtn.disabled, onclick: () => handlers.onStorefrontLoad?.() },
         buttonContent(sfBtn.running, "Đang kiểm tra…", "Kiểm tra lại")),
+      el("a", { className: "button-secondary sf-open", href: "https://sw.transcy.io", target: "_blank", rel: "noreferrer", textContent: "Mở Storefront Watch" }),
     ]),
   ]);
 }
