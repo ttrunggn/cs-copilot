@@ -944,6 +944,17 @@ Deno.test("parseFindingsText: store sạch (0 lỗi) trả [] thay vì văng l�
   assertEquals(parseFindingsText(one).length, 1);
 });
 
+Deno.test("parseFindingsText: header 'The first N open problem(s)' (SW cắt trang khi quá 25 lỗi — ca live tantaly 2026-10-26) vẫn đọc", () => {
+  const one = `The first 1 open problem(s) on www.tantaly.de, worst first:
+1. HIGH · Graphic lost · nl /products/nesty-taschenmuschi (1440px)
+   Seen 1 time(s), first 2026-10-22, last 2026-10-22
+   Fingerprint: aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
+   Console: https://sw.transcy.io/#/f/aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7`;
+  const out = parseFindingsText(one);
+  assertEquals(out.length, 1);
+  assertEquals(out[0].kind, "Graphic lost");
+});
+
 Deno.test("parseFindingsText: định dạng lạ → lỗi kèm đầu nội dung thật để truy được SW trả gì", () => {
   let msg = "";
   try { parseFindingsText("Invalid shop identifier: tantaly_de@myshopify.com"); } catch (e) { msg = (e as Error).message; }

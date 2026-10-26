@@ -314,12 +314,12 @@ export function parseFindingsText(text: string): StorefrontFinding[] {
   // thay cho khối danh sách — đó là kết quả HỢP LỆ (0 lỗi), không phải lỗi
   // định dạng (ca live 2026-10-26: parser cũ văng lỗi oan ở đúng ca này).
   if (lines.some((l) => /no open problems?\b/i.test(l))) return [];
-  const headerIdx = lines.findIndex((l) => /^\d+ open problems?\b.*$/i.test(l));
+  const headerIdx = lines.findIndex((l) => /^(?:the first\s+)?\d+ open problems?\b.*$/i.test(l));
   if (headerIdx < 0) {
     const head = lines.filter((l) => l.trim()).slice(0, 3).map((l) => l.trim().slice(0, 120)).join(" | ");
     throw new StorefrontError(`list_findings trả định dạng lạ (thiếu dòng mở đầu 'N open problem(s) …'), không đọc được. Đầu nội dung thật: ${head}`);
   }
-  const declared = Number(lines[headerIdx].match(/^(\d+) /)![1]);
+  const declared = Number(lines[headerIdx].match(/(\d+)\s+open problem/i)![1]);
   const blocks: string[][] = [];
   for (const line of lines.slice(headerIdx + 1)) {
     if (!line.trim()) continue;

@@ -372,11 +372,26 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
     const raw = buckets[g.status];
     return { ...g, items: groupSameRootCause(raw), count: raw.length };
   });
+  // Danh sách PHẲNG cho card gọn (Ethan chốt 2026-10-26): hết tiêu đề nhóm,
+  // mỗi mục một dòng với pill trạng thái; thứ tự nhóm giữ nguyên SF_GROUPS.
+  const rows = groups.flatMap((g) => g.items.map((d) => ({
+    status: g.status,
+    label: g.label,
+    title: d.title,
+    kind: d.kind ?? null,
+    page: d.page ?? null,
+    count: d.count,
+    locales: d.locales ?? [],
+    entries: d.entries ?? [],
+    fingerprint: d.entries?.[0]?.fingerprint ?? null,
+    meta: d.entries?.[0]?.meta ?? "",
+  })));
   return {
     kind: "results",
     store: sf.store,
     scannedLabel: sf.scannedAt ? timeAgo(sf.scannedAt, now) : null,
     groups,
+    rows,
     totalCount: groups.reduce((n, g) => n + g.count, 0),
     isStale: Boolean(sf.isStale),
     ...(sf.notWatched ? { notWatched: true } : {}),
