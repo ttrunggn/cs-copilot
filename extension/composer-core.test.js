@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { confirmNoteMode, decideInsert, isCopilotMessage, isYellowishColor, placeholderKind, sessionFromUrl, tabLooksActive, textsMatch, verifyWritten } from "./composer-core.js";
+import { confirmNoteMode, decideInsert, fillVerified, isCopilotMessage, isYellowishColor, placeholderKind, sessionFromUrl, signalTrace, tabLooksActive, textsMatch, verifyWritten } from "./composer-core.js";
 
 Deno.test("sessionFromUrl reads the open conversation", () => {
   assertEquals(sessionFromUrl("https://app.crisp.chat/website/ws1/inbox/session_abc-123/"), "session_abc-123");
@@ -116,4 +116,19 @@ Deno.test("confirmNoteMode: tab active + 1 tín hiệu editor, HOẶC 2 tín hi�
   assertEquals(confirmNoteMode({ notePill: true, yellowBg: true }), true);
   assertEquals(confirmNoteMode({}), false);
   assertEquals(confirmNoteMode(), false);
+});
+
+Deno.test("fillVerified: gập khoảng trắng — innerText nối đoạn bằng \\n đơn vẫn khớp; gấp đôi thật thì không", () => {
+  const expected = "Hi there,\n\nThank you so much!\n\nBelow is the link:";
+  assertEquals(fillVerified("Hi there,\nThank you so much!\nBelow is the link:", expected), true);
+  assertEquals(fillVerified(expected, expected), true);
+  assertEquals(fillVerified(`${expected}\n${expected}`, expected), false); // gấp đôi — ca live 2026-10-26
+  assertEquals(fillVerified("", expected), false);
+  assertEquals(fillVerified("Hi there, Thank you!", ""), false);
+});
+
+Deno.test("signalTrace: định dạng gọn 5 tín hiệu Note mode", () => {
+  assertEquals(signalTrace({ tabActive: true, yellowBg: true, noteClass: false, notePlaceholder: true, notePill: false }), "tab1 yel1 cls0 ph1 pil0");
+  assertEquals(signalTrace({}), "tab0 yel0 cls0 ph0 pil0");
+  assertEquals(signalTrace(), "tab0 yel0 cls0 ph0 pil0");
 });
