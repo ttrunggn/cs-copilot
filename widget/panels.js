@@ -445,22 +445,6 @@ export function csatPanel({ onSurvey }) {
   ]);
 }
 
-/**
- * Một dòng bug trong card Storefront (Ethan chốt 2026-10-26): CHỈ nhãn bug
- * ngắn + số bug tương tự (khi gom nhiều) + link ↗ tới đúng URL bug đó trên
- * Console. Không meta, không chi tiết mở rộng, không nút phụ — cần thêm
- * thông tin thì bấm link sang Console.
- */
-function sfRow(row) {
-  return el("div", { className: "sf-line" }, [
-    el("span", { textContent: row.shortLabel }),
-    row.count > 1 ? el("span", { className: "muted", textContent: `×${row.count}` }) : null,
-    row.consoleLink && /^https:\/\//.test(row.consoleLink)
-      ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "↗", title: "Mở bug này trong Storefront Watch" })
-      : null,
-  ]);
-}
-
 export function storefrontPanel(handlers = {}) {
   if (!enabledModules(state.check).storefront) return null;
   const vm = toStorefrontViewModel(state.storefront);
@@ -511,6 +495,10 @@ export function storefrontPanel(handlers = {}) {
       el("p", { textContent: "Chưa nhận ra store của khách này (thiếu shopify domain). Chưa kiểm tra được." }),
     ]);
   }
+  // Card Storefront rút còn đúng bản TỔNG HỢP (Ethan chốt 2026-10-26 20:16):
+  // domain này có lỗi hay không + tổng số lỗi, và MỘT nút sang thẳng
+  // Storefront Watch. Không liệt kê từng bug, không hiện nội dung/message
+  // của SW — CS bấm sang Console chủ yếu để xem 2 ảnh chụp của tool.
   return el("section", { className: "card storefront-card mod-store" }, [
     el("div", { className: "row" }, [
       vm.notWatched
@@ -518,18 +506,12 @@ export function storefrontPanel(handlers = {}) {
         : vm.totalCount
         ? el("b", { className: "error-text", textContent: `${vm.totalCount} lỗi đã xác nhận` })
         : el("b", { className: "success-text", textContent: "✓ Không phát hiện lỗi" }),
-      vm.scannedLabel ? el("span", { className: "muted", textContent: `Quét ${vm.scannedLabel}` }) : null,
+      el("a", { className: "button-secondary sf-open", href: "https://sw.transcy.io", target: "_blank", rel: "noreferrer", textContent: "Mở Storefront Watch ↗" }),
     ]),
+    vm.scannedLabel ? el("p", { className: "muted", textContent: `Quét ${vm.scannedLabel}` }) : null,
     vm.notWatched
       ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
       : null,
-    ...(vm.rows ?? []).map((r) => sfRow(r)),
-    vm.isStale ? el("div", { className: "warn", textContent: "Kết quả cũ. Bấm Kiểm tra lại trước khi dựa vào nó." }) : null,
-    el("div", { className: "row sf-footer" }, [
-      el("button", { className: "button-secondary", disabled: sfBtn.disabled, onclick: () => handlers.onStorefrontLoad?.() },
-        buttonContent(sfBtn.running, "Đang kiểm tra…", "Kiểm tra lại")),
-      el("a", { className: "button-secondary sf-open", href: "https://sw.transcy.io", target: "_blank", rel: "noreferrer", textContent: "Mở Storefront Watch" }),
-    ]),
   ]);
 }
 
