@@ -302,10 +302,12 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 /* Chip dạng pill, màu dịu lại (Ethan 2026-10-26: viền bão hoà gắt của bản
    phương án B nhìn "robot"): giữ sắc riêng của từng hành động để phân biệt
    nhưng pha trong suốt ở viền và giảm độ đậm của nền nhuốm. */
-.cmd-draft { --tint: rgba(122, 92, 255, .16); border-color: color-mix(in srgb, #7a5cff 55%, transparent); }
-.cmd-note { --tint: rgba(217, 169, 44, .14); border-color: color-mix(in srgb, #d9a92c 55%, transparent); }
-.cmd-ask { --tint: rgba(62, 142, 222, .14); border-color: color-mix(in srgb, #3e8ede 55%, transparent); }
-.cmd-csat { --tint: rgba(224, 86, 107, .14); border-color: color-mix(in srgb, #e0566b 55%, transparent); }
+.cmd { font-weight: 700; }
+.cmd-draft { --tint: rgba(122, 92, 255, .5); border-color: #7a5cff; color: #ddd5ff; }
+.cmd-note { --tint: rgba(217, 169, 44, .48); border-color: #d9a92c; color: #ffe08a; }
+.cmd-ask { --tint: rgba(62, 142, 222, .48); border-color: #3e8ede; color: #c4e0fa; }
+.cmd-csat { --tint: rgba(224, 86, 107, .48); border-color: #e0566b; color: #ffc4cd; }
+.customer-line { margin: 2px 0 0; font-size: 13px; }
 .profile-status-card { gap: 4px; font-size: 12.5px; }
 .profile-status-card .eyebrow { margin-bottom: 2px; }
 
@@ -461,3 +463,5 @@ button.sf-row { cursor: pointer; }
 .sf-row-head { display: flex; gap: 8px; align-items: flex-start; }
 .sf-footer { justify-content: flex-start; gap: 8px; }
 .sf-open { text-decoration: none; display: inline-flex; align-items: center; }
+.sf-line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+.sf-bug-link { text-decoration: none; font-weight: 700; }
