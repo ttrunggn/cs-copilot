@@ -15,6 +15,7 @@ import type { JiraClient } from "../_shared/jira-api.ts";
 import type { JiraStore } from "../jira-sync/handler.ts";
 import type { StorefrontMcp } from "../_shared/storefront.ts";
 import { runStorefront, runStorefrontFinding } from "./storefront-actions.ts";
+import { writeTrace } from "../_shared/trace.ts";
 import { runSaveSuggestion, SUGGESTION_TEXT_MAX } from "./suggestions.ts";
 
 export type { AskResult } from "./ask.ts";
@@ -107,7 +108,7 @@ function parseRequest(body: unknown): CopilotRequest {
   };
 }
 
-export async function handle(body: unknown, token: string, deps: Deps): Promise<{ status: number; body: unknown }> {
+async function handleInner(body: unknown, token: string, deps: Deps): Promise<{ status: number; body: unknown }> {
   try {
     const req = parseRequest(body);
     // Token cá nhân (curl/tooling) hoặc widget trong Crisp (token website + operator từ SDK).
@@ -151,4 +152,29 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
     console.error("copilot error", e);
     return { status: 500, body: { error: "Lỗi hệ thống, thử lại sau" } };
   }
+}
+
+/**
+ * handle() công khai = handleInner bọc truy vết (migration 028, Ethan chốt
+ * 2026-10-26 "làm gì cũng cần truy vết"): mỗi request ghi 1 dòng timing
+ * (action + tổng thời gian thực thi); response lỗi (status >= 400) ghi thêm
+ * 1 dòng error kèm message. writeTrace tự nuốt lỗi nên tracing hỏng cũng
+ * không làm gãy request.
+ */
+export async function handle(body: unknown, token: string, deps: Deps): Promise<{ status: number; body: unknown }> {
+  const t0 = performance.now();
+  const meta = (body && typeof body === "object") ? body as Record<string, unknown> : {};
+  const base = {
+    website_id: typeof meta.website_id === "string" ? meta.website_id : null,
+    session_id: typeof meta.session_id === "string" ? meta.session_id : null,
+    action: typeof meta.action === "string" ? meta.action : "unknown",
+  };
+  const r = await handleInner(body, token, deps);
+  const duration_ms = Math.round(performance.now() - t0);
+  await writeTrace(deps.db, { ...base, kind: "timing", stage: "handler", duration_ms });
+  if (r.status >= 400) {
+    const msg = (r.body as { error?: unknown } | null)?.error;
+    await writeTrace(deps.db, { ...base, kind: "error", stage: "handler", duration_ms, message: typeof msg === "string" ? msg : `HTTP ${r.status}` });
+  }
+  return r;
 }
