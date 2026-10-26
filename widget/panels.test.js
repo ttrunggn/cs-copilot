@@ -33,7 +33,7 @@ globalThis.document = {
   createElement: (tag) => new FakeEl(tag),
   createTextNode: (t) => new FakeText(String(t)),
 };
-const { commandsRow, csatPanel, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, storefrontPanel } = await import("./panels.js");
+const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, profileFooter, storefrontPanel } = await import("./panels.js");
 
 // ---------- helpers ----------
 function walk(node, out = []) {
@@ -81,6 +81,29 @@ const CHECK = {
   stale: false, topic: "billing", topic_label: "Billing", profile_source: "topic", profile_name: "Lan",
   needs_reply: true, unanswered: ["tin 1"], last_customer_at: null, last_human_operator_at: null, jira: [],
 };
+
+Deno.test("panels: profileFooter nói rõ nguồn giọng, độ phủ dữ liệu học và nguồn template review", () => {
+  reset();
+  state.check = { ...CHECK, workspace: "Transcy", profile_coverage: { conversations_used: 42, learned_at: "2026-10-20T00:00:00Z" }, review_template: { source: "profile", text: "x" } };
+  const t = allText(profileFooter());
+  assertEquals(t.includes("Lan"), true);
+  assertEquals(t.includes("Giọng: theo profile của bạn"), true);
+  assertEquals(t.includes("Dữ liệu học: 42 cuộc trò chuyện"), true);
+  assertEquals(t.includes("Template review: theo profile của bạn"), true);
+  assertEquals(t.includes("Product knowledge: theo workspace Transcy"), true);
+  // CS chưa có dữ liệu học: phải nói thẳng là chưa đủ + đang dùng mặc định, không im lặng
+  state.check = { ...CHECK, workspace: "Transcy", profile_source: "best", profile_coverage: null, review_template: { source: "default", text: "x" } };
+  const t2 = allText(profileFooter());
+  assertEquals(t2.includes("profile mẫu của team"), true);
+  assertEquals(t2.includes("Dữ liệu học: chưa đủ — đang dùng mặc định"), true);
+  assertEquals(t2.includes("Template review: mặc định của workspace"), true);
+});
+
+Deno.test("panels: form Draft — lựa chọn giọng mặc định ghi rõ 'Mặc định (theo profile CS)'", () => {
+  reset();
+  const t = allText(draftCompose(makeHandlers()));
+  assertEquals(t.includes("Mặc định (theo profile CS)"), true);
+});
 
 // ---------- hàng lệnh + popup mở/đóng ----------
 Deno.test("panels: hàng lệnh có đúng 4 nút và bấm từng nút mở đúng popup", () => {
@@ -163,6 +186,15 @@ Deno.test("panels: insightPanel chưa có sentiment → trạng thái rỗng + n
   assertEquals(buttonByText(insightPanel(makeHandlers()), "Phân tích").disabled, true);
 });
 
+Deno.test("panels: insightPanel đang tự làm tươi (compute-on-view) → hiện dòng 'Đang cập nhật phân tích theo tin mới nhất…'", () => {
+  reset();
+  state.sentiment = { mood: "neutral", score: 50, urgency: "low", summary: "bản cũ", signals: [], confidence: 0.9 };
+  state.sentimentRefreshing = true;
+  assertEquals(allText(insightPanel(makeHandlers())).includes("Đang cập nhật phân tích theo tin mới nhất…"), true);
+  state.sentimentRefreshing = false;
+  assertEquals(allText(insightPanel(makeHandlers())).includes("Đang cập nhật phân tích"), false);
+});
+
 Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhãn mood, điểm, cảnh báo khẩn", () => {
   reset();
   state.sentiment = { mood: "frustrated", score: 18, urgency: "high", summary: "Khách chờ lâu", signals: ["Chờ 3 ngày"], confidence: 0.9 };
@@ -176,15 +208,17 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   assertEquals(Boolean(buttonByText(p, "Phân tích lại")), true);
 });
 
-Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ signals; không issue + không tin chờ → thẻ 'Hết tin chờ rồi'", () => {
+Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); không issue + không tin chờ → thẻ 'Hết tin chờ rồi'", () => {
   reset();
   state.check = CHECK;
-  state.sentiment = { signals: ["Trừ phí 2 lần", "Chưa hoàn tiền"] };
+  state.sentiment = { issues: [{ summary: "Khách bị trừ phí 2 lần", evidence: "charged twice" }, { summary: "Khách chưa được hoàn tiền", evidence: "" }] };
   const vm = toViewModel(CHECK, Date.now());
   const p = issuesPanel(vm);
   const t = allText(p);
   assertEquals(t.includes("ISSUE 1") && t.includes("ISSUE 2"), true);
   assertEquals(t.includes("— 2 issues"), true);
+  assertEquals(t.includes("Khách bị trừ phí 2 lần"), true);
+  assertEquals(t.includes("Khách nhắn: \"charged twice\""), true);
   reset();
   state.check = { ...CHECK, topic: null, topic_label: null, needs_reply: false, unanswered: [] };
   const empty = issuesPanel(toViewModel(state.check, Date.now()));
