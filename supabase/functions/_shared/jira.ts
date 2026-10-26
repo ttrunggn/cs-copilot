@@ -27,6 +27,8 @@ export interface JiraIssue {
   updated_at: string | null;
   /** Mốc sync phát hiện lần đổi trạng thái gần nhất (saveIssue ghi; null = chưa từng thấy đổi). */
   status_changed_at?: string | null;
+  /** Lần cuối mirror được đồng bộ từ Jira (jira_issues.synced_at, saveIssue ghi mỗi lần áp) — check dùng để quyết có tự sync khi mở panel hay không. */
+  synced_at?: string | null;
   /** Trạng thái ngay trước lần đổi gần nhất (saveIssue ghi cùng lúc status_changed_at) — để hiện "từ <cũ> → <mới>". */
   prev_status?: string | null;
   comments: JiraComment[];
@@ -162,13 +164,20 @@ export interface ConversationJira {
   prev_status: string | null;
   /** Ticket đang ở nhóm Done trên Jira. */
   done: boolean;
+  /** Mốc cập nhật gần nhất của issue trên Jira (panel hiện "Cập nhật …"). */
+  updated_at: string | null;
   /** Done nhưng CS chưa nhắn cho khách sau mốc Done → card ở lại panel với nhãn chờ báo. */
   awaiting_report: boolean;
   new_comments: { author: string; role: CommentRole; body: string; created_at: string }[];
   recent_comments: { author: string; role: CommentRole; body: string; created_at: string }[];
 }
 
-const view = (c: JiraComment) => ({ author: c.author, role: c.role, body: oneLine(c.body_text, 300), created_at: c.created_at });
+// Panel là MIRROR của Jira: comment phải nguyên văn (chỉ gộp khoảng trắng
+// cho dễ đọc), KHÔNG cắt cụt — trần 300 ký tự cũ làm mất đúng phần kết luận
+// của Dev trong các comment dài (Ethan bắt lỗi live 2026-10-26 trên
+// TNT-9210). Bản cắt 300 chỉ còn dùng cho khối ngữ cảnh đưa vào prompt AI
+// (jiraPromptBlock), nơi ngân sách token là thật.
+const view = (c: JiraComment) => ({ author: c.author, role: c.role, body: c.body_text.replace(/\s+/g, " ").trim(), created_at: c.created_at });
 
 /**
  * Ticket đã Done VÀ coi như đã báo khách — suy ra từ tín hiệu duy nhất đang có:
@@ -213,6 +222,7 @@ export function jiraForConversation(rows: { link: JiraLink; issue: JiraIssue | n
       status_changed: statusChanged,
       prev_status: statusChanged ? (issue?.prev_status ?? null) : null,
       done,
+      updated_at: issue?.updated_at ?? null,
       awaiting_report: done,
       new_comments: fresh.map(view),
       recent_comments: human.slice(-RECENT_COMMENTS).map(view),

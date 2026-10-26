@@ -130,7 +130,7 @@ Deno.test("jiraForConversation marks tickets with news since the agent's last re
   assertEquals(jiraForConversation(rows, "2026-10-19T00:00:00.000Z")[0].has_update, false);
   assertEquals(jiraForConversation([{ link: LINK, issue: null }], null)[0], {
     issue_key: "TNT-9184", url: LINK.url, summary: null, status: null, has_update: false, status_changed: false,
-    prev_status: null, done: false, awaiting_report: false, new_comments: [], recent_comments: [],
+    prev_status: null, done: false, awaiting_report: false, updated_at: null, new_comments: [], recent_comments: [],
   });
 });
 
@@ -200,7 +200,7 @@ Deno.test("jiraForConversation: ticket thường (chưa Done) không mang cờ D
 
 const convItem = (key: string): ConversationJira => ({
   issue_key: key, url: `https://firegroup.atlassian.net/browse/${key}`, summary: null, status: null,
-  has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, new_comments: [], recent_comments: [],
+  has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, updated_at: null, new_comments: [], recent_comments: [],
 });
 
 Deno.test("enabledModules: không có ticket → cả hai module tắt", () => {

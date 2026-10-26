@@ -10,6 +10,9 @@ import { runSurvey } from "./survey.ts";
 import { runGenerate } from "./generate.ts";
 import { runHandoff } from "./handoff.ts";
 import { runJiraSyncNow, runJiraUnlink } from "./jira-actions.ts";
+import type { CrispClient } from "../_shared/crisp.ts";
+import type { JiraClient } from "../_shared/jira-api.ts";
+import type { JiraStore } from "../jira-sync/handler.ts";
 import type { StorefrontMcp } from "../_shared/storefront.ts";
 import { runStorefront, runStorefrontFinding } from "./storefront-actions.ts";
 import { runSaveSuggestion, SUGGESTION_TEXT_MAX } from "./suggestions.ts";
@@ -65,6 +68,12 @@ export interface Deps {
   ai: Ai;
   /** Client MCP Storefront Watch; null/vắng = server chưa cấu hình SW_API_TOKEN + SW_MCP_SIGNING_SECRET (action trả unconfigured). */
   storefront?: StorefrontMcp | null;
+  /** Client Jira REST chỉ-đọc (tự sync khi mở panel); null/vắng = chưa cấu hình JIRA_EMAIL + JIRA_API_TOKEN. */
+  jira?: JiraClient | null;
+  /** Kho lưu mirror Jira (áp kết quả sync qua applyJiraIssues). */
+  jiraStore?: JiraStore | null;
+  /** Client REST Crisp — trong đường widget CHỈ dùng thao tác ĐỌC meta (tự resolve shopify_domain); null/vắng = bỏ đường dự phòng đó. */
+  crisp?: CrispClient | null;
   /** Việc nền sau response (refresh cho đường đọc nhanh); vắng mặt thì chạy đồng bộ. */
   background?: (task: Promise<unknown>) => void;
   now?: () => number;

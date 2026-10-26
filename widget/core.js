@@ -440,16 +440,33 @@ export function enabledModules(check) {
  * Link chỉ nhận https.
  */
 export function toJiraViewModel(items, now = Date.now()) {
-  return (items ?? []).map((j) => ({
-    key: j.issue_key,
-    url: typeof j.url === "string" && HTTPS_URL.test(j.url) ? j.url : null,
-    title: `${j.issue_key} · ${j.status ?? "chưa đồng bộ"}`,
-    summary: j.summary,
-    hasUpdate: j.has_update === true,
-    awaitingReport: j.awaiting_report === true,
-    news: [
-      ...(j.status_changed ? [j.prev_status && j.status ? `Đổi trạng thái: ${j.prev_status} → ${j.status}` : "Đổi trạng thái"] : []),
-      ...(j.new_comments ?? []).slice(-2).map((c) => `${c.role === "tech" ? "Tech" : c.role === "cs" ? "CS" : "Bot"} · ${c.author} (${timeAgo(c.created_at, now)}): ${c.body}`),
-    ],
-  }));
+  return (items ?? []).map((j) => {
+    // Comment mới nhất của team Tech (gộp new + recent, khử trùng) — dữ kiện
+    // CS cần nhất trên card; các comment còn lại xem thẳng trong Jira.
+    const seen = new Set();
+    const comments = [];
+    for (const c of [...(j.new_comments ?? []), ...(j.recent_comments ?? [])]) {
+      const k = `${c.author}|${c.created_at}|${c.body}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      comments.push(c);
+    }
+    comments.sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
+    const tech = comments.filter((c) => c.role === "tech").at(-1) ?? null;
+    const latestAt = j.updated_at ?? comments.at(-1)?.created_at ?? null;
+    return {
+      key: j.issue_key,
+      url: typeof j.url === "string" && HTTPS_URL.test(j.url) ? j.url : null,
+      name: j.summary ?? j.issue_key,
+      status: j.status ?? "Chưa đồng bộ",
+      done: j.done === true,
+      hasUpdate: j.has_update === true,
+      awaitingReport: j.awaiting_report === true,
+      statusLine: j.status_changed
+        ? (j.prev_status && j.status ? `Đổi trạng thái: ${j.prev_status} → ${j.status}` : "Đổi trạng thái")
+        : null,
+      updatedLabel: latestAt ? `Cập nhật ${timeAgo(latestAt, now)}` : null,
+      latestTech: tech ? { author: tech.author, ago: timeAgo(tech.created_at, now), body: tech.body } : null,
+    };
+  });
 }

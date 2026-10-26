@@ -30,6 +30,7 @@ async function fakeDb(member = true): Promise<Db> {
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),
     unlinkJira: () => Promise.resolve(false),
+    mergeConversationCustomData: () => Promise.resolve(true),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
     getStorefrontSeen: () => Promise.resolve([]),

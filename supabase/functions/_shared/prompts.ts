@@ -105,6 +105,13 @@ export function draftPrompt(i: {
   tone?: DraftTone;
   /** Tên CS đang trực — tên duy nhất được phép xuất hiện khi draft tự giới thiệu/ký tên. */
   agentName?: string | null;
+  /**
+   * Chế độ follow-up chủ động (Ethan chốt 2026-10-26): không có tin khách
+   * mới — khách đang chờ phía công ty báo lại, và các ticket này vừa có
+   * cập nhật từ Dev chưa được báo cho khách. Draft là tin CHỦ ĐỘNG chuyển
+   * tiếp cập nhật đó, không phải trả lời một câu hỏi mới.
+   */
+  followUp?: { issueKeys?: string[]; openIssues?: string[] };
 }): string {
   const p = i.profile;
   const parts = [
@@ -189,6 +196,24 @@ export function draftPrompt(i: {
     );
   }
   if (i.variantNotes) parts.push(`Extra guidance: ${i.variantNotes}`);
+  if (i.followUp) {
+    const news = [
+      i.followUp.issueKeys?.length
+        ? "the linked Jira ticket(s) " + i.followUp.issueKeys.join(", ") + " received new updates from the dev team (see the <jira> block)"
+        : "",
+      i.followUp.openIssues?.length
+        ? "these issues are still open: " + i.followUp.openIssues.join("; ")
+        : "",
+    ].filter(Boolean).join("; and ");
+    parts.push(
+      "Situation: the customer has NOT sent a new message. The agent's last message told them the team was checking " +
+        "and would report back, and " + (news || "the conversation still has open issues") + ". Write a proactive " +
+        "follow-up that moves the case forward now: relay any dev-team conclusion in plain, customer-friendly " +
+        "words, say clearly what it means for the customer's issue and what happens next. Do not write as if the " +
+        "customer asked something new, do not re-ask for information already given, and do not promise a fix or " +
+        "a finding the context does not confirm (use a [[CS: ...]] check where the agent must verify first).",
+    );
+  }
   parts.push(`${DATA_ONLY}\n<conversation>\n${neutralize(i.transcript)}\n</conversation>`);
   return parts.join("\n\n");
 }

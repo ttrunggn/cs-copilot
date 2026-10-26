@@ -7,8 +7,23 @@ import type { Sentiment } from "../_shared/sentiment.ts";
 import type { StorefrontStoreStatus } from "../_shared/storefront.ts";
 import type { Warning, Workspace } from "../_shared/types.ts";
 import { sentimentFingerprint } from "./analyze.ts";
+import type { CrispClient } from "../_shared/crisp.ts";
+import type { JiraClient } from "../_shared/jira-api.ts";
+import type { JiraStore } from "../jira-sync/handler.ts";
+import { syncJiraForSession } from "./jira-actions.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
-import { shopFromCustomData } from "./storefront-actions.ts";
+import { resolveShopDomain, shopFromCustomData } from "./storefront-actions.ts";
+
+/**
+ * Deps mở rộng cho check: hai đường TỰ ĐỒNG BỘ khi mở panel (Ethan chốt
+ * 2026-10-26). Thiếu từng dep thì đường tương ứng tắt êm — check không bao
+ * giờ gãy vì đồng bộ (mirror giữ dữ liệu cũ, panel vẫn hiện).
+ */
+export type CheckDeps = LoadDeps & {
+  jira?: JiraClient | null;
+  jiraStore?: JiraStore | null;
+  crisp?: CrispClient | null;
+};
 
 export interface CheckResult {
   action: "check";
@@ -74,10 +89,10 @@ export async function runCheck(
   req: { website_id: string; session_id: string; operator_name?: string },
   ws: Workspace,
   operatorId: string,
-  deps: LoadDeps,
+  deps: CheckDeps,
 ): Promise<CheckResult> {
   const { stale, conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
-  const [profiles, allProfiles, operator, latest, jiraRows, sentimentRow, csatSend] = await Promise.all([
+  const [profiles, allProfiles, operator, latest, jiraRows0, sentimentRow, csatSend] = await Promise.all([
     deps.db.getProfiles(operatorId, req.website_id),
     deps.db.getWorkspaceAllProfiles(req.website_id),
     deps.db.getOperator(operatorId),
@@ -95,6 +110,19 @@ export async function runCheck(
       learned_at: profiles.map((p) => p.learned_at).filter((t): t is string => Boolean(t)).sort().at(-1) ?? null,
     }
     : null;
+  // Tự sync Jira khi mở panel: mirror thiếu/cũ quá cửa sổ tươi thì gọi
+  // thẳng Jira REST (chỉ-đọc) và áp qua pipeline jira-sync NGAY trong
+  // request này, rồi đọc lại rows để panel hiện bản mới nhất. Lỗi đồng bộ
+  // (mạng/Jira) thì giữ mirror cũ — check vẫn trả như thường, không gãy.
+  let jiraRows = jiraRows0;
+  if (deps.jira && deps.jiraStore && jiraRows.length) {
+    try {
+      const r = await syncJiraForSession(deps, req.website_id, req.session_id);
+      if (r.synced) jiraRows = await deps.db.getJiraRows(req.website_id, req.session_id);
+    } catch (e) {
+      console.error("check: jira auto-sync failed", e instanceof Error ? e.message : String(e));
+    }
+  }
   const jira = jiraForConversation(jiraRows, conv.last_human_operator_at);
   // Cổng Storefront đường domain (chỉ workspace trong phạm vi SW —
   // enabledModules khoá bằng cờ ws.storefront_watch): shop lấy từ custom
@@ -103,7 +131,14 @@ export async function runCheck(
   // sang workspace khác. Bản chụp lỗi thì coi như chưa có (cổng mở theo
   // domain, action nạp trực tiếp quyết định) — bản chụp là dữ kiện phụ,
   // không được làm gãy check.
-  const shop = shopFromCustomData(conv);
+  // Domain chưa có trong DB thì thử lấy thẳng từ Crisp meta (resolve tự lưu
+  // lại vào DB) — ca ingest chưa mang custom data về kịp, domain có sẵn
+  // trong Crisp mà panel vẫn ở trạng thái need_shop (Ethan bắt lỗi live
+  // 2026-10-26). Chỉ thử khi workspace thuộc phạm vi SW.
+  let shop = shopFromCustomData(conv);
+  if (!shop && ws.storefront_watch) {
+    shop = await resolveShopDomain(deps, req.website_id, req.session_id, conv).catch(() => "");
+  }
   const storefrontStatus = shop && ws.storefront_watch
     ? await deps.db.getStorefrontStoreStatus(req.website_id, shop).catch(() => null)
     : null;

@@ -1,5 +1,5 @@
 import { sha256Hex } from "../_shared/auth.ts";
-import { humanTranscript, inputFingerprint, latestCustomerQuery } from "../_shared/context.ts";
+import { humanTranscript, inputFingerprint, latestCustomerQuery, unansweredCustomerMessages } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai, AiBadOutput, REWRITE_TEMPERATURE } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
@@ -220,6 +220,13 @@ export async function runGenerate(
   const variant = pickVariant(variants);
   const jiraItems = jiraForConversation(jiraRows, conv.last_human_operator_at);
   const jira = jiraPromptBlock(jiraItems);
+  // Chế độ follow-up (Ethan chốt 2026-10-26): không có tin khách chờ nhưng
+  // ticket có cập nhật từ Dev chưa báo khách → draft là tin chủ động báo
+  // lại theo đúng ngữ cảnh đó, prompt phải đóng khung khác hẳn trả lời tin
+  // mới (không bịa câu hỏi của khách). Có tin chờ thì luôn là trả lời thường.
+  const noPending = unansweredCustomerMessages(messages).length === 0;
+  const followUpKeys = noPending ? jiraItems.filter((j) => j.has_update).map((j) => j.issue_key) : [];
+  const followUpIssues = noPending ? (mood.sentiment?.issues ?? []).map((x) => x.summary).filter(Boolean) : [];
   const storefront = await storefrontContext(deps, ws, req.website_id, conv, jiraItems, messages);
 
   // Soạn lại (force): tăng biến thiên để bản mới khác thật, không hội tụ về
@@ -237,6 +244,7 @@ export async function runGenerate(
     sentiment: mood.sentiment,
     hint,
     tone,
+    followUp: followUpKeys.length || followUpIssues.length ? { issueKeys: followUpKeys, openIssues: followUpIssues } : undefined,
   }), { ...(req.force ? { temperature: REWRITE_TEMPERATURE } : {}) });
   // Gọt cơ học dấu gạch ngang dài (luật Ethan 2026-10-26) trước mọi khâu sau:
   // bản lưu/cache/trả về đều là bản đã sạch dấu, khớp đúng chữ CS sẽ điền.

@@ -103,6 +103,7 @@ export function makeDeps(opts: {
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),
     unlinkJira: () => Promise.resolve(false),
+    mergeConversationCustomData: () => Promise.resolve(true),
     getStorefrontSeen: () => Promise.resolve([]),
     markStorefrontSeen: () => Promise.resolve(),
     getStorefrontStoreStatus: () => Promise.resolve(null),
