@@ -33,7 +33,7 @@ globalThis.document = {
   createElement: (tag) => new FakeEl(tag),
   createTextNode: (t) => new FakeText(String(t)),
 };
-const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, profileFooter, storefrontPanel } = await import("./panels.js");
+const { commandsRow, csatPanel, draftCompose, draftPanel, extensionHint, handoffPanel, insightPanel, issuesPanel, jiraPanel, knowledgePanel, modalView, pendingPanel, profileFooter, storefrontPanel } = await import("./panels.js");
 
 // ---------- helpers ----------
 function walk(node, out = []) {
@@ -208,7 +208,7 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   assertEquals(Boolean(buttonByText(p, "Phân tích lại")), true);
 });
 
-Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); không issue + không tin chờ → thẻ 'Hết tin chờ rồi'", () => {
+Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); tin chờ nằm ở pendingPanel riêng, không lẫn vào khối Vấn đề; không issue thì ẩn module", () => {
   reset();
   state.check = CHECK;
   state.sentiment = { issues: [{ summary: "Khách bị trừ phí 2 lần", evidence: "charged twice" }, { summary: "Khách chưa được hoàn tiền", evidence: "" }] };
@@ -219,10 +219,15 @@ Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ senti
   assertEquals(t.includes("— 2 issues"), true);
   assertEquals(t.includes("Khách bị trừ phí 2 lần"), true);
   assertEquals(t.includes("Khách nhắn: \"charged twice\""), true);
+  // Tin khách đang chờ (nguyên văn) thuộc khối riêng "TIN KHÁCH ĐANG CHỜ",
+  // không còn nằm dưới tiêu đề Vấn đề của khách (Ethan, 2026-10-26).
+  assertEquals(t.includes("tin 1"), false);
+  const pp = allText(pendingPanel(vm));
+  assertEquals(pp.includes("TIN KHÁCH ĐANG CHỜ") && pp.includes("tin 1"), true);
   reset();
   state.check = { ...CHECK, topic: null, topic_label: null, needs_reply: false, unanswered: [] };
-  const empty = issuesPanel(toViewModel(state.check, Date.now()));
-  assertEquals(allText(empty).includes("Hết tin chờ rồi"), true);
+  assertEquals(issuesPanel(toViewModel(state.check, Date.now())), null);
+  assertEquals(pendingPanel(toViewModel(state.check, Date.now())), null);
 });
 
 // ---------- Jira ----------
@@ -402,12 +407,13 @@ Deno.test("panels: csatPanel — khách frustrated + chat chưa đóng thì cả
   assertEquals(allText(p).includes("điểm thấp"), false);
 });
 
-Deno.test("panels: csatPanel — đã gửi thì nút Send khoá cứng; gửi lỗi thì hiện hộp lỗi + nút Thử lại gọi onSurvey", () => {
+Deno.test("panels: csatPanel — đã gửi thì nút đổi thành 'Gửi lại CSAT Survey' và VẪN bấm được (Ethan 2026-10-26: không khoá nút, team tự quyết khi nào xin lại); gửi lỗi thì hiện hộp lỗi + nút Thử lại gọi onSurvey", () => {
   reset();
   state.csat = { sent: true, sent_at: "2026-10-23T08:00:00Z" };
   let p = csatPanel(makeHandlers());
-  assertEquals(buttonByText(p, "Send CSAT Survey").disabled, true);
+  assertEquals(buttonByText(p, "Gửi lại CSAT Survey").disabled, false);
   assertEquals(allText(p).includes("Đã gửi lúc"), true);
+  assertEquals(allText(p).includes("Nút gửi đã tắt"), false);
   reset();
   state.csatError = true;
   state.csatErrorMsg = "n8n gate 500";
@@ -450,7 +456,8 @@ Deno.test("panels: draftPanel — bridge chưa ready thì KHÔNG có nút điề
   btn.onclick();
   assertEquals(calls, [["edit"]]);
   state.draftPlacement = "inserted";
-  assertEquals(Boolean(buttonByText(draftPanel(makeHandlers()), "Sửa trong Crisp")), true);
+  assertEquals(Boolean(buttonByText(draftPanel(makeHandlers()), "Điền lại vào Reply")), true);
+  assertEquals(buttonByText(draftPanel(makeHandlers()), "Sửa trong Crisp"), undefined);
 });
 
 Deno.test("panels: handoffPanel — bridge chưa ready thì không có nút Điền vào ô Note (chỉ còn Viết lại), ready thì bấm gọi onInsertNote", () => {
