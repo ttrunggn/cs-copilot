@@ -223,6 +223,7 @@ export function insightPanel({ onAnalyze }) {
       ])
       : el("strong", { className: "future-title", textContent: "Chưa có dữ liệu phân tích" }),
     s ? el("div", { className: "score-bar" }, [fill]) : null,
+    state.sentimentRefreshing ? el("p", { className: "muted", textContent: "Đang cập nhật phân tích theo tin mới nhất…" }) : null,
     state.sentimentMsgCount > 0 && s ? el("p", { className: "muted", textContent: `Tính trên ${state.sentimentMsgCount} tin của khách. Cùng chỉ số dùng cho khảo sát CSAT.` }) : null,
     s?.urgency === "high" ? el("p", { className: "warn", textContent: "Mức khẩn cấp cao — ưu tiên xử lý case này." }) : null,
     s?.summary ? el("p", { className: "muted", textContent: s.summary }) : null,
@@ -237,9 +238,9 @@ export function insightPanel({ onAnalyze }) {
  * một dòng tiêu đề nhỏ "VẤN ĐỀ CỦA KHÁCH — N issues", dưới đó MỖI issue là
  * một card riêng mang nhãn "ISSUE 1", "ISSUE 2", … (nhãn + chấm cùng tông
  * cam đào, card có vệt accent .mod-issues như các module khác). Nguyên văn
- * tin khách đang chờ nằm trong card riêng ở cuối cụm. Backend chưa trả
- * issues riêng — issue lấy từ signals của sentiment, lùi về topic
- * (toIssuesViewModel ở core.js), chỉ đổi cách render ở đây.
+ * tin khách đang chờ nằm trong card riêng ở cuối cụm. Issue lấy từ
+ * sentiment.issues (câu tóm tắt vấn đề + dòng bằng chứng), lùi về topic khi
+ * chưa có (toIssuesViewModel ở core.js), chỉ đổi cách render ở đây.
  */
 export function issuesPanel(vm) {
   const { issues } = toIssuesViewModel(state.check, state.sentiment);
@@ -570,8 +571,40 @@ export function commandsRow({ onOpenModal }) {
   ]);
 }
 
+/**
+ * Khối trạng thái profile ở cuối panel (Ethan duyệt ở preview v6): nói rõ
+ * giọng đang dùng đến từ đâu, đã học từ bao nhiêu dữ liệu, template review
+ * là của chính CS hay mặc định, và kiến thức sản phẩm lấy theo workspace —
+ * minh bạch thay vì im lặng thay thế khi chưa đủ dữ liệu học.
+ */
+export function profileFooter() {
+  const c = state.check;
+  if (!c) return null;
+  const voice = c.profile_source === "best"
+    ? "Giọng: profile mẫu của team (bạn chưa có profile riêng)"
+    : c.profile_source === "default"
+    ? "Giọng: mặc định hệ thống (chưa học được)"
+    : "Giọng: theo profile của bạn";
+  const coverage = c.profile_coverage
+    ? `Dữ liệu học: ${c.profile_coverage.conversations_used} cuộc trò chuyện`
+    : "Dữ liệu học: chưa đủ — đang dùng mặc định";
+  const review = c.review_template?.source === "profile"
+    ? "Template review: theo profile của bạn"
+    : "Template review: mặc định của workspace";
+  return el("section", { className: "card profile-status-card" }, [
+    el("span", { className: "eyebrow", textContent: "PROFILE" }),
+    el("p", { textContent: c.profile_name }),
+    el("p", { className: "muted", textContent: voice }),
+    el("p", { className: "muted", textContent: coverage }),
+    el("p", { className: "muted", textContent: review }),
+    el("p", { className: "muted", textContent: `Product knowledge: theo workspace ${c.workspace}` }),
+  ]);
+}
+
 const TONE_OPTIONS = [
-  ["default", "Mặc định"],
+  // "Mặc định" phải nói rõ là theo profile đã học của chính CS (Ethan chốt
+  // ở preview v6) — tránh hiểu nhầm là một giọng chung của hệ thống.
+  ["default", "Mặc định (theo profile CS)"],
   ["friendly", "Thân thiện"],
   ["formal", "Trang trọng"],
   ["concise", "Ngắn gọn"],
@@ -641,13 +674,15 @@ function askModal(handlers) {
 }
 
 /**
- * Trình sửa tin xin review trong popup CSAT: template nạp sẵn (mặc định là
- * REVIEW_TEMPLATE ở core.js — bản học template theo từng CS là follow-up phía
- * server), CS sửa tự do rồi điền vào ô Reply qua extension như draft.
+ * Trình sửa tin xin review trong popup CSAT: template nạp sẵn từ server
+ * (check.review_template — giọng theo profile của CS, link theo workspace;
+ * chưa học được thì mặc định có ghi nguồn), dự phòng cuối là REVIEW_TEMPLATE
+ * ở core.js. CS sửa tự do rồi điền vào ô Reply qua extension như draft.
  */
 function reviewEditor(handlers) {
   const ready = state.bridge === "ready";
-  if (!state.reviewText) state.reviewText = REVIEW_TEMPLATE;
+  if (!state.reviewText) state.reviewText = state.check?.review_template?.text ?? REVIEW_TEMPLATE;
+  const fromProfile = state.check?.review_template?.source === "profile";
   const area = el("textarea", {
     className: "field review-text",
     rows: 5,
@@ -655,7 +690,9 @@ function reviewEditor(handlers) {
     oninput: (e) => { state.reviewText = e.target.value; state.reviewInsertId = ""; },
   });
   return el("div", { className: "review-editor" }, [
-    el("p", { className: "muted", textContent: "Khuôn mẫu xin review — hiện dùng template mặc định, sửa thêm nếu cần. (Template học theo từng CS sẽ nối ở phía server sau.)" }),
+    el("p", { className: "muted", textContent: fromProfile
+      ? "Template theo profile của bạn — đã học từ tin bạn từng gửi, link đích lấy theo workspace đang làm việc. Sửa thêm nếu cần."
+      : "Template mặc định của workspace (bạn chưa có mẫu đã học riêng) — đã chèn sẵn link đích của workspace. Sửa thêm nếu cần." }),
     area,
     state.choice && state.choiceFor === "review" ? handlers.insertChoice() : null,
     el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendReviewInsert("auto") }),
