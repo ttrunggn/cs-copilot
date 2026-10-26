@@ -80,7 +80,7 @@ export function createDb(sb: SupabaseClient): Db {
   return {
     async getWorkspace(websiteId) {
       const { data, error } = await sb.from("workspaces")
-        .select("website_id,name,topics,default_profile,jira_project,storefront_watch")
+        .select("website_id,name,topics,default_profile,jira_project,storefront_watch,review_link")
         .eq("website_id", websiteId).maybeSingle();
       if (error) throw error;
       return data as Workspace | null;
@@ -217,7 +217,7 @@ export function createDb(sb: SupabaseClient): Db {
     },
     async getSentiment(websiteId, sessionId) {
       const { data, error } = await sb.from("conversation_sentiment")
-        .select("score,mood,urgency,confidence,summary,signals,input_fp")
+        .select("score,mood,urgency,confidence,summary,signals,issues,input_fp")
         .eq("website_id", websiteId).eq("session_id", sessionId).maybeSingle();
       if (error) throw error;
       return data as (Sentiment & { input_fp: string }) | null;
