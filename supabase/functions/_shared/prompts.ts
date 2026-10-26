@@ -476,6 +476,21 @@ export function formatHandoffNote(h: HandoffFields, operatorName: string, fmt?: 
   return formatHandoffNoteLearned(h, operatorName, fmt);
 }
 
+/**
+ * Bản "chữ thuần" của một format học — dùng khi format KHÔNG phải của chính
+ * CS đang soạn note (mượn format tốt nhất của team lúc chưa có format riêng):
+ * cấu trúc giữ nguyên (thứ tự mục, nhãn, ngôn ngữ) nhưng thói quen ký hiệu
+ * của NGƯỜI KHÁC không đi theo — nhãn trạng thái ép về chữ, ký hiệu dẫn đầu
+ * ở header/sign_off (vd "📋 Handoff — {name}" học từ note cũ) bị gọt bỏ.
+ * Luật Ethan chốt 2026-10-26: emoji trong note chỉ sống khi đó là style
+ * của chính người soạn, ghi rõ trong format của họ.
+ */
+export function plainNoteFormat(fmt: NoteFormat): NoteFormat {
+  // Gọt ký hiệu/emoji dẫn đầu nhưng DỪNG ở "{" — khoá giữ chỗ {name} phải sống.
+  const stripLead = (s: string | null) => (s == null ? s : s.replace(/^[^\p{L}\p{N}{]+/u, ""));
+  return { ...fmt, state_style: "text", header: stripLead(fmt.header), sign_off: stripLead(fmt.sign_off) };
+}
+
 const STATE_LABEL_TEXT: Record<HandoffState, string> = {
   done: "Xong",
   in_progress: "Đang xử lý",
@@ -494,7 +509,11 @@ const FIELD_ORDER: NoteSectionField[] = ["summary", "issues", "next_step"];
  */
 function formatHandoffNoteLearned(h: HandoffFields, operatorName: string, fmt: NoteFormat): string {
   const en = fmt.language === "en";
-  const stateLabel = (s: HandoffState) => (fmt.state_style === "text" ? STATE_LABEL_TEXT[s] : STATE_LABEL_EMOJI[s]);
+  // Emoji CHỈ khi format ghi rõ state_style "emoji" — trước đây mặc định
+  // ngược (khác "text" là emoji) nên format học thiếu trường này cũng xả
+  // ký hiệu vào note (Ethan test live 2026-10-26: note vẫn còn icon robot
+  // dù bản mặc định đã bỏ). Thiếu/khác → nhãn chữ thuần.
+  const stateLabel = (s: HandoffState) => (fmt.state_style === "emoji" ? STATE_LABEL_EMOJI[s] : STATE_LABEL_TEXT[s]);
   const block = (field: NoteSectionField, label: string): string[] => {
     if (field === "summary") return [label ? `${label} ${h.summary}` : h.summary];
     if (field === "issues") {

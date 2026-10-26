@@ -5,7 +5,7 @@ import { type Ai, AiBadOutput, REWRITE_TEMPERATURE } from "../_shared/gemini.ts"
 import type { N8n } from "../_shared/n8n.ts";
 import { jiraForConversation, jiraPromptBlock } from "../_shared/jira.ts";
 import { pickBestNoteFormat, resolveNoteFormat } from "../_shared/profile.ts";
-import { formatHandoffNote, HANDOFF_SCHEMA, handoffPrompt, parseHandoff } from "../_shared/prompts.ts";
+import { formatHandoffNote, HANDOFF_SCHEMA, handoffPrompt, parseHandoff, plainNoteFormat } from "../_shared/prompts.ts";
 import { ensureEnglish } from "../_shared/translate.ts";
 import type { Workspace } from "../_shared/types.ts";
 import { loadConversation } from "./load.ts";
@@ -39,7 +39,13 @@ export async function runHandoff(
     deps.db.getProfiles(operatorId, req.website_id),
     deps.db.getWorkspaceAllProfiles(req.website_id),
   ]);
-  const noteFormat = resolveNoteFormat(ownProfiles, pickBestNoteFormat(allProfiles));
+  // Format của CHÍNH CS thì dùng nguyên (kể cả style emoji của chính họ);
+  // format MƯỢN của team (chưa có format riêng) thì qua plainNoteFormat:
+  // giữ cấu trúc, bỏ ký hiệu của người khác (Ethan chốt 2026-10-26 sau khi
+  // note mượn format vẫn xả 📋/⏳/➡️ của format học).
+  const ownFormat = resolveNoteFormat(ownProfiles);
+  const bestFormat = ownFormat ? null : pickBestNoteFormat(allProfiles);
+  const noteFormat = ownFormat ?? (bestFormat ? plainNoteFormat(bestFormat) : null);
   const baseFp = await inputFingerprint("handoff", operatorId, raw);
   const inputFp = noteFormat ? await sha256Hex(`${baseFp}|note-format:${JSON.stringify(noteFormat)}`) : baseFp;
   // Viết lại (force): lấy bản note gần nhất cùng dấu vân tay làm "bản trước" để
