@@ -1,6 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
-import { AiUnavailable } from "../_shared/gemini.ts";
+import { AiUnavailable, REWRITE_TEMPERATURE } from "../_shared/gemini.ts";
 import type { ProfileRow } from "../_shared/types.ts";
 import { fakeAi, makeDeps, msg, TOKEN } from "./fakes.ts";
 
@@ -111,6 +111,21 @@ Deno.test("handoff force ignores cache and regenerates — still posting nothing
   const r = await handle({ ...REQ, force: true }, TOKEN, deps);
   assertEquals((r.body as { cached: boolean }).cached, false);
   assertEquals(inserted.length, 1);
+});
+
+Deno.test("handoff force passes the previous note and rewrite temperature; first generation passes neither", async () => {
+  const { ai, calls } = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const { deps } = makeDeps({ ai, cached: { ...CACHED, content: "Bản note cũ duy nhất" } });
+  await handle({ ...REQ, force: true }, TOKEN, deps);
+  const forced = calls.find((c) => c.task === "handoff")!;
+  assertEquals(forced.prompt.includes("Bản note cũ duy nhất"), true);
+  assertEquals(forced.opts?.temperature, REWRITE_TEMPERATURE);
+
+  const fresh = fakeAi({ handoff: JSON.stringify(FIELDS) });
+  const { deps: deps2 } = makeDeps({ ai: fresh.ai });
+  await handle(REQ, TOKEN, deps2);
+  const first = fresh.calls.find((c) => c.task === "handoff")!;
+  assertEquals(first.opts?.temperature, undefined);
 });
 
 Deno.test("handoff with unparseable AI output posts nothing", async () => {

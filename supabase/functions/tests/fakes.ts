@@ -54,10 +54,10 @@ export type AiReply = string | Error;
 
 /** AI giả: trả lời theo task, ghi lại prompt từng lần gọi. */
 export function fakeAi(replies: Partial<Record<AiTask, AiReply | ((prompt: string) => AiReply)>>, embedding: number[] | Error = [0.1]) {
-  const calls: { task: AiTask; prompt: string }[] = [];
+  const calls: { task: AiTask; prompt: string; opts?: { schema?: Record<string, unknown>; temperature?: number } }[] = [];
   const ai: Ai = {
-    generate(task, prompt) {
-      calls.push({ task, prompt });
+    generate(task, prompt, opts) {
+      calls.push({ task, prompt, opts });
       const r = replies[task];
       const v = typeof r === "function" ? r(prompt) : r;
       if (v === undefined) return Promise.reject(new Error(`unexpected ai task ${task}`));

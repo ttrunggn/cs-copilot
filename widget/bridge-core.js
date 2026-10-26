@@ -5,6 +5,36 @@
 export const PROTOCOL = 2;
 export const PING_TIMEOUT_MS = 1000;
 
+/**
+ * Bản extension mới nhất mà widget này đi kèm. Protocol 2 không đổi giữa
+ * 1.2.0 và 1.2.1 nên bridgeState không phân biệt được hai bản — mà hành vi
+ * điền khác hẳn nhau (1.2.0 chèn nối, 1.2.1 thay toàn bộ có kiểm chứng).
+ * Panel phải so SỐ VERSION extension tự khai trong pong và cảnh báo rõ khi
+ * đang ở bản cũ, thay vì báo "sẵn sàng" rồi CS lãnh đủ lỗi cũ (Ethan test
+ * live 2026-10-26: tưởng đã cài 1.2.1 nhưng Chrome vẫn chạy bản cũ).
+ */
+export const EXPECTED_EXTENSION_VERSION = "1.2.1";
+
+/** So sánh semver rút gọn (các thành phần số, cách nhau bởi dấu chấm). */
+function versionParts(v) {
+  if (typeof v !== "string" || !v.trim()) return null;
+  const parts = v.trim().split(".").map((p) => Number(p));
+  return parts.every((n) => Number.isInteger(n) && n >= 0) ? parts : null;
+}
+
+/** true khi version extension THẤP hơn bản kỳ vọng; không rõ version thì false (không cảnh báo bừa). */
+export function extensionOutdated(version, expected = EXPECTED_EXTENSION_VERSION) {
+  const a = versionParts(version);
+  const b = versionParts(expected);
+  if (!a || !b) return false;
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] ?? 0) - (b[i] ?? 0);
+    if (d < 0) return true;
+    if (d > 0) return false;
+  }
+  return false;
+}
+
 export function newRequestId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

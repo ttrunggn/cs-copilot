@@ -1,4 +1,5 @@
 import { actionButtonState, enabledModules, handoffStatus, REVIEW_TEMPLATE, SF_GROUPS, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel } from "./core.js";
+import { EXPECTED_EXTENSION_VERSION, extensionOutdated } from "./bridge-core.js";
 import { buttonContent, el } from "./dom.js";
 import { state } from "./state.js";
 
@@ -18,7 +19,22 @@ function draftText(text) {
 }
 
 export function extensionHint({ detectExtension }) {
-  if (state.bridge === "ready" || state.bridge === "checking") return null;
+  // Bridge sẵn sàng nhưng SỐ VERSION cũ hơn bản đi kèm widget: vẫn phải
+  // cảnh báo (trước đây panel báo "sẵn sàng" vô điều kiện theo protocol,
+  // mà protocol không đổi giữa các bản 1.2.x — CS tưởng đã cập nhật trong
+  // khi Chrome vẫn chạy bản cũ, lãnh đủ lỗi điền của bản cũ).
+  if ((state.bridge === "ready" || state.bridge === "checking") && !extensionOutdated(state.bridgeVersion)) return null;
+  if (state.bridge === "ready" || state.bridge === "checking") {
+    return el("details", { className: "hint warn", open: true }, [
+      el("summary", { textContent: `Extension đang ở bản cũ v${state.bridgeVersion}` }),
+      el("strong", { textContent: `Bản mới nhất là ${EXPECTED_EXTENSION_VERSION} — cài lại để điền đúng cách (bản cũ điền kiểu chèn nối, dễ lỗi)` }),
+      el("ol", {}, [
+        el("li", {}, [el("a", { href: "extension.zip", textContent: "Tải extension.zip", download: "cs-copilot-extension.zip" })]),
+        el("li", { textContent: "Mở chrome://extensions, xoá hẳn bản cũ trước" }),
+        el("li", { textContent: "Giải nén bản mới, bấm Load unpacked chọn thư mục vừa giải nén, rồi tải lại Crisp" }),
+      ]),
+    ]);
+  }
   const outdated = state.bridge === "outdated";
   const text = outdated ? "Extension cần cập nhật" : "Không nhận diện được extension";
   return el("details", { className: "hint" }, [
@@ -99,7 +115,7 @@ export function draftPanel(handlers) {
       el("h2", { textContent: "Draft cho tin này" }),
       el("p", { className: state.draftPlacement ? "success-line" : "muted", textContent: state.draftPlacement === "inserted"
         ? "Đã điền draft vào ô Reply, đọc lại rồi bấm Send"
-        : state.bridge === "ready" ? "Extension sẵn sàng điền draft vào ô Reply" : "Cài extension để điền draft thẳng vào ô Reply nhé" }),
+        : state.bridge === "ready" ? `Extension sẵn sàng điền draft vào ô Reply${state.bridgeVersion ? ` · v${state.bridgeVersion}` : ""}` : "Cài extension để điền draft thẳng vào ô Reply nhé" }),
     ]),
     el("div", { className: "draft-meta" }, [
       el("span", { className: "muted", textContent: vm.age ? `Soạn ${vm.age}` : "Soạn vừa xong" }),
@@ -154,7 +170,7 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
     el("div", { className: "row" }, [el("h3", { textContent: "Private note" }), el("span", { className: "verify-state", textContent: status })]),
     el("p", { className: inserted ? "success-line" : "muted", textContent: inserted
       ? "Đã điền note vào ô Note, sửa lại rồi tự đăng trong Crisp"
-      : state.bridge === "ready" ? "Extension sẵn sàng điền note vào ô Note" : "Cài extension để điền note thẳng vào ô Note của Crisp nhé" }),
+      : state.bridge === "ready" ? `Extension sẵn sàng điền note vào ô Note${state.bridgeVersion ? ` · v${state.bridgeVersion}` : ""}` : "Cài extension để điền note thẳng vào ô Note của Crisp nhé" }),
     el("div", { className: "note-text", textContent: handoff.note }),
     el("div", { className: "row" }, [
       state.bridge === "ready"

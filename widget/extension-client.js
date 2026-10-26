@@ -39,6 +39,9 @@ export function createExtensionClient(render, notify) {
         const pong = await pingExtension();
         if (pong) {
           state.bridge = bridgeState(pong);
+          // Giữ lại số version để panel hiện minh bạch + cảnh báo bản cũ:
+          // protocol không phân biệt được 1.2.0 với 1.2.1 (xem bridge-core).
+          state.bridgeVersion = typeof pong.version === "string" ? pong.version : "";
           render();
           return;
         }

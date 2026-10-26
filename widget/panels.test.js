@@ -56,7 +56,7 @@ function reset() {
   Object.assign(state, {
     check: null, draft: null, handoff: null, sentiment: null, sentimentMsgCount: 0,
     csat: null, csatError: false, csatErrorMsg: "", modal: null, busy: "", busyAction: "",
-    progress: null, choice: false, choiceFor: "draft", insertPending: false, bridge: "ready",
+    progress: null, choice: false, choiceFor: "draft", insertPending: false, bridge: "ready", bridgeVersion: "",
     draftPlacement: "", notePlacement: "", unlinkConfirm: "", storefront: null,
     storefrontShopInput: "", storefrontShop: "", storefrontDetail: null, storefrontDetailLoading: "",
     askQuestion: "", askResult: null, hint: "", tone: "default", csatChoice: "",
@@ -488,6 +488,20 @@ Deno.test("panels: extensionHint — missing thì có nút Kiểm tra lại gọ
   state.bridge = "ready";
   assertEquals(extensionHint(makeHandlers()), null);
   state.bridge = "checking";
+  assertEquals(extensionHint(makeHandlers()), null);
+});
+
+Deno.test("panels: extensionHint — bridge ready nhưng version cũ hơn bản kỳ vọng thì cảnh báo kèm số version; version khớp thì ẩn", () => {
+  reset();
+  state.bridge = "ready";
+  state.bridgeVersion = "1.2.0";
+  const hint = extensionHint(makeHandlers());
+  assertEquals(hint === null, false);
+  assertEquals(allText(hint).includes("Extension đang ở bản cũ v1.2.0"), true);
+  assertEquals(allText(hint).includes("1.2.1"), true);
+  state.bridgeVersion = "1.2.1";
+  assertEquals(extensionHint(makeHandlers()), null);
+  state.bridgeVersion = "";
   assertEquals(extensionHint(makeHandlers()), null);
 });
 

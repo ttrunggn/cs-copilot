@@ -1,7 +1,7 @@
 import { sha256Hex } from "../_shared/auth.ts";
 import { humanTranscript, inputFingerprint, latestCustomerQuery } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
-import { type Ai, AiBadOutput } from "../_shared/gemini.ts";
+import { type Ai, AiBadOutput, REWRITE_TEMPERATURE } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import { pickBestProfileRow, type ProfileSource, rebindIdentity, resolveProfile } from "../_shared/profile.ts";
 import {
@@ -222,6 +222,8 @@ export async function runGenerate(
   const jira = jiraPromptBlock(jiraItems);
   const storefront = await storefrontContext(deps, ws, req.website_id, conv, jiraItems, messages);
 
+  // Soạn lại (force): tăng biến thiên để bản mới khác thật, không hội tụ về
+  // cùng một bản như lượt soạn thường (cùng lý do với handoff Viết lại).
   const { text, model } = await deps.ai.generate("draft", draftPrompt({
     profile: promptProfile,
     agentName,
@@ -235,7 +237,7 @@ export async function runGenerate(
     sentiment: mood.sentiment,
     hint,
     tone,
-  }));
+  }), { ...(req.force ? { temperature: REWRITE_TEMPERATURE } : {}) });
   // Gọt cơ học dấu gạch ngang dài (luật Ethan 2026-10-26) trước mọi khâu sau:
   // bản lưu/cache/trả về đều là bản đã sạch dấu, khớp đúng chữ CS sẽ điền.
   const draft = stripEmDashes(text.trim());

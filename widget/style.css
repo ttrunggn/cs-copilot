@@ -18,6 +18,12 @@
   --ai: #b08cff;
   --surface-inset: #1a1f2b;
   --bubble: #2e3648;
+  /* Nút phải KHÁC hẳn màu cards (Ethan 2026-10-26: nút trùng màu cards quá
+     khó nhìn — --bubble #2e3648 so với --card #272f40 chỉ lệch một tông).
+     --btn sáng hơn cards rõ rệt + viền riêng; nút chính chuyển sang gradient
+     TÍM (đúng màu --ai đã dùng cho draft) thay cho xanh dương cùng họ với cards. */
+  --btn: #3d4763;
+  --btn-border: #5d6d92;
   --warn-bg: #2a2112;
   --warn-border: #5a4520;
   --error-border: #7a3a35;
@@ -66,6 +72,8 @@
     --ai: #6b43d6;
     --surface-inset: #ffffff;
     --bubble: #eef1f5;
+    --btn: #e4e9f2;
+    --btn-border: #bcc7d8;
     --warn-bg: #fff4d6;
     --warn-border: #e5c176;
     --error-border: #e5a49d;
@@ -91,7 +99,7 @@ a { color: var(--link); }
 
 .inbox-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .inbox-header > div { min-width: 0; }
-.refresh-button { flex: none; width: 38px; min-height: 38px; padding: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--bubble); color: var(--muted); font-size: 21px; line-height: 1; }
+.refresh-button { flex: none; width: 38px; min-height: 38px; padding: 0; border: 1px solid var(--btn-border); border-radius: 9px; background: var(--btn); color: var(--muted); font-size: 21px; line-height: 1; }
 .refresh-button:hover:not(:disabled) { color: var(--fg); }
 .stale-line { color: var(--warn-fg); font-size: 12px; }
 
@@ -112,17 +120,17 @@ a { color: var(--link); }
 /* Hệ nút mềm (Ethan 2026-10-26: bản cũ "nhìn robot quá"): bo tròn lớn hơn,
    viền pha trong suốt cho dịu, đổ bóng nhẹ, hover nhấc lên thay vì đổi màu
    gắt. Nút chính dùng gradient + bóng màu theo accent, hết cảnh phẳng lì. */
-button { min-height: 44px; border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); border-radius: 12px; padding: 9px 14px; background: var(--bubble); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: background .18s ease, border-color .18s ease, transform .18s ease, filter .18s ease, box-shadow .18s ease; }
-button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--line) 85%, #ffffff 15%); background: color-mix(in srgb, var(--bubble) 84%, #ffffff 9%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .30); }
+button { min-height: 44px; border: 1px solid var(--btn-border); border-radius: 12px; padding: 9px 14px; background: var(--btn); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: background .18s ease, border-color .18s ease, transform .18s ease, filter .18s ease, box-shadow .18s ease; }
+button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--btn-border) 80%, #ffffff 20%); background: color-mix(in srgb, var(--btn) 82%, #ffffff 12%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .30); }
 button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
 button:disabled { opacity: .55; cursor: default; }
 button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 /* Spinner nhỏ trong nút của action đang chạy (màu theo chữ của nút). */
 .spinner { display: inline-block; width: 14px; height: 14px; margin-right: 7px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; vertical-align: -2px; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.button-primary { border-color: transparent; background: linear-gradient(180deg, var(--accent-hover), var(--accent)); color: #fff; box-shadow: 0 4px 14px rgba(53, 102, 224, .35); }
-.button-primary:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, var(--accent-hover), var(--accent)); filter: brightness(1.09); box-shadow: 0 6px 18px rgba(53, 102, 224, .42); }
-.button-secondary { background: color-mix(in srgb, var(--bubble) 88%, transparent); }
+.button-primary { border-color: transparent; background: linear-gradient(180deg, #8b5cf6, #6d28d9); color: #fff; box-shadow: 0 4px 14px rgba(124, 58, 237, .38); }
+.button-primary:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, #8b5cf6, #6d28d9); filter: brightness(1.1); box-shadow: 0 6px 18px rgba(124, 58, 237, .46); }
+.button-secondary { background: color-mix(in srgb, var(--btn) 78%, transparent); }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 .button-link:hover:not(:disabled) { background: transparent; color: #b8caff; }
 .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
@@ -287,7 +295,7 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 
 /* Hàng lệnh + popup (panel gọn v4): mỗi lệnh một sắc nhạt riêng để nổi khỏi nền */
 .cmds { display: flex; gap: 8px; flex-wrap: wrap; }
-.cmd { --tint: var(--bubble); border: 1px solid var(--border); background: var(--tint); border-radius: 999px; padding: 9px 15px; font-weight: 600; font-size: 13px; min-height: 42px; }
+.cmd { --tint: var(--btn); border: 1px solid var(--border); background: var(--tint); border-radius: 999px; padding: 9px 15px; font-weight: 600; font-size: 13px; min-height: 42px; }
 .cmd b { color: var(--ai); font-weight: 700; }
 /* Chip dạng pill, màu dịu lại (Ethan 2026-10-26: viền bão hoà gắt của bản
    phương án B nhìn "robot"): giữ sắc riêng của từng hành động để phân biệt
@@ -380,6 +388,8 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .hint ol { margin: 7px 0 0; padding-left: 20px; color: var(--muted); }
 .hint li { padding: 2px 0; }
 .hint a { font-weight: 700; }
+.hint.warn { border-color: var(--warn-border); background: var(--warn-bg); }
+.hint.warn summary { color: var(--warn); }
 @keyframes pulse { from { opacity: .55; } to { opacity: 1; } }
 
 /* Theo token light trong PDF gốc; dark là mặc định vì Crisp đang chạy dark mode. */
@@ -398,6 +408,8 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
     --ai: #6b43d6;
     --surface-inset: #ffffff;
     --bubble: #f0ede4;
+    --btn: #e9e4d3;
+    --btn-border: #c9c2a6;
     --warn-border: #e5c176;
     --error-border: #e5a49d;
     --bg: #fbfaf6;
