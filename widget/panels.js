@@ -41,10 +41,57 @@ export function extensionHint({ detectExtension }) {
  * ô Reply (chỗ CS sẽ bấm Send). Ý + giọng văn chọn ở form soạn trong popup
  * Draft, trước khi bấm soạn.
  */
-export function draftPanel({ onEditInCrisp }) {
+/**
+ * Thẻ gợi ý tối ưu (Ethan chốt 2026-10-26, preview v8): bản gốc giữ nguyên,
+ * thẻ chỉ hiện khi server có gợi ý. Luồng nút đã duyệt: MỘT nút "Thử bản
+ * gợi ý" → HAI nút "Dùng bản gợi ý" / "Dùng bản gốc" → nút "Lưu làm mẫu
+ * mới" CHỈ xuất hiện sau khi đã chọn dùng bản gợi ý.
+ */
+export function suggestionCard(kind, handlers) {
+  const isDraft = kind === "draft";
+  const sugg = isDraft ? state.draftSugg : state.check?.review_template?.suggestion;
+  if (!sugg) return null;
+  const phase = isDraft ? state.draftSuggPhase : state.reviewSuggPhase;
+  if (phase === "saved") {
+    return el("div", { className: "sugg-card done" }, [
+      el("p", { className: "sugg-stat", textContent: isDraft
+        ? "Đã lưu vào profile — các draft sau sẽ ưu tiên cách viết này."
+        : "Đã lưu — từ nay bản gợi ý là mẫu review của bạn." }),
+    ]);
+  }
+  // Review: CS đã sửa tay khác hẳn cả bản gốc lẫn bản gợi ý → hết ngữ cảnh gợi ý, ẩn thẻ.
+  if (!isDraft && !phase && state.reviewText && state.reviewText !== state.check?.review_template?.text) return null;
+  const kids = [
+    el("div", { className: "sugg-head" }, [
+      el("span", { textContent: "Gợi ý tối ưu từ Copilot" }),
+      el("span", { className: "muted", textContent: "không bắt buộc" }),
+    ]),
+    el("p", { className: "sugg-reason", textContent: sugg.reason }),
+  ];
+  if (phase === "trying") {
+    kids.push(el("p", { className: "sugg-stat", textContent: "Đang xem trước bản gợi ý, chọn dùng bản nào:" }));
+    kids.push(el("div", { className: "row sugg-actions" }, [
+      el("button", { className: "button-primary", textContent: "Dùng bản gợi ý", onclick: () => handlers.onSuggAdopt(kind) }),
+      el("button", { className: "button-secondary", textContent: "Dùng bản gốc", onclick: () => handlers.onSuggOrig(kind) }),
+    ]));
+  } else if (phase === "adopted") {
+    kids.push(el("p", { className: "sugg-stat", textContent: "Đang dùng bản gợi ý cho lần này." }));
+    kids.push(el("div", { className: "row sugg-actions" }, [
+      el("button", { className: "button-secondary", textContent: "Lưu làm mẫu mới", onclick: () => handlers.onSuggSave(kind) }),
+    ]));
+  } else {
+    kids.push(el("div", { className: "row sugg-actions" }, [
+      el("button", { className: "button-primary", textContent: "Thử bản gợi ý", onclick: () => handlers.onSuggTry(kind) }),
+    ]));
+  }
+  return el("div", { className: "sugg-card" }, kids);
+}
+
+export function draftPanel(handlers) {
   if (!state.draft) return null;
   const draft = state.draft;
   const vm = draft.vm;
+  const onEditInCrisp = handlers.onEditInCrisp;
 
   return el("section", { className: "card ai-card draft-card" }, [
     el("div", { className: "draft-heading" }, [
@@ -69,6 +116,7 @@ export function draftPanel({ onEditInCrisp }) {
       : null,
     vm.todos ? el("p", { className: "warn", textContent: `Còn ${vm.todos} chỗ cần điền trước khi gửi.` }) : null,
     draftText(vm.text),
+    suggestionCard("draft", handlers),
     vm.warnings.length
       ? el("div", { className: "warnings" }, vm.warnings.map((w) =>
         el("div", { className: "warning-item" }, [
@@ -687,13 +735,20 @@ function reviewEditor(handlers) {
     className: "field review-text",
     rows: 5,
     value: state.reviewText,
-    oninput: (e) => { state.reviewText = e.target.value; state.reviewInsertId = ""; },
+    oninput: (e) => {
+      state.reviewText = e.target.value;
+      state.reviewInsertId = "";
+      // Sửa tay khác hẳn bản gốc lẫn bản gợi ý → thẻ gợi ý hết ngữ cảnh, về pha đầu.
+      const t = state.check?.review_template;
+      if (t?.suggestion && e.target.value !== t.text && e.target.value !== t.suggestion.text) state.reviewSuggPhase = "";
+    },
   });
   return el("div", { className: "review-editor" }, [
     el("p", { className: "muted", textContent: fromProfile
-      ? "Template theo profile của bạn — đã học từ tin bạn từng gửi, link đích lấy theo workspace đang làm việc. Sửa thêm nếu cần."
-      : "Template mặc định của workspace (bạn chưa có mẫu đã học riêng) — đã chèn sẵn link đích của workspace. Sửa thêm nếu cần." }),
+      ? "Template theo profile của bạn, đã học từ tin bạn từng gửi, link đích lấy theo workspace đang làm việc. Sửa thêm nếu cần."
+      : "Template mặc định của workspace (bạn chưa có mẫu đã học riêng), đã chèn sẵn link đích của workspace. Sửa thêm nếu cần." }),
     area,
+    suggestionCard("review", handlers),
     state.choice && state.choiceFor === "review" ? handlers.insertChoice() : null,
     el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendReviewInsert("auto") }),
     !ready ? el("p", { className: "muted", textContent: "Cài extension để điền tin xin review thẳng vào ô Reply của Crisp." }) : null,
