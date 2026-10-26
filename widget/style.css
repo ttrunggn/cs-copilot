@@ -1,20 +1,23 @@
 :root {
   color-scheme: dark;
   /* Design tokens (tokens.css) — nguồn chuẩn cho panel. */
-  --bg: #141519;
-  --card: #1b1d23;
-  --card-ai: #121a26;
-  --border: #2b2f38;
+  /* Phương án B (Ethan duyệt ở preview v6, 2026-10-26 — Lỗi 6): card sáng
+     hẳn lên khỏi nền panel + viền rõ + chữ phụ sáng hơn, hết cảnh card
+     "chìm" vào nền như bộ token cũ (#141519/#1b1d23/#2b2f38). */
+  --bg: #12151c;
+  --card: #272f40;
+  --card-ai: #232b3d;
+  --border: #43506c;
   --text: #eceef2;
-  --text-muted: #9aa1af;
+  --text-muted: #a7b0c0;
   --primary: #3566e0;
   --link: #8db0ff;
   --warn: #f2b84b;
   --error: #ff8a80;
   --success: #5ed3a0;
   --ai: #b08cff;
-  --surface-inset: #0f1013;
-  --bubble: #22252c;
+  --surface-inset: #1a1f2b;
+  --bubble: #2e3648;
   --warn-bg: #2a2112;
   --warn-border: #5a4520;
   --error-border: #7a3a35;
@@ -274,10 +277,16 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .cmds { display: flex; gap: 8px; flex-wrap: wrap; }
 .cmd { --tint: var(--bubble); border: 1px solid var(--border); background: var(--tint); border-radius: 10px; padding: 10px 12px; font-weight: 600; font-size: 13px; min-height: 44px; }
 .cmd b { color: var(--ai); font-weight: 700; }
-.cmd-draft { --tint: rgba(176, 140, 255, .15); border-color: rgba(176, 140, 255, .50); }
-.cmd-note { --tint: rgba(242, 184, 75, .14); border-color: rgba(242, 184, 75, .52); }
-.cmd-ask { --tint: rgba(141, 176, 255, .14); border-color: rgba(141, 176, 255, .48); }
-.cmd-csat { --tint: rgba(232, 51, 79, .13); border-color: rgba(232, 51, 79, .42); }
+/* Chip đậm màu theo phương án B đã duyệt ở preview v6: nền nhuốm màu bão
+   hoà hơn + viền đúng mã màu của từng hành động (bản cũ quá nhạt, khó phân
+   biệt trên nền tối). */
+.cmd-draft { --tint: rgba(122, 92, 255, .22); border-color: #7a5cff; }
+.cmd-note { --tint: rgba(217, 169, 44, .20); border-color: #d9a92c; }
+.cmd-ask { --tint: rgba(62, 142, 222, .20); border-color: #3e8ede; }
+.cmd-csat { --tint: rgba(224, 86, 107, .20); border-color: #e0566b; }
+.profile-status-card { gap: 4px; font-size: 12.5px; }
+.profile-status-card .eyebrow { margin-bottom: 2px; }
+
 .cmds .cmd:hover:not(:disabled) { background: var(--tint); filter: brightness(1.18); }
 .cmds .cmd:active:not(:disabled) { transform: scale(.98); }
 
