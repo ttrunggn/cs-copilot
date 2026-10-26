@@ -1,5 +1,5 @@
 import { insertResultMessage, readContext } from "./core.js";
-import { acceptReply, bridgeState, draftInsert, insertMessage, newRequestId, PING_TIMEOUT_MS, PROTOCOL } from "./bridge-core.js";
+import { acceptReply, bridgeState, draftInsert, insertMessage, newRequestId, PING_TIMEOUT_MS, PROTOCOL, respondersSummary } from "./bridge-core.js";
 import { state } from "./state.js";
 
 const INSERT_TIMEOUT_MS = 3000;
@@ -11,16 +11,43 @@ const INSERT_TIMEOUT_MS = 3000;
  * import vòng về app.js.
  */
 export function createExtensionClient(render, notify) {
+  /**
+   * Nối vết chẩn đoán (trace) của extension vào thông báo khi lần điền
+   * không thành công — CS chụp màn hình gửi đi là đủ dữ kiện truy nguyên
+   * nhân, khỏi đoán qua lại. Lưu vào state cho panel dùng lại nếu cần.
+   */
+  function withTrace(msg, r) {
+    const t = Array.isArray(r?.trace) && r.trace.length ? r.trace.join(" ") : "";
+    state.lastInsertTrace = t;
+    if (!t || r?.status === "inserted" || r?.status === "duplicate") return msg;
+    return `${msg} · ${t}`;
+  }
+
+  /**
+   * Ping và gom MỌI pong trong cửa sổ chờ: mỗi bản extension cài trong
+   * Chrome có bridge riêng trong iframe này và đều trả pong. Nhận pong đầu
+   * tiên thì chờ thêm 250ms để bắt pong của bản thứ hai (nếu có) — hai mã
+   * ext khác nhau = hai bản chạy song song, panel phải cảnh báo
+   * (respondersSummary ở bridge-core).
+   */
   function pingExtension() {
     return new Promise((resolve) => {
+      const pongs = [];
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        window.removeEventListener("message", onMsg);
+        resolve(pongs);
+      };
       const onMsg = (ev) => {
         if (ev.source !== window || ev.data?.type !== "copilot:pong") return;
-        window.removeEventListener("message", onMsg);
-        resolve(ev.data);
+        pongs.push(ev.data);
+        if (pongs.length === 1) setTimeout(finish, 250);
       };
       window.addEventListener("message", onMsg);
       window.postMessage({ type: "copilot:ping", protocol: PROTOCOL }, location.origin);
-      setTimeout(() => (window.removeEventListener("message", onMsg), resolve(null)), PING_TIMEOUT_MS);
+      setTimeout(finish, PING_TIMEOUT_MS);
     });
   }
 
@@ -36,12 +63,19 @@ export function createExtensionClient(render, notify) {
     state.bridgeProbe = (async () => {
       for (const delay of [0, 300, 1000]) {
         if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-        const pong = await pingExtension();
+        const pongs = await pingExtension();
+        const pong = pongs[0];
         if (pong) {
           state.bridge = bridgeState(pong);
+          const summary = respondersSummary(pongs);
+          state.bridgeResponders = pongs;
+          state.bridgeConflict = summary.conflict;
           // Giữ lại số version để panel hiện minh bạch + cảnh báo bản cũ:
-          // protocol không phân biệt được 1.2.0 với 1.2.1 (xem bridge-core).
-          state.bridgeVersion = typeof pong.version === "string" ? pong.version : "";
+          // protocol không phân biệt được các bản 1.2.x (xem bridge-core).
+          // Có nhiều bản cùng chạy thì hiện version cao nhất; cảnh báo xung
+          // đột hai bản là khối riêng, ưu tiên hơn cảnh báo bản cũ.
+          state.bridgeVersion = summary.versions.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).at(-1)
+            ?? (typeof pong.version === "string" ? pong.version : "");
           render();
           return;
         }
@@ -74,7 +108,7 @@ export function createExtensionClient(render, notify) {
       state.choice = r.status === "not_empty";
       if (r.status === "inserted" || r.status === "duplicate") state.draftPlacement = "inserted";
       notify(
-        state.choice ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có` : insertResultMessage(r.status),
+        withTrace(state.choice ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có` : insertResultMessage(r.status), r),
         state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
       );
       render();
@@ -122,11 +156,11 @@ export function createExtensionClient(render, notify) {
       state.insertPending = false;
       state.choice = r.status === "not_empty";
       notify(
-        state.choice
+        withTrace(state.choice
           ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có`
           : r.status === "inserted" || r.status === "duplicate"
           ? "Đã điền tin xin review vào ô Reply, đọc lại rồi bấm Send"
-          : insertResultMessage(r.status),
+          : insertResultMessage(r.status), r),
         state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
       );
       render();
@@ -175,11 +209,11 @@ export function createExtensionClient(render, notify) {
       state.insertPending = false;
       state.choice = r.status === "not_empty";
       notify(
-        state.choice
+        withTrace(state.choice
           ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có`
           : r.status === "inserted" || r.status === "duplicate"
           ? "Đã điền mẫu giải thích vào ô Reply, đọc lại rồi bấm Send"
-          : insertResultMessage(r.status),
+          : insertResultMessage(r.status), r),
         state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
       );
       render();
@@ -229,7 +263,7 @@ export function createExtensionClient(render, notify) {
       state.choice = r.status === "not_empty";
       if (r.status === "inserted" || r.status === "duplicate") state.notePlacement = "inserted";
       notify(
-        state.choice ? `${insertResultMessage(r.status, "note")}: chèn vào sẽ thay thế toàn bộ nội dung hiện có` : insertResultMessage(r.status, "note"),
+        withTrace(state.choice ? `${insertResultMessage(r.status, "note")}: chèn vào sẽ thay thế toàn bộ nội dung hiện có` : insertResultMessage(r.status, "note"), r),
         state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
       );
       render();
