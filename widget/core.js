@@ -280,8 +280,9 @@ export function toIssuesViewModel(check, sentiment) {
       detail: typeof i.evidence === "string" && i.evidence.trim() ? `Khách nhắn: "${i.evidence.trim()}"` : null,
     }));
   if (issues.length) return { issues };
-  const topic = check?.topic_label ?? check?.topic ?? null;
-  if (topic) return { issues: [{ title: topic, detail: "Chủ đề của hội thoại" }] };
+  // Không còn thẻ dự phòng theo chủ đề (Ethan bắt live 2026-10-26: thẻ
+  // "Khác / Chủ đề của hội thoại" vô nghĩa với CS). Chưa có issue thật thì
+  // để trống — khối Vấn đề tự hiện câu chưa-ghi-nhận, phân tích xong nạp lại.
   return { issues: [] };
 }
 
@@ -294,6 +295,7 @@ const SF_SHORT_LABELS = {
   "Height jump": "Trang giật khi tải",
   "Raw template visible": "Lộ mã template",
   "Option unidentifiable": "Không phân biệt được tuỳ chọn sản phẩm",
+  "Structure changed": "Thay đổi cấu trúc",
 };
 
 /** 3 trạng thái issue Storefront Ethan chốt (2026-10-23) — thay taxonomy mức độ/tín hiệu cũ. */
@@ -386,23 +388,18 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
     const raw = buckets[g.status];
     return { ...g, items: groupSameRootCause(raw), count: raw.length };
   });
-  // Danh sách PHẲNG cho card gọn (Ethan chốt 2026-10-26): mỗi mục một dòng
-  // duy nhất — nhãn bug ngắn + số bug tương tự + link Console của bug đó,
-  // không thêm chữ nào khác. Thứ tự nhóm giữ nguyên SF_GROUPS.
-  const rows = groups.flatMap((g) => g.items.map((d) => ({
+  // Danh sách PHẲNG theo TỪNG finding (Ethan chốt lại 2026-10-26 23:24):
+  // hiện đủ mọi bug SW trả về, mỗi bug một dòng + pill trạng thái + 1 link
+  // unit sang Console. Thứ tự: theo nhóm trạng thái SF_GROUPS, trong nhóm
+  // giữ thứ tự server (nặng nhất trước).
+  const rows = groups.flatMap((g) => g.items.flatMap((d) => d.entries.map((e) => ({
     status: g.status,
-    label: g.label,
-    title: d.title,
-    shortLabel: SF_SHORT_LABELS[d.kind ?? d.title] ?? d.title,
-    kind: d.kind ?? null,
-    page: d.page ?? null,
-    count: d.count,
-    locales: d.locales ?? [],
-    entries: d.entries ?? [],
-    fingerprint: d.entries?.[0]?.fingerprint ?? null,
-    consoleLink: d.entries?.[0]?.consoleLink ?? null,
-    meta: d.entries?.[0]?.meta ?? "",
-  })));
+    pill: g.label,
+    shortLabel: SF_SHORT_LABELS[e.kind ?? d.kind ?? d.title] ?? d.title,
+    meta: e.meta ?? "",
+    consoleLink: e.consoleLink ?? null,
+    fingerprint: e.fingerprint ?? null,
+  }))));
   return {
     kind: "results",
     store: sf.store,
