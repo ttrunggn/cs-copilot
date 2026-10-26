@@ -514,30 +514,24 @@ async function onHandoff(force) {
   }
 }
 
-/** Chờ bấy nhiêu sau khi kích hoạt quét Jira rồi tự check lại một lần: lượt
- *  quét (n8n → Jira API → jira-sync function) thường xong trong vài giây. */
-const JIRA_RECHECK_MS = 12000;
-
-/** Nút "Sync ngay" ở module Jira: gọi action jira_sync_now kích hoạt workflow
- *  quét ngay — quét chạy bất đồng bộ bên n8n nên chỉ báo đã kích hoạt, rồi hẹn
- *  check lại sau JIRA_RECHECK_MS để panel tự cập nhật (chỉ khi vẫn ở chat đó). */
+/** Nút "Sync ngay" ở module Jira: server đồng bộ ngay trong request này,
+ *  xong thì check lại để panel hiện dữ liệu mới. */
 async function onJiraSync() {
   if (state.busy) return;
   state.busyAction = "jira_sync";
-  state.busy = "Đang kích hoạt quét Jira…";
+  state.busy = "Đang đồng bộ Jira…";
   clearNotice();
   render();
   try {
     const out = await call("jira_sync_now");
     if (out.triggered) {
-      setNotice("Đã kích hoạt quét Jira — dữ liệu sẽ cập nhật sau ít giây.", "success");
-      const sessionId = state.shownSession;
-      setTimeout(() => { if (state.shownSession === sessionId) load(); }, JIRA_RECHECK_MS);
+      setNotice("Đã đồng bộ Jira.", "success");
+      await load();
     } else {
-      setNotice(out.error ?? "Không kích hoạt được lượt quét Jira.", "error");
+      setNotice(out.error ?? "Không đồng bộ được Jira.", "error");
     }
   } catch (e) {
-    if (!e.stale) setNotice(e.message ?? "Không kích hoạt được lượt quét Jira, thử lại sau", "error");
+    if (!e.stale) setNotice(e.message ?? "Không đồng bộ được Jira, thử lại sau", "error");
   }
   state.busy = "";
   state.busyAction = "";
