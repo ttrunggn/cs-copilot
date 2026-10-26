@@ -1,9 +1,11 @@
+import { writeTrace } from "../_shared/trace.ts";
 import { HttpError } from "../_shared/auth.ts";
 import type { CrispClient } from "../_shared/crisp.ts";
 import type { Db } from "../_shared/db.ts";
 import { enabledModules, jiraForConversation } from "../_shared/jira.ts";
 import {
   classifyFindings,
+  consoleUnitUrl,
   type StorefrontFinding,
   type StorefrontFindingDetail,
   type StorefrontMcp,
@@ -82,7 +84,7 @@ async function assertStorefrontEnabled(
   return conv;
 }
 
-function toItem(f: StorefrontFinding): StorefrontItem {
+function toItem(f: StorefrontFinding, domain?: string | null): StorefrontItem {
   return {
     fingerprint: f.fingerprint,
     title: f.title,
@@ -92,7 +94,10 @@ function toItem(f: StorefrontFinding): StorefrontItem {
     page: f.page ?? null,
     severity: f.severity ?? null,
     text: f.text ?? null,
-    consoleLink: f.consoleLink ?? null,
+    // Link panel dùng là URL unit cấu từ domain|locale|page|width (Console
+    // mở được — kiểm chứng live 2026-10-26), KHÔNG dùng link fingerprint SW
+    // in sẵn (Console báo "no audited unit").
+    consoleLink: consoleUnitUrl(domain, f),
   };
 }
 
@@ -237,6 +242,7 @@ export async function runStorefront(
   if (!shop) {
     return { action: "storefront", status: "need_shop", store: null, scanned_at: null, error: null, groups: EMPTY_GROUPS };
   }
+  const mcpT0 = performance.now();
   try {
     const store = await deps.storefront.findStore(req.website_id, shop);
     if (!store.watched) {
@@ -252,6 +258,7 @@ export async function runStorefront(
     const operatorTexts = messages
       .filter((m) => m.from === "operator" && !m.is_bot && m.type === "text")
       .map((m) => m.content);
+    await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront", kind: "timing", stage: "storefront_mcp", duration_ms: Math.round(performance.now() - mcpT0), detail: { findings: findings.length } });
     const groups = classifyFindings(findings, new Set(seen), operatorTexts);
     await deps.db.markStorefrontSeen(req.website_id, findings.map((f) => f.fingerprint));
     return {
@@ -261,9 +268,9 @@ export async function runStorefront(
       scanned_at: store.lastCheckedAt,
       error: null,
       groups: {
-        new: groups.new.map(toItem),
-        acknowledged: groups.acknowledged.map(toItem),
-        in_progress: groups.in_progress.map(toItem),
+        new: groups.new.map((f) => toItem(f, store.shop ?? shop)),
+        acknowledged: groups.acknowledged.map((f) => toItem(f, store.shop ?? shop)),
+        in_progress: groups.in_progress.map((f) => toItem(f, store.shop ?? shop)),
       },
     };
   } catch (e) {
