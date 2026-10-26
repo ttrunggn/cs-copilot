@@ -130,7 +130,9 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 @keyframes spin { to { transform: rotate(360deg); } }
 .button-primary { border-color: transparent; background: linear-gradient(180deg, #8b5cf6, #6d28d9); color: #fff; box-shadow: 0 4px 14px rgba(124, 58, 237, .38); }
 .button-primary:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, #8b5cf6, #6d28d9); filter: brightness(1.1); box-shadow: 0 6px 18px rgba(124, 58, 237, .46); }
-.button-secondary { background: color-mix(in srgb, var(--btn) 78%, transparent); }
+/* Nền ĐẶC như nút thường: bản pha 78% trong suốt trước đây chìm vào nền card,
+   nhìn như chưa đổi màu (Ethan test live 2026-10-26 trên nút "Soạn lại"). */
+.button-secondary { background: var(--btn); }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 .button-link:hover:not(:disabled) { background: transparent; color: #b8caff; }
 .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }

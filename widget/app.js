@@ -2,7 +2,7 @@ import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, expl
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
-import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, pendingPanel, profileFooter, storefrontPanel } from "./panels.js";
+import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, profileFooter, storefrontPanel } from "./panels.js";
 
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
@@ -676,7 +676,6 @@ function render() {
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
     vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
-    pendingPanel(vm),
     insightPanel(handlers),
     issuesPanel(vm),
     storefrontPanel(handlers),
@@ -692,8 +691,11 @@ function render() {
     ]) : null,
     !modalOpen ? insertChoiceNode() : null,
     commandsRow(handlers),
-    profileFooter(),
     modalView(handlers),
+    // Profile LUÔN ở dưới cùng panel (Ethan chốt 2026-10-26) — sau cả hàng
+    // lệnh và popup; modalView là lớp phủ nên thứ tự DOM này không đổi vị
+    // trí hiển thị của popup, chỉ khoá profile ở đáy luồng nội dung.
+    profileFooter(),
   );
 }
 
