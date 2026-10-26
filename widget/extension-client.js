@@ -108,7 +108,7 @@ export function createExtensionClient(render, notify) {
       state.choice = r.status === "not_empty";
       if (r.status === "inserted" || r.status === "duplicate") state.draftPlacement = "inserted";
       notify(
-        withTrace(state.choice ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có` : insertResultMessage(r.status), r),
+        withTrace(state.choice ? `${insertResultMessage(r.status)}: đã thay thế toàn bộ nội dung trước đó` : insertResultMessage(r.status), r),
         state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
       );
       render();
@@ -157,7 +157,7 @@ export function createExtensionClient(render, notify) {
       state.choice = r.status === "not_empty";
       notify(
         withTrace(state.choice
-          ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có`
+          ? `${insertResultMessage(r.status)}: đã thay thế toàn bộ nội dung trước đó`
           : r.status === "inserted" || r.status === "duplicate"
           ? "Đã điền tin xin review vào ô Reply, đọc lại rồi bấm Send"
           : insertResultMessage(r.status), r),
@@ -210,7 +210,7 @@ export function createExtensionClient(render, notify) {
       state.choice = r.status === "not_empty";
       notify(
         withTrace(state.choice
-          ? `${insertResultMessage(r.status)}: chèn vào sẽ thay thế toàn bộ nội dung hiện có`
+          ? `${insertResultMessage(r.status)}: đã thay thế toàn bộ nội dung trước đó`
           : r.status === "inserted" || r.status === "duplicate"
           ? "Đã điền mẫu giải thích vào ô Reply, đọc lại rồi bấm Send"
           : insertResultMessage(r.status), r),
@@ -263,7 +263,7 @@ export function createExtensionClient(render, notify) {
       state.choice = r.status === "not_empty";
       if (r.status === "inserted" || r.status === "duplicate") state.notePlacement = "inserted";
       notify(
-        withTrace(state.choice ? `${insertResultMessage(r.status, "note")}: chèn vào sẽ thay thế toàn bộ nội dung hiện có` : insertResultMessage(r.status, "note"), r),
+        withTrace(state.choice ? `${insertResultMessage(r.status, "note")}: đã thay thế toàn bộ nội dung trước đó` : insertResultMessage(r.status, "note"), r),
         state.choice ? "info" : r.status === "inserted" || r.status === "duplicate" ? "success" : "error",
       );
       render();

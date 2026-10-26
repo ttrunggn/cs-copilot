@@ -40,9 +40,9 @@ function insertChoiceNode() {
   const send = state.choiceFor === "review" ? extension.sendReviewInsert : state.choiceFor === "note" ? extension.sendNoteInsert : state.choiceFor === "explain" ? extension.sendExplainInsert : extension.sendInsert;
   const box = state.choiceFor === "note" ? "Ô Note" : "Ô Reply";
   return el("div", { className: "insert-choice" }, [
-    el("p", { className: "success-line", textContent: `${box} đang có chữ. Chèn vào sẽ thay thế toàn bộ nội dung hiện có.` }),
+    el("p", { className: "success-line", textContent: `${box} đang có chữ. Thay thế sẽ xoá toàn bộ nội dung hiện có.` }),
     el("div", { className: "row" }, [
-      el("button", { className: "button-primary", textContent: "Chèn vào tin nhắn", disabled: state.insertPending, onclick: () => send("replace") }),
+      el("button", { className: "button-primary", textContent: "Thay thế toàn bộ", disabled: state.insertPending, onclick: () => send("replace") }),
       el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), clearNotice(), render()) }),
     ]),
   ]);
