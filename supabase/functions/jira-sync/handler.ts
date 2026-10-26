@@ -22,24 +22,27 @@ export interface JiraStore {
  * nhắn cho khách sau mốc chuyển Done (doneReportedToCustomer); phía đọc cũng tự ẩn card trong
  * trường hợp đó nên việc tắt link chỉ là dọn dẹp để ngừng quét.
  */
-export async function handleJiraSync(
-  secretHeader: string,
-  body: unknown,
-  deps: { store: JiraStore; secret: string },
-): Promise<{ status: number; body: { issues: number } | { error: string } }> {
-  if (!secretOk(secretHeader, deps.secret)) return { status: 401, body: { error: "unauthorized" } };
+/**
+ * Lõi áp kết quả Jira search vào mirror DB — dùng CHUNG cho hai nguồn lấy
+ * dữ liệu: workflow n8n POST vào handleJiraSync (đường cũ) và copilot tự
+ * gọi Jira REST khi panel mở (đường mới, Ethan chốt 2026-10-26). Chỉ MỘT
+ * nguồn được phép active tại một thời điểm (luật một nguồn sync): khi
+ * đường copilot bật, workflow Jira Sync bên n8n phải tắt hẳn. Trả số issue
+ * đã áp. Mọi quy tắc panel-only mirror trong handleJiraSync áp dụng y hệt.
+ */
+export async function applyJiraIssues(store: JiraStore, body: unknown): Promise<number> {
   const rawIssues = Array.isArray((body as { issues?: unknown[] })?.issues) ? (body as { issues: unknown[] }).issues : [];
-  const csNames = await deps.store.csNames();
+  const csNames = await store.csNames();
   const issues = rawIssues
     .filter((r): r is { key: string } => typeof r === "object" && r !== null && typeof (r as { key?: unknown }).key === "string")
     .map((r) => normalizeIssue(r, csNames))
     .filter((i) => /^[A-Z][A-Z0-9_]+-\d+$/.test(i.issue_key));
-  if (!issues.length) return { status: 200, body: { issues: 0 } };
+  if (!issues.length) return 0;
 
   const byKey = new Map(issues.map((i) => [i.issue_key, i]));
   const stored = new Map<string, { status_changed_at: string | null; prev_status: string | null }>();
-  for (const i of issues) stored.set(i.issue_key, await deps.store.saveIssue(i));
-  for (const link of await deps.store.linksFor([...byKey.keys()])) {
+  for (const i of issues) stored.set(i.issue_key, await store.saveIssue(i));
+  for (const link of await store.linksFor([...byKey.keys()])) {
     const issue = byKey.get(link.issue_key);
     if (!issue) continue;
     const diff = diffLink(link, issue);
@@ -47,14 +50,24 @@ export async function handleJiraSync(
     // tắt link để ngừng quét. Done chưa báo → giữ nguyên active, panel còn việc.
     if (diff.done) {
       const seen: JiraIssue = { ...issue, status_changed_at: stored.get(issue.issue_key)?.status_changed_at ?? null };
-      if (doneReportedToCustomer(seen, await deps.store.lastHumanOperatorAt(link))) {
-        await deps.store.updateLink(link, { active: false });
+      if (doneReportedToCustomer(seen, await store.lastHumanOperatorAt(link))) {
+        await store.updateLink(link, { active: false });
         continue;
       }
     }
     if (diff.kind === "none") continue;
     const patch: Record<string, unknown> = { ...diff.next, silent_baseline: false };
-    await deps.store.updateLink(link, patch);
+    await store.updateLink(link, patch);
   }
-  return { status: 200, body: { issues: issues.length } };
+  return issues.length;
+}
+
+export async function handleJiraSync(
+  secretHeader: string,
+  body: unknown,
+  deps: { store: JiraStore; secret: string },
+): Promise<{ status: number; body: { issues: number } | { error: string } }> {
+  if (!secretOk(secretHeader, deps.secret)) return { status: 401, body: { error: "unauthorized" } };
+  const issues = await applyJiraIssues(deps.store, body);
+  return { status: 200, body: { issues } };
 }
