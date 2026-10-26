@@ -91,6 +91,34 @@ function verifyWritten(readBack, text) {
   return String(readBack ?? "").includes(line.slice(0, 60));
 }
 
+/**
+ * Chuẩn hoá để so khớp TOÀN VĂN sau khi điền: bỏ ký tự zero-width, thống nhất
+ * xuống dòng, cắt khoảng trắng cuối dòng, gộp nhiều dòng trống liên tiếp
+ * thành một (Lexical render đoạn cách nhau bằng 1 hay 2 dấu xuống dòng tuỳ
+ * ngữ cảnh — khác biệt đó không phải lỗi điền). KHÔNG nới tới mức nuốt được
+ * nội dung trùng lặp: bản cũ còn nguyên + bản mới dán thêm vào (lỗi điền
+ * "thay thế mà thành chèn thêm" Ethan gặp 2026-10-26) cho chuỗi dài gấp đôi,
+ * so khớp toàn văn bắt được ngay, trong khi verifyWritten cũ chỉ thấy dòng
+ * đầu tồn tại là cho qua.
+ */
+function normalizeComposerText(text) {
+  return String(text ?? "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+$/g, ""))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** Ô soạn sau khi điền phải khớp TOÀN VĂN kỳ vọng (đã chuẩn hoá hai phía). */
+function textsMatch(readBack, expected) {
+  const a = normalizeComposerText(readBack);
+  const b = normalizeComposerText(expected);
+  return b.length > 0 && a === b;
+}
+
 
 // Chạy trong iframe widget (domain Netlify). Cầu nối window.postMessage ↔ chrome.runtime.
 const WIDGET_ORIGIN = "https://copilot-oe.netlify.app";
