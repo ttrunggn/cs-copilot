@@ -51,6 +51,7 @@ export const state = {
   abortController: null, // AbortController của call đang chạy — nút Huỷ trên thẻ tiến trình dùng nó
   insertPending: false, // đang chờ extension trả lời lệnh điền — khoá các nút điền/chọn cách điền
   bridge: "checking", // checking | missing | outdated | ready
+  bridgeVersion: "", // version extension tự khai trong pong (rỗng = chưa rõ)
   bridgeProbe: null,
 };
 
@@ -64,7 +65,7 @@ export const state = {
  * session_id của URL khác state.shownSession.
  * Trường KHÔNG xoá (cố ý): operatorId / operatorName (CS đang đăng nhập,
  * không phải dữ liệu của chat), tone (lựa chọn giọng văn của CS),
- * bridge / bridgeProbe (trạng thái extension), busy / progress (luồng đang
+ * bridge / bridgeVersion / bridgeProbe (trạng thái extension), busy / progress (luồng đang
  * chạy tự dọn qua stale-guard của call() trong app.js).
  */
 export function resetSessionScopedState(target) {
