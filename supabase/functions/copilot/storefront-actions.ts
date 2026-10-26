@@ -119,6 +119,44 @@ export function shopFromCustomData(conv: ConversationRow | null): string {
   return typeof fromData === "string" && SHOP_OK(fromData.trim()) ? fromData.trim() : "";
 }
 
+
+const NON_STORE_HOSTS = new Set([
+  "crisp.chat", "storage.crisp.chat", "facebook.com", "m.me", "instagram.com",
+  "youtube.com", "youtu.be", "google.com", "gstatic.com", "googleapis.com",
+  "amazonaws.com", "cloudinary.com", "imgur.com", "tiktok.com", "x.com",
+  "twitter.com", "linkedin.com", "pinterest.com", "whatsapp.com", "zalo.me",
+  "bit.ly", "tinyurl.com", "shopify.com", "apps.shopify.com", "admin.shopify.com",
+]);
+
+/**
+ * Domain store ứng viên trích từ LINK KHÁCH GỬI trong chat (Ethan 2026-10-26:
+ * khách thường dán link store của họ — vd lauravita.com — trong khi custom
+ * data của phiên trống; panel phải bắt được đúng store từ đó). Chỉ lấy host
+ * từ tin của khách: *.myshopify.com ưu tiên trước, sau đó theo tần suất xuất
+ * hiện; host của mạng xã hội/help/lưu trữ ảnh bị loại. Ứng viên CHƯA phải
+ * sự thật — caller chỉ nhận khi Storefront Watch xác nhận đang theo dõi
+ * (bản chụp sweep), tránh bắt nhầm link lạ khách dán vào.
+ */
+export function shopCandidatesFromMessages(messages: { from: string; content: string }[]): string[] {
+  const freq = new Map<string, number>();
+  const bump = (host: string) => {
+    const h = host.toLowerCase().replace(/^www\./, "");
+    if (!SHOP_OK(h) || NON_STORE_HOSTS.has(h) || h.endsWith(".transcy.io") || h.endsWith(".crisp.chat")) return;
+    freq.set(h, (freq.get(h) ?? 0) + 1);
+  };
+  for (const m of messages) {
+    if (m.from !== "user" || !m.content) continue;
+    for (const u of m.content.match(/https?:\/\/[^\s<>"'\)\]]+/g) ?? []) {
+      try { bump(new URL(u).hostname); } catch { /* link hỏng — bỏ qua */ }
+    }
+    for (const d of m.content.match(/\b[a-z0-9-]+\.myshopify\.com\b/gi) ?? []) bump(d);
+  }
+  return [...freq.entries()]
+    .sort((a, b) => Number(b[0].endsWith(".myshopify.com")) - Number(a[0].endsWith(".myshopify.com")) || b[1] - a[1])
+    .slice(0, 5)
+    .map(([h]) => h);
+}
+
 // Lần thử đọc Crisp gần nhất cho từng phiên (theo tiến trình function):
 // phiên mà Crisp cũng không có domain thì đừng hỏi lại Crisp ở mọi lần mở
 // panel — chờ cửa sổ này rồi mới thử lại (domain có thể được set sau).
@@ -130,10 +168,11 @@ export const CRISP_LOOKUP_TTL_MS = 5 * 60_000;
  * trong DB (ingest mang về — nguồn chính), (2) đọc thẳng meta.data từ Crisp
  * khi DB chưa có (Ethan chốt 2026-10-26: tự lấy, CS không nhập tay — ca
  * live: domain có sẵn trong Custom data của Crisp mà panel vẫn bắt nhập vì
- * ingest chưa/chậm mang về). Domain lấy được từ Crisp được LƯU LẠI vào
- * custom_data (merge, không đè key khác) và gắn vào chính conv đang cầm để
- * caller dùng tiếp trong cùng request. Lỗi đọc Crisp → coi như chưa có,
- * giữ đường nhập tay làm dự phòng cuối.
+ * ingest chưa/chậm mang về), (3) link khách gửi trong chat — chỉ nhận khi
+ * Storefront Watch đang theo dõi domain đó. Domain lấy được từ (2)/(3) đều
+ * được LƯU LẠI vào custom_data (merge, không đè key khác) và gắn vào chính
+ * conv đang cầm để caller dùng tiếp trong cùng request. Lỗi đọc nguồn →
+ * coi như chưa có, giữ đường nhập tay làm dự phòng cuối.
  */
 export async function resolveShopDomain(
   deps: { db: Db; crisp?: CrispClient | null; now?: () => number },
@@ -143,22 +182,35 @@ export async function resolveShopDomain(
 ): Promise<string> {
   const known = shopFromCustomData(conv);
   if (known) return known;
-  if (!deps.crisp || !conv) return "";
+  if (!conv) return "";
   const key = `${websiteId}|${sessionId}`;
   const now = (deps.now ?? Date.now)();
   if (now - (crispLookupAt.get(key) ?? 0) < CRISP_LOOKUP_TTL_MS) return "";
   crispLookupAt.set(key, now);
-  try {
-    const data = await deps.crisp.getConversationCustomData(websiteId, sessionId);
-    const domain = data?.shopify_domain;
-    if (typeof domain !== "string" || !SHOP_OK(domain.trim())) return "";
-    const shop = domain.trim();
+  const adopt = async (shop: string) => {
     await deps.db.mergeConversationCustomData(websiteId, sessionId, { shopify_domain: shop }).catch(() => false);
     conv.custom_data = { ...(conv.custom_data ?? {}), shopify_domain: shop };
     return shop;
-  } catch {
-    return "";
+  };
+  // (2) Meta của Crisp.
+  if (deps.crisp) {
+    try {
+      const data = await deps.crisp.getConversationCustomData(websiteId, sessionId);
+      const domain = data?.shopify_domain;
+      if (typeof domain === "string" && SHOP_OK(domain.trim())) return await adopt(domain.trim());
+    } catch { /* đọc Crisp lỗi — xuống nguồn (3) */ }
   }
+  // (3) Link khách gửi trong chat — chỉ nhận ứng viên Storefront Watch đang
+  // theo dõi theo bản chụp sweep; không ứng viên nào khớp thì giữ "" để rơi
+  // về đường nhập tay, không bắt bừa một host lạ.
+  try {
+    const messages = await deps.db.getMessages(websiteId, sessionId, 200);
+    for (const cand of shopCandidatesFromMessages(messages).slice(0, 4)) {
+      const snap = await deps.db.getStorefrontStoreStatus(websiteId, cand).catch(() => null);
+      if (snap?.watched) return await adopt(cand);
+    }
+  } catch { /* đọc tin/snapshot lỗi — coi như chưa có */ }
+  return "";
 }
 
 /**

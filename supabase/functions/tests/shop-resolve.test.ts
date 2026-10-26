@@ -76,3 +76,42 @@ Deno.test("resolve shop: Crisp lỗi hoặc domain không hợp lệ -> rỗng, 
   );
   assertEquals(bad, "");
 });
+
+import { shopCandidatesFromMessages } from "../copilot/storefront-actions.ts";
+
+Deno.test("shop candidates: trích host từ link khách gửi — myshopify trước, host lạ/mạng xã hội bị loại, chỉ tin khách", () => {
+  const cands = shopCandidatesFromMessages([
+    { from: "user", content: "my store https://lauravita.com/collections/boots/products/anita and fb https://facebook.com/x" },
+    { from: "user", content: "also https://lauravita.com/products/other plus app link https://apps.shopify.com/transcy" },
+    { from: "operator", content: "check https://operator-link.com/please" },
+    { from: "user", content: "backup domain lauravita-123.myshopify.com here" },
+  ]);
+  assertEquals(cands, ["lauravita-123.myshopify.com", "lauravita.com"]);
+});
+
+Deno.test("resolve shop: DB + Crisp đều trống → lấy domain từ link khách gửi khi SW đang theo dõi, lưu lại", async () => {
+  const merges: { patch: Record<string, unknown> }[] = [];
+  const db = {
+    mergeConversationCustomData: (_w: string, _s: string, patch: Record<string, unknown>) => { merges.push({ patch }); return Promise.resolve(true); },
+    getMessages: () => Promise.resolve([
+      { from: "user", content: "here is my product https://lauravita.com/products/anita10" },
+      { from: "operator", content: "thanks, checking" },
+    ]),
+    getStorefrontStoreStatus: (_w: string, shop: string) => Promise.resolve(shop === "lauravita.com" ? { watched: true } : null),
+  } as unknown as Db;
+  const c = conv("s_msg");
+  const shop = await resolveShopDomain({ db, crisp: null }, "ws1", "s_msg", c);
+  assertEquals(shop, "lauravita.com");
+  assertEquals(merges, [{ patch: { shopify_domain: "lauravita.com" } }]);
+  assertEquals(c.custom_data?.shopify_domain, "lauravita.com");
+});
+
+Deno.test("resolve shop: link khách gửi nhưng SW KHÔNG theo dõi → không bắt bừa, trả rỗng", async () => {
+  const db = {
+    mergeConversationCustomData: () => Promise.resolve(true),
+    getMessages: () => Promise.resolve([{ from: "user", content: "https://random-store.com/products/1" }]),
+    getStorefrontStoreStatus: () => Promise.resolve({ watched: false }),
+  } as unknown as Db;
+  const shop = await resolveShopDomain({ db, crisp: null }, "ws1", "s_msg_no", conv("s_msg_no"));
+  assertEquals(shop, "");
+});
