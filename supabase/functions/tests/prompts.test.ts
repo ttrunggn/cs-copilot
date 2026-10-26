@@ -8,6 +8,7 @@ import {
   draftPrompt,
   formatHandoffNote,
   handoffPrompt,
+  plainNoteFormat,
   neutralize,
   parseAskAnswer,
   parseDraftTone,
@@ -263,6 +264,46 @@ Deno.test("formatHandoffNote learned format in Vietnamese keeps emoji states and
   assertEquals(note.includes("1. v1 — ❗ Chưa xử lý"), true);
   assertEquals(note.includes("… và 1 vấn đề khác"), true);
   assertEquals(note.includes("Bước tiếp: (chờ CS) n"), true);
+});
+
+Deno.test("formatHandoffNote learned format WITHOUT explicit emoji style renders TEXT state labels (hồi quy mặc định ngược, live 2026-10-26)", () => {
+  // Dữ liệu học cũ có thể thiếu state_style hoặc mang giá trị khác "emoji":
+  // trước đây nhánh !== "text" rơi về emoji nên note vẫn xả ký hiệu.
+  const fmt = { ...FMT_EN, state_style: undefined } as unknown as NoteFormat;
+  const note = formatHandoffNote({
+    summary: "s",
+    issues: [{ issue: "i", state: "waiting_customer", detail: "d" }],
+    waiting_on: "customer",
+    next_step: "n",
+  }, "Lan", fmt);
+  assertEquals(note.includes("Chờ khách: d"), true);
+  assertEquals(note.includes("⏳"), false);
+});
+
+Deno.test("plainNoteFormat: format mượn bị gọt ký hiệu ở header/sign_off và ép nhãn chữ, cấu trúc giữ nguyên", () => {
+  const fmt: NoteFormat = {
+    language: "vi",
+    header: "📋 Handoff — {name}",
+    sections: [{ field: "issues", label: "" }],
+    line_style: "numbered",
+    state_style: "emoji",
+    sign_off: "➡️ {name}",
+    notes_used: 12,
+  };
+  const plain = plainNoteFormat(fmt);
+  assertEquals(plain.state_style, "text");
+  assertEquals(plain.header, "Handoff — {name}");
+  assertEquals(plain.sign_off, "{name}");
+  const note = formatHandoffNote({
+    summary: "s",
+    issues: [{ issue: "i", state: "in_progress", detail: "d" }],
+    waiting_on: "cs",
+    next_step: "n",
+  }, "Lan", plain);
+  assertEquals(note.includes("📋"), false);
+  assertEquals(note.includes("🔄"), false);
+  assertEquals(note.includes("1. i — Đang xử lý: d"), true);
+  assertEquals(note.startsWith("Handoff — Lan"), true);
 });
 
 Deno.test("formatHandoffNote omits the waiting label when nobody is waited on", () => {
