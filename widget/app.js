@@ -2,7 +2,7 @@ import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, expl
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
-import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, profileFooter, storefrontPanel } from "./panels.js";
+import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modalView, pendingPanel, profileFooter, storefrontPanel } from "./panels.js";
 
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
@@ -40,10 +40,9 @@ function insertChoiceNode() {
   const send = state.choiceFor === "review" ? extension.sendReviewInsert : state.choiceFor === "note" ? extension.sendNoteInsert : state.choiceFor === "explain" ? extension.sendExplainInsert : extension.sendInsert;
   const box = state.choiceFor === "note" ? "Ô Note" : "Ô Reply";
   return el("div", { className: "insert-choice" }, [
-    el("p", { className: "success-line", textContent: `${box} đang có chữ: thay thế, chèn xuống cuối hay huỷ?` }),
+    el("p", { className: "success-line", textContent: `${box} đang có chữ. Chèn vào sẽ thay thế toàn bộ nội dung hiện có.` }),
     el("div", { className: "row" }, [
-      el("button", { className: "button-primary", textContent: "Thay thế", disabled: state.insertPending, onclick: () => send("replace") }),
-      el("button", { className: "button-secondary", textContent: "Chèn xuống cuối", disabled: state.insertPending, onclick: () => send("append") }),
+      el("button", { className: "button-primary", textContent: "Chèn vào tin nhắn", disabled: state.insertPending, onclick: () => send("replace") }),
       el("button", { className: "button-secondary", textContent: "Huỷ", onclick: () => ((state.choice = false), clearNotice(), render()) }),
     ]),
   ]);
@@ -353,6 +352,7 @@ async function onAnalyze(force) {
   try {
     const out = await call("analyze", force ? { force: true } : {}, ctrl.signal);
     state.sentiment = out.sentiment;
+    if (out.sentiment) state.sentimentAt = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
     if (typeof out.msg_count === "number") state.sentimentMsgCount = out.msg_count;
     if (!out.sentiment) {
       // Nói đúng nguyên nhân: server trả reason — đừng đổ hết về "chưa đủ tin nhắn"
@@ -395,6 +395,7 @@ async function maybeAutoRefreshSentiment(sessionId) {
     if (readContext(location.search).sessionId !== sessionId) return; // đã chuyển chat khác
     if (out.sentiment) {
       state.sentiment = out.sentiment;
+      state.sentimentAt = new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
       if (state.check) state.check.sentiment = out.sentiment;
     }
     if (typeof out.msg_count === "number") state.sentimentMsgCount = out.msg_count;
@@ -675,6 +676,7 @@ function render() {
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
     vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
+    pendingPanel(vm),
     insightPanel(handlers),
     issuesPanel(vm),
     storefrontPanel(handlers),
