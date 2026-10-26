@@ -309,7 +309,7 @@ Deno.test("panels: storefrontPanel need-shop → gõ vào ô giữ state, Enter 
   assertEquals(calls, [["sfLoad"], ["sfLoad"]]);
 });
 
-Deno.test("panels: storefrontPanel results → card tối giản: header tổng lỗi, mỗi bug một dòng nhãn ngắn + link Console, stale có cảnh báo", () => {
+Deno.test("panels: storefrontPanel results → chỉ TỔNG HỢP: tổng lỗi + một nút sang Storefront Watch, không liệt kê bug, không nội dung SW", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const fp = "a".repeat(40);
@@ -322,15 +322,14 @@ Deno.test("panels: storefrontPanel results → card tối giản: header tổng 
   const p = storefrontPanel(makeHandlers([]));
   const t = allText(p);
   assertEquals(t.includes("2 lỗi đã xác nhận"), true);
-  // Nhãn ngắn tiếng Việt theo kind, không kèm meta/diễn giải nào khác.
-  assertEquals(t.includes("Mất hình ảnh"), true);
-  assertEquals(t.includes("Lệch giao diện"), true);
-  assertEquals(t.includes("Kết quả cũ"), true);
+  // Không còn dòng bug nào, không nhãn bug, không link từng bug.
+  assertEquals(t.includes("Graphic lost"), false);
+  assertEquals(t.includes("Mất hình ảnh"), false);
   const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
-  assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/${fp}`), true);
+  assertEquals(hrefs, ["https://sw.transcy.io"]);
 });
 
-Deno.test("panels: storefrontPanel gom bug trùng căn nguyên — một dòng, hiện số bug tương tự ×N và một link", () => {
+Deno.test("panels: storefrontPanel tổng hợp đếm finding THẬT khi gom trùng căn nguyên (3 finding gom còn 1 mục vẫn đếm 3)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const F = (fp, locale) => ({
@@ -343,12 +342,7 @@ Deno.test("panels: storefrontPanel gom bug trùng căn nguyên — một dòng, 
     new: [F(fa, "ja"), F(fb, "zh"), F(fc, "es")], acknowledged: [], inProgress: [],
   };
   const p = storefrontPanel(makeHandlers([]));
-  const t = allText(p);
-  assertEquals(t.includes("3 lỗi đã xác nhận"), true);
-  assertEquals(t.includes("Thiếu vùng nội dung"), true);
-  assertEquals(t.includes("×3"), true);
-  const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
-  assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/${fa}`), true);
+  assertEquals(allText(p).includes("3 lỗi đã xác nhận"), true);
 });
 
 Deno.test("panels: issuesPanel badge Storefront — từ bản chụp trong check khi module chưa nạp; cổng tắt thì không hiện badge", () => {
