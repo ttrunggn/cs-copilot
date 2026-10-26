@@ -10,13 +10,21 @@ export function sessionFromUrl(href) {
  * Quyết định chèn draft vào ô Reply (spec 6.4). Trả text cuối cùng cần có trong ô khi được chèn.
  * auto: chỉ chèn khi đúng chat, chưa chèn output này, và ô đang trống. replace/append: CS chủ động bấm.
  */
-export function decideInsert({ urlSession, cmd, composerText, insertedIds }) {
+export function decideInsert({ urlSession, cmd, composerText, insertedIds, lastFilledText }) {
   if (!urlSession || cmd.session_id !== urlSession) return { status: "session_mismatch" };
   const current = String(composerText ?? "");
   if (cmd.mode === "replace") return { status: "inserted", text: cmd.text };
   if (cmd.mode === "append") return { status: "inserted", text: current.trim() ? `${current.replace(/\s+$/, "")}\n\n${cmd.text}` : cmd.text };
   if (insertedIds.has(cmd.output_id)) return { status: "duplicate" };
-  if (current.trim()) return { status: "not_empty" };
+  if (current.trim()) {
+    // Ô còn NGUYÊN VĂN bản copilot tự điền lần trước (người chưa gõ/sửa
+    // gì): thay bằng bản mới luôn, không hỏi "Thay thế toàn bộ" — câu hỏi
+    // đó chỉ để bảo vệ chữ NGƯỜI tự gõ. Ethan bắt live 2026-10-26: điền
+    // draft xong, soạn bản mới bấm Điền lại bị bắt xác nhận thay thế
+    // chính bản copilot vừa điền, thừa và khó hiểu.
+    if (lastFilledText && textsMatch(current, lastFilledText)) return { status: "inserted", text: cmd.text };
+    return { status: "not_empty" };
+  }
   return { status: "inserted", text: cmd.text };
 }
 
@@ -129,10 +137,25 @@ export function textsMatch(readBack, expected) {
  * được gấp đôi thật: bản gấp đôi dài gấp hai và khác hẳn sau khi gập.
  */
 export function fillVerified(readBack, expected) {
-  const squash = (s) => normalizeComposerText(s).replace(/\s+/g, " ").trim();
+  // Editor kiểu Lexical có thể biến dòng "1. ..." thành mục danh sách thật:
+  // số thứ tự thành marker hiển thị, KHÔNG còn nằm trong innerText — bản
+  // đọc lại thiếu đúng "1. " dù nội dung đã vào đủ (ca live 2026-10-26:
+  // note handoff có dòng đánh số, chữ vào ô Note rồi mà xác nhận cứ
+  // mismatch). Gọt marker đầu dòng ở CẢ hai phía trước khi so.
+  const stripMarkers = (s) => String(s ?? "").split("\n").map((l) => l.replace(/^\s*(?:\d{1,3}[.)]|[-•*])\s+/, "")).join("\n");
+  const squash = (s) => normalizeComposerText(stripMarkers(s)).replace(/\s+/g, " ").trim();
   const a = squash(readBack);
   const b = squash(expected);
-  return b.length > 0 && a === b;
+  if (!b) return false;
+  if (a === b) return true;
+  // Dung sai HẸP cho khác biệt render chưa lường hết: mọi dòng kỳ vọng đủ
+  // dài đều phải có mặt trong bản đọc lại và tổng độ dài không lệch quá
+  // 3% (tối thiểu 6 ký tự). Thiếu đoạn, thừa đoạn hay gấp đôi nội dung
+  // vẫn bị bắt như cũ.
+  const lines = normalizeComposerText(stripMarkers(expected)).split("\n")
+    .map((x) => x.replace(/\s+/g, " ").trim()).filter((x) => x.length >= 12);
+  return lines.length > 0 && lines.every((l) => a.includes(l))
+    && Math.abs(a.length - b.length) <= Math.max(6, Math.round(b.length * 0.03));
 }
 
 /**

@@ -132,3 +132,31 @@ Deno.test("signalTrace: định dạng gọn 5 tín hiệu Note mode", () => {
   assertEquals(signalTrace({}), "tab0 yel0 cls0 ph0 pil0");
   assertEquals(signalTrace(), "tab0 yel0 cls0 ph0 pil0");
 });
+
+Deno.test("decideInsert: ô còn nguyên bản copilot tự điền trước đó → thay luôn, không hỏi; người đã sửa thì vẫn hỏi", () => {
+  const prev = "Hi,\n\nThis is Ethan from the Transcy Customer Support team.";
+  // Ô chứa đúng bản copilot đã điền (chưa ai đụng vào) → inserted thẳng.
+  assertEquals(
+    decideInsert({ ...base, composerText: prev, lastFilledText: prev, cmd: cmd({ text: "Bản mới" }) }),
+    { status: "inserted", text: "Bản mới" },
+  );
+  // Người đã sửa thêm một câu → không còn là bản copilot nguyên văn → hỏi.
+  assertEquals(
+    decideInsert({ ...base, composerText: prev + "\n\nCâu CS tự thêm.", lastFilledText: prev, cmd: cmd() }),
+    { status: "not_empty" },
+  );
+  // Không có lastFilledText (bản extension cũ) → hành vi cũ: hỏi.
+  assertEquals(decideInsert({ ...base, composerText: prev, cmd: cmd() }), { status: "not_empty" });
+});
+
+Deno.test("fillVerified: dòng đánh số bị editor biến thành marker danh sách (innerText mất '1. ') vẫn khớp — ca live 2026-10-26", () => {
+  const expected = "Handoff — Ethan Nguyen\nKhách hàng yêu cầu gặp nhân viên hỗ trợ trực tiếp.\n1. Yêu cầu kết nối với nhân viên hỗ trợ — Đang xử lý: Bot đã ghi nhận yêu cầu.\n\nTiếp theo (chờ CS): Tiếp nhận hội thoại ngay.";
+  const readBackNoMarker = expected.replace("\n1. Yêu cầu", "\nYêu cầu");
+  assertEquals(fillVerified(readBackNoMarker, expected), true);
+  assertEquals(fillVerified(expected, expected), true);
+  // Thiếu hẳn đoạn cuối → vẫn bắt được, dung sai không nuốt lỗi thật.
+  const missingTail = "Handoff — Ethan Nguyen\nKhách hàng yêu cầu gặp nhân viên hỗ trợ trực tiếp.\nYêu cầu kết nối với nhân viên hỗ trợ — Đang xử lý: Bot đã ghi nhận yêu cầu.";
+  assertEquals(fillVerified(missingTail, expected), false);
+  // Nội dung khác hẳn → false.
+  assertEquals(fillVerified("Một nội dung hoàn toàn khác không liên quan gì tới bản kỳ vọng cả.", expected), false);
+});

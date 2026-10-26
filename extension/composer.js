@@ -15,6 +15,10 @@ const COMPOSER_SELECTORS = [
   "div[contenteditable='true'][role='textbox']",
 ];
 const inserted = new Set();
+// Văn bản copilot tự điền gần nhất theo đích (reply/note) TRONG trang này:
+// ô soạn còn nguyên văn bản đó nghĩa là người chưa gõ/sửa gì — lần điền
+// sau thay luôn không cần hỏi (xem decideInsert).
+const lastFilled = { reply: "", note: "" };
 
 function visible(el) {
   const r = el.getBoundingClientRect();
@@ -306,12 +310,13 @@ async function insertIntoNote(msg, reply) {
   ({ signals } = collectNoteSignals(editor));
   trace.push(`sig1 ${signalTrace(signals)}`);
   if (!confirmNoteMode(signals)) return reply("note_unconfirmed", trace);
-  const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted });
+  const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted, lastFilledText: lastFilled.note });
   if (d.status !== "inserted") return reply(d.status, trace);
   // Điền và kiểm chứng TOÀN VĂN: lệch là báo insert_unverified, không báo
   // inserted giả (xem fillEditor).
   if (!(await fillEditor(editor, d.text, trace, findComposer))) return reply("insert_unverified", trace);
   inserted.add(msg.output_id);
+  lastFilled.note = d.text;
   reply("inserted", trace);
 }
 
@@ -326,10 +331,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const trace = [];
     const el = findComposer();
     if (!el) return reply("composer_not_found", trace);
-    const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted });
+    const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted, lastFilledText: lastFilled.reply });
     if (d.status !== "inserted") return reply(d.status, trace);
     if (!(await fillEditor(el, d.text, trace, findComposer))) return reply("insert_unverified", trace);
     inserted.add(msg.output_id);
+    lastFilled.reply = d.text;
     reply("inserted", trace);
   })().catch(() => reply("insert_unverified"));
   return true;
