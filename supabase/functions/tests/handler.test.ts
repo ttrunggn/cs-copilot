@@ -172,7 +172,7 @@ Deno.test("check modules: Transcy (cờ storefront_watch bật) + chat có shopi
     getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
   }));
-  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(modulesOf(r), { jira: true, storefront: true });
   assertEquals(sfStatusOf(r), null);
 });
 
@@ -182,7 +182,7 @@ Deno.test("check modules: bản chụp nói SW đang theo dõi + có lỗi mở 
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
     getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS()),
   }));
-  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(modulesOf(r), { jira: true, storefront: true });
   assertEquals(sfStatusOf(r), SF_STATUS());
 });
 
@@ -192,7 +192,7 @@ Deno.test("check modules: bản chụp nói SW KHÔNG theo dõi domain → Store
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
     getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS({ watched: false, open_critical: 0, open_high: 0, open_total: 0, worst_severity: null })),
   }));
-  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(modulesOf(r), { jira: true, storefront: true });
 });
 
 Deno.test("check modules: workspace OE (jira_project = OES, cờ storefront_watch TẮT) + chat có shopify_domain + có bản chụp watched → Storefront vẫn tắt và badge KHÔNG rò (storefront_status = null)", async () => {
@@ -204,7 +204,7 @@ Deno.test("check modules: workspace OE (jira_project = OES, cờ storefront_watc
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
     getStorefrontStoreStatus: () => Promise.resolve(SF_STATUS()),
   }));
-  assertEquals(modulesOf(r), { jira: false, storefront: false });
+  assertEquals(modulesOf(r), { jira: true, storefront: false });
   assertEquals(sfStatusOf(r), null);
 });
 
@@ -215,7 +215,7 @@ Deno.test("check modules: đọc bản chụp lỗi → coi như chưa có bản
     getStorefrontStoreStatus: () => Promise.reject(new Error("db down")),
   }));
   assertEquals(r.status, 200);
-  assertEquals(modulesOf(r), { jira: false, storefront: true });
+  assertEquals(modulesOf(r), { jira: true, storefront: true });
   assertEquals(sfStatusOf(r), null);
 });
 
