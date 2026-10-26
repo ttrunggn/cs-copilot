@@ -588,10 +588,12 @@ Deno.test("action storefront: shopify_domain trong custom data THẮNG shop truy
   assertEquals(seenShop, "resolved.myshopify.com");
 });
 
-Deno.test("action storefront: cổng action khớp cổng check — ticket Done ĐÃ báo khách thì action cũng 403", async () => {
+Deno.test("action storefront: cổng action khớp cổng check — workspace cờ TẮT, ticket Done ĐÃ báo khách thì action cũng 403", async () => {
   // check loại ticket Done-đã-báo khỏi danh sách → modules.storefront = false.
   // Action từng tính cổng bằng jiraForConversation(rows, null) nên vẫn cho qua
-  // đúng ca này; nay action dùng cùng mốc CS nhắn khách như check.
+  // đúng ca này; nay action dùng cùng mốc CS nhắn khách như check. Ca này xét
+  // ở workspace cờ storefront_watch TẮT (đường ticket là đường duy nhất) —
+  // workspace Transcy cờ bật thì module luôn mở theo chốt 2026-10-26.
   const doneRow = {
     link: { ...TNT_LINK.link },
     issue: {
@@ -600,6 +602,7 @@ Deno.test("action storefront: cổng action khớp cổng check — ticket Done 
     },
   };
   const { deps } = sfDeps(fakeMcp(), {
+    getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: false }),
     getJiraRows: () => Promise.resolve([doneRow]),
     getConversation: () => Promise.resolve({ ...CONV, last_human_operator_at: "2026-10-21T00:00:00.000Z" }),
   });

@@ -20,26 +20,28 @@ export interface AnalyzeResult {
   reason: SentimentReason | null;
 }
 
-/** Đếm tin của khách — cùng tập đầu vào mà sentimentFingerprint dùng. */
+/** Đếm tin của khách trong conversation. */
 export function customerMessageCount(messages: MessageRow[]): number {
   return messages.filter((m) => m.from === "user").length;
 }
 
 /**
- * Dấu vân tay chỉ từ tin của khách: mood đổi khi khách nhắn thêm, không đổi
- * khi CS trả lời. Kèm PHIÊN BẢN của lớp phân tích: prompt/rubric/issues-spec
- * thay đổi thì tăng version, mọi dòng sentiment đã lưu tự thành stale và
- * được tính lại đúng một lần khi mở panel. Thiếu version này, kết quả của
- * prompt cũ kẹt vĩnh viễn dù code đã sửa (gốc vụ issues chép nguyên văn lời
- * khách + "sentiment không thấy update" Ethan báo 2026-10-26: dòng lưu từ
- * thời panel còn map signals thành issue, dấu vân tay tin khách không đổi
- * nên compute-on-view không bao giờ tính lại).
+ * Dấu vân tay từ tin của khách + câu TRẢ LỜI THẬT của CS (không bot, không
+ * note): khách nhắn thêm thì mood tính lại, CS trả lời xong thì issues/tóm
+ * tắt cũng phải tính lại — bản cũ chỉ băm tin khách nên sau khi CS đã trả
+ * lời đầy đủ, panel vẫn treo issues cũ với chữ "chưa được giải quyết"
+ * (Ethan báo ca live 2026-10-26). Kèm PHIÊN BẢN của lớp phân tích:
+ * prompt/rubric/issues-spec thay đổi thì tăng version, mọi dòng sentiment
+ * đã lưu tự thành stale và được tính lại đúng một lần khi mở panel.
  * v2 (2026-10-26): issues là câu phát biểu vấn đề AI tổng hợp, không trích thô.
+ * v3 (2026-10-26): băm cả tin CS trả lời; issues loại vấn đề CS đã trả lời.
  */
-const SENTIMENT_FP_VERSION = "v2";
+const SENTIMENT_FP_VERSION = "v3";
 export function sentimentFingerprint(messages: MessageRow[]): Promise<string> {
   const body = JSON.stringify(
-    messages.filter((m) => m.from === "user").map((m) => [m.created_at, m.content]),
+    messages
+      .filter((m) => m.from === "user" || (m.from === "operator" && !m.is_bot && m.type === "text"))
+      .map((m) => [m.from, m.created_at, m.content]),
   );
   return sha256Hex(`sentiment-${SENTIMENT_FP_VERSION}|${body}`);
 }
