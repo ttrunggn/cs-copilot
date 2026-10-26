@@ -275,6 +275,14 @@ export function parsePolish(text: string, original: string): { reason: string; t
   const reason = typeof obj.reason === "string" ? obj.reason.trim() : "";
   const improved = stripEmDashes(typeof obj.improved === "string" ? obj.improved.trim() : "");
   if (!reason || !improved || improved === stripEmDashes(original.trim())) return null;
+  // Chất lượng gợi ý (Ethan bắt live 2026-10-26): bản gợi ý bị chê "không
+  // khác gì bản gốc" — lý do nêu đích danh một cụm yếu trong ngoặc
+  // ('am here now to help you directly') nhưng bản gợi ý vẫn giữ nguyên
+  // cụm đó. Cụm đã nêu mà còn nguyên trong bản gợi ý = gợi ý không sửa
+  // đúng chỗ mình chê → bỏ thẻ, thà không gợi ý còn hơn gợi ý vô dụng.
+  const flagged = [...reason.matchAll(/['"]([^'"]{8,})['"]/g)].map((m) => m[1].trim().toLowerCase()).filter((q) => q.includes(" "));
+  const improvedLow = improved.toLowerCase();
+  if (flagged.length && flagged.every((q) => improvedLow.includes(q))) return null;
   return { reason, text: improved };
 }
 
