@@ -29,6 +29,7 @@ export const state = {
   askResult: null, // { question, found, answer, sources } — kết quả ask gần nhất của chat đang mở
   sentiment: null, // phân tích tâm trạng mới nhất (check/analyze/generate trả về)
   sentimentMsgCount: 0, // số tin của khách mà analyze vừa tính sentiment trên đó (0 = chưa biết)
+  sentimentAt: "", // giờ (HH:MM) của lần analyze gần nhất trong phiên — để CS thấy phân tích có chạy thật, không phải số đứng yên
   sentimentRefreshing: false, // panel đang tự làm tươi sentiment vì bản lưu đã cũ (compute-on-view)
   csat: null, // { sent, sent_at } — trạng thái survey của conversation đang mở
   csatError: false, // lần gửi survey gần nhất lỗi → panel CSAT hiện "Không gửi được / Thử lại"
@@ -70,6 +71,7 @@ export function resetSessionScopedState(target) {
   target.draft = null;
   target.sentiment = null;
   target.sentimentMsgCount = 0;
+  target.sentimentAt = "";
   target.sentimentRefreshing = false;
   target.csat = null;
   target.csatError = false;

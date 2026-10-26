@@ -109,17 +109,20 @@ a { color: var(--link); }
 
 /* Nền nút là --bubble (xám nổi), không dùng đen tuyền --surface-inset nữa:
    nút chìm vào nền panel rất khó nhìn (feedback của Ethan trên preview v4). */
-button { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; background: var(--bubble); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; transition: background .15s ease, border-color .15s ease, transform .15s ease, filter .15s ease; }
-button:hover:not(:disabled) { border-color: #455063; background: #17191e; }
-button:active:not(:disabled) { transform: translateY(1px); }
+/* Hệ nút mềm (Ethan 2026-10-26: bản cũ "nhìn robot quá"): bo tròn lớn hơn,
+   viền pha trong suốt cho dịu, đổ bóng nhẹ, hover nhấc lên thay vì đổi màu
+   gắt. Nút chính dùng gradient + bóng màu theo accent, hết cảnh phẳng lì. */
+button { min-height: 44px; border: 1px solid color-mix(in srgb, var(--line) 72%, transparent); border-radius: 12px; padding: 9px 14px; background: var(--bubble); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: background .18s ease, border-color .18s ease, transform .18s ease, filter .18s ease, box-shadow .18s ease; }
+button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--line) 85%, #ffffff 15%); background: color-mix(in srgb, var(--bubble) 84%, #ffffff 9%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .30); }
+button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
 button:disabled { opacity: .55; cursor: default; }
 button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
 /* Spinner nhỏ trong nút của action đang chạy (màu theo chữ của nút). */
 .spinner { display: inline-block; width: 14px; height: 14px; margin-right: 7px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; vertical-align: -2px; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.button-primary { border-color: var(--accent); background: var(--accent); color: #fff; }
-.button-primary:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
-.button-secondary { background: var(--bubble); }
+.button-primary { border-color: transparent; background: linear-gradient(180deg, var(--accent-hover), var(--accent)); color: #fff; box-shadow: 0 4px 14px rgba(53, 102, 224, .35); }
+.button-primary:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, var(--accent-hover), var(--accent)); filter: brightness(1.09); box-shadow: 0 6px 18px rgba(53, 102, 224, .42); }
+.button-secondary { background: color-mix(in srgb, var(--bubble) 88%, transparent); }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 .button-link:hover:not(:disabled) { background: transparent; color: #b8caff; }
 .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
@@ -132,7 +135,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .future-card { position: relative; }
 .future-title { color: var(--fg); font-size: 16px; }
 .insight-card { gap: 9px; }
-.field { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px; background: var(--input); color: var(--fg); font: inherit; line-height: 1.45; }
+.field { width: 100%; min-height: 84px; resize: vertical; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--input); color: var(--fg); font: inherit; line-height: 1.45; }
 .field::placeholder { color: var(--muted); opacity: 1; }
 .field:disabled { opacity: 1; cursor: not-allowed; }
 .field-static { min-height: auto; color: var(--muted); }
@@ -142,7 +145,8 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .ask-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ask-notfound .warn p { margin-top: 4px; font-weight: 400; }
 .csat-panel { display: grid; gap: 10px; padding: 14px 0 0; border-top: 1px solid var(--line); }
-.csat-button { border-color: var(--csat); background: var(--csat); color: #fff; }
+.csat-button { border-color: transparent; background: linear-gradient(180deg, #f0446a, var(--csat)); color: #fff; box-shadow: 0 4px 14px rgba(232, 51, 79, .30); }
+.csat-button:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, #f0446a, var(--csat)); filter: brightness(1.09); }
 .csat-button:disabled { opacity: .5; }
 .csat-sent { display: grid; gap: 3px; }
 .csat-error { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--error-border); border-radius: 14px; background: var(--surface); }
@@ -175,7 +179,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .summary-actions { justify-content: flex-start; gap: 10px; }
 
 /* Draft: chọn giọng văn + sửa tại chỗ + nguồn */
-.tone-select { min-height: 44px; border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; background: var(--input); color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
+.tone-select { min-height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; background: var(--input); color: var(--fg); font: inherit; font-weight: 600; cursor: pointer; }
 .draft-hint { min-height: 52px; }
 .draft-editor { display: grid; gap: 8px; }
 .draft-edit { min-height: 150px; }
@@ -269,7 +273,7 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .draft-actions button { min-width: 0; padding-inline: 6px; }
 
 .insert-choice { display: grid; gap: 8px; }
-.insert-choice .row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: stretch; }
+.insert-choice .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
 .insert-choice button { min-width: 0; padding-inline: 6px; }
 .notice-card { font-weight: 650; display: flex; align-items: flex-start; gap: 8px; }
 .notice-card > span { flex: 1; }
@@ -283,15 +287,15 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 
 /* Hàng lệnh + popup (panel gọn v4): mỗi lệnh một sắc nhạt riêng để nổi khỏi nền */
 .cmds { display: flex; gap: 8px; flex-wrap: wrap; }
-.cmd { --tint: var(--bubble); border: 1px solid var(--border); background: var(--tint); border-radius: 10px; padding: 10px 12px; font-weight: 600; font-size: 13px; min-height: 44px; }
+.cmd { --tint: var(--bubble); border: 1px solid var(--border); background: var(--tint); border-radius: 999px; padding: 9px 15px; font-weight: 600; font-size: 13px; min-height: 42px; }
 .cmd b { color: var(--ai); font-weight: 700; }
-/* Chip đậm màu theo phương án B đã duyệt ở preview v6: nền nhuốm màu bão
-   hoà hơn + viền đúng mã màu của từng hành động (bản cũ quá nhạt, khó phân
-   biệt trên nền tối). */
-.cmd-draft { --tint: rgba(122, 92, 255, .22); border-color: #7a5cff; }
-.cmd-note { --tint: rgba(217, 169, 44, .20); border-color: #d9a92c; }
-.cmd-ask { --tint: rgba(62, 142, 222, .20); border-color: #3e8ede; }
-.cmd-csat { --tint: rgba(224, 86, 107, .20); border-color: #e0566b; }
+/* Chip dạng pill, màu dịu lại (Ethan 2026-10-26: viền bão hoà gắt của bản
+   phương án B nhìn "robot"): giữ sắc riêng của từng hành động để phân biệt
+   nhưng pha trong suốt ở viền và giảm độ đậm của nền nhuốm. */
+.cmd-draft { --tint: rgba(122, 92, 255, .16); border-color: color-mix(in srgb, #7a5cff 55%, transparent); }
+.cmd-note { --tint: rgba(217, 169, 44, .14); border-color: color-mix(in srgb, #d9a92c 55%, transparent); }
+.cmd-ask { --tint: rgba(62, 142, 222, .14); border-color: color-mix(in srgb, #3e8ede 55%, transparent); }
+.cmd-csat { --tint: rgba(224, 86, 107, .14); border-color: color-mix(in srgb, #e0566b 55%, transparent); }
 .profile-status-card { gap: 4px; font-size: 12.5px; }
 .profile-status-card .eyebrow { margin-bottom: 2px; }
 
@@ -304,7 +308,7 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .mhead b { flex: 1; font-size: 15px; }
 .mclose { min-height: 36px; padding: 4px 10px; }
 .modal .csat-panel { border-top: 0; padding-top: 0; }
-.opt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: var(--surface-inset); border: 1px solid var(--border); border-radius: 10px; padding: 12px; min-height: 44px; font-size: 13px; }
+.opt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: var(--surface-inset); border: 1px solid var(--border); border-radius: 14px; padding: 12px; min-height: 44px; font-size: 13px; }
 .opt b { display: block; font-size: 14px; }
 .opt .opt-desc { display: block; font-size: 12px; font-weight: 400; }
 .opt.on { border-color: var(--link); }
