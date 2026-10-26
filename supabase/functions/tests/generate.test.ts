@@ -253,6 +253,54 @@ Deno.test("draft prompt carries Jira context so the reply can relay tech updates
   assertEquals(p.includes("never paste ticket links"), true);
 });
 
+Deno.test("check: comment Jira dài hiện NGUYÊN VĂN trên panel, không cắt cụt ở 300 ký tự", async () => {
+  const longBody = "Kết luận: " + "chi tiết kỹ thuật rất dài. ".repeat(30) + "Hết.";
+  const rows = [{
+    ...JIRA_ROWS[0],
+    issue: {
+      ...JIRA_ROWS[0].issue,
+      comments: [{ id: "9", author: "Dev Minh", role: "tech" as const, body_text: longBody, created_at: "2026-10-15T03:10:00.000Z" }],
+    },
+  }];
+  const m = makeDeps({ db: { getJiraRows: () => Promise.resolve(rows) } });
+  const body = (await handle({ ...REQ, action: "check" }, TOKEN, m.deps)).body as {
+    jira: { new_comments: { body: string }[]; recent_comments: { body: string }[] }[];
+  };
+  const bodies = [...body.jira[0].new_comments, ...body.jira[0].recent_comments].map((c) => c.body);
+  assertEquals(bodies.some((b) => b.length > 300 && b.endsWith("Hết.")), true);
+});
+
+Deno.test("generate follow-up: không tin khách chờ + ticket có update Dev -> prompt đóng khung tin chủ động báo lại", async () => {
+  const f = fakeAi({ draft: "ok", verify: '{"warnings":[]}' });
+  const m = makeDeps({
+    ai: f.ai,
+    messages: [
+      msg("user", "the switcher is broken", 1),
+      msg("operator", "Let me check with the dev team and get back to you", 2),
+    ],
+    db: {
+      getJiraRows: () => Promise.resolve(JIRA_ROWS),
+      matchHelpdesk: () => Promise.resolve([HD]),
+      getConversation: () => Promise.resolve({ ...CONV, last_customer_at: "2026-10-15T03:01:00+00:00" }),
+    },
+  });
+  const r = await handle(REQ, TOKEN, m.deps);
+  assertEquals(r.status, 200);
+  const p = f.calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("proactive follow-up"), true);
+  assertEquals(p.includes("the customer has NOT sent a new message"), true);
+  assertEquals(p.includes("TNT-9184"), true);
+});
+
+Deno.test("generate thường: còn tin khách chờ thì KHÔNG đóng khung follow-up dù ticket có update", async () => {
+  const f = fakeAi({ draft: "ok", verify: '{"warnings":[]}' });
+  const m = makeDeps({ ai: f.ai, db: { getJiraRows: () => Promise.resolve(JIRA_ROWS), matchHelpdesk: () => Promise.resolve([HD]) } });
+  const r = await handle(REQ, TOKEN, m.deps);
+  assertEquals(r.status, 200);
+  const p = f.calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("proactive follow-up"), false);
+});
+
 // ---------- ngữ cảnh Storefront cho draft ----------
 
 const SF_FINDING = (over: Partial<StorefrontFinding> = {}): StorefrontFinding => ({
