@@ -43,6 +43,13 @@ export interface Db {
   matchCases(websiteId: string, embedding: number[], k: number): Promise<CaseMatch[]>;
   getVariants(task: "draft"): Promise<Variant[]>;
   getJiraRows(websiteId: string, sessionId: string): Promise<{ link: JiraLink; issue: JiraIssue | null }[]>;
+  /**
+   * Merge patch vào conversations.custom_data của một phiên (đọc hiện tại →
+   * merge → ghi lại; chỉ cập nhật khi dòng đã tồn tại, không tự tạo dòng —
+   * dòng conversation do ingest tạo). Dùng cho đường tự resolve
+   * shopify_domain từ Crisp khi ingest chưa mang về kịp. true = đã ghi.
+   */
+  mergeConversationCustomData(websiteId: string, sessionId: string, patch: Record<string, unknown>): Promise<boolean>;
   /** Gỡ theo dõi một ticket khỏi một chat (active=false đúng dòng website+session+key). true = có dòng bị gỡ. */
   unlinkJira(websiteId: string, sessionId: string, issueKey: string): Promise<boolean>;
   getSentiment(websiteId: string, sessionId: string): Promise<(Sentiment & { input_fp: string }) | null>;
@@ -211,7 +218,7 @@ export function createDb(sb: SupabaseClient): Db {
       if (!links.length) return [];
       const keys = links.map((l) => l.issue_key as string);
       const [{ data: issues, error: e1 }, { data: comments, error: e2 }] = await Promise.all([
-        sb.from("jira_issues").select("issue_key,summary,status,status_category,assignee,updated_at,status_changed_at,prev_status").in("issue_key", keys),
+        sb.from("jira_issues").select("issue_key,summary,status,status_category,assignee,updated_at,status_changed_at,prev_status,synced_at").in("issue_key", keys),
         sb.from("jira_comments").select("id,issue_key,author,role,body_text,created_at").in("issue_key", keys).order("created_at"),
       ]);
       if (e1) throw e1;
@@ -223,6 +230,17 @@ export function createDb(sb: SupabaseClient): Db {
           issue: i ? { ...(i as Omit<JiraIssue, "comments">), comments: ((comments ?? []) as (JiraComment & { issue_key: string })[]).filter((c) => c.issue_key === link.issue_key) } : null,
         };
       });
+    },
+    async mergeConversationCustomData(websiteId, sessionId, patch) {
+      const { data, error } = await sb.from("conversations")
+        .select("custom_data").eq("website_id", websiteId).eq("session_id", sessionId).maybeSingle();
+      if (error) throw error;
+      if (!data) return false; // chưa có dòng (ingest chưa tạo) — không tự tạo dòng ở đây
+      const merged = { ...((data.custom_data as Record<string, unknown> | null) ?? {}), ...patch };
+      const { error: e2 } = await sb.from("conversations")
+        .update({ custom_data: merged }).eq("website_id", websiteId).eq("session_id", sessionId);
+      if (e2) throw e2;
+      return true;
     },
     async unlinkJira(websiteId, sessionId, issueKey) {
       // Chỉ tắt đúng dòng của chat này: website+session+key đều phải khớp,

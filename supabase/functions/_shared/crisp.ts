@@ -8,6 +8,9 @@
 // không sửa field nào khác của meta, không đụng state/routing. CRISP WRITE
 // RULE vẫn nguyên: copilot chỉ soạn draft/note để CS tự gửi trong Crisp;
 // segment này là ngoại lệ đã chốt, không phải tiền lệ để nới thêm.
+// (getConversationCustomData là thao tác ĐỌC meta thuần — không phải ghi,
+// không thuộc diện cấm trên; Ethan duyệt 2026-10-26 cho đường tự resolve
+// shopify_domain của Storefront.)
 //
 // Cơ chế theo tài liệu chính thức của Crisp (docs.crisp.chat, REST API V1 +
 // báo cáo rà soát crisp-platform-mechanics-20261023-0913):
@@ -34,6 +37,14 @@ export class CrispError extends Error {}
 export interface CrispClient {
   /** Segments hiện tại của conversation trên Crisp THẬT (meta.segments). */
   getConversationSegments(websiteId: string, sessionId: string): Promise<string[]>;
+  /**
+   * Custom data (meta.data) hiện tại của conversation trên Crisp THẬT —
+   * thao tác ĐỌC thuần (không ghi gì): nguồn dự phòng để resolve
+   * shopify_domain khi ingest chưa mang custom data về DB kịp (Ethan chốt
+   * 2026-10-26: Storefront tự lấy domain, CS không nhập tay). null = Crisp
+   * không có custom data cho phiên này.
+   */
+  getConversationCustomData(websiteId: string, sessionId: string): Promise<Record<string, unknown> | null>;
   /**
    * PATCH meta {segments} bằng danh sách ĐÃ MERGE sẵn. Client ghi nguyên
    * danh sách được đưa — không tự thêm/bớt phần tử nào; merge là việc của
@@ -88,6 +99,11 @@ export function createCrispClient(opts: {
     },
     async setConversationSegments(websiteId, sessionId, segments) {
       await call("PATCH", websiteId, sessionId, { segments });
+    },
+    async getConversationCustomData(websiteId, sessionId) {
+      const data = await call("GET", websiteId, sessionId) as { data?: unknown } | null;
+      const custom = data?.data;
+      return custom && typeof custom === "object" && !Array.isArray(custom) ? custom as Record<string, unknown> : null;
     },
   };
 }
