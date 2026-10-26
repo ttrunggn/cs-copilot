@@ -326,7 +326,7 @@ Deno.test("panels: storefrontPanel need-shop → gõ vào ô giữ state, Enter 
   assertEquals(calls, [["sfLoad"], ["sfLoad"]]);
 });
 
-Deno.test("panels: storefrontPanel results → 3 nhóm đúng nhãn/số, bấm finding mở chi tiết, stale có cảnh báo", () => {
+Deno.test("panels: storefrontPanel results → card gọn: header tổng lỗi, pill trạng thái từng dòng, bấm dòng mở chi tiết, stale có cảnh báo", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const fp = "a".repeat(40);
@@ -337,14 +337,14 @@ Deno.test("panels: storefrontPanel results → 3 nhóm đúng nhãn/số, bấm 
   const calls = [];
   const p = storefrontPanel(makeHandlers(calls));
   const t = allText(p);
-  assertEquals(t.includes("Storefront Watch — 2 issues"), true);
-  assertEquals(t.includes("Mới") && t.includes("Đã xác nhận") && t.includes("Đang xử lý"), true);
+  assertEquals(t.includes("2 lỗi đã xác nhận"), true);
+  assertEquals(t.includes("Mới") && t.includes("Đang xử lý"), true);
   assertEquals(t.includes("Kết quả cũ"), true);
   buttonByText(p, "Lỗi mới").onclick();
   assertEquals(calls, [["sfFinding", fp]]);
 });
 
-Deno.test("panels: storefrontPanel gom finding trùng căn nguyên — đầu mục + chip locale, từng entry có deep-link console đúng fingerprint và nút Mẫu giải thích riêng", () => {
+Deno.test("panels: storefrontPanel gom finding trùng căn nguyên — một dòng, meta liệt kê locale; mở chi tiết có link Console từng finding + Mẫu giải thích", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const F = (fp, locale) => ({
@@ -357,26 +357,26 @@ Deno.test("panels: storefrontPanel gom finding trùng căn nguyên — đầu m�
     new: [F(fa, "ja"), F(fb, "zh"), F(fc, "es")], acknowledged: [], inProgress: [],
   };
   const calls = [];
-  const p = storefrontPanel(makeHandlers(calls));
+  const h = makeHandlers(calls);
+  const p = storefrontPanel(h);
   const t = allText(p);
-  // Tổng ở header module đếm finding THẬT (3), không đếm mục đã gom (1).
-  assertEquals(t.includes("Storefront Watch — 3 issues"), true);
-  // Đầu mục đã gom: số ngôn ngữ + đủ 3 chip locale.
-  assertEquals(t.includes("3 ngôn ngữ"), true);
+  // Tổng ở header đếm finding THẬT (3).
+  assertEquals(t.includes("3 lỗi đã xác nhận"), true);
+  // Một dòng đã gom: title + meta liệt kê đủ 3 locale.
+  assertEquals(t.includes("Region missing"), true);
   for (const l of ["ja", "zh", "es"]) assertEquals(t.includes(l), true, l);
-  // Deep-link: mỗi entry một link console trỏ đúng fingerprint của nó.
-  const links = walk(p).filter((n) => n.tagName === "A");
-  assertEquals(links.map((a) => a.attrs.href ?? a.href), [
-    `https://sw.transcy.io/#/f/${fa}`, `https://sw.transcy.io/#/f/${fb}`, `https://sw.transcy.io/#/f/${fc}`,
-  ]);
-  // Bấm entry thứ hai → mở chi tiết đúng fingerprint của entry đó.
-  const entryButtons = buttons(p).filter((b) => allText(b).includes("critical"));
-  entryButtons[1].onclick();
-  assertEquals(calls, [["sfFinding", fb]]);
-  // Nút Mẫu giải thích của entry → onExplain nhận đúng finding (kind/locale/page của entry đó).
+  // Bấm dòng → mở chi tiết của finding đầu (đại diện mục đã gom).
+  buttonByText(p, "Region missing").onclick();
+  assertEquals(calls, [["sfFinding", fa]]);
+  // Chi tiết mở: link Console của TỪNG finding trong mục đều có mặt.
+  state.storefrontDetail = { fingerprint: fa, where: "Storefront · ja · / · 1440px wide", consoleLink: `https://sw.transcy.io/#/f/${fa}` };
+  const p2 = storefrontPanel(h);
+  const hrefs = walk(p2).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
+  for (const fp of [fa, fb, fc]) assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/${fp}`), true, fp);
+  // Mẫu giải thích trong chi tiết → onExplain nhận finding đại diện.
   calls.length = 0;
-  const explainBtns = buttons(p).filter((b) => allText(b).includes("Mẫu giải thích"));
-  assertEquals(explainBtns.length, 3);
+  const explainBtns = buttons(p2).filter((b) => allText(b).includes("Mẫu giải thích"));
+  assertEquals(explainBtns.length, 1);
   explainBtns[0].onclick();
   assertEquals(calls, [["explain", { fingerprint: fa, kind: "Region missing", locale: "ja", page: "/", text: null, title: "Region missing" }]]);
 });
