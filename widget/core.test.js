@@ -266,12 +266,23 @@ Deno.test("toStorefrontViewModel: dữ liệu thô kiểu cũ (confirmed + level
   assertEquals(vm.groups[2].items, []);
 });
 
-Deno.test("toIssuesViewModel: ưu tiên signals của sentiment làm issue", () => {
-  const vm = toIssuesViewModel(CHECK, { signals: ["Bị trừ phí 2 lần", "Chưa rõ thời gian hoàn tiền", "  "] });
+Deno.test("toIssuesViewModel: ưu tiên issues (câu tóm tắt + bằng chứng) của sentiment", () => {
+  const vm = toIssuesViewModel(CHECK, {
+    issues: [
+      { summary: "Khách bị trừ phí 2 lần", evidence: "charged me twice" },
+      { summary: "Khách chưa rõ thời gian hoàn tiền", evidence: "" },
+      { summary: "  ", evidence: "bị bỏ vì summary rỗng" },
+    ],
+  });
   assertEquals(vm.issues, [
-    { title: "Bị trừ phí 2 lần", detail: null },
-    { title: "Chưa rõ thời gian hoàn tiền", detail: null },
+    { title: "Khách bị trừ phí 2 lần", detail: "Khách nhắn: \"charged me twice\"" },
+    { title: "Khách chưa rõ thời gian hoàn tiền", detail: null },
   ]);
+});
+
+Deno.test("toIssuesViewModel: signals KHÔNG còn thành issue (Lỗi 4) — sentiment chỉ có signals thì lùi về topic", () => {
+  const vm = toIssuesViewModel(CHECK, { signals: ["human pls", "i just want someone help"] });
+  assertEquals(vm.issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
 });
 
 Deno.test("toIssuesViewModel: chưa có sentiment thì lùi về topic, không có gì thì rỗng (không bịa)", () => {
@@ -524,9 +535,9 @@ Deno.test("toViewModel: pending_messages có sẵn thắng unanswered thô và g
   assertEquals(vm.botRepliedCount, 1);
 });
 
-Deno.test("toIssuesViewModel: đúng 1 signal → đúng 1 issue; sentiment có nhưng signals toàn khoảng trắng → lùi về topic", () => {
-  assertEquals(toIssuesViewModel(CHECK, { signals: ["Mất hoá đơn"] }).issues, [{ title: "Mất hoá đơn", detail: null }]);
-  assertEquals(toIssuesViewModel(CHECK, { signals: [" ", ""] }).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+Deno.test("toIssuesViewModel: đúng 1 issue → đúng 1 thẻ; sentiment không có issues → lùi về topic", () => {
+  assertEquals(toIssuesViewModel(CHECK, { issues: [{ summary: "Khách mất hoá đơn", evidence: "" }] }).issues, [{ title: "Khách mất hoá đơn", detail: null }]);
+  assertEquals(toIssuesViewModel(CHECK, { issues: [] }).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
   assertEquals(toIssuesViewModel(CHECK, {}).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
 });
 
