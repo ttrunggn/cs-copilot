@@ -26,7 +26,10 @@ function findComposer() {
 }
 
 function readText(el) {
-  return el.tagName === "TEXTAREA" ? el.value : el.innerText;
+  const raw = el.tagName === "TEXTAREA" ? el.value : el.innerText;
+  // Editor rich-text hay giữ ký tự zero-width trong ô "trống" — bỏ đi để
+  // quyết định ô trống/có chữ (decideInsert) không bị đánh lừa.
+  return String(raw ?? "").replace(/[\u200B-\u200D\uFEFF]/g, "");
 }
 
 function selectAll(el) {
@@ -98,6 +101,21 @@ function findModeTab(editor, label) {
   return null;
 }
 
+/** Các lá văn bản quanh editor trong vùng soạn (ngoài chính editor), leo tối đa maxClimb tầng tổ tiên. */
+function fieldLeaves(editor, maxClimb = 6) {
+  const out = [];
+  let scope = editor.parentElement;
+  for (let i = 0; i < maxClimb && scope; i++) {
+    for (const el of scope.querySelectorAll("*")) {
+      if (el === editor || editor.contains(el)) continue;
+      if (el.children.length === 0) out.push(el);
+    }
+    if (scope.classList?.contains("c-conversation-box-field")) break;
+    scope = scope.parentElement;
+  }
+  return out;
+}
+
 /** Gom các tín hiệu Note mode tại thời điểm gọi (editor có thể bị Crisp thay node khi chuyển mode). */
 function collectNoteSignals(editor) {
   const tab = findModeTab(editor, "Note");
@@ -108,17 +126,41 @@ function collectNoteSignals(editor) {
     if (!yellowBg) yellowBg = isYellowishColor(getComputedStyle(node).backgroundColor);
     if (node.classList?.contains("c-conversation-box-field")) break;
   }
-  const ph = editor.getAttribute("data-placeholder")
+  const attrPh = editor.getAttribute("data-placeholder")
     ?? editor.closest("[data-placeholder]")?.getAttribute("data-placeholder")
     ?? editor.getAttribute("aria-label")
     ?? "";
+  // Placeholder trên Crisp thật là CHỮ RENDER quanh editor ("Send a private
+  // note to your team…" / "Send your message to … in chat…", phiên dò
+  // 2026-10-26), không nằm ở thuộc tính — đọc cả hai đường, thuộc tính chỉ là
+  // dự phòng. Nhãn "Note" trong vùng soạn (pill ở đầu dòng soạn) cũng là tín
+  // hiệu riêng của Note mode; chỉ tìm trong wrapper sát editor để không nhầm
+  // nhãn của tab Note trên thanh tab.
+  let phKind = placeholderKind(attrPh) ?? (/note/i.test(attrPh) ? "note" : null);
+  let notePill = false;
+  const field = editor.parentElement;
+  if (field) {
+    for (const el of field.querySelectorAll("*")) {
+      if (el === editor || editor.contains(el) || el.children.length) continue;
+      const t = (el.textContent || "").trim();
+      if (!phKind) phKind = placeholderKind(t);
+      if (t === "Note") notePill = true;
+    }
+  }
+  if (!phKind) {
+    for (const el of fieldLeaves(editor)) {
+      const k = placeholderKind((el.textContent || "").trim());
+      if (k) { phKind = k; break; }
+    }
+  }
   return {
     tab,
     signals: {
       tabActive: tab ? tabLooksActive({ className: classOf(tab), ariaSelected: tab.getAttribute("aria-selected") ?? tab.getAttribute("aria-pressed"), dataState: tab.getAttribute("data-state") ?? "" }) : false,
       yellowBg,
       noteClass,
-      notePlaceholder: /note/i.test(ph),
+      notePlaceholder: phKind === "note",
+      notePill,
     },
   };
 }
@@ -153,6 +195,9 @@ async function insertIntoNote(msg, reply) {
   const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted });
   if (d.status !== "inserted") return reply(d.status);
   writeText(editor, d.text);
+  // Kiểm chứng sau ghi: editor không chứa nội dung vừa ghi thì không được
+  // báo inserted — thà báo lỗi rõ ràng để panel xử lý còn hơn im lặng.
+  if (!verifyWritten(readText(editor), msg.text)) return reply("insert_unverified");
   inserted.add(msg.output_id);
   reply("inserted");
 }
@@ -169,6 +214,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted });
   if (d.status !== "inserted") return reply(d.status);
   writeText(el, d.text);
+  if (!verifyWritten(readText(el), msg.text)) return reply("insert_unverified");
   inserted.add(msg.output_id);
   reply("inserted");
 });

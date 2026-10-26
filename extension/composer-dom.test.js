@@ -185,6 +185,88 @@ Deno.test("composer DOM (c2): không có tab Note trong vùng ô soạn → note
   assertEquals(page.replyEditor.value, "");
 });
 
+/**
+ * Mô phỏng Crisp THẬT theo phiên dò 2026-10-26 (khác hẳn buildPage kiểu cũ):
+ * class của tab là chuỗi băm (không token active, không aria-selected), editor
+ * KHÔNG có data-placeholder; placeholder là CHỮ RENDER cạnh editor và Note
+ * mode có thêm nhãn "Note" trong vùng soạn; nền Note trên giao diện tối là
+ * olive sẫm rgb(58, 53, 32), nền Reply tối lạnh rgb(20, 24, 36).
+ */
+function buildRealPage({ switchable = true } = {}) {
+  const doc = { focused: null, current: null };
+  const root = new FakeEl("div", { className: "c-conversation-box-field" });
+  const toolbar = new FakeEl("div");
+  const wrap = new FakeEl("div", { bg: "rgb(20, 24, 36)" });
+  const mkTab = (label) => {
+    const div = new FakeEl("div", { className: "css-x1a2b3", cursor: "pointer" });
+    div.append(new FakeEl("span", { text: label, cursor: "pointer" }));
+    return div;
+  };
+  const replyTab = mkTab("Reply");
+  const noteTab = mkTab("Note");
+  toolbar.append(replyTab, noteTab);
+  const replyEditor = new FakeEl("textarea", { attrs: { name: "message" } });
+  const noteEditor = new FakeEl("textarea", { attrs: { name: "message" } });
+  for (const e of [replyEditor, noteEditor]) e.ownerDoc = doc;
+  const replyPh = new FakeEl("div", { text: "Send your message to trung nguyen in chat…" });
+  const notePh = new FakeEl("div", { text: "Send a private note to your team…" });
+  const notePill = new FakeEl("span", { text: "Note" });
+  doc.current = replyEditor;
+  wrap.append(replyEditor, replyPh);
+  root.append(toolbar, wrap);
+  // Click trên Crisp thật dội từ nhãn chữ lên tab (React hứng ở gốc) — fake
+  // không có bubbling nên gắn handler cho cả nhãn span, và handler tự đếm vào
+  // noteTab.clickCount để test khẳng định được đã bấm.
+  const activate = () => {
+    noteTab.clickCount++;
+    wrap.__bg = "rgb(58, 53, 32)"; // olive sẫm của Note mode (giao diện tối)
+    doc.current = noteEditor; // Crisp thay node editor, class tab KHÔNG đổi
+    wrap.children = [noteEditor, notePh, notePill];
+    noteEditor.parentElement = wrap;
+    notePh.parentElement = wrap;
+    notePill.parentElement = wrap;
+  };
+  noteTab.onClick = switchable ? activate : () => {};
+  noteTab.children[0].onClick = switchable ? activate : () => {};
+  const documentFake = {
+    querySelectorAll: (sel) => (doc.current && matchesComposerSelector(doc.current, sel) ? [doc.current] : []),
+    execCommand: (cmd, _ui, val) => {
+      if (cmd === "insertText" && doc.focused) { doc.focused.value = val; doc.focused.innerText = val; }
+      return true;
+    },
+  };
+  return { doc, documentFake, root, replyTab, noteTab, replyEditor, noteEditor };
+}
+
+Deno.test("composer DOM (e): Crisp thật (class băm, placeholder render, nền olive sẫm) → điền Note chạy nhờ tín hiệu phía editor", async () => {
+  const page = buildRealPage();
+  const send = await loadComposer(page);
+  const res = await send({ ...NOTE_MSG, output_id: "note-5" });
+  assertEquals(res.status, "inserted");
+  assertEquals(page.noteTab.clickCount, 1);
+  assertEquals(page.noteEditor.value, "NOTE NỘI BỘ");
+  assertEquals(page.replyEditor.value, "");
+});
+
+Deno.test("composer DOM (e2): Crisp thật nhưng bấm tab mà mode không chuyển → note_unconfirmed, không điền ký tự nào", async () => {
+  const page = buildRealPage({ switchable: false });
+  const send = await loadComposer(page);
+  const res = await send({ ...NOTE_MSG, output_id: "note-6" });
+  assertEquals(res.status, "note_unconfirmed");
+  assertEquals(page.noteEditor.value, "");
+  assertEquals(page.replyEditor.value, "");
+});
+
+Deno.test("composer DOM (f): ô Reply chỉ chứa ký tự zero-width → vẫn coi là trống, draft điền được", async () => {
+  const page = buildPage();
+  page.replyEditor.value = "\u200B";
+  page.replyEditor.innerText = "\u200B";
+  const send = await loadComposer(page);
+  const draft = { type: "copilot:insert", request_id: "r-zw", output_id: 77, session_id: "session_1", text: "Draft sau zero-width", mode: "auto" };
+  assertEquals((await send(draft)).status, "inserted");
+  assertEquals(page.replyEditor.value, "Draft sau zero-width");
+});
+
 Deno.test("composer DOM (d): khoá lệch protocol nằm phía widget — pong protocol 1 → outdated (extension tự nó không kiểm protocol lệnh insert)", () => {
   // bridgeState là cổng duy nhất: widget thấy protocol ≠ 2 thì outdated và
   // panels không render nút điền (xem widget/panels.test.js). Phía extension,
