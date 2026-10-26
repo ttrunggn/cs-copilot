@@ -304,9 +304,10 @@ Deno.test("toJiraViewModel shows status, update badge with from → to, and the 
     has_update: true, status_changed: true, prev_status: "In Progress", done: false, awaiting_report: false,
     new_comments: [{ author: "Dev Minh", role: "tech", body: "Fixed", created_at: "2026-10-16T09:00:00Z" }], recent_comments: [],
   }, { issue_key: "TNT-2", url: "javascript:alert(1)", summary: null, status: null, has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, new_comments: [], recent_comments: [] }], NOW);
-  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", title: "TNT-1 · Pending Dev", summary: "Menu bug", hasUpdate: true, awaitingReport: false, news: ["Đổi trạng thái: In Progress → Pending Dev", "Tech · Dev Minh (1 giờ trước): Fixed"] });
+  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", name: "Menu bug", status: "Pending Dev", done: false, hasUpdate: true, awaitingReport: false, statusLine: "Đổi trạng thái: In Progress → Pending Dev", updatedLabel: "Cập nhật 1 giờ trước", latestTech: { author: "Dev Minh", ago: "1 giờ trước", body: "Fixed" } });
   assertEquals(vm[1].url, null);
-  assertEquals(vm[1].title, "TNT-2 · chưa đồng bộ");
+  assertEquals(vm[1].name, "TNT-2");
+  assertEquals(vm[1].status, "Chưa đồng bộ");
 });
 
 Deno.test("toJiraViewModel: ticket Done chưa báo khách mang cờ awaitingReport; thiếu prev_status thì dòng đổi trạng thái không có 'từ →'", async () => {
@@ -317,8 +318,8 @@ Deno.test("toJiraViewModel: ticket Done chưa báo khách mang cờ awaitingRepo
   }], NOW);
   assertEquals(vm[0].awaitingReport, true);
   assertEquals(vm[0].hasUpdate, true);
-  assertEquals(vm[0].title, "TNT-3 · Done");
-  assertEquals(vm[0].news, ["Đổi trạng thái"]);
+  assertEquals(vm[0].name, "Crash");
+  assertEquals(vm[0].statusLine, "Đổi trạng thái");
 });
 
 Deno.test("enabledModules: dùng nguyên kết quả server tính trong check.modules", () => {
@@ -555,7 +556,8 @@ Deno.test("toJiraViewModel: rỗng/null → []; nhiều ticket giữ nguyên th�
   // server không trả ticket dạng này nữa thì panel mới ẩn; còn trả thì còn hiện, không badge.
   assertEquals(vm[0].awaitingReport, false);
   assertEquals(vm[0].hasUpdate, false);
-  assertEquals(vm[0].news, []);
+  assertEquals(vm[0].statusLine, null);
+  assertEquals(vm[0].latestTech, null);
 });
 
 Deno.test("toJiraViewModel: server thiếu new_comments (bản ghi cũ) không được làm sập render panel", () => {
@@ -563,8 +565,8 @@ Deno.test("toJiraViewModel: server thiếu new_comments (bản ghi cũ) không �
     issue_key: "TNT-7", url: "https://firegroup.atlassian.net/browse/TNT-7", summary: "Legacy", status: "Open",
     has_update: false, status_changed: false, prev_status: null, awaiting_report: false,
   }], NOW);
-  assertEquals(vm[0].news, []);
-  assertEquals(vm[0].title, "TNT-7 · Open");
+  assertEquals(vm[0].latestTech, null);
+  assertEquals(vm[0].name, "Legacy");
 });
 
 Deno.test("toStorefrontViewModel: results 0 findings → totalCount 0 và 3 nhóm đều rỗng (panel hiện 'Không phát hiện lỗi')", () => {

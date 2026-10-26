@@ -356,6 +356,13 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .jira-news { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .jira-news li { overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
 .jira-actions { display: flex; justify-content: flex-end; }
+.jira-toolbar { display: flex; justify-content: flex-end; }
+.jira-title { font-size: 13.5px; font-weight: 750; }
+.pill-status { display: inline-flex; align-items: center; padding: 3px 10px; border: 1px solid var(--warn); border-radius: 999px; color: var(--warn-fg); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.pill-status.done { border-color: var(--success); color: var(--success); }
+.jira-badges { justify-content: flex-start; }
+.jira-comment { display: grid; gap: 3px; }
+.jira-comment p { margin: 0; }
 .unlink-button { color: var(--muted); font-size: 12px; min-height: 32px; }
 .unlink-confirm { display: inline-flex; align-items: center; gap: 8px; }
 

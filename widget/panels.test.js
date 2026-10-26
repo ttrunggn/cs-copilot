@@ -137,6 +137,27 @@ Deno.test("panels: modalView rỗng khi không mở popup; nút Đóng và bấm
   assertEquals(calls.length, 2); // bấm vào trong hộp không đóng
 });
 
+Deno.test("panels: draft follow-up — không tin chờ nhưng ticket có update Dev thì cho soạn và hiện dòng giải thích", () => {
+  reset();
+  state.modal = "draft";
+  state.check = { ...CHECK, needs_reply: false, jira: [{ issue_key: "TNT-9210", has_update: true }] };
+  const overlay = modalView(makeHandlers());
+  const t = allText(overlay);
+  assertEquals(t.includes("Ticket TNT-9210 · Cập nhật mới từ Dev"), true);
+  assertEquals(t.includes("Chưa có tin khách đang chờ trong conversation này."), false);
+  assertEquals(Boolean(buttonByText(overlay, "Soạn tin trả lời")), true);
+});
+
+Deno.test("panels: không tin chờ và ticket không có update -> draft vẫn khoá như cũ", () => {
+  reset();
+  state.modal = "draft";
+  state.check = { ...CHECK, needs_reply: false, jira: [{ issue_key: "TNT-9210", has_update: false }] };
+  const overlay = modalView(makeHandlers());
+  const t = allText(overlay);
+  assertEquals(t.includes("Chưa có tin khách đang chờ trong conversation này."), true);
+  assertEquals(Boolean(buttonByText(overlay, "Soạn tin trả lời")), false);
+});
+
 Deno.test("panels: REGRESSION — popup Private note phải hiện bộ nút chọn cách điền khi ô Note có chữ (choiceFor=note)", () => {
   reset();
   state.modal = "note";
@@ -204,7 +225,7 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   const t = allText(p);
   assertEquals(t.includes("Đang bực / chưa hài lòng"), true);
   assertEquals(t.includes("Mức khẩn cấp cao"), true);
-  assertEquals(t.includes("Tính trên 5 tin của khách"), true);
+  assertEquals(t.includes("tin của khách"), false); // hết dòng giải thích nguồn số liệu (Ethan bỏ 2026-10-26)
   assertEquals(t.includes("Chờ 3 ngày"), true);
   assertEquals(Boolean(buttonByText(p, "Phân tích lại")), true);
 });
@@ -230,6 +251,7 @@ Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ senti
 const JIRA_ITEM = {
   issue_key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", summary: "Menu lỗi", status: "Done",
   has_update: true, status_changed: false, prev_status: null, awaiting_report: true, new_comments: [],
+  recent_comments: [{ author: "Đình Lương", role: "tech", body: "Đã fix, chờ deploy.", created_at: "2026-10-20T09:00:00Z" }],
 };
 Deno.test("panels: jiraPanel ẩn hẳn khi module tắt HOẶC không còn ticket nào (kể cả khi module bật)", () => {
   reset();
@@ -247,6 +269,10 @@ Deno.test("panels: jiraPanel hiện badge Cập nhật mới + Chờ báo khách
   const p = jiraPanel(h);
   const t = allText(p);
   assertEquals(t.includes("Cập nhật mới") && t.includes("Chờ báo khách"), true);
+  assertEquals(t.includes("Jira - Menu lỗi"), true); // tiêu đề mới, bỏ "Issue log"
+  assertEquals(t.includes("Issue log"), false);
+  assertEquals(t.includes("Done"), true); // pill Status
+  assertEquals(t.includes("Tech · Đình Lương") && t.includes("Đã fix, chờ deploy."), true); // comment Tech mới nhất
   buttonByText(p, "Sync ngay").onclick();
   assertEquals(calls, [["jiraSync"]]);
   buttonByText(p, "✕ Gỡ").onclick();
