@@ -10,6 +10,11 @@ import { DATA_ONLY, neutralize, parseJson } from "./prompts.ts";
 export type Mood = "frustrated" | "confused" | "neutral" | "satisfied" | "happy";
 export type Urgency = "low" | "medium" | "high";
 
+export interface SentimentIssue {
+  summary: string; // câu phát biểu VẤN ĐỀ bằng tiếng Việt (AI tổng hợp, không phải trích nguyên văn)
+  evidence: string; // trích ngắn nguyên văn lời khách làm bằng chứng; rỗng nếu không có câu nào đắt
+}
+
 export interface Sentiment {
   score: number; // 0-100, trạng thái hiện tại của khách (cuối hội thoại)
   mood: Mood;
@@ -17,6 +22,11 @@ export interface Sentiment {
   confidence: number; // 0-1
   summary: string; // tiếng Việt, tối đa ~15 từ
   signals: string[];
+  // Vấn đề của khách, tách riêng khỏi signals (Lỗi 4, Ethan 2026-10-26:
+  // panel từng map signals — trích nguyên văn — thành thẻ issue, và cả tin
+  // cập nhật tiến độ cũng thành "issue"). Issue phải là câu tóm tắt vấn đề;
+  // tin không nêu vấn đề thì không sinh issue.
+  issues: SentimentIssue[];
 }
 
 const MOODS: Mood[] = ["frustrated", "confused", "neutral", "satisfied", "happy"];
@@ -31,6 +41,17 @@ export const SENTIMENT_SCHEMA = {
     confidence: { type: "NUMBER" },
     summary: { type: "STRING" },
     signals: { type: "ARRAY", items: { type: "STRING" } },
+    issues: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          summary: { type: "STRING" },
+          evidence: { type: "STRING" },
+        },
+        required: ["summary"],
+      },
+    },
   },
   required: ["score", "mood", "urgency", "confidence", "summary", "signals"],
 };
@@ -57,10 +78,18 @@ export function sentimentPrompt(transcript: string): string {
     ].join("\n"),
     "confidence: 0-1 — low when there are few customer messages, mixed signals, or heavy sarcasm/ambiguity.",
     "summary: in Vietnamese, at most 15 words, the customer's final state and why. signals: up to 3 short evidence phrases (quote or paraphrase the decisive customer words).",
+    [
+      "issues: the customer's distinct PROBLEMS, at most 3, each as ONE short Vietnamese problem statement YOU synthesize from the whole conversation (never a raw quote as the statement).",
+      "- Only real problems the customer needs solved: something broken, blocked, charged wrongly, not understood, or waited on too long.",
+      "- A customer message that merely reports progress or a status (e.g. \"I have accepted you\", \"done\", \"ok thanks\") is NOT an issue — never turn it into one.",
+      "- Merge messages about the same underlying problem into a single issue. If the customer states no concrete problem, return an empty array.",
+      "- evidence: one short verbatim customer quote (at most ~10 words) backing the issue, or an empty string when no single quote is decisive.",
+      "Example: customer says \"I deleted it in April but it is still charging\" → issue summary \"Khách bị trừ tiền sau khi đã gỡ app\", evidence \"it is still charging\".",
+    ].join("\n"),
     "Examples: customer ends \"still not working after 3 days, my store launch is tomorrow\" → score ~25, mood frustrated, urgency high. " +
       "Customer ends \"ya funciona, muchas gracias!\" → score ~80, mood happy, urgency low. " +
       "Customer asks \"how do I translate the checkout page?\" with no emotion → score ~50, mood neutral, urgency low.",
-    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<Vietnamese>","signals":["..."]}. ${DATA_ONLY}`,
+    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<Vietnamese>","signals":["..."],"issues":[{"summary":"<Vietnamese problem statement>","evidence":"<short quote or empty>"}]}. ${DATA_ONLY}`,
     `<conversation>\n${neutralize(transcript)}\n</conversation>`,
   ].join("\n\n");
 }
@@ -92,7 +121,25 @@ export function parseSentiment(text: string): Sentiment {
     confidence: clamp(typeof r.confidence === "number" ? r.confidence : 0.5, 0, 1),
     summary: typeof r.summary === "string" ? r.summary.trim().slice(0, 200) : "",
     signals: (Array.isArray(r.signals) ? r.signals : []).filter((s) => typeof s === "string").slice(0, 3),
+    issues: parseIssues(r.issues),
   };
+}
+
+/** Chuẩn hoá issues của AI: chỉ giữ mục có summary, cắt độ dài, khử trùng, tối đa 3. */
+export function parseIssues(raw: unknown): SentimentIssue[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: SentimentIssue[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const summary = typeof (item as SentimentIssue).summary === "string" ? (item as SentimentIssue).summary.trim().slice(0, 140) : "";
+    if (!summary || seen.has(summary.toLowerCase())) continue;
+    seen.add(summary.toLowerCase());
+    const evidence = typeof (item as SentimentIssue).evidence === "string" ? (item as SentimentIssue).evidence.trim().slice(0, 120) : "";
+    out.push({ summary, evidence });
+    if (out.length >= 3) break;
+  }
+  return out;
 }
 
 export const MOOD_EMOJI: Record<Mood, string> = {

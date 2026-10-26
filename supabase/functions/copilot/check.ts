@@ -2,9 +2,11 @@ import { unansweredCustomerMessages } from "../_shared/context.ts";
 import { type ConversationJira, enabledModules, type EnabledModules, jiraForConversation } from "../_shared/jira.ts";
 import type { Db } from "../_shared/db.ts";
 import { pickBestProfileRow, type ProfileSource, resolveProfile } from "../_shared/profile.ts";
+import { resolveReviewTemplate, type ResolvedReviewTemplate } from "../_shared/review.ts";
 import type { Sentiment } from "../_shared/sentiment.ts";
 import type { StorefrontStoreStatus } from "../_shared/storefront.ts";
 import type { Warning, Workspace } from "../_shared/types.ts";
+import { sentimentFingerprint } from "./analyze.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
 import { shopFromCustomData } from "./storefront-actions.ts";
 
@@ -16,6 +18,15 @@ export interface CheckResult {
   topic_label: string | null;
   profile_source: ProfileSource;
   profile_name: string;
+  /**
+   * Độ phủ dữ liệu học của CHÍNH CS đang trực (từ các dòng agent_profiles của
+   * họ): panel hiện công khai để phân biệt "đã học từ N cuộc trò chuyện" với
+   * "chưa đủ dữ liệu" (nguyên tắc minh bạch — Ethan, 2026-10-26). null = CS
+   * chưa có dòng profile nào.
+   */
+  profile_coverage: { conversations_used: number; learned_at: string | null } | null;
+  /** Template xin review đã phân giải: giọng theo profile của CS (source "profile") hoặc mặc định có ghi nguồn (source "default"); link đã thay theo workspace. */
+  review_template: ResolvedReviewTemplate;
   /** Trạng thái Crisp của conversation (unresolved | resolved | pending…); widget dùng để chỉ cảnh báo CSAT khi chat chưa đóng. */
   conversation_state: string | null;
   needs_reply: boolean;
@@ -39,6 +50,14 @@ export interface CheckResult {
    */
   storefront_status: StorefrontStoreStatus | null;
   sentiment: Sentiment | null;
+  /**
+   * Sentiment đã lưu KHÔNG còn khớp dấu vân tay tin khách hiện tại (khách đã
+   * nhắn thêm, hoặc chưa từng phân tích dù đã có tin) → panel tự gọi analyze
+   * khi mở conversation (compute-on-view, Lỗi 5 — 2026-10-26) thay vì chờ
+   * precompute qua n8n. false khi không có tin khách dạng text (không có gì
+   * để phân tích) hoặc bản lưu đang khớp.
+   */
+  sentiment_stale: boolean;
   csat: { sent: boolean; sent_at: string | null };
   latest_draft: {
     output_id: number;
@@ -70,6 +89,12 @@ export async function runCheck(
   const unanswered = unansweredCustomerMessages(messages);
   const pendingMessages = pendingCustomerMessages(messages);
   const { source } = resolveProfile(profiles, conv.topic, ws.default_profile, pickBestProfileRow(allProfiles));
+  const profileCoverage = profiles.length
+    ? {
+      conversations_used: Math.max(...profiles.map((p) => p.conversations_used ?? 0)),
+      learned_at: profiles.map((p) => p.learned_at).filter((t): t is string => Boolean(t)).sort().at(-1) ?? null,
+    }
+    : null;
   const jira = jiraForConversation(jiraRows, conv.last_human_operator_at);
   // Cổng Storefront đường domain (chỉ workspace trong phạm vi SW —
   // enabledModules khoá bằng cờ ws.storefront_watch): shop lấy từ custom
@@ -82,6 +107,12 @@ export async function runCheck(
   const storefrontStatus = shop && ws.storefront_watch
     ? await deps.db.getStorefrontStoreStatus(req.website_id, shop).catch(() => null)
     : null;
+  // Độ tươi của sentiment: so dấu vân tay bản lưu với tin khách hiện tại.
+  // Chỉ tốn một lần băm — check vẫn không gọi AI.
+  const hasCustomerText = messages.some((m) => m.from === "user" && m.type === "text");
+  const sentimentStale = hasCustomerText
+    ? !sentimentRow || sentimentRow.input_fp !== await sentimentFingerprint(messages)
+    : false;
   return {
     action: "check",
     stale,
@@ -90,6 +121,8 @@ export async function runCheck(
     topic_label: ws.topics.find((t) => t.key === conv.topic)?.label ?? null,
     profile_source: source,
     profile_name: (req.operator_name ?? "").trim() || operator?.display_name || operatorId,
+    profile_coverage: profileCoverage,
+    review_template: resolveReviewTemplate(profiles, conv.topic, ws.review_link),
     conversation_state: conv.state,
     needs_reply: unanswered.length > 0,
     unanswered,
@@ -105,6 +138,7 @@ export async function runCheck(
     }),
     storefront_status: storefrontStatus,
     sentiment: sentimentRow ? (({ input_fp: _fp, ...rest }) => rest)(sentimentRow) : null,
+    sentiment_stale: sentimentStale,
     csat: { sent: Boolean(csatSend), sent_at: csatSend?.sent_at ?? null },
     // Draft viết trước tin khách mới nhất là của lượt trước: không hiện để tránh "Điền lại" nhầm.
     latest_draft: latest && (!conv.last_customer_at || Date.parse(latest.created_at) >= Date.parse(conv.last_customer_at))

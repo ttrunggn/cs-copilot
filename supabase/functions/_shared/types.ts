@@ -44,6 +44,14 @@ export interface Workspace {
    * không được suy phạm vi SW từ hai tín hiệu đó (quyết định của Ethan).
    */
   storefront_watch: boolean;
+  /**
+   * Link đích xin review CỦA WORKSPACE (vd trang app trên Shopify App Store
+   * của Transcy) — product knowledge theo workspace (Ethan chốt 2026-10-26):
+   * template xin review theo profile chỉ chứa biến {{review_link}}, server
+   * thay bằng link của workspace đang làm việc khi trả về panel. null = chưa
+   * cấu hình → template mặc định bỏ dòng link.
+   */
+  review_link: string | null;
 }
 
 export type NoteLanguage = "vi" | "en" | "mixed";
@@ -78,6 +86,8 @@ export interface ProfileRow extends Partial<Profile> {
   learned_at: string | null;
   manual_override: Partial<Profile> | null;
   note_format?: NoteFormat | null; // chỉ có ở dòng "_all" (cột jsonb, migration 20261022000016)
+  /** Template xin review đã học của chính CS này (migration 20261030000026); link đích là biến {{review_link}} theo workspace, không nằm cứng trong template. null = chưa học được. */
+  review_template?: string | null;
 }
 
 export interface ConversationRow {
