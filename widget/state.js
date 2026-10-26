@@ -20,6 +20,11 @@ export const state = {
   csatChoice: "", // trong popup CSAT: "" | survey | review — CS đã chọn nhánh nào
   reviewText: "", // nội dung tin xin review CS đang sửa trong popup (mặc định REVIEW_TEMPLATE)
   reviewInsertId: "", // output_id tổng hợp cho lệnh điền tin review — reset khi CS sửa chữ để khỏi bị chặn "duplicate"
+  draftSugg: null, // gợi ý tối ưu cho draft vừa soạn (generate.draft_suggestion {reason, text}); null = không có
+  draftSuggPhase: "", // thẻ gợi ý Draft: "" | trying | adopted | saved (luồng nút Ethan duyệt ở preview v8)
+  draftSuggOrig: "", // text draft gốc khi đang thử bản gợi ý — để "Dùng bản gốc" khôi phục
+  reviewSuggPhase: "", // thẻ gợi ý Review: "" | trying | adopted | saved
+  reviewSuggOrig: "", // text template gốc khi đang thử bản gợi ý Review
   askQuestion: "", // câu hỏi CS đang gõ trong panel Hỏi tài liệu (giữ qua các lần render)
   askResult: null, // { question, found, answer, sources } — kết quả ask gần nhất của chat đang mở
   sentiment: null, // phân tích tâm trạng mới nhất (check/analyze/generate trả về)
@@ -74,6 +79,11 @@ export function resetSessionScopedState(target) {
   target.csatChoice = "";
   target.reviewText = "";
   target.reviewInsertId = "";
+  target.draftSugg = null;
+  target.draftSuggPhase = "";
+  target.draftSuggOrig = "";
+  target.reviewSuggPhase = "";
+  target.reviewSuggOrig = "";
   target.composeOpen = true;
   target.askQuestion = "";
   target.askResult = null;
