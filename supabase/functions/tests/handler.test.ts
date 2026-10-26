@@ -45,6 +45,7 @@ const WIDGET_HASH = await sha256Hex(CRISP_TOKEN);
 function deps(over: Partial<Db> = {}, stale = false) {
   const db: Db = {
     getWorkspace: () => Promise.resolve(WS),
+    logTrace: () => Promise.resolve(),
     getWidgetTokenHash: () => Promise.resolve(WIDGET_HASH),
     getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
     isOperatorMember: () => Promise.resolve(true),
@@ -122,6 +123,7 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     storefront_status: null,
     sentiment: null,
     sentiment_stale: true, // chưa từng phân tích mà đã có tin khách → panel tự làm tươi khi mở
+    jira_stale: false, // không có ticket Jira nào được liên kết
     csat: { sent: false, sent_at: null },
     latest_draft: null,
   });
@@ -343,7 +345,7 @@ Deno.test("jira_sync_now: Jira lỗi -> triggered false kèm lý do, không nu�
   assert(typeof body.error === "string" && body.error.includes("HTTP 500"));
 });
 
-Deno.test("check: mirror Jira đã cũ -> tự sync khi mở panel rồi hiện bản mới", async () => {
+Deno.test("check: mirror Jira đã cũ -> trả NGAY bản cũ + jira_stale, sync chạy nền không chặn check", async () => {
   let synced = false;
   const row = (summary: string, syncedAt: string) => ({
     link: {
@@ -364,8 +366,12 @@ Deno.test("check: mirror Jira đã cũ -> tự sync khi mở panel rồi hiện 
   };
   const r = await handle(REQ, TOKEN, d);
   assertEquals(r.status, 200);
-  const body = r.body as { jira: { summary: string }[] };
-  assertEquals(body.jira[0].summary, "Bản mới từ Jira");
+  const body = r.body as { jira: { summary: string }[]; jira_stale: boolean };
+  // Check KHÔNG chờ Jira nữa: trả mirror cũ ngay, gắn cờ để widget nạp lại.
+  assertEquals(body.jira[0].summary, "Bản cũ");
+  assertEquals(body.jira_stale, true);
+  // Việc sync vẫn xảy ra — ở nền, sau khi response đã trả.
+  await new Promise((res) => setTimeout(res, 10));
   assertEquals(saved.length, 1);
 });
 
@@ -424,4 +430,20 @@ Deno.test("jira_unlink: issue_key sai định dạng -> 400, không gọi db", a
     assertEquals((await handle({ ...REQ, action: "jira_unlink", issue_key: bad }, TOKEN, d)).status, 400, bad);
   }
   assertEquals(called, false);
+});
+
+Deno.test("tracing: mỗi request ghi 1 dòng timing theo action; request lỗi ghi thêm dòng error có message", async () => {
+  const rows: { kind: string; action?: string | null; stage?: string | null; message?: string | null }[] = [];
+  const cap = {
+    logTrace: (row: never) => {
+      rows.push(row);
+      return Promise.resolve();
+    },
+  };
+  const ok = await handle(REQ, TOKEN, deps(cap as Partial<Db>));
+  assertEquals(ok.status, 200);
+  assertEquals(rows.filter((r) => r.kind === "timing" && r.action === "check" && r.stage === "handler").length, 1);
+  const bad = await handle({ ...REQ, action: "khong_co_action_nay" }, TOKEN, deps(cap as Partial<Db>));
+  assertEquals(bad.status, 400);
+  assertEquals(rows.some((r) => r.kind === "error" && typeof r.message === "string" && r.message.length > 0), true);
 });
