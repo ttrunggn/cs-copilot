@@ -80,7 +80,12 @@ export function makeDeps(opts: {
 } = {}) {
   const over: Partial<Db> = opts.db ?? {};
   const inserted: NewOutput[] = [];
+  const traces: import("../_shared/db.ts").TraceRow[] = [];
   const db: Db = {
+    logTrace: (row) => {
+      traces.push(row);
+      return Promise.resolve();
+    },
     getWorkspace: () => Promise.resolve(WS),
     getWidgetTokenHash: () => Promise.resolve(null),
     getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
@@ -125,5 +130,5 @@ export function makeDeps(opts: {
     triggerJiraSync: () => Promise.resolve(true),
     sendSurvey: () => Promise.resolve(true),
   };
-  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted };
+  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, traces };
 }

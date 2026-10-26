@@ -11,6 +11,7 @@ async function fakeDb(member = true): Promise<Db> {
   const lanHash = await sha256Hex(TOKEN);
   const widgetHash = await sha256Hex(CRISP_TOKEN);
   return {
+    logTrace: () => Promise.resolve(),
     getWidgetTokenHash: (id) => Promise.resolve(id === "ws1" ? widgetHash : null),
     getWorkspace: (id) => Promise.resolve(id === "ws1" ? WS : null),
     getOperatorIdByTokenHash: (h) => Promise.resolve(h === lanHash ? "op-lan" : null),
