@@ -192,6 +192,17 @@ Deno.test("parseStoreText: store có theo dõi — counts, languages, last check
   assertEquals(s.pagesChecked, 31);
 });
 
+Deno.test("parseStoreText: dòng Store dính chú thích '(asked as …)' → shop là domain sạch, không kèm domain Shopify", () => {
+  // Mẫu thật ca tantaly (Ethan bắt live 2026-10-27): hỏi bằng domain Shopify,
+  // SW trả tên store chuẩn kèm chú thích — chú thích lọt vào shop từng làm
+  // URL Console thành link chết.
+  const s = parseStoreText(
+    AMIRO_STORE.replace("Store: amirobeauty.com", "Store: www.tantaly.de (asked as tantaly-de.myshopify.com)"),
+    "tantaly-de.myshopify.com",
+  );
+  assertEquals(s.shop, "www.tantaly.de");
+});
+
 Deno.test("parseStoreText: store không theo dõi → watched=false, không bịa số liệu", () => {
   const s = parseStoreText(
     "Store: example.myshopify.com\nStorefront Watch does not watch this store and has never scanned it.\nThat means nothing is known about it, not that it has no problems.",
@@ -822,6 +833,11 @@ Deno.test("consoleUnitUrl: đủ mảnh mới cấu link; thiếu bề rộng/lo
   assertEquals(consoleUnitUrl("www.tantaly.de", { locale: "nl", page: "/products/x", widthPx: null }), null);
   assertEquals(consoleUnitUrl("www.tantaly.de", { locale: null, page: "/products/x", widthPx: 1440 }), null);
   assertEquals(consoleUnitUrl(null, { locale: "nl", page: "/", widthPx: 1440 }), null);
+  // Domain dính chú thích "(asked as …)" → lột sạch trước khi cấu URL;
+  // domain còn khoảng trắng/ngoặc (không thể là domain thật) → null.
+  assertEquals(consoleUnitUrl("www.tantaly.de (asked as tantaly-de.myshopify.com)", { locale: "nl", page: "/products/x", widthPx: 1440 }),
+    "https://sw.transcy.io/#/f/www.tantaly.de%7Cnl%7C%2Fproducts%2Fx%7C1440");
+  assertEquals(consoleUnitUrl("www.tantaly.de (ghi chú lạ)", { locale: "nl", page: "/products/x", widthPx: 1440 }), null);
 });
 
 // ---------- bản chụp trạng thái store (storeStatusFromStore) ----------
