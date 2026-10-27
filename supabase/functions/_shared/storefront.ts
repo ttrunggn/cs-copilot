@@ -240,7 +240,13 @@ export function parseStoreText(text: string, shopArg: string): StorefrontStore {
   const lines = textLines(text);
   const storeLine = lines.find((l) => l.startsWith("Store: "));
   if (!storeLine) throw new StorefrontError("find_store trả định dạng lạ (thiếu dòng 'Store:'), không đọc được");
-  const shop = storeLine.slice("Store: ".length).trim() || shopArg;
+  // SW chú thích "(asked as <domain khác>)" sau tên store khi domain được hỏi
+  // khác domain chuẩn của store — đó là ghi chú hiển thị, KHÔNG thuộc định
+  // danh store. Không lột thì chú thích (kèm domain Shopify) lọt vào mọi nơi
+  // dùng shop làm khoá, tệ nhất là URL Console thành link chết (Ethan bắt
+  // live 2026-10-27 trên ca tantaly).
+  const shop = storeLine.slice("Store: ".length).trim()
+    .replace(/\s*\(asked as [^)]*\)$/, "").trim() || shopArg;
   if (text.includes(NOT_WATCHED_MARK)) {
     return { watched: false, shop, lastCheckedAt: null, openBySeverity: {}, uncheckedPages: [], languages: [], pagesChecked: null };
   }
@@ -316,8 +322,12 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
  * link chết cho CS bấm.
  */
 export function consoleUnitUrl(domain: string | null | undefined, f: { locale?: string | null; page?: string | null; widthPx?: number | null }): string | null {
-  if (!domain || !f.locale || !f.page || !f.widthPx) return null;
-  return `https://sw.transcy.io/#/f/${encodeURIComponent(`${domain}|${f.locale}|${f.page}|${f.widthPx}`)}`;
+  // Chốt chặn tại chỗ cấu URL (parseStoreText đã lột ở nguồn): domain còn dính
+  // chú thích "(asked as …)" thì lột; vẫn còn khoảng trắng/ngoặc (không thể là
+  // một domain thật) thì thà trả null còn hơn gắn link chết.
+  const clean = (domain ?? "").trim().replace(/\s*\(asked as [^)]*\)$/, "").trim();
+  if (!clean || /[\s()]/.test(clean) || !f.locale || !f.page || !f.widthPx) return null;
+  return `https://sw.transcy.io/#/f/${encodeURIComponent(`${clean}|${f.locale}|${f.page}|${f.widthPx}`)}`;
 }
 
 export function parseFindingsText(text: string): StorefrontFinding[] {
