@@ -13,7 +13,7 @@ export const PING_TIMEOUT_MS = 1000;
  * đang ở bản cũ, thay vì báo "sẵn sàng" rồi CS lãnh đủ lỗi cũ (Ethan test
  * live 2026-10-26: tưởng đã cài 1.2.1 nhưng Chrome vẫn chạy bản cũ).
  */
-export const EXPECTED_EXTENSION_VERSION = "1.2.3";
+export const EXPECTED_EXTENSION_VERSION = "1.2.4";
 
 /** So sánh semver rút gọn (các thành phần số, cách nhau bởi dấu chấm). */
 function versionParts(v) {

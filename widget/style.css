@@ -308,7 +308,8 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .cmd-note { --tint: rgba(217, 169, 44, .68); border-color: #d9a92c; color: #fff0b8; }
 .cmd-ask { --tint: rgba(62, 142, 222, .68); border-color: #3e8ede; color: #e2f1ff; }
 .cmd-csat { --tint: rgba(224, 86, 107, .68); border-color: #e0566b; color: #ffe0e5; }
-.customer-line { margin: 2px 0 0; font-size: 13px; }
+.customer-line { margin: 3px 0 0; font-size: 14.5px; }
+.customer-line b { font-size: 16px; }
 .profile-status-card { gap: 4px; font-size: 12.5px; }
 .profile-status-card .eyebrow { margin-bottom: 2px; }
 

@@ -77,6 +77,8 @@ export function extensionHint({ detectExtension }) {
  * thẻ chỉ hiện khi server có gợi ý. Luồng nút đã duyệt: MỘT nút "Thử bản
  * gợi ý" → HAI nút "Dùng bản gợi ý" / "Dùng bản gốc" → nút "Lưu làm mẫu
  * mới" CHỈ xuất hiện sau khi đã chọn dùng bản gợi ý.
+ * Từ 2026-10-27 thẻ này CHỈ còn dùng cho template xin review — gợi ý cho
+ * draft đã bỏ theo lệnh Ethan (kèm bước polish phía server).
  */
 export function suggestionCard(kind, handlers) {
   const isDraft = kind === "draft";
@@ -147,7 +149,6 @@ export function draftPanel(handlers) {
       : null,
     vm.todos ? el("p", { className: "warn", textContent: `Còn ${vm.todos} chỗ cần điền trước khi gửi.` }) : null,
     draftText(vm.text),
-    suggestionCard("draft", handlers),
     vm.warnings.length
       ? el("div", { className: "warnings" }, vm.warnings.map((w) =>
         el("div", { className: "warning-item" }, [
@@ -386,6 +387,10 @@ export function knowledgePanel({ onAsk, onAskCompose }) {
     input,
     el("button", { className: "button-primary", disabled: askBtn.disabled, onclick: () => onAsk() }, buttonContent(askBtn.running, "Đang tìm…", "Tìm trong tài liệu")),
     r ? el("div", { className: "ask-question", textContent: r.question }) : null,
+    // Không tìm thấy: đúng MỘT dòng trạng thái (Ethan bắt live 2026-10-27:
+    // im lặng hoàn toàn khiến CS tưởng hệ thống hỏng). Không hồi sinh khối
+    // to + 2 nút đã bị bỏ ở batch 5 — chỉ cho biết đã tìm và không có.
+    r && !r.found ? el("p", { className: "muted ask-notfound", textContent: "Không tìm thấy nội dung phù hợp trong tài liệu." }) : null,
     r && r.found ? el("div", { className: "ask-answer-block" }, [
       el("div", { className: "ask-answer", textContent: r.answer }),
       r.sources.length ? el("p", { className: "muted ask-sources" }, [
