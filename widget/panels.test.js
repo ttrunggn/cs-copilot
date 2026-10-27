@@ -598,8 +598,8 @@ Deno.test("panels: extensionHint — bridge ready nhưng version cũ hơn bản 
   const hint = extensionHint(makeHandlers());
   assertEquals(hint === null, false);
   assertEquals(allText(hint).includes("Extension đang ở bản cũ v1.2.0"), true);
-  assertEquals(allText(hint).includes("1.2.4"), true);
-  state.bridgeVersion = "1.2.4";
+  assertEquals(allText(hint).includes("1.2.5"), true);
+  state.bridgeVersion = "1.2.5";
   assertEquals(extensionHint(makeHandlers()), null);
   state.bridgeVersion = "";
   assertEquals(extensionHint(makeHandlers()), null);
