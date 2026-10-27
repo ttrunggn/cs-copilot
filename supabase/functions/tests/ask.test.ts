@@ -1,5 +1,6 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { handle } from "../copilot/handler.ts";
+import { mergeHybridChunks } from "../copilot/ask.ts";
 import type { HelpdeskChunk } from "../_shared/types.ts";
 import { fakeAi, makeDeps, TOKEN } from "./fakes.ts";
 
@@ -7,22 +8,24 @@ const REQ = { website_id: "ws1", session_id: "session_1", action: "ask", questio
 const HD: HelpdeskChunk = { title: "Currency", url: "https://help.transcy.io/en/article/currency", text: "Enable auto currency.", similarity: 0.8 };
 const ANSWERED = JSON.stringify({ answered: true, answer: "Có. Bật Auto Currency trong Settings > Currency." });
 
-function setup(o: { helpdesk?: HelpdeskChunk[]; keyword?: HelpdeskChunk[]; ask?: string; translate?: string } = {}) {
+type HybridImpl = (websiteId: string, query: string) => Promise<HelpdeskChunk[]>;
+
+function setup(o: { hybrid?: HelpdeskChunk[]; hybridImpl?: HybridImpl; ask?: string; translate?: string } = {}) {
   const f = fakeAi({ ask: o.ask ?? ANSWERED, ...(o.translate !== undefined ? { translate: o.translate } : {}) });
-  const captured: { tokens: string[] } = { tokens: [] };
+  const captured: { queries: string[] } = { queries: [] };
+  const impl: HybridImpl = o.hybridImpl ?? (() => Promise.resolve(o.hybrid ?? [{ ...HD, score: 0.03, ftsRank: 2 }]));
   const m = makeDeps({
     ai: f.ai,
     db: {
-      matchHelpdesk: () => Promise.resolve(o.helpdesk ?? [HD]),
-      searchHelpdeskText: (_ws: string, tokens: string[]) => { captured.tokens = tokens; return Promise.resolve(o.keyword ?? []); },
+      hybridMatchHelpdesk: (ws: string, q: string) => { captured.queries.push(q); return impl(ws, q); },
     },
   });
   return { ...m, calls: f.calls, captured };
 }
 
-Deno.test("ask: bài dưới ngưỡng chặt nhưng trên sàn yếu → vẫn đưa AI phán quyết; AI bảo không trả lời được → found false", async () => {
+Deno.test("ask: bài trên sàn yếu phía vector (dưới ngưỡng chặt của generate, không khớp FTS) → vẫn đưa AI phán quyết; AI bảo không trả lời được → found false", async () => {
   const { deps, calls } = setup({
-    helpdesk: [{ ...HD, similarity: 0.5 }], // dưới ngưỡng 0.65, trên sàn yếu 0.45
+    hybrid: [{ ...HD, similarity: 0.5, score: 0.02, ftsRank: null }], // dưới 0.65, trên sàn yếu 0.45
     ask: JSON.stringify({ answered: false, answer: "" }),
   });
   const r = await handle(REQ, TOKEN, deps);
@@ -31,15 +34,15 @@ Deno.test("ask: bài dưới ngưỡng chặt nhưng trên sàn yếu → vẫn 
   assertEquals(calls.filter((c) => c.task === "ask").length, 1);
 });
 
-Deno.test("ask: bài dưới cả sàn yếu và không có khớp từ khoá → found false, không gọi AI", async () => {
-  const { deps, calls } = setup({ helpdesk: [{ ...HD, similarity: 0.3 }] });
+Deno.test("ask: bài dưới cả sàn yếu và không khớp FTS → found false, không gọi AI", async () => {
+  const { deps, calls } = setup({ hybrid: [{ ...HD, similarity: 0.3, score: 0.01, ftsRank: null }] });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
   assertEquals(calls.filter((c) => c.task === "ask" || c.task === "draft").length, 0);
 });
 
-Deno.test("ask: vector trượt hẳn nhưng TỪ KHOÁ khớp nội dung → AI trả lời được → found true (câu hỏi đời thường vẫn ra đáp án)", async () => {
-  const { deps } = setup({ helpdesk: [], keyword: [{ ...HD, similarity: 0 }] });
+Deno.test("ask: vector trượt hẳn nhưng FULL-TEXT khớp (hybrid) → AI trả lời được → found true (câu hỏi đời thường vẫn ra đáp án)", async () => {
+  const { deps } = setup({ hybrid: [{ ...HD, similarity: 0, score: 0.016, ftsRank: 1 }] });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
   assertEquals(r.body, {
@@ -51,7 +54,7 @@ Deno.test("ask: vector trượt hẳn nhưng TỪ KHOÁ khớp nội dung → AI
 });
 
 Deno.test("ask: không có bài nào khớp → found false, không gọi AI", async () => {
-  const { deps, calls } = setup({ helpdesk: [] });
+  const { deps, calls } = setup({ hybrid: [] });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
   assertEquals(calls.filter((c) => c.task === "ask").length, 0);
@@ -91,19 +94,19 @@ Deno.test("ask: answered true nhưng đáp án rỗng → found false", async ()
   assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
 });
 
-Deno.test("ask: câu hỏi tiếng Việt (ca Ethan thử: 'khách muốn chặn bản dịch') → dịch sang Anh để truy hồi, từ khoá Anh khớp tài liệu → found true", async () => {
+Deno.test("ask: câu hỏi tiếng Việt (ca Ethan thử: 'khách muốn chặn bản dịch') → hybrid chạy cả bản dịch tiếng Anh; FTS khớp trên bản dịch → found true", async () => {
   const { deps, calls, captured } = setup({
-    helpdesk: [], // vector trượt hẳn: tài liệu tiếng Anh, câu hỏi tiếng Việt
-    keyword: [{ ...HD, similarity: 0 }],
+    hybridImpl: (_ws, q) => Promise.resolve(
+      q === "How to block translation for a page" ? [{ ...HD, similarity: 0, score: 0.016, ftsRank: 1 }] : [],
+    ),
     translate: JSON.stringify({ items: [{ i: 0, en: "How to block translation for a page" }] }),
   });
   const r = await handle({ ...REQ, question: "khách muốn chặn bản dịch" }, TOKEN, deps);
   assertEquals(r.status, 200);
   assertEquals((r.body as { found: boolean }).found, true);
   assertEquals(calls.filter((c) => c.task === "translate").length, 1);
-  // Từ khoá tìm trong tài liệu phải có token tiếng Anh từ bản dịch.
-  assertEquals(captured.tokens.includes("block"), true);
-  assertEquals(captured.tokens.includes("translation"), true);
+  // Hybrid phải được gọi bằng bản dịch tiếng Anh (kho là tiếng Anh).
+  assertEquals(captured.queries.includes("How to block translation for a page"), true);
 });
 
 Deno.test("ask: câu hỏi tiếng Anh thì KHÔNG tốn lượt dịch", async () => {
@@ -111,6 +114,17 @@ Deno.test("ask: câu hỏi tiếng Anh thì KHÔNG tốn lượt dịch", async 
   const r = await handle({ ...REQ, question: "How do I enable auto currency by visitor IP?" }, TOKEN, deps);
   assertEquals(r.status, 200);
   assertEquals(calls.filter((c) => c.task === "translate").length, 0);
+});
+
+Deno.test("mergeHybridChunks: cùng đoạn từ hai biến thể thì giữ điểm RRF cao hơn; danh sách xếp theo điểm giảm dần", () => {
+  const a: HelpdeskChunk = { ...HD, score: 0.01, ftsRank: null };
+  const aBetter: HelpdeskChunk = { ...HD, score: 0.03, ftsRank: 1 };
+  const b: HelpdeskChunk = { title: "Other", url: "https://x.io/o", text: "Other text.", similarity: 0.5, score: 0.02, ftsRank: null };
+  const out = mergeHybridChunks([[a, b], [aBetter]]);
+  assertEquals(out.length, 2);
+  assertEquals(out[0].title, "Currency");
+  assertEquals(out[0].score, 0.03);
+  assertEquals(out[1].title, "Other");
 });
 
 Deno.test("ask: thiếu/rỗng câu hỏi → 400", async () => {
