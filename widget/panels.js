@@ -354,19 +354,17 @@ export function issuesPanel(vm) {
 
 /**
  * Panel Hỏi tài liệu (trong popup Knowledge Base Asking): CS gõ câu hỏi →
- * action ask trả lời CHỈ từ helpdesk, kèm nguồn. Không có nguồn thì hiện thẻ
- * cảnh báo "không tìm thấy" — không đoán chính sách. "Soạn thành tin trả lời
- * khách" đưa đáp án thành ý của CS (state.hint) rồi chạy generate như thường.
- * "Ghi private note hỏi quản lý" dùng lại luồng handoff sẵn có (tạo private
- * note từ đoạn chat để CS điền vào ô Note của Crisp, sửa và tự đăng), không
- * nhét thêm nội dung gì vào note. Không còn nút Copy (Ethan chốt UX
- * 2026-10-23): muốn dùng đáp án thì đi đường "Soạn thành tin trả lời khách".
+ * action ask trả lời CHỈ từ helpdesk, kèm nguồn. Không tìm thấy thì không
+ * hiện thêm khối nào (Ethan chốt 2026-10-27: bỏ thẻ "không tìm thấy" cùng hai
+ * nút Thử từ khoá khác / Ghi private note hỏi quản lý). "Soạn thành tin trả
+ * lời khách" đưa đáp án thành ý của CS (state.hint) rồi chạy generate như
+ * thường. Không còn nút Copy (Ethan chốt UX 2026-10-23): muốn dùng đáp án
+ * thì đi đường "Soạn thành tin trả lời khách".
  */
-export function knowledgePanel({ onAsk, onAskCompose, onAskRetry, onHandoff }) {
+export function knowledgePanel({ onAsk, onAskCompose }) {
   const r = state.askResult;
   const askBtn = actionButtonState(state.busyAction, "ask");
   const genBtn = actionButtonState(state.busyAction, "generate");
-  const noteBtn = actionButtonState(state.busyAction, "handoff");
   const input = el("textarea", {
     className: "field",
     rows: 3,
@@ -399,15 +397,6 @@ export function knowledgePanel({ onAsk, onAskCompose, onAskRetry, onHandoff }) {
       ]) : null,
       el("div", { className: "row" }, [
         el("button", { className: "button-primary", disabled: genBtn.disabled, onclick: () => onAskCompose(r.answer) }, buttonContent(genBtn.running, state.busy, "Soạn thành tin trả lời khách")),
-      ]),
-    ]) : null,
-    r && !r.found ? el("div", { className: "ask-notfound" }, [
-      el("div", { className: "warn" }, [
-        el("b", { textContent: "Mình không tìm thấy bài nào nói về việc này." }),
-      ]),
-      el("div", { className: "row" }, [
-        el("button", { className: "button-secondary", textContent: "Thử từ khoá khác", onclick: () => onAskRetry() }),
-        el("button", { className: "button-secondary", disabled: noteBtn.disabled, onclick: () => onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết…", "Ghi private note hỏi quản lý")),
       ]),
     ]) : null,
   ]);
@@ -451,23 +440,106 @@ export function csatPanel({ onSurvey }) {
 /** Class màu pill theo trạng thái Storefront. */
 const SF_STATUS_CLASS = { new: "sf-new", acknowledged: "sf-ack", in_progress: "sf-prog" };
 
+/** Form ghi chú trong menu thao tác: Fixed chỉ cần ghi chú; Dismiss thêm 2 lựa chọn lý do (đúng 2 giá trị schema SW nhận). */
+function sfActForm(row, kind, handlers) {
+  const fp = row.fingerprint;
+  const busy = state.sfActBusy === fp;
+  const valid = () => state.sfNoteInput.trim().length > 0 && (kind === "fixed" || Boolean(state.sfReason));
+  const confirmBtn = el("button", {
+    className: "sf-act sf-confirm",
+    disabled: busy || !valid(),
+    onclick: () => handlers.onStorefrontAct?.(fp, kind),
+  }, buttonContent(busy, "Đang gửi…", kind === "fixed" ? "Xác nhận Fixed" : "Xác nhận Dismiss"));
+  return el("div", { className: "sf-form" }, [
+    kind === "dismiss" ? el("div", { className: "sf-flabel", textContent: "Lý do Dismiss (bắt buộc)" }) : null,
+    kind === "dismiss" ? el("div", { className: "sf-chips" }, [
+      el("button", {
+        className: `sf-chip${state.sfReason === "false_signal" ? " on" : ""}`,
+        textContent: "Báo sai, trang vẫn ổn",
+        onclick: () => { state.sfReason = "false_signal"; handlers.rerender?.(); },
+      }),
+      el("button", {
+        className: `sf-chip${state.sfReason === "not_important" ? " on" : ""}`,
+        textContent: "Lỗi thật, không đáng sửa",
+        onclick: () => { state.sfReason = "not_important"; handlers.rerender?.(); },
+      }),
+    ]) : null,
+    el("textarea", {
+      className: "sf-note-input",
+      rows: 2,
+      placeholder: "Ghi chú (bắt buộc) — Console hiện ghi chú này kèm quyết định",
+      value: state.sfNoteInput,
+      // Gõ ghi chú không render lại (mất focus); chỉ bật/tắt nút xác nhận tại chỗ.
+      oninput: (e) => {
+        state.sfNoteInput = e.target.value;
+        confirmBtn.disabled = busy || !valid();
+      },
+    }),
+    el("div", { className: "sf-fbtns" }, [
+      confirmBtn,
+      el("button", { className: "sf-act", disabled: busy, textContent: "Huỷ", onclick: () => handlers.onStorefrontForm?.(fp, null) }),
+    ]),
+  ]);
+}
+
 /**
  * Một dòng bug (Ethan chốt lại 2026-10-26 23:24): pill trạng thái (Mới / Đã
  * xác nhận / Đang xử lý — Đang xử lý = team đã báo khách, server tự phân
  * loại) + nhãn bug ngắn + meta dữ kiện + đúng 1 link ↗ unit sang Console.
- * Không mở chi tiết, không hiện nội dung/message của SW trong panel.
+ * Không hiện nội dung/message của SW trong panel.
+ * Từ 2026-10-27 (SW mở scope write, Ethan duyệt bản giả lập): bấm vào dòng
+ * mở MENU THAO TÁC ngay dưới dòng — Acknowledge (trái nhất, một chạm) ·
+ * Fixed · Dismiss (cả hai qua form ghi chú phía server bắt buộc); finding
+ * vừa đóng trong phiên panel hiện ghi chú kèm quyết định + nút Mở lại.
  */
-function sfRow(row) {
-  return el("div", { className: "sf-line" }, [
-    el("span", { className: `pill-sf ${SF_STATUS_CLASS[row.status] ?? ""}`, textContent: row.pill }),
-    el("div", {}, [
-      el("div", { textContent: row.shortLabel }),
-      row.meta ? el("div", { className: "muted", textContent: row.meta }) : null,
+function sfRow(row, handlers = {}) {
+  const fp = row.fingerprint;
+  const closed = fp ? state.sfClosed[fp] : null;
+  const busy = Boolean(fp) && state.sfActBusy === fp;
+  const kids = [
+    el("div", {
+      className: "sf-line sf-clickable",
+      onclick: (e) => {
+        if (typeof e.target?.closest === "function" && e.target.closest("a, button")) return;
+        handlers.onStorefrontMenu?.(fp);
+      },
+    }, [
+      el("span", { className: `pill-sf ${closed ? "sf-closed" : SF_STATUS_CLASS[row.status] ?? ""}`, textContent: closed ? "Đã đóng" : row.pill }),
+      el("div", {}, [
+        el("div", { textContent: row.shortLabel }),
+        row.meta ? el("div", { className: "muted", textContent: row.meta }) : null,
+      ]),
+      row.consoleLink && /^https:\/\//.test(row.consoleLink)
+        ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "↗", title: "Mở bug này trong Storefront Watch" })
+        : null,
     ]),
-    row.consoleLink && /^https:\/\//.test(row.consoleLink)
-      ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "↗", title: "Mở bug này trong Storefront Watch" })
-      : null,
-  ]);
+  ];
+  if (closed) {
+    kids.push(el("div", {
+      className: "sf-closed-note",
+      textContent: `${closed.via === "fixed" ? "Fixed" : "Dismiss"} · ${state.operatorName || "CS"}: “${closed.note}”`,
+    }));
+    kids.push(el("button", {
+      className: "sf-undo",
+      disabled: busy,
+      onclick: () => handlers.onStorefrontAct?.(fp, "undo"),
+    }, buttonContent(busy, "Đang mở lại…", "Mở lại")));
+    return el("div", { className: "sf-item" }, kids);
+  }
+  if (fp && state.sfMenu === fp) {
+    kids.push(el("div", { className: "sf-menu" }, [
+      el("div", { className: "sf-actions" }, [
+        row.status !== "in_progress"
+          ? el("button", { className: "sf-act sf-act-ack", disabled: busy, onclick: () => handlers.onStorefrontAct?.(fp, "acknowledge") },
+            buttonContent(busy, "Đang gửi…", "Acknowledge"))
+          : null,
+        el("button", { className: "sf-act", disabled: busy, textContent: "Fixed", onclick: () => handlers.onStorefrontForm?.(fp, "fixed") }),
+        el("button", { className: "sf-act", disabled: busy, textContent: "Dismiss", onclick: () => handlers.onStorefrontForm?.(fp, "dismiss") }),
+      ]),
+      state.sfForm?.fingerprint === fp ? sfActForm(row, state.sfForm.kind, handlers) : null,
+    ]));
+  }
+  return el("div", { className: "sf-item" }, kids);
 }
 
 export function storefrontPanel(handlers = {}) {
@@ -524,12 +596,16 @@ export function storefrontPanel(handlers = {}) {
   // domain này có lỗi hay không + tổng số lỗi, và MỘT nút sang thẳng
   // Storefront Watch. Không liệt kê từng bug, không hiện nội dung/message
   // của SW — CS bấm sang Console chủ yếu để xem 2 ảnh chụp của tool.
+  // Số lỗi còn mở trừ đi các finding CS vừa đóng ngay trong phiên panel này
+  // (dữ liệu server chưa nạp lại) — con số trên đầu thẻ phải khớp mắt nhìn.
+  const closedHere = new Set((vm.rows ?? []).map((r) => r.fingerprint).filter((fp) => fp && state.sfClosed[fp]));
+  const openNow = Math.max(0, (vm.totalCount ?? 0) - closedHere.size);
   return el("section", { className: "card storefront-card mod-store" }, [
-    el("div", { className: "row" }, [
+    el("div", { className: "row sf-head" }, [
       vm.notWatched
         ? el("b", { textContent: "Storefront Watch — chưa theo dõi store này" })
-        : vm.totalCount
-        ? el("b", { className: "error-text", textContent: `${vm.totalCount} lỗi đã xác nhận` })
+        : openNow
+        ? el("b", { className: "error-text", textContent: `${openNow} lỗi đã xác nhận` })
         : el("b", { className: "success-text", textContent: "✓ Không phát hiện lỗi" }),
       el("a", { className: "button-secondary sf-open", href: "https://sw.transcy.io", target: "_blank", rel: "noreferrer", textContent: "Mở Storefront Watch ↗" }),
     ]),
@@ -537,7 +613,8 @@ export function storefrontPanel(handlers = {}) {
     vm.notWatched
       ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
       : null,
-    ...(vm.rows ?? []).map((r) => sfRow(r)),
+    el("div", { className: "sf-rows" }, (vm.rows ?? []).map((r) => sfRow(r, handlers))),
+    state.sfMsg ? el("p", { className: "muted sf-msg", textContent: state.sfMsg }) : null,
     !vm.notWatched
       ? el("div", { className: "row sf-footer" }, [
         el("button", { className: "button-secondary", disabled: sfBtn.disabled, onclick: () => handlers.onStorefrontLoad?.() },
@@ -598,14 +675,14 @@ export function draftCompose({ onGenerate }) {
 }
 
 function draftModal(handlers) {
-  // Cho soạn khi: có tin khách chờ (trả lời thường), đã có draft, HOẶC có
-  // ticket với cập nhật từ Dev chưa báo khách — chế độ follow-up chủ động
-  // (Ethan chốt 2026-10-26: case có ticket + update từ dev thì dùng chính
-  // ngữ cảnh đó để soạn tin báo lại cho khách, không khoá draft).
+  // Cho soạn khi: có tin khách chờ (trả lời thường), đã có draft, HOẶC hội
+  // thoại đã từng có tin khách — server tự đóng khung follow-up cho các case
+  // không có tin chờ (Ethan chốt 2026-10-27: draft không được chặn chỉ vì
+  // khách chưa nhắn thêm; ca điển hình là email khách đã nhận auto-reply).
+  // Chỉ chặn khi hội thoại CHƯA TỪNG có tin khách nào.
   const followUpKeys = (state.check?.jira ?? []).filter((j) => j.has_update).map((j) => j.issue_key);
-  const openIssues = (state.sentiment?.issues ?? []).length;
   const followUpOnly = !state.check?.needs_reply && !state.draft && followUpKeys.length > 0;
-  const canCompose = Boolean(state.check?.needs_reply || state.draft || followUpKeys.length || openIssues);
+  const canCompose = Boolean(state.check?.needs_reply || state.draft || followUpKeys.length || state.check?.last_customer_at);
   return [
     state.progress?.action === "generate" ? handlers.progressCard() : null,
     !canCompose ? el("p", { className: "muted", textContent: "Chưa có tin khách đang chờ trong conversation này." }) : null,
