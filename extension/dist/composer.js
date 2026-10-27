@@ -10,13 +10,21 @@ function sessionFromUrl(href) {
  * Quyết định chèn draft vào ô Reply (spec 6.4). Trả text cuối cùng cần có trong ô khi được chèn.
  * auto: chỉ chèn khi đúng chat, chưa chèn output này, và ô đang trống. replace/append: CS chủ động bấm.
  */
-function decideInsert({ urlSession, cmd, composerText, insertedIds }) {
+function decideInsert({ urlSession, cmd, composerText, insertedIds, lastFilledText }) {
   if (!urlSession || cmd.session_id !== urlSession) return { status: "session_mismatch" };
   const current = String(composerText ?? "");
   if (cmd.mode === "replace") return { status: "inserted", text: cmd.text };
   if (cmd.mode === "append") return { status: "inserted", text: current.trim() ? `${current.replace(/\s+$/, "")}\n\n${cmd.text}` : cmd.text };
   if (insertedIds.has(cmd.output_id)) return { status: "duplicate" };
-  if (current.trim()) return { status: "not_empty" };
+  if (current.trim()) {
+    // Ô còn NGUYÊN VĂN bản copilot tự điền lần trước (người chưa gõ/sửa
+    // gì): thay bằng bản mới luôn, không hỏi "Thay thế toàn bộ" — câu hỏi
+    // đó chỉ để bảo vệ chữ NGƯỜI tự gõ. Ethan bắt live 2026-10-26: điền
+    // draft xong, soạn bản mới bấm Điền lại bị bắt xác nhận thay thế
+    // chính bản copilot vừa điền, thừa và khó hiểu.
+    if (lastFilledText && textsMatch(current, lastFilledText)) return { status: "inserted", text: cmd.text };
+    return { status: "not_empty" };
+  }
   return { status: "inserted", text: cmd.text };
 }
 
@@ -129,10 +137,25 @@ function textsMatch(readBack, expected) {
  * được gấp đôi thật: bản gấp đôi dài gấp hai và khác hẳn sau khi gập.
  */
 function fillVerified(readBack, expected) {
-  const squash = (s) => normalizeComposerText(s).replace(/\s+/g, " ").trim();
+  // Editor kiểu Lexical có thể biến dòng "1. ..." thành mục danh sách thật:
+  // số thứ tự thành marker hiển thị, KHÔNG còn nằm trong innerText — bản
+  // đọc lại thiếu đúng "1. " dù nội dung đã vào đủ (ca live 2026-10-26:
+  // note handoff có dòng đánh số, chữ vào ô Note rồi mà xác nhận cứ
+  // mismatch). Gọt marker đầu dòng ở CẢ hai phía trước khi so.
+  const stripMarkers = (s) => String(s ?? "").split("\n").map((l) => l.replace(/^\s*(?:\d{1,3}[.)]|[-•*])\s+/, "")).join("\n");
+  const squash = (s) => normalizeComposerText(stripMarkers(s)).replace(/\s+/g, " ").trim();
   const a = squash(readBack);
   const b = squash(expected);
-  return b.length > 0 && a === b;
+  if (!b) return false;
+  if (a === b) return true;
+  // Dung sai HẸP cho khác biệt render chưa lường hết: mọi dòng kỳ vọng đủ
+  // dài đều phải có mặt trong bản đọc lại và tổng độ dài không lệch quá
+  // 3% (tối thiểu 6 ký tự). Thiếu đoạn, thừa đoạn hay gấp đôi nội dung
+  // vẫn bị bắt như cũ.
+  const lines = normalizeComposerText(stripMarkers(expected)).split("\n")
+    .map((x) => x.replace(/\s+/g, " ").trim()).filter((x) => x.length >= 12);
+  return lines.length > 0 && lines.every((l) => a.includes(l))
+    && Math.abs(a.length - b.length) <= Math.max(6, Math.round(b.length * 0.03));
 }
 
 /**
@@ -163,6 +186,10 @@ const COMPOSER_SELECTORS = [
   "div[contenteditable='true'][role='textbox']",
 ];
 const inserted = new Set();
+// Văn bản copilot tự điền gần nhất theo đích (reply/note) TRONG trang này:
+// ô soạn còn nguyên văn bản đó nghĩa là người chưa gõ/sửa gì — lần điền
+// sau thay luôn không cần hỏi (xem decideInsert).
+const lastFilled = { reply: "", note: "" };
 
 function visible(el) {
   const r = el.getBoundingClientRect();
@@ -454,12 +481,13 @@ async function insertIntoNote(msg, reply) {
   ({ signals } = collectNoteSignals(editor));
   trace.push(`sig1 ${signalTrace(signals)}`);
   if (!confirmNoteMode(signals)) return reply("note_unconfirmed", trace);
-  const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted });
+  const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted, lastFilledText: lastFilled.note });
   if (d.status !== "inserted") return reply(d.status, trace);
   // Điền và kiểm chứng TOÀN VĂN: lệch là báo insert_unverified, không báo
   // inserted giả (xem fillEditor).
   if (!(await fillEditor(editor, d.text, trace, findComposer))) return reply("insert_unverified", trace);
   inserted.add(msg.output_id);
+  lastFilled.note = d.text;
   reply("inserted", trace);
 }
 
@@ -474,10 +502,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const trace = [];
     const el = findComposer();
     if (!el) return reply("composer_not_found", trace);
-    const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted });
+    const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(el), insertedIds: inserted, lastFilledText: lastFilled.reply });
     if (d.status !== "inserted") return reply(d.status, trace);
     if (!(await fillEditor(el, d.text, trace, findComposer))) return reply("insert_unverified", trace);
     inserted.add(msg.output_id);
+    lastFilled.reply = d.text;
     reply("inserted", trace);
   })().catch(() => reply("insert_unverified"));
   return true;
