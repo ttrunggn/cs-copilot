@@ -173,7 +173,7 @@ export async function runCheck(
     profile_source: source,
     profile_name: (req.operator_name ?? "").trim() || operator?.display_name || operatorId,
     profile_coverage: profileCoverage,
-    review_template: resolveReviewTemplate(profiles, conv.topic, ws.review_link),
+    review_template: resolveReviewTemplate(profiles, conv.topic, ws.review_link, allProfiles),
     conversation_state: conv.state,
     needs_reply: unanswered.length > 0,
     unanswered,

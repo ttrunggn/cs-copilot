@@ -244,7 +244,11 @@ export async function runGenerate(
     sentiment: mood.sentiment,
     hint,
     tone,
-    followUp: followUpKeys.length || followUpIssues.length ? { issueKeys: followUpKeys, openIssues: followUpIssues } : undefined,
+    // Không có tin chờ thì LUÔN đóng khung follow-up (kể cả khi không có
+    // ticket cập nhật lẫn issue mở — Ethan bắt live 2026-10-27: draft từng bị
+    // chặn ở các case này; prompt follow-up tự lùi về "vẫn còn việc mở trong
+    // hội thoại" khi cả hai danh sách rỗng).
+    followUp: noPending ? { issueKeys: followUpKeys, openIssues: followUpIssues } : undefined,
   }), { ...(req.force ? { temperature: REWRITE_TEMPERATURE } : {}) });
   // Gọt cơ học dấu gạch ngang dài (luật Ethan 2026-10-26) trước mọi khâu sau:
   // bản lưu/cache/trả về đều là bản đã sạch dấu, khớp đúng chữ CS sẽ điền.
