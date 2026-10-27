@@ -7,22 +7,47 @@ const REQ = { website_id: "ws1", session_id: "session_1", action: "ask", questio
 const HD: HelpdeskChunk = { title: "Currency", url: "https://help.transcy.io/en/article/currency", text: "Enable auto currency.", similarity: 0.8 };
 const ANSWERED = JSON.stringify({ answered: true, answer: "Có. Bật Auto Currency trong Settings > Currency." });
 
-function setup(o: { helpdesk?: HelpdeskChunk[]; ask?: string } = {}) {
-  const f = fakeAi({ ask: o.ask ?? ANSWERED });
+function setup(o: { helpdesk?: HelpdeskChunk[]; keyword?: HelpdeskChunk[]; ask?: string; translate?: string } = {}) {
+  const f = fakeAi({ ask: o.ask ?? ANSWERED, ...(o.translate !== undefined ? { translate: o.translate } : {}) });
+  const captured: { tokens: string[] } = { tokens: [] };
   const m = makeDeps({
     ai: f.ai,
-    db: { matchHelpdesk: () => Promise.resolve(o.helpdesk ?? [HD]) },
+    db: {
+      matchHelpdesk: () => Promise.resolve(o.helpdesk ?? [HD]),
+      searchHelpdeskText: (_ws: string, tokens: string[]) => { captured.tokens = tokens; return Promise.resolve(o.keyword ?? []); },
+    },
   });
-  return { ...m, calls: f.calls };
+  return { ...m, calls: f.calls, captured };
 }
 
-Deno.test("ask: không có bài nào qua ngưỡng similarity → found false và không gọi AI sinh đáp án", async () => {
-  const { deps, calls } = setup({ helpdesk: [{ ...HD, similarity: 0.5 }] }); // dưới ngưỡng 0.65 của generate
+Deno.test("ask: bài dưới ngưỡng chặt nhưng trên sàn yếu → vẫn đưa AI phán quyết; AI bảo không trả lời được → found false", async () => {
+  const { deps, calls } = setup({
+    helpdesk: [{ ...HD, similarity: 0.5 }], // dưới ngưỡng 0.65, trên sàn yếu 0.45
+    ask: JSON.stringify({ answered: false, answer: "" }),
+  });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
   assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
-  // Chỉ được phép gọi embed để truy hồi; tuyệt đối không gọi task ask/draft.
+  assertEquals(calls.filter((c) => c.task === "ask").length, 1);
+});
+
+Deno.test("ask: bài dưới cả sàn yếu và không có khớp từ khoá → found false, không gọi AI", async () => {
+  const { deps, calls } = setup({ helpdesk: [{ ...HD, similarity: 0.3 }] });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
   assertEquals(calls.filter((c) => c.task === "ask" || c.task === "draft").length, 0);
+});
+
+Deno.test("ask: vector trượt hẳn nhưng TỪ KHOÁ khớp nội dung → AI trả lời được → found true (câu hỏi đời thường vẫn ra đáp án)", async () => {
+  const { deps } = setup({ helpdesk: [], keyword: [{ ...HD, similarity: 0 }] });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(r.body, {
+    action: "ask",
+    found: true,
+    answer: "Có. Bật Auto Currency trong Settings > Currency.",
+    sources: [{ title: "Currency", url: "https://help.transcy.io/en/article/currency" }],
+  });
 });
 
 Deno.test("ask: không có bài nào khớp → found false, không gọi AI", async () => {
@@ -64,6 +89,28 @@ Deno.test("ask: answered true nhưng đáp án rỗng → found false", async ()
   const { deps } = setup({ ask: JSON.stringify({ answered: true, answer: "  " }) });
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
+});
+
+Deno.test("ask: câu hỏi tiếng Việt (ca Ethan thử: 'khách muốn chặn bản dịch') → dịch sang Anh để truy hồi, từ khoá Anh khớp tài liệu → found true", async () => {
+  const { deps, calls, captured } = setup({
+    helpdesk: [], // vector trượt hẳn: tài liệu tiếng Anh, câu hỏi tiếng Việt
+    keyword: [{ ...HD, similarity: 0 }],
+    translate: JSON.stringify({ items: [{ i: 0, en: "How to block translation for a page" }] }),
+  });
+  const r = await handle({ ...REQ, question: "khách muốn chặn bản dịch" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { found: boolean }).found, true);
+  assertEquals(calls.filter((c) => c.task === "translate").length, 1);
+  // Từ khoá tìm trong tài liệu phải có token tiếng Anh từ bản dịch.
+  assertEquals(captured.tokens.includes("block"), true);
+  assertEquals(captured.tokens.includes("translation"), true);
+});
+
+Deno.test("ask: câu hỏi tiếng Anh thì KHÔNG tốn lượt dịch", async () => {
+  const { deps, calls } = setup();
+  const r = await handle({ ...REQ, question: "How do I enable auto currency by visitor IP?" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(calls.filter((c) => c.task === "translate").length, 0);
 });
 
 Deno.test("ask: thiếu/rỗng câu hỏi → 400", async () => {
