@@ -299,14 +299,15 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .cmds { display: flex; gap: 8px; flex-wrap: wrap; }
 .cmd { --tint: var(--btn); border: 1px solid var(--border); background: var(--tint); border-radius: 999px; padding: 9px 15px; font-weight: 600; font-size: 13px; min-height: 42px; }
 .cmd b { color: var(--ai); font-weight: 700; }
-/* Chip dạng pill, màu dịu lại (Ethan 2026-10-26: viền bão hoà gắt của bản
-   phương án B nhìn "robot"): giữ sắc riêng của từng hành động để phân biệt
-   nhưng pha trong suốt ở viền và giảm độ đậm của nền nhuốm. */
+/* Chip dạng pill: giữ sắc riêng của từng hành động để phân biệt. Độ đậm đã
+   đổi hai lần theo Ethan: 2026-10-26 dịu lại (bản gắt nhìn "robot"), rồi
+   2026-10-27 tăng lại độ sáng + tương phản vì bản dịu nổi chưa đủ trên nền tối:
+   nền nhuốm .68 và chữ sáng thêm một nấc; viền giữ nguyên màu đặc. */
 .cmd { font-weight: 700; }
-.cmd-draft { --tint: rgba(122, 92, 255, .5); border-color: #7a5cff; color: #ddd5ff; }
-.cmd-note { --tint: rgba(217, 169, 44, .48); border-color: #d9a92c; color: #ffe08a; }
-.cmd-ask { --tint: rgba(62, 142, 222, .48); border-color: #3e8ede; color: #c4e0fa; }
-.cmd-csat { --tint: rgba(224, 86, 107, .48); border-color: #e0566b; color: #ffc4cd; }
+.cmd-draft { --tint: rgba(122, 92, 255, .68); border-color: #7a5cff; color: #ece7ff; }
+.cmd-note { --tint: rgba(217, 169, 44, .68); border-color: #d9a92c; color: #fff0b8; }
+.cmd-ask { --tint: rgba(62, 142, 222, .68); border-color: #3e8ede; color: #e2f1ff; }
+.cmd-csat { --tint: rgba(224, 86, 107, .68); border-color: #e0566b; color: #ffe0e5; }
 .customer-line { margin: 2px 0 0; font-size: 13px; }
 .profile-status-card { gap: 4px; font-size: 12.5px; }
 .profile-status-card .eyebrow { margin-bottom: 2px; }
@@ -465,3 +466,4 @@ button.sf-row { cursor: pointer; }
 .sf-open { text-decoration: none; display: inline-flex; align-items: center; }
 .sf-line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
 .sf-bug-link { text-decoration: none; font-weight: 700; }
+.sf-line .sf-bug-link { margin-left: auto; }

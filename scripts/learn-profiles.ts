@@ -8,8 +8,9 @@
 //     link chuẩn hoá thành biến {{review_link}} (link đích thuộc workspace, không thuộc profile).
 // 3) Tóm tắt hội thoại đã resolve chưa có trong `cases` thành case tương tự cho Soạn tin.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { createAiStore } from "../supabase/functions/_shared/db.ts";
-import { createGemini } from "../supabase/functions/_shared/gemini.ts";
+import { createAiStore, createDb } from "../supabase/functions/_shared/db.ts";
+import { createOpenAi } from "../supabase/functions/_shared/openai.ts";
+import { aiTraceSink } from "../supabase/functions/_shared/trace.ts";
 import {
   classifyBatchPrompt,
   classifyBatchSchema,
@@ -41,8 +42,9 @@ const MIN_SAMPLES = 5;
 const since = new Date(Date.now() - DAYS * 86400_000).toISOString();
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-const ai = createGemini({
-  apiKeys: (Deno.env.get("GEMINI_API_KEYS") ?? Deno.env.get("GEMINI_API_KEY") ?? "").split(","),
+const ai = createOpenAi({
+  trace: aiTraceSink(createDb(sb)),
+  apiKeys: (Deno.env.get("OPENAI_API_KEYS") ?? Deno.env.get("OPENAI_API_KEY") ?? "").split(","),
   store: createAiStore(sb),
 });
 

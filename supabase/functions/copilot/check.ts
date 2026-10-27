@@ -11,6 +11,7 @@ import type { CrispClient } from "../_shared/crisp.ts";
 import type { JiraClient } from "../_shared/jira-api.ts";
 import type { JiraStore } from "../jira-sync/handler.ts";
 import { syncJiraForSession } from "./jira-actions.ts";
+import { waitUntilBg, writeTrace } from "../_shared/trace.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
 import { resolveShopDomain, shopFromCustomData } from "./storefront-actions.ts";
 
@@ -76,6 +77,8 @@ export interface CheckResult {
    * để phân tích) hoặc bản lưu đang khớp.
    */
   sentiment_stale: boolean;
+  /** Mirror Jira đang thiếu/cũ lúc check chạy — sync nền đang chạy, widget tự nạp lại một lần. */
+  jira_stale: boolean;
   csat: { sent: boolean; sent_at: string | null };
   latest_draft: {
     output_id: number;
@@ -113,18 +116,25 @@ export async function runCheck(
       learned_at: profiles.map((p) => p.learned_at).filter((t): t is string => Boolean(t)).sort().at(-1) ?? null,
     }
     : null;
-  // Tự sync Jira khi mở panel: mirror thiếu/cũ quá cửa sổ tươi thì gọi
-  // thẳng Jira REST (chỉ-đọc) và áp qua pipeline jira-sync NGAY trong
-  // request này, rồi đọc lại rows để panel hiện bản mới nhất. Lỗi đồng bộ
-  // (mạng/Jira) thì giữ mirror cũ — check vẫn trả như thường, không gãy.
-  let jiraRows = jiraRows0;
-  if (deps.jira && deps.jiraStore && jiraRows.length) {
-    try {
-      const r = await syncJiraForSession(deps, req.website_id, req.session_id);
-      if (r.synced) jiraRows = await deps.db.getJiraRows(req.website_id, req.session_id);
-    } catch (e) {
-      console.error("check: jira auto-sync failed", e instanceof Error ? e.message : String(e));
-    }
+  // Tự sync Jira khi mở panel — chạy NỀN từ 2026-10-26 (trước đây sync
+  // NGAY trong request: mỗi lần mở chat có ticket cũ quá 90s, panel phải
+  // chờ trọn một vòng Jira REST mới hiện — một nguyên nhân "tool load
+  // chậm" Ethan phàn nàn). Nay: mirror còn tươi thì thôi; mirror thiếu/cũ
+  // thì check trả NGAY dữ liệu hiện có kèm cờ jira_stale, sync chạy nền
+  // (waitUntil) và widget tự nạp lại một lần sau vài giây để nhận bản mới.
+  const jiraRows = jiraRows0;
+  const jiraStale = jiraRows0.some((r) => !r.issue || !r.issue.synced_at || Date.now() - Date.parse(r.issue.synced_at) > 90_000);
+  if (deps.jira && deps.jiraStore && jiraRows.length && jiraStale) {
+    const bg = (async () => {
+      const t0 = performance.now();
+      try {
+        await syncJiraForSession(deps, req.website_id, req.session_id);
+        await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "check", kind: "timing", stage: "jira_sync_bg", duration_ms: Math.round(performance.now() - t0) });
+      } catch (e) {
+        await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "check", kind: "error", stage: "jira_sync_bg", message: e instanceof Error ? e.message : String(e) });
+      }
+    })();
+    waitUntilBg(bg);
   }
   const jira = jiraForConversation(jiraRows, conv.last_human_operator_at);
   // Cổng Storefront đường domain (chỉ workspace trong phạm vi SW —
@@ -180,6 +190,7 @@ export async function runCheck(
     storefront_status: storefrontStatus,
     sentiment: sentimentRow ? (({ input_fp: _fp, ...rest }) => rest)(sentimentRow) : null,
     sentiment_stale: sentimentStale,
+    jira_stale: jiraStale,
     csat: { sent: Boolean(csatSend), sent_at: csatSend?.sent_at ?? null },
     // Draft viết trước tin khách mới nhất là của lượt trước: không hiện để tránh "Điền lại" nhầm.
     latest_draft: latest && (!conv.last_customer_at || Date.parse(latest.created_at) >= Date.parse(conv.last_customer_at))

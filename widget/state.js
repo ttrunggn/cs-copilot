@@ -7,6 +7,7 @@ export const state = {
   check: null, // kết quả check gần nhất
   draft: null, // { output_id, session_id, vm } — gắn với chat đã soạn
   shownSession: "", // chat đang hiển thị; đổi chat thì xoá draft/handoff cũ
+  jiraReloadFor: "", // session đã hẹn nạp lại một lần vì mirror Jira cũ (check.jira_stale)
   handoff: null, // { note, cached } — note soạn bởi server, điền vào ô Note của Crisp qua extension; copilot không tự đăng
   noteInsertId: "", // output_id tổng hợp cho lệnh điền note — reset khi tạo note mới để khỏi bị chặn "duplicate"
   notePlacement: "", // "" | inserted — note đã được điền vào ô Note của chat đang mở chưa
@@ -72,6 +73,7 @@ export const state = {
  * chạy tự dọn qua stale-guard của call() trong app.js).
  */
 export function resetSessionScopedState(target) {
+  target.jiraReloadFor = "";
   target.draft = null;
   target.sentiment = null;
   target.sentimentMsgCount = 0;

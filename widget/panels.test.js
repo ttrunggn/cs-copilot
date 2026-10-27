@@ -309,32 +309,34 @@ Deno.test("panels: storefrontPanel need-shop → gõ vào ô giữ state, Enter 
   assertEquals(calls, [["sfLoad"], ["sfLoad"]]);
 });
 
-Deno.test("panels: storefrontPanel results → chỉ TỔNG HỢP: tổng lỗi + một nút sang Storefront Watch, không liệt kê bug, không nội dung SW", () => {
+Deno.test("panels: storefrontPanel results → list đủ từng bug: pill trạng thái + nhãn ngắn + meta + đúng 1 link unit/bug", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
-  const fp = "a".repeat(40);
+  const unit = (loc, pg) => `https://sw.transcy.io/#/f/shop.myshopify.com%7C${loc}%7C${encodeURIComponent(pg)}%7C1440`;
   state.storefront = {
     status: "ok", store: "shop.myshopify.com", scannedAt: null, isStale: true,
-    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "de", fingerprint: fp, consoleLink: `https://sw.transcy.io/#/f/${fp}` }],
+    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · de · /products/a", fingerprint: "a".repeat(40), locale: "de", page: "/products/a", consoleLink: unit("de", "/products/a") }],
     acknowledged: [],
-    inProgress: [{ title: "Layout degraded", kind: "Layout degraded", meta: "", fingerprint: "b".repeat(40), consoleLink: `https://sw.transcy.io/#/f/${"b".repeat(40)}` }],
+    inProgress: [{ title: "Layout degraded", kind: "Layout degraded", meta: "medium · fr · /", fingerprint: "b".repeat(40), locale: "fr", page: "/", consoleLink: unit("fr", "/") }],
   };
   const p = storefrontPanel(makeHandlers([]));
   const t = allText(p);
   assertEquals(t.includes("2 lỗi đã xác nhận"), true);
-  // Không còn dòng bug nào, không nhãn bug, không link từng bug.
-  assertEquals(t.includes("Graphic lost"), false);
-  assertEquals(t.includes("Mất hình ảnh"), false);
+  assertEquals(t.includes("Mất hình ảnh") && t.includes("Lệch giao diện"), true);
+  assertEquals(t.includes("Mới") && t.includes("Đang xử lý"), true);
   const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
-  assertEquals(hrefs, ["https://sw.transcy.io"]);
+  assertEquals(hrefs.includes(unit("de", "/products/a")), true);
+  assertEquals(hrefs.includes(unit("fr", "/")), true);
+  assertEquals(hrefs.includes("https://sw.transcy.io"), true);
 });
 
-Deno.test("panels: storefrontPanel tổng hợp đếm finding THẬT khi gom trùng căn nguyên (3 finding gom còn 1 mục vẫn đếm 3)", () => {
+Deno.test("panels: storefrontPanel list — finding gom trùng căn nguyên vẫn hiện ĐỦ từng finding (3 finding = 3 dòng, 3 link riêng)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const F = (fp, locale) => ({
     title: "Region missing", meta: `critical · ${locale} · /`, fingerprint: fp, kind: "Region missing",
-    locale, page: "/", severity: "critical", text: null, consoleLink: `https://sw.transcy.io/#/f/${fp}`,
+    locale, page: "/", severity: "critical", text: null,
+    consoleLink: `https://sw.transcy.io/#/f/amirobeauty.com%7C${locale}%7C%2F%7C1440`,
   });
   const [fa, fb, fc] = ["a".repeat(40), "b".repeat(40), "c".repeat(40)];
   state.storefront = {
@@ -342,7 +344,13 @@ Deno.test("panels: storefrontPanel tổng hợp đếm finding THẬT khi gom tr
     new: [F(fa, "ja"), F(fb, "zh"), F(fc, "es")], acknowledged: [], inProgress: [],
   };
   const p = storefrontPanel(makeHandlers([]));
-  assertEquals(allText(p).includes("3 lỗi đã xác nhận"), true);
+  const t = allText(p);
+  assertEquals(t.includes("3 lỗi đã xác nhận"), true);
+  assertEquals(t.split("Thiếu vùng nội dung").length - 1, 3);
+  const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
+  for (const loc of ["ja", "zh", "es"]) {
+    assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/amirobeauty.com%7C${loc}%7C%2F%7C1440`), true, loc);
+  }
 });
 
 Deno.test("panels: issuesPanel badge Storefront — từ bản chụp trong check khi module chưa nạp; cổng tắt thì không hiện badge", () => {
@@ -486,8 +494,8 @@ Deno.test("panels: extensionHint — bridge ready nhưng version cũ hơn bản 
   const hint = extensionHint(makeHandlers());
   assertEquals(hint === null, false);
   assertEquals(allText(hint).includes("Extension đang ở bản cũ v1.2.0"), true);
-  assertEquals(allText(hint).includes("1.2.2"), true);
-  state.bridgeVersion = "1.2.2";
+  assertEquals(allText(hint).includes("1.2.3"), true);
+  state.bridgeVersion = "1.2.3";
   assertEquals(extensionHint(makeHandlers()), null);
   state.bridgeVersion = "";
   assertEquals(extensionHint(makeHandlers()), null);
@@ -530,4 +538,19 @@ Deno.test("panels: knowledgePanel — không tìm thấy thì có Thử từ kho
   buttonByText(p, "Thử từ khoá khác").onclick();
   buttonByText(p, "Ghi private note hỏi quản lý").onclick();
   assertEquals(calls, [["askRetry"], ["handoff", false]]);
+});
+
+Deno.test("panels: thanh chọn Thay thế/Huỷ đang mở thì nút điền gốc ẨN (hết hai lớp nút chồng nhau — ca live 2026-10-26)", () => {
+  reset();
+  state.modal = "csat";
+  state.csatChoice = "review";
+  state.check = { ...CHECK, review_template: { source: "default", text: "Hi there, review please", suggestion: null } };
+  // Chưa hỏi thay thế: nút Điền hiện.
+  let overlay = modalView(makeHandlers());
+  assertEquals(Boolean(buttonByText(overlay, "Điền vào ô Reply")), true);
+  // Đang hỏi thay thế cho review: nút Điền gốc biến mất, chỉ còn thanh chọn.
+  state.choice = true;
+  state.choiceFor = "review";
+  overlay = modalView(makeHandlers());
+  assertEquals(buttonByText(overlay, "Điền vào ô Reply"), undefined);
 });

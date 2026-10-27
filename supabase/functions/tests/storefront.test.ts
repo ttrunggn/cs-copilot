@@ -798,11 +798,10 @@ Deno.test("action storefront: workspace OE (jira_project = OES, cờ storefront_
   assertEquals(r.status, 403);
 });
 
-Deno.test("action storefront: item trả về mang đủ kind/locale/page/consoleLink để widget gom nhóm + deep-link", async () => {
-  const link = "https://sw.transcy.io/#/f/" + FP_A;
+Deno.test("action storefront: item mang kind/locale/page + consoleLink là URL unit (domain|locale|page|width), không phải link fingerprint SW in sẵn", async () => {
   const { deps } = sfDeps(fakeMcp({
     listFindings: () => Promise.resolve([
-      finding(FP_A, { kind: "Region missing", title: "Region missing", locale: "ja", page: "/", severity: "critical", text: null, consoleLink: link }),
+      finding(FP_A, { kind: "Region missing", title: "Region missing", locale: "ja", page: "/", severity: "critical", text: null, widthPx: 1440, consoleLink: "https://sw.transcy.io/#/f/" + FP_A }),
     ]),
   }));
   const r = await handle(SF_REQ, TOKEN, deps);
@@ -813,7 +812,16 @@ Deno.test("action storefront: item trả về mang đủ kind/locale/page/consol
   assertEquals(item.locale, "ja");
   assertEquals(item.page, "/");
   assertEquals(item.severity, "critical");
-  assertEquals(item.consoleLink, link);
+  assertEquals(item.consoleLink, "https://sw.transcy.io/#/f/shop-x.myshopify.com%7Cja%7C%2F%7C1440");
+});
+
+Deno.test("consoleUnitUrl: đủ mảnh mới cấu link; thiếu bề rộng/locale/trang thì null (không gắn link chết)", async () => {
+  const { consoleUnitUrl } = await import("../_shared/storefront.ts");
+  assertEquals(consoleUnitUrl("www.tantaly.de", { locale: "nl", page: "/products/x", widthPx: 1440 }),
+    "https://sw.transcy.io/#/f/www.tantaly.de%7Cnl%7C%2Fproducts%2Fx%7C1440");
+  assertEquals(consoleUnitUrl("www.tantaly.de", { locale: "nl", page: "/products/x", widthPx: null }), null);
+  assertEquals(consoleUnitUrl("www.tantaly.de", { locale: null, page: "/products/x", widthPx: 1440 }), null);
+  assertEquals(consoleUnitUrl(null, { locale: "nl", page: "/", widthPx: 1440 }), null);
 });
 
 // ---------- bản chụp trạng thái store (storeStatusFromStore) ----------

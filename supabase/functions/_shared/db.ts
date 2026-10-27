@@ -20,7 +20,20 @@ export interface StorefrontSegmentCandidate {
   segments: string[];
 }
 
+export interface TraceRow {
+  website_id?: string | null;
+  session_id?: string | null;
+  action?: string | null;
+  kind: "timing" | "error";
+  stage?: string | null;
+  duration_ms?: number | null;
+  message?: string | null;
+  detail?: Record<string, unknown> | null;
+}
+
 export interface Db {
+  /** Ghi truy vết (migration 028). Lỗi ghi log được nuốt ở writeTrace — impl cứ throw như thường. */
+  logTrace(row: TraceRow): Promise<void>;
   getWorkspace(websiteId: string): Promise<Workspace | null>;
   getWidgetTokenHash(websiteId: string): Promise<string | null>;
   getOperatorIdByTokenHash(tokenHash: string): Promise<string | null>;
@@ -95,6 +108,19 @@ export function createDb(sb: SupabaseClient): Db {
         .eq("website_id", websiteId).maybeSingle();
       if (error) throw error;
       return data as Workspace | null;
+    },
+    async logTrace(row) {
+      const { error } = await sb.from("trace_log").insert({
+        website_id: row.website_id ?? null,
+        session_id: row.session_id ?? null,
+        action: row.action ?? null,
+        kind: row.kind,
+        stage: row.stage ?? null,
+        duration_ms: row.duration_ms ?? null,
+        message: row.message ?? null,
+        detail: row.detail ?? null,
+      });
+      if (error) throw error;
     },
     async getWidgetTokenHash(websiteId) {
       const { data, error } = await sb.from("workspaces").select("crisp_widget_token_hash")

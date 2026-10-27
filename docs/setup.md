@@ -21,7 +21,7 @@ deno task test     # test Edge Function + workflow n8n
 ```bash
 npx supabase login
 npx supabase link --project-ref <project-ref>
-npx supabase secrets set N8N_WEBHOOK_BASE=<...> N8N_SHARED_SECRET=<...> GEMINI_API_KEYS=<key1,key2,...>
+npx supabase secrets set N8N_WEBHOOK_BASE=<...> N8N_SHARED_SECRET=<...> OPENAI_API_KEYS=<key1,key2,...>
 npx supabase functions deploy copilot --no-verify-jwt
 npx supabase functions deploy embed-helpdesk --no-verify-jwt   # n8n gọi bằng header x-copilot-secret
 npx supabase functions deploy jira-sync --no-verify-jwt        # n8n gọi bằng header x-copilot-secret

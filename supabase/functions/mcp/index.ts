@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createAiStore, createDb } from "../_shared/db.ts";
-import { createGemini } from "../_shared/gemini.ts";
+import { createOpenAi } from "../_shared/openai.ts";
+import { aiTraceSink } from "../_shared/trace.ts";
 import { createN8n } from "../_shared/n8n.ts";
 import { handleRpc } from "./handler.ts";
 
@@ -19,7 +20,7 @@ function json(status: number, body: unknown): Response {
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const db = createDb(sb);
-const ai = createGemini({ apiKeys: (Deno.env.get("GEMINI_API_KEYS") ?? Deno.env.get("GEMINI_API_KEY") ?? "").split(","), store: createAiStore(sb) });
+const ai = createOpenAi({ apiKeys: (Deno.env.get("OPENAI_API_KEYS") ?? Deno.env.get("OPENAI_API_KEY") ?? "").split(","), store: createAiStore(sb), trace: aiTraceSink(db) });
 const n8n = createN8n({ baseUrl: Deno.env.get("N8N_WEBHOOK_BASE")!, secret: Deno.env.get("N8N_SHARED_SECRET")! });
 
 Deno.serve(async (req) => {

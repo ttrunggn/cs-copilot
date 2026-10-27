@@ -280,16 +280,16 @@ Deno.test("toIssuesViewModel: ưu tiên issues (câu tóm tắt + bằng chứng
   ]);
 });
 
-Deno.test("toIssuesViewModel: signals KHÔNG còn thành issue (Lỗi 4) — sentiment chỉ có signals thì lùi về topic", () => {
+Deno.test("toIssuesViewModel: signals KHÔNG thành issue và KHÔNG còn thẻ dự phòng theo topic (bỏ 2026-10-26)", () => {
   const vm = toIssuesViewModel(CHECK, { signals: ["human pls", "i just want someone help"] });
-  assertEquals(vm.issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+  assertEquals(vm.issues, []);
 });
 
-Deno.test("toIssuesViewModel: chưa có sentiment thì lùi về topic, không có gì thì rỗng (không bịa)", () => {
-  assertEquals(toIssuesViewModel(CHECK, null).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+Deno.test("toIssuesViewModel: chưa có sentiment/issues thật thì rỗng (không bịa thẻ 'Khác / Chủ đề của hội thoại')", () => {
+  assertEquals(toIssuesViewModel(CHECK, null).issues, []);
   assertEquals(toIssuesViewModel({ ...CHECK, topic: null, topic_label: null }, null).issues, []);
   assertEquals(toIssuesViewModel(null, null).issues, []);
-  assertEquals(toIssuesViewModel(CHECK, { signals: [] }).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+  assertEquals(toIssuesViewModel(CHECK, { signals: [] }).issues, []);
 });
 
 Deno.test("REVIEW_TEMPLATE là template xin review mặc định có nội dung", () => {
@@ -536,10 +536,10 @@ Deno.test("toViewModel: pending_messages có sẵn thắng unanswered thô và g
   assertEquals(vm.botRepliedCount, 1);
 });
 
-Deno.test("toIssuesViewModel: đúng 1 issue → đúng 1 thẻ; sentiment không có issues → lùi về topic", () => {
+Deno.test("toIssuesViewModel: đúng 1 issue → đúng 1 thẻ; sentiment không có issues → rỗng", () => {
   assertEquals(toIssuesViewModel(CHECK, { issues: [{ summary: "Khách mất hoá đơn", evidence: "" }] }).issues, [{ title: "Khách mất hoá đơn", detail: null }]);
-  assertEquals(toIssuesViewModel(CHECK, { issues: [] }).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
-  assertEquals(toIssuesViewModel(CHECK, {}).issues, [{ title: "Billing", detail: "Chủ đề của hội thoại" }]);
+  assertEquals(toIssuesViewModel(CHECK, { issues: [] }).issues, []);
+  assertEquals(toIssuesViewModel(CHECK, {}).issues, []);
 });
 
 Deno.test("toJiraViewModel: rỗng/null → []; nhiều ticket giữ nguyên thứ tự; Done đã báo khách vẫn được liệt kê khi server còn gửi (việc ẩn là phía server)", () => {

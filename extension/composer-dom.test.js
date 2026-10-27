@@ -158,7 +158,7 @@ Deno.test("composer DOM (a2): đã ở Note mode sẵn (tab active + nền vàng
   assertEquals(page.noteEditor.value, "NOTE NỘI BỘ");
 });
 
-Deno.test("composer DOM (b): draft (không target) → điền thẳng ô Reply; gửi lại cùng output_id → duplicate; ô có chữ → not_empty; sai chat → session_mismatch", async () => {
+Deno.test("composer DOM (b): draft (không target) → điền thẳng ô Reply; gửi lại cùng output_id → duplicate; ô còn bản copilot → thay luôn; ô có chữ của người → not_empty; sai chat → session_mismatch", async () => {
   const page = buildPage();
   const send = await loadComposer(page);
   const draft = { type: "copilot:insert", request_id: "r1", output_id: 42, session_id: "session_1", text: "Draft trả khách", mode: "auto" };
@@ -166,9 +166,16 @@ Deno.test("composer DOM (b): draft (không target) → điền thẳng ô Reply;
   assertEquals(page.replyEditor.value, "Draft trả khách");
   assertEquals((await send({ ...draft, request_id: "r2" })).status, "duplicate");
   assertEquals(page.replyEditor.value, "Draft trả khách");
-  assertEquals((await send({ ...draft, request_id: "r3", output_id: 43 })).status, "not_empty");
+  // Ô còn nguyên bản copilot vừa điền (chưa ai sửa) → điền bản mới luôn,
+  // không hỏi thay thế (quy tắc mới 2026-10-27, ca live Ethan bắt).
+  assertEquals((await send({ ...draft, request_id: "r3", output_id: 43, text: "Draft mới" })).status, "inserted");
+  assertEquals(page.replyEditor.value, "Draft mới");
+  // Người đã gõ nội dung riêng vào ô → vẫn hỏi (not_empty) như cũ.
+  page.replyEditor.value = "CS đang gõ dở";
+  assertEquals((await send({ ...draft, request_id: "r3b", output_id: 45, text: "Draft khác" })).status, "not_empty");
+  assertEquals(page.replyEditor.value, "CS đang gõ dở");
   assertEquals((await send({ ...draft, request_id: "r4", output_id: 44, session_id: "session_2" })).status, "session_mismatch");
-  assertEquals(page.replyEditor.value, "Draft trả khách"); // sau mọi ca lỗi, nội dung không đổi
+  assertEquals(page.replyEditor.value, "CS đang gõ dở"); // sau mọi ca lỗi, nội dung người gõ không đổi
 });
 
 Deno.test("composer DOM (c): bấm tab Note mà Crisp không chuyển mode (thiếu tín hiệu editor) → note_unconfirmed và KHÔNG điền ký tự nào", async () => {

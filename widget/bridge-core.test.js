@@ -49,12 +49,13 @@ Deno.test("extensionOutdated: thấp hơn bản kỳ vọng thì true; bằng/ca
   assertEquals(extensionOutdated("1.2.0"), true);
   assertEquals(extensionOutdated("1.1.9"), true);
   assertEquals(extensionOutdated("1.2.1"), true);
-  assertEquals(extensionOutdated("1.2.2"), false);
+  assertEquals(extensionOutdated("1.2.2"), true); // bản 1.2.2 thiếu sửa điền (marker danh sách + bỏ hỏi thay thế thừa)
+  assertEquals(extensionOutdated("1.2.3"), false);
   assertEquals(extensionOutdated("1.3.0"), false);
   assertEquals(extensionOutdated(""), false);
   assertEquals(extensionOutdated(undefined), false);
   assertEquals(extensionOutdated("abc"), false);
-  assertEquals(extensionOutdated("1.2"), true); // 1.2 = 1.2.0 < 1.2.2
+  assertEquals(extensionOutdated("1.2"), true); // 1.2 = 1.2.0 < 1.2.3
 });
 
 Deno.test("respondersSummary: hai mã ext khác nhau = xung đột hai bản; cùng mã/không mã thì không", () => {

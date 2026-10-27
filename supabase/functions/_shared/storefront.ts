@@ -297,14 +297,27 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
   if (!fingerprint || !FINGERPRINT_RE.test(fingerprint)) {
     throw new StorefrontError("list_findings trả finding thiếu fingerprint hợp lệ, không đọc được");
   }
-  if (consoleLink && !consoleLink.includes(fingerprint)) {
-    throw new StorefrontError("list_findings trả Console không chứa fingerprint của finding, không đọc được");
-  }
+  // Link "Console:" SW in sẵn dùng mã fingerprint — Console thật KHÔNG mở
+  // được dạng đó (báo "no audited unit", kiểm chứng live 2026-10-26). Panel
+  // không dùng link in sẵn nữa; link đúng cấu từ khóa unit (hàm
+  // consoleUnitUrl dưới đây). Giữ lại giá trị thô cho chi tiết/tương thích.
   const f = baseFinding({ fingerprint, severity: severityRaw.toLowerCase(), kind, locale, page, texts });
   f.widthPx = Number(width);
   if (seen) Object.assign(f, seen);
   f.consoleLink = consoleLink;
   return f;
+}
+
+/**
+ * URL finding ĐÚNG của Console (kiểm chứng live 2026-10-26 bằng cách đăng
+ * nhập lướt Console): #/f/<domain>|<locale>|<page>|<width> với | và / được
+ * mã hoá %7C/%2F — đúng khoá "audited unit" của Console. Thiếu một mảnh
+ * (domain/locale/page/bề rộng) thì trả null: thà không có link còn hơn gắn
+ * link chết cho CS bấm.
+ */
+export function consoleUnitUrl(domain: string | null | undefined, f: { locale?: string | null; page?: string | null; widthPx?: number | null }): string | null {
+  if (!domain || !f.locale || !f.page || !f.widthPx) return null;
+  return `https://sw.transcy.io/#/f/${encodeURIComponent(`${domain}|${f.locale}|${f.page}|${f.widthPx}`)}`;
 }
 
 export function parseFindingsText(text: string): StorefrontFinding[] {
