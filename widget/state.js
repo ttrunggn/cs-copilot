@@ -42,9 +42,9 @@ export const state = {
   storefrontShopInput: "", // chữ đang gõ ở ô nhập shop trong module Storefront (giữ qua các lần render)
   storefrontDetail: null, // chi tiết finding đang mở: { fingerprint, ... } hoặc { fingerprint, error }
   storefrontDetailLoading: "", // fingerprint đang tải chi tiết; "" = không tải
-  sfMenu: "", // fingerprint đang mở menu thao tác (Acknowledge/Fixed/Dismiss) ngay dưới dòng finding; "" = đóng
+  sfMenu: "", // fingerprint đang mở menu thao tác (Take case/Fix/Dismiss) ngay dưới dòng finding; "" = đóng
   sfForm: null, // form ghi chú đang mở trong menu: { fingerprint, kind: "fixed" | "dismiss" } | null
-  sfNoteInput: "", // ghi chú CS đang gõ trong form Fixed/Dismiss (giữ qua các lần render)
+  sfNoteInput: "", // ghi chú CS đang gõ trong form Fix/Dismiss (giữ qua các lần render)
   sfReason: "", // lý do Dismiss đang chọn: "" | false_signal | not_important
   sfClosed: {}, // finding CS vừa đóng ngay trong phiên panel này (server chưa nạp lại): fingerprint -> { via: "fixed" | "dismiss", note }
   sfActBusy: "", // fingerprint đang chờ server ghi thao tác; "" = rảnh

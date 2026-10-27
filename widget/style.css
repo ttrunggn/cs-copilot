@@ -214,7 +214,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .success-text { color: var(--success); }
 .storefront-card { gap: 10px; }
 .error-card { border-color: var(--error-border); }
-.sf-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.sf-item { display: grid; gap: 2px; font-size: 13px; }
 .storefront-card input.input { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--input); color: var(--fg); font: inherit; }
 button.sf-item.sf-clickable { width: 100%; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
 button.sf-item.sf-clickable:hover > div { text-decoration: underline; }
@@ -471,17 +471,19 @@ button.sf-row { cursor: pointer; }
    Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
    live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */
 .sf-head { flex-wrap: wrap; }
-/* Danh sách lỗi cuộn TRONG thẻ thay vì đẩy panel dài vô hạn (hướng gọn
-   Ethan duyệt qua giả lập 2026-10-27). */
-.sf-rows { max-height: 240px; overflow-y: auto; }
+/* Danh sách lỗi hiện FULL như cũ (Ethan đổi ý sau test live 2026-10-27:
+   cuộn trong thẻ nhỏ quá bất tiện — để panel tự cuộn theo trang). */
+.sf-rows { display: grid; gap: 4px; }
 .sf-clickable { cursor: pointer; }
 .pill-sf.sf-closed { border-color: var(--success); color: var(--success); }
-/* Menu thao tác dưới dòng finding (Ethan duyệt giả lập 2026-10-27): nút nhỏ
-   gọn 12px, Acknowledge viền accent nằm trái nhất. */
+/* Menu thao tác dưới dòng finding: nút màu ĐẬM theo lệnh Ethan 2026-10-27 —
+   Take case vàng · Fix xanh lá · Dismiss đen, nằm dưới dòng, đủ bề ngang. */
 .sf-menu { margin: 2px 0 6px; }
 .sf-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.sf-act { font-size: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
-.sf-act-ack { border-color: var(--primary); color: var(--link); background: transparent; }
+.sf-act { font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
+.sf-act-take { background: #f5b301; border-color: #f5b301; color: #221a00; }
+.sf-act-fix { background: #16a34a; border-color: #16a34a; color: #fff; }
+.sf-act-dismiss { background: #101216; border-color: #454c5c; color: #fff; }
 .sf-act:disabled { opacity: .45; cursor: default; }
 .sf-form { margin-top: 6px; border: 1px dashed var(--border); border-radius: 9px; padding: 8px; display: grid; gap: 6px; }
 .sf-flabel { font-size: 11px; font-weight: 700; }

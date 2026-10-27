@@ -666,6 +666,9 @@ function onStorefrontMenu(fingerprint) {
   state.sfNoteInput = "";
   state.sfReason = "";
   render();
+  // Menu vừa mở phải nằm trong tầm mắt ngay (khỏi cuộn tìm): kéo nhẹ menu
+  // vào view theo cạnh gần nhất, không nhảy trang.
+  if (state.sfMenu) document.querySelector(".sf-menu")?.scrollIntoView?.({ block: "nearest" });
 }
 
 /** Mở form ghi chú Fixed/Dismiss trong menu của một finding; kind = null thì đóng form. */
@@ -693,7 +696,7 @@ function moveSfItemToInProgress(fingerprint) {
 
 const SF_ACT_MSG = {
   acknowledge: "Đã ghi nhận bạn đang xử lý lỗi này.",
-  fixed: "Đã đánh dấu Fixed.",
+  fixed: "Đã đánh dấu Fix.",
   dismiss: "Đã Dismiss lỗi này.",
   undo: "Đã mở lại lỗi.",
 };
@@ -762,8 +765,15 @@ async function onStorefrontAct(fingerprint, act) {
  * nằm thường trực trên panel; chúng sống trong popup (panels.js modalView).
  * Tiến trình/hỏi-cách-điền hiện trong popup khi có popup, ngược lại trên panel.
  */
+let lastRenderSession = null;
 function render() {
   if (!state.check) return;
+  // Giữ nguyên vị trí cuộn của panel qua mỗi lần render (render dựng lại
+  // toàn bộ DOM nên mặc định nhảy về đầu — Ethan bắt live 2026-10-27 khi
+  // bấm finding ở cuối danh sách). Đổi conversation thì không giữ.
+  const sameSession = lastRenderSession === state.shownSession;
+  const prevScrollY = sameSession && typeof window !== "undefined" ? window.scrollY : 0;
+  lastRenderSession = state.shownSession;
   const vm = toViewModel(state.check, Date.now());
   const modalOpen = Boolean(state.modal);
   show(
@@ -803,6 +813,7 @@ function render() {
     commandsRow(handlers),
     modalView(handlers),
   );
+  if (prevScrollY > 0) window.scrollTo(0, prevScrollY);
 }
 
 // Cache check gần nhất theo session: quay lại conversation cũ là hiện ngay
