@@ -5,6 +5,9 @@
 // không bao giờ hiện, công thức trộn điểm là số tay không hiệu chuẩn.
 // Bản này: AI là nguồn chính với rubric + ví dụ mẫu; mood và urgency là HAI
 // trục độc lập; có confidence để nơi dùng tự quyết có tin hay không.
+// Pipeline từ 2026-10-27 (PR #40): model phân tích bằng ngôn ngữ tự nhiên
+// của khách, vietnamizeSentiment dịch kết quả sang tiếng Việt sau — không
+// ép ngôn ngữ đầu ra ngay trong prompt phân tích nữa.
 import type { Ai } from "./gemini.ts";
 import { DATA_ONLY, neutralize, parseJson, TRANSLATE_VI_SCHEMA, translateViPrompt } from "./prompts.ts";
 
