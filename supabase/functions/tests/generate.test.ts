@@ -292,6 +292,26 @@ Deno.test("generate follow-up: không tin khách chờ + ticket có update Dev -
   assertEquals(p.includes("TNT-9184"), true);
 });
 
+Deno.test("generate follow-up: không tin chờ + KHÔNG ticket + KHÔNG issue mở (ca email đã nhận auto-reply) -> vẫn soạn, đóng khung follow-up", async () => {
+  const f = fakeAi({ draft: "ok", verify: '{\"warnings\":[]}' });
+  const m = makeDeps({
+    ai: f.ai,
+    messages: [
+      msg("user", "I want to ask about link insertions", 1),
+      msg("operator", "Thanks for reaching out to Transcy! We have received your message.", 2),
+    ],
+    db: {
+      getJiraRows: () => Promise.resolve([]),
+      matchHelpdesk: () => Promise.resolve([HD]),
+    },
+  });
+  const r = await handle(REQ, TOKEN, m.deps);
+  assertEquals(r.status, 200);
+  const p = f.calls.find((c) => c.task === "draft")!.prompt;
+  assertEquals(p.includes("proactive follow-up"), true);
+  assertEquals(p.includes("the customer has NOT sent a new message"), true);
+});
+
 Deno.test("generate thường: còn tin khách chờ thì KHÔNG đóng khung follow-up dù ticket có update", async () => {
   const f = fakeAi({ draft: "ok", verify: '{"warnings":[]}' });
   const m = makeDeps({ ai: f.ai, db: { getJiraRows: () => Promise.resolve(JIRA_ROWS), matchHelpdesk: () => Promise.resolve([HD]) } });
@@ -326,6 +346,10 @@ const sfMcp = (findings: StorefrontFinding[]): StorefrontMcp => ({
   findStore: () => Promise.reject(new Error("draft context không gọi find_store")),
   listFindings: () => Promise.resolve(findings),
   getFinding: () => Promise.reject(new Error("draft context không gọi get_finding")),
+  acknowledgeFinding: () => Promise.reject(new Error("draft context không ghi SW")),
+  markFixed: () => Promise.reject(new Error("draft context không ghi SW")),
+  dismissFinding: () => Promise.reject(new Error("draft context không ghi SW")),
+  undoFinding: () => Promise.reject(new Error("draft context không ghi SW")),
 });
 
 Deno.test("generate: finding khớp hội thoại (kim page) → vào ngữ cảnh draft; finding không liên quan bị loại", async () => {
@@ -355,6 +379,10 @@ Deno.test("generate: không cấu hình MCP hoặc MCP lỗi → draft vẫn so�
     findStore: () => Promise.reject(new Error("unused")),
     listFindings: () => Promise.reject(new Error("SW sập")),
     getFinding: () => Promise.reject(new Error("unused")),
+    acknowledgeFinding: () => Promise.reject(new Error("unused")),
+    markFixed: () => Promise.reject(new Error("unused")),
+    dismissFinding: () => Promise.reject(new Error("unused")),
+    undoFinding: () => Promise.reject(new Error("unused")),
   });
   const r2 = await handle(REQ, TOKEN, boom.deps);
   assertEquals(r2.status, 200);
@@ -367,6 +395,10 @@ Deno.test("generate: cổng Storefront chưa bật cho chat (workspace không ph
     findStore: () => Promise.reject(new Error("unused")),
     listFindings: () => (listCalls++, Promise.resolve([SF_FINDING({ text: "thiếu nguyên một vùng nội dung" })])),
     getFinding: () => Promise.reject(new Error("unused")),
+    acknowledgeFinding: () => Promise.reject(new Error("unused")),
+    markFixed: () => Promise.reject(new Error("unused")),
+    dismissFinding: () => Promise.reject(new Error("unused")),
+    undoFinding: () => Promise.reject(new Error("unused")),
   };
   const { deps, calls } = sfGenerateSetup(mcp, { getWorkspace: () => Promise.resolve({ ...WS, jira_project: null }) });
   const r = await handle(REQ, TOKEN, deps);
