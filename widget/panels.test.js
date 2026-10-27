@@ -340,7 +340,7 @@ const SF_ONE = (over = {}) => ({
   ...over,
 });
 
-Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ tự nút Acknowledge · Fixed · Dismiss (Ethan duyệt giả lập 2026-10-27)", () => {
+Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ tự nút Take case · Fix · Dismiss (Ethan chốt live 2026-10-27)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
@@ -349,24 +349,24 @@ Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ t�
   const h = makeHandlers(calls);
   // Menu đóng: không có nút thao tác nào.
   let p = storefrontPanel(h);
-  assertEquals(buttonByText(p, "Acknowledge"), undefined);
-  assertEquals(buttonByText(p, "Fixed"), undefined);
+  assertEquals(buttonByText(p, "Take case"), undefined);
+  assertEquals(buttonByText(p, "Fix"), undefined);
   // Bấm vào dòng (không phải link/nút con) → gọi mở menu.
   const line = walk(p).find((n) => (n.className ?? "").includes("sf-line"));
   line.onclick({ target: { closest: () => null } });
   assertEquals(calls, [["sfMenu", fp]]);
-  // Menu mở: đúng 3 nút theo thứ tự đã duyệt; Acknowledge gọi thẳng act, Fixed mở form.
+  // Menu mở: đúng 3 nút theo thứ tự đã duyệt; Take case gọi thẳng act, Fix mở form.
   state.sfMenu = fp;
   calls.length = 0;
   p = storefrontPanel(h);
-  const labels = buttons(p).map((b) => allText(b).trim()).filter((t) => ["Acknowledge", "Fixed", "Dismiss"].includes(t));
-  assertEquals(labels, ["Acknowledge", "Fixed", "Dismiss"]);
-  buttonByText(p, "Acknowledge").onclick();
-  buttonByText(p, "Fixed").onclick();
+  const labels = buttons(p).map((b) => allText(b).trim()).filter((t) => ["Take case", "Fix", "Dismiss"].includes(t));
+  assertEquals(labels, ["Take case", "Fix", "Dismiss"]);
+  buttonByText(p, "Take case").onclick();
+  buttonByText(p, "Fix").onclick();
   assertEquals(calls, [["sfAct", fp, "acknowledge"], ["sfForm", fp, "fixed"]]);
 });
 
-Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện nút Acknowledge nữa", () => {
+Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện nút Take case nữa", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   const fp = "b".repeat(40);
@@ -376,11 +376,11 @@ Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện
   });
   state.sfMenu = fp;
   const p = storefrontPanel(makeHandlers([]));
-  assertEquals(buttonByText(p, "Acknowledge"), undefined);
-  assertEquals(Boolean(buttonByText(p, "Fixed")), true);
+  assertEquals(buttonByText(p, "Take case"), undefined);
+  assertEquals(Boolean(buttonByText(p, "Fix")), true);
 });
 
-Deno.test("panels: storefront form Fixed — chưa ghi chú thì nút xác nhận khoá; có ghi chú thì bấm được và gọi act fixed", () => {
+Deno.test("panels: storefront form Fix — chưa ghi chú thì nút xác nhận khoá; có ghi chú thì bấm được và gọi act fixed", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
@@ -390,10 +390,10 @@ Deno.test("panels: storefront form Fixed — chưa ghi chú thì nút xác nhậ
   const calls = [];
   const h = makeHandlers(calls);
   let p = storefrontPanel(h);
-  assertEquals(buttonByText(p, "Xác nhận Fixed").disabled, true);
+  assertEquals(buttonByText(p, "Xác nhận Fix").disabled, true);
   state.sfNoteInput = "Đã sửa trong theme";
   p = storefrontPanel(h);
-  const btn = buttonByText(p, "Xác nhận Fixed");
+  const btn = buttonByText(p, "Xác nhận Fix");
   assertEquals(btn.disabled, false);
   btn.onclick();
   assertEquals(calls, [["sfAct", fp, "fixed"]]);
@@ -429,7 +429,7 @@ Deno.test("panels: storefront finding vừa đóng — hiện pill Đã đóng +
   const p = storefrontPanel(makeHandlers(calls));
   const t = allText(p);
   assertEquals(t.includes("1 lỗi đã xác nhận"), true); // tổng 2, đã đóng 1
-  assertEquals(t.includes("Đã đóng") && t.includes("Fixed · Ethan Nguyen: “Đã sửa trong theme”"), true);
+  assertEquals(t.includes("Đã đóng") && t.includes("Fix · Ethan Nguyen: “Đã sửa trong theme”"), true);
   buttonByText(p, "Mở lại").onclick();
   assertEquals(calls, [["sfAct", fp, "undo"]]);
 });
