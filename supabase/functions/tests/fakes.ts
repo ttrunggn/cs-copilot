@@ -104,6 +104,7 @@ export function makeDeps(opts: {
     getLatestDraft: () => Promise.resolve(null),
     setAiTopic: () => Promise.resolve(),
     matchHelpdesk: () => Promise.resolve([]),
+    searchHelpdeskText: () => Promise.resolve([]),
     matchCases: () => Promise.resolve([]),
     getVariants: () => Promise.resolve([]),
     getJiraRows: () => Promise.resolve([]),

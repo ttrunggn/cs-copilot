@@ -467,3 +467,30 @@ button.sf-row { cursor: pointer; }
 .sf-line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
 .sf-bug-link { text-decoration: none; font-weight: 700; }
 .sf-line .sf-bug-link { margin-left: auto; }
+/* Đầu thẻ Storefront cho rớt dòng: ở khung Crisp hẹp (~260px) nút Mở
+   Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
+   live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */
+.sf-head { flex-wrap: wrap; }
+/* Danh sách lỗi cuộn TRONG thẻ thay vì đẩy panel dài vô hạn (hướng gọn
+   Ethan duyệt qua giả lập 2026-10-27). */
+.sf-rows { max-height: 240px; overflow-y: auto; }
+.sf-clickable { cursor: pointer; }
+.pill-sf.sf-closed { border-color: var(--success); color: var(--success); }
+/* Menu thao tác dưới dòng finding (Ethan duyệt giả lập 2026-10-27): nút nhỏ
+   gọn 12px, Acknowledge viền accent nằm trái nhất. */
+.sf-menu { margin: 2px 0 6px; }
+.sf-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.sf-act { font-size: 12px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
+.sf-act-ack { border-color: var(--primary); color: var(--link); background: transparent; }
+.sf-act:disabled { opacity: .45; cursor: default; }
+.sf-form { margin-top: 6px; border: 1px dashed var(--border); border-radius: 9px; padding: 8px; display: grid; gap: 6px; }
+.sf-flabel { font-size: 11px; font-weight: 700; }
+.sf-chips { display: grid; gap: 5px; }
+.sf-chip { font-size: 11.5px; text-align: left; padding: 5px 9px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: inherit; cursor: pointer; }
+.sf-chip.on { border-color: var(--primary); color: var(--link); font-weight: 700; }
+.sf-note-input { width: 100%; font: inherit; font-size: 12px; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; resize: vertical; }
+.sf-fbtns { display: flex; gap: 6px; }
+.sf-confirm { border-color: var(--primary); }
+.sf-closed-note { font-size: 11.5px; color: var(--text-muted); padding: 0 0 2px; }
+.sf-undo { font-size: 11px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; margin-bottom: 4px; }
+.sf-msg { margin-top: 4px; }

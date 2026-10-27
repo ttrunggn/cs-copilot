@@ -67,6 +67,8 @@ export interface StorefrontFinding {
   /** Từng đoạn text trong vùng lỗi (dòng Text: có thể nhiều chuỗi ngoặc kép). text = các đoạn nối ", ". */
   texts?: string[];
   consoleLink?: string | null;
+  /** Dòng trạng thái phía SW trong list_findings nếu có (vd "acknowledged") — nguyên văn thường hoá; vắng = SW không ghi trạng thái trong danh sách. */
+  swState?: string | null;
 }
 
 export interface StorefrontFindingDetail extends StorefrontFinding {
@@ -74,6 +76,8 @@ export interface StorefrontFindingDetail extends StorefrontFinding {
   judgement: string | null;
   dismissed: boolean;
   fixed: boolean;
+  /** SW đã ghi nhận có người đang xử lý (State: acknowledged / in progress) — qua tool acknowledge_finding. */
+  acknowledged: boolean;
   consoleLink: string | null;
   /** Trạng thái thô phía SW (dòng "State:"): "open" | "dismissed" | "fixed" | … — list_findings chỉ liệt kê open, get_finding mới thấy các trạng thái đóng. */
   state?: string | null;
@@ -85,7 +89,24 @@ export interface StorefrontMcp {
   findStore(websiteId: string, shop: string): Promise<StorefrontStore>;
   listFindings(websiteId: string, shop: string): Promise<StorefrontFinding[]>;
   getFinding(websiteId: string, fingerprint: string): Promise<StorefrontFindingDetail>;
+  /**
+   * 4 tool GHI phía SW mở scope ngày 2026-10-27 (kiểm chứng live bằng
+   * tools/list: acknowledge_finding / mark_fixed / dismiss_finding / undo —
+   * cả 4 readOnlyHint: false). Đây là ngoại lệ CÓ KIỂM SOÁT của nguyên tắc
+   * "panel chỉ đọc, đổi trạng thái trong Console" (Ethan chốt lại 2026-10-27
+   * khi duyệt menu thao tác): ghi CHỈ xảy ra khi CS bấm nút trong panel qua
+   * action storefront_act, không có đường ghi tự động nào. Mỗi hàm trả text
+   * xác nhận của tool (có thể rỗng); lỗi tool → StorefrontError như đường đọc.
+   */
+  acknowledgeFinding(websiteId: string, fingerprint: string, operator?: string): Promise<string>;
+  markFixed(websiteId: string, fingerprint: string, note: string, operator?: string): Promise<string>;
+  dismissFinding(websiteId: string, fingerprint: string, reason: string, note: string, operator?: string): Promise<string>;
+  undoFinding(websiteId: string, fingerprint: string): Promise<string>;
 }
+
+/** Lý do dismiss phía SW nhận (inputSchema của dismiss_finding, kiểm chứng live 2026-10-27). */
+export const SW_DISMISS_REASONS = ["false_signal", "not_important"] as const;
+export type SwDismissReason = typeof SW_DISMISS_REASONS[number];
 
 /**
  * Bản chụp trạng thái một store (bảng storefront_store_status, migration
@@ -292,12 +313,21 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
   let texts: string[] = [];
   let fingerprint: string | null = null;
   let consoleLink: string | null = null;
+  let swState: string | null = null;
   for (const raw of blockLines.slice(1)) {
     const line = raw.trim();
     if (line.startsWith("Seen ")) seen = parseSeenLine(line);
     else if (line.startsWith("Text: ")) texts = quotedStrings(line.slice("Text: ".length));
     else if (line.startsWith("Fingerprint: ")) fingerprint = line.slice("Fingerprint: ".length).trim();
     else if (line.startsWith("Console: ")) consoleLink = line.slice("Console: ".length).trim();
+    // Dòng trạng thái của finding ĐÃ được ghi nhận xử lý (từ khi SW mở tool
+    // acknowledge_finding 2026-10-27): SW có thể ghi vào danh sách — nhận
+    // biết và giữ lại thay vì văng lỗi làm hỏng cả panel của store đó. Mọi
+    // dòng lạ KHÁC vẫn văng lỗi như cũ (hàng rào toàn vẹn là đối chiếu số
+    // finding với header ở parseFindingsText).
+    else if (/^(State|Acknowledged|In progress|Being handled)\b/i.test(line)) {
+      swState = line.replace(/^State:\s*/i, "").trim().toLowerCase() || "acknowledged";
+    }
     else if (line) throw new StorefrontError(`list_findings trả dòng lạ trong một finding: "${line}"`);
   }
   if (!fingerprint || !FINGERPRINT_RE.test(fingerprint)) {
@@ -311,6 +341,7 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
   f.widthPx = Number(width);
   if (seen) Object.assign(f, seen);
   f.consoleLink = consoleLink;
+  f.swState = swState;
   return f;
 }
 
@@ -445,6 +476,7 @@ export function parseFindingDetailText(text: string): StorefrontFindingDetail {
     judgement,
     dismissed: state === "dismissed",
     fixed: state === "fixed",
+    acknowledged: state === "acknowledged" || state === "in_progress" || state === "in progress" || state === "in-progress",
     consoleLink,
     state,
     alsoKinds,
@@ -519,7 +551,10 @@ export function classifyFindings(
 ): GroupedFindings {
   const groups: GroupedFindings = { new: [], acknowledged: [], in_progress: [] };
   for (const f of findings) {
-    if (mentionedInConversation(f, operatorTexts)) groups.in_progress.push(f);
+    // SW tự ghi nhận đang xử lý (acknowledge_finding) là bằng chứng cứng
+    // ngang khớp hội thoại — cùng vào nhóm Đang xử lý.
+    const swHandling = /acknow|progress|handling/.test(f.swState ?? "");
+    if (swHandling || mentionedInConversation(f, operatorTexts)) groups.in_progress.push(f);
     else if (!seenFingerprints.has(f.fingerprint)) groups.new.push(f);
     else groups.acknowledged.push(f);
   }
@@ -652,8 +687,8 @@ export function createStorefrontMcp(opts: {
     return rec(parsed.result);
   }
 
-  /** Gọi tool và lấy phần text thô — cả 3 tool của SW trả prose (xem mục parse ở trên). */
-  async function callToolText(websiteId: string, name: string, args: Rec): Promise<string> {
+  /** Gọi tool và lấy phần text thô — các tool của SW trả prose (xem mục parse ở trên). */
+  async function callToolText(websiteId: string, name: string, args: Rec, allowEmpty = false): Promise<string> {
     const result = await rpc(websiteId, "tools/call", { name, arguments: args });
     const content = Array.isArray(result.content) ? result.content : [];
     const textPart = content.find((c) => rec(c).type === "text");
@@ -667,6 +702,9 @@ export function createStorefrontMcp(opts: {
     }
     if (text) return text;
     if (result.structuredContent !== undefined) return JSON.stringify(result.structuredContent);
+    // Tool GHI thành công mà không kèm text xác nhận vẫn là thành công — báo
+    // lỗi ở đây sẽ khiến panel nói "thất bại" cho một thay đổi ĐÃ xảy ra.
+    if (allowEmpty) return "";
     throw new StorefrontError(`Tool ${name} trả về không có nội dung text`);
   }
 
@@ -680,6 +718,26 @@ export function createStorefrontMcp(opts: {
     },
     async getFinding(websiteId, fingerprint) {
       return parseFindingDetailText(await callToolText(websiteId, "get_finding", { fingerprint }));
+    },
+    // operator: tên CS theo account Crisp — schema ghi "leave it out rather
+    // than guess" nên chỉ gửi khi caller THẬT SỰ biết tên, rỗng thì bỏ hẳn.
+    async acknowledgeFinding(websiteId, fingerprint, operator) {
+      const args: Rec = { fingerprint };
+      if (operator?.trim()) args.operator = operator.trim();
+      return await callToolText(websiteId, "acknowledge_finding", args, true);
+    },
+    async markFixed(websiteId, fingerprint, note, operator) {
+      const args: Rec = { fingerprint, note };
+      if (operator?.trim()) args.operator = operator.trim();
+      return await callToolText(websiteId, "mark_fixed", args, true);
+    },
+    async dismissFinding(websiteId, fingerprint, reason, note, operator) {
+      const args: Rec = { fingerprint, reason, note };
+      if (operator?.trim()) args.operator = operator.trim();
+      return await callToolText(websiteId, "dismiss_finding", args, true);
+    },
+    async undoFinding(websiteId, fingerprint) {
+      return await callToolText(websiteId, "undo", { fingerprint }, true);
     },
   };
 }

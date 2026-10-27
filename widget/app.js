@@ -48,7 +48,7 @@ function insertChoiceNode() {
   ]);
 }
 
-const handlers = { onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onInsertNote, onJiraSync, onJiraUnlink, onStorefrontLoad, onStorefrontFinding, onExplain, onSuggTry, onSuggOrig, onSuggAdopt, onSuggSave, sendInsert: extension.sendInsert, sendReviewInsert: extension.sendReviewInsert, sendNoteInsert: extension.sendNoteInsert, sendExplainInsert: extension.sendExplainInsert, detectExtension: extension.detectExtension, onOpenModal: openModal, onCloseModal: closeModal, progressCard, insertChoice: insertChoiceNode, rerender: render };
+const handlers = { onGenerate, onHandoff, onAnalyze, onSurvey, onAsk, onAskCompose, onAskRetry, onEditInCrisp, onInsertNote, onJiraSync, onJiraUnlink, onStorefrontLoad, onStorefrontFinding, onStorefrontMenu, onStorefrontForm, onStorefrontAct, onExplain, onSuggTry, onSuggOrig, onSuggAdopt, onSuggSave, sendInsert: extension.sendInsert, sendReviewInsert: extension.sendReviewInsert, sendNoteInsert: extension.sendNoteInsert, sendExplainInsert: extension.sendExplainInsert, detectExtension: extension.detectExtension, onOpenModal: openModal, onCloseModal: closeModal, progressCard, insertChoice: insertChoiceNode, rerender: render };
 
 let noticeTimer = null;
 
@@ -584,6 +584,13 @@ async function onStorefrontLoad() {
   state.busy = "Đang kiểm tra storefront…";
   state.storefront = { status: "loading" };
   state.storefrontDetail = null;
+  // Nạp lại = lấy sự thật mới từ server: menu/form/đóng-cục-bộ của lượt trước bỏ hết.
+  state.sfMenu = "";
+  state.sfForm = null;
+  state.sfNoteInput = "";
+  state.sfReason = "";
+  state.sfClosed = {};
+  state.sfMsg = "";
   render();
   try {
     const out = await call("storefront", typed ? { shop: typed } : {});
@@ -648,6 +655,101 @@ async function onStorefrontFinding(fingerprint) {
     if (!e.stale) state.storefrontDetail = { fingerprint, error: e.message ?? "Không tải được chi tiết finding" };
   }
   state.storefrontDetailLoading = "";
+  render();
+}
+
+/** Bấm một dòng finding: mở/đóng menu thao tác ngay dưới dòng đó (bản giả lập Ethan duyệt 2026-10-27). */
+function onStorefrontMenu(fingerprint) {
+  if (!fingerprint || state.sfActBusy) return;
+  state.sfMenu = state.sfMenu === fingerprint ? "" : fingerprint;
+  state.sfForm = null;
+  state.sfNoteInput = "";
+  state.sfReason = "";
+  render();
+}
+
+/** Mở form ghi chú Fixed/Dismiss trong menu của một finding; kind = null thì đóng form. */
+function onStorefrontForm(fingerprint, kind) {
+  state.sfForm = kind ? { fingerprint, kind } : null;
+  state.sfNoteInput = "";
+  state.sfReason = "";
+  render();
+}
+
+/** Chuyển cục bộ một finding sang nhóm Đang xử lý sau khi acknowledge thành công (khỏi nạp lại cả thẻ). */
+function moveSfItemToInProgress(fingerprint) {
+  const sf = state.storefront;
+  if (!sf) return;
+  for (const key of ["new", "acknowledged"]) {
+    const list = sf[key] ?? [];
+    const i = list.findIndex((f) => f.fingerprint === fingerprint);
+    if (i >= 0) {
+      const [item] = list.splice(i, 1);
+      sf.inProgress = [...(sf.inProgress ?? []), item];
+      return;
+    }
+  }
+}
+
+const SF_ACT_MSG = {
+  acknowledge: "Đã ghi nhận bạn đang xử lý lỗi này.",
+  fixed: "Đã đánh dấu Fixed.",
+  dismiss: "Đã Dismiss lỗi này.",
+  undo: "Đã mở lại lỗi.",
+};
+
+/**
+ * Gửi thao tác ghi lên server (action storefront_act): acknowledge một chạm;
+ * fixed/dismiss kèm ghi chú (và lý do) lấy từ form trong menu; undo mở lại
+ * finding vừa đóng trong phiên panel này. Thành công thì cập nhật cục bộ
+ * ngay (chuyển nhóm / đánh dấu đã đóng / bỏ đánh dấu) + một dòng trạng thái;
+ * lỗi thì hiện nguyên văn lỗi server trong cùng dòng trạng thái đó, form giữ
+ * nguyên để CS sửa rồi gửi lại.
+ */
+async function onStorefrontAct(fingerprint, act) {
+  if (!fingerprint || state.sfActBusy) return;
+  const extra = { fingerprint, sf_act: act };
+  if (act === "fixed" || act === "dismiss") {
+    extra.note = state.sfNoteInput.trim();
+    if (!extra.note) {
+      state.sfMsg = "Cần ghi chú trước khi xác nhận.";
+      render();
+      return;
+    }
+    if (act === "dismiss") {
+      extra.reason = state.sfReason;
+      if (!extra.reason) {
+        state.sfMsg = "Cần chọn lý do Dismiss.";
+        render();
+        return;
+      }
+    }
+  }
+  state.sfActBusy = fingerprint;
+  render();
+  try {
+    const out = await call("storefront_act", extra);
+    if (out.status === "ok") {
+      if (act === "acknowledge") moveSfItemToInProgress(fingerprint);
+      if (act === "fixed" || act === "dismiss") {
+        state.sfClosed = { ...state.sfClosed, [fingerprint]: { via: act, note: extra.note } };
+      }
+      if (act === "undo") {
+        const next = { ...state.sfClosed };
+        delete next[fingerprint];
+        state.sfClosed = next;
+      }
+      state.sfForm = null;
+      state.sfNoteInput = "";
+      state.sfReason = "";
+      state.sfMsg = SF_ACT_MSG[act] ?? "Đã cập nhật.";
+    } else {
+      state.sfMsg = out.error ?? "Không thực hiện được, thử lại sau";
+    }
+  } catch (e) {
+    if (!e.stale) state.sfMsg = e.message ?? "Không thực hiện được, thử lại sau";
+  }
+  state.sfActBusy = "";
   render();
 }
 

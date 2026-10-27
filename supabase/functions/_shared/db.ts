@@ -53,6 +53,8 @@ export interface Db {
   getLatestDraft(websiteId: string, sessionId: string, operatorId: string): Promise<OutputRow | null>;
   setAiTopic(websiteId: string, sessionId: string, topic: string): Promise<void>;
   matchHelpdesk(websiteId: string, embedding: number[], k: number): Promise<HelpdeskChunk[]>;
+  /** Tìm đoạn helpdesk theo từ khoá (ILIKE trên nội dung đoạn, nối bài để lấy title/url + khoá website). similarity luôn 0 — chỉ dùng làm ứng viên dự phòng cho action ask, AI phán quyết liên quan sau. */
+  searchHelpdeskText(websiteId: string, tokens: string[], limit: number): Promise<HelpdeskChunk[]>;
   matchCases(websiteId: string, embedding: number[], k: number): Promise<CaseMatch[]>;
   getVariants(task: "draft"): Promise<Variant[]>;
   getJiraRows(websiteId: string, sessionId: string): Promise<{ link: JiraLink; issue: JiraIssue | null }[]>;
@@ -224,6 +226,22 @@ export function createDb(sb: SupabaseClient): Db {
       const { data, error } = await sb.rpc("match_helpdesk", { p_website_id: websiteId, p_embedding: JSON.stringify(embedding), p_k: k });
       if (error) throw error;
       return (data ?? []) as HelpdeskChunk[];
+    },
+    async searchHelpdeskText(websiteId, tokens, limit) {
+      const clean = [...new Set(tokens.map((t) => t.replace(/[^\p{L}\p{N}-]/gu, "")).filter((t) => t.length >= 3))].slice(0, 6);
+      if (!clean.length) return [];
+      const ors = clean.map((t) => `text.ilike.%${t}%`).join(",");
+      const { data, error } = await sb.from("helpdesk_chunks")
+        .select("text, article:helpdesk_articles!inner(title, url, website_id)")
+        .eq("article.website_id", websiteId)
+        .or(ors)
+        .limit(limit);
+      if (error) throw error;
+      type Row = { text: string; article: { title: string; url: string } | { title: string; url: string }[] };
+      return ((data ?? []) as Row[]).map((r) => {
+        const a = Array.isArray(r.article) ? r.article[0] : r.article;
+        return { title: a?.title ?? "", url: a?.url ?? "", text: r.text, similarity: 0 };
+      });
     },
     async matchCases(websiteId, embedding, k) {
       const { data, error } = await sb.rpc("match_cases", { p_website_id: websiteId, p_embedding: JSON.stringify(embedding), p_k: k });

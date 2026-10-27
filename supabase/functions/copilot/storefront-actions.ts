@@ -6,9 +6,11 @@ import { enabledModules, jiraForConversation } from "../_shared/jira.ts";
 import {
   classifyFindings,
   consoleUnitUrl,
+  SW_DISMISS_REASONS,
   type StorefrontFinding,
   type StorefrontFindingDetail,
   type StorefrontMcp,
+  type SwDismissReason,
 } from "../_shared/storefront.ts";
 import type { ConversationRow, Workspace } from "../_shared/types.ts";
 
@@ -45,6 +47,18 @@ export interface StorefrontFindingResult {
   status: "ok" | "unconfigured" | "error";
   error: string | null;
   detail: StorefrontFindingDetail | null;
+}
+
+export type StorefrontActKind = "acknowledge" | "fixed" | "dismiss" | "undo";
+export const SF_ACTS: readonly StorefrontActKind[] = ["acknowledge", "fixed", "dismiss", "undo"];
+/** Trần ghi chú CS nhập cho Fixed/Dismiss (schema SW không ghi trần; 1000 ký tự là dư cho một ghi chú quyết định). */
+export const SF_NOTE_MAX = 1000;
+
+export interface StorefrontActResult {
+  action: "storefront_act";
+  status: "ok" | "unconfigured" | "error";
+  act: string;
+  error: string | null;
 }
 
 const EMPTY_GROUPS = { new: [], acknowledged: [], in_progress: [] };
@@ -311,5 +325,75 @@ export async function runStorefrontFinding(
     return { action: "storefront_finding", status: "ok", error: null, detail };
   } catch (e) {
     return { action: "storefront_finding", status: "error", error: errText(e), detail: null };
+  }
+}
+
+const normDomain = (s: string) => s.trim().toLowerCase().replace(/^www\./, "").replace(/\/.*$/, "");
+
+/**
+ * Thao tác GHI của CS lên một finding ngay trong panel (menu Ethan duyệt
+ * 2026-10-27 sau khi SW mở scope write): acknowledge / fixed / dismiss /
+ * undo. Đây là đường ghi Storefront Watch DUY NHẤT của copilot và chỉ chạy
+ * khi CS bấm nút — không có ghi tự động. Cùng hàng rào với đường đọc:
+ * - cổng module giống hệt check (assertStorefrontEnabled);
+ * - finding phải thuộc store của chính conversation này: acknowledge/fixed/
+ *   dismiss chỉ trên finding ĐANG MỞ của store đó (đối chiếu listFindings);
+ *   undo (finding đã đóng, không còn trong list) đối chiếu qua getFinding —
+ *   domain trong "Where:" phải khớp store của conversation;
+ * - fixed/dismiss bắt buộc ghi chú theo lời CS; dismiss bắt buộc lý do thuộc
+ *   đúng 2 giá trị schema SW nhận;
+ * - tên người thực hiện = operator_name theo account Crisp đang đăng nhập
+ *   (handler đã parse; rỗng thì KHÔNG gửi — schema SW: thà bỏ trống còn hơn đoán).
+ */
+export async function runStorefrontAct(
+  req: { website_id: string; session_id: string; fingerprint: string; sf_act: string; note?: string; reason?: string; operator_name?: string },
+  ws: Workspace,
+  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; now?: () => number },
+): Promise<StorefrontActResult> {
+  const act = req.sf_act as StorefrontActKind;
+  const fail = (error: string): StorefrontActResult => ({ action: "storefront_act", status: "error", act: req.sf_act ?? "", error });
+  const conv = await assertStorefrontEnabled(req, ws, deps);
+  if (!SF_ACTS.includes(act)) throw new HttpError(400, `sf_act không hợp lệ: ${req.sf_act}`);
+  if (!FINGERPRINT.test(req.fingerprint ?? "")) throw new HttpError(400, `fingerprint không hợp lệ: ${req.fingerprint}`);
+  const note = (req.note ?? "").trim();
+  if ((act === "fixed" || act === "dismiss") && !note) {
+    throw new HttpError(400, act === "fixed" ? "Fixed cần ghi chú (theo lời của bạn) để Console hiện kèm quyết định." : "Dismiss cần ghi chú (theo lời của bạn) để Console hiện kèm quyết định.");
+  }
+  if (note.length > SF_NOTE_MAX) throw new HttpError(400, `Ghi chú quá dài (tối đa ${SF_NOTE_MAX} ký tự).`);
+  const reason = (req.reason ?? "").trim() as SwDismissReason;
+  if (act === "dismiss" && !(SW_DISMISS_REASONS as readonly string[]).includes(reason)) {
+    throw new HttpError(400, "Dismiss cần lý do: false_signal (báo sai, trang vẫn ổn) hoặc not_important (lỗi thật, không đáng sửa).");
+  }
+  if (!deps.storefront) return { action: "storefront_act", status: "unconfigured", act, error: UNCONFIGURED_MSG };
+  const shop = shopFromCustomData(conv);
+  if (!shop) return fail("Chưa xác định được store của conversation này (phiên Crisp không có shopify_domain) nên không đối chiếu được finding.");
+  const operator = (req.operator_name ?? "").trim() || undefined;
+  const t0 = performance.now();
+  try {
+    if (act === "undo") {
+      const detail = await deps.storefront.getFinding(req.website_id, req.fingerprint);
+      if (!detail.dismissed && !detail.fixed) return fail("Finding này đang mở, không có gì để mở lại.");
+      const whereDomain = normDomain((detail.where ?? "").split(" · ")[0] ?? "");
+      let canonical = "";
+      try {
+        canonical = normDomain((await deps.storefront.findStore(req.website_id, shop)).shop ?? "");
+      } catch { /* find_store lỗi thì chỉ còn mốc domain đã resolve để đối chiếu */ }
+      if (!whereDomain || (whereDomain !== normDomain(shop) && whereDomain !== canonical)) {
+        return fail("Finding này không thuộc store của conversation hiện tại.");
+      }
+      await deps.storefront.undoFinding(req.website_id, req.fingerprint);
+    } else {
+      const findings = await deps.storefront.listFindings(req.website_id, shop);
+      if (!findings.some((f) => f.fingerprint === req.fingerprint)) {
+        return fail("Finding này không thuộc store của conversation hiện tại.");
+      }
+      if (act === "acknowledge") await deps.storefront.acknowledgeFinding(req.website_id, req.fingerprint, operator);
+      else if (act === "fixed") await deps.storefront.markFixed(req.website_id, req.fingerprint, note, operator);
+      else await deps.storefront.dismissFinding(req.website_id, req.fingerprint, reason, note, operator);
+    }
+    await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "timing", stage: "storefront_act", duration_ms: Math.round(performance.now() - t0), detail: { act } });
+    return { action: "storefront_act", status: "ok", act, error: null };
+  } catch (e) {
+    return fail(errText(e));
   }
 }

@@ -42,6 +42,13 @@ export const state = {
   storefrontShopInput: "", // chữ đang gõ ở ô nhập shop trong module Storefront (giữ qua các lần render)
   storefrontDetail: null, // chi tiết finding đang mở: { fingerprint, ... } hoặc { fingerprint, error }
   storefrontDetailLoading: "", // fingerprint đang tải chi tiết; "" = không tải
+  sfMenu: "", // fingerprint đang mở menu thao tác (Acknowledge/Fixed/Dismiss) ngay dưới dòng finding; "" = đóng
+  sfForm: null, // form ghi chú đang mở trong menu: { fingerprint, kind: "fixed" | "dismiss" } | null
+  sfNoteInput: "", // ghi chú CS đang gõ trong form Fixed/Dismiss (giữ qua các lần render)
+  sfReason: "", // lý do Dismiss đang chọn: "" | false_signal | not_important
+  sfClosed: {}, // finding CS vừa đóng ngay trong phiên panel này (server chưa nạp lại): fingerprint -> { via: "fixed" | "dismiss", note }
+  sfActBusy: "", // fingerprint đang chờ server ghi thao tác; "" = rảnh
+  sfMsg: "", // dòng trạng thái một câu sau thao tác Storefront gần nhất
   explainText: "", // đoạn mẫu giải thích finding đang mở trong popup Mẫu giải thích (explanationTemplate dựng sẵn)
   explainFinding: null, // finding mà popup Mẫu giải thích đang nói về: { fingerprint, kind, locale, page, text, title }
   explainInsertId: "", // output_id tổng hợp cho lệnh điền mẫu giải thích — reset mỗi lần mở popup cho finding khác
@@ -103,6 +110,13 @@ export function resetSessionScopedState(target) {
   target.storefrontShopInput = "";
   target.storefrontDetail = null;
   target.storefrontDetailLoading = "";
+  target.sfMenu = "";
+  target.sfForm = null;
+  target.sfNoteInput = "";
+  target.sfReason = "";
+  target.sfClosed = {};
+  target.sfActBusy = "";
+  target.sfMsg = "";
   target.explainText = "";
   target.explainFinding = null;
   target.explainInsertId = "";

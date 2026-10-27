@@ -11,6 +11,7 @@ import {
   parseStoreText,
   StorefrontError,
   type StorefrontFinding,
+  type StorefrontFindingDetail,
   type StorefrontMcp,
   type StorefrontStore,
   type StorefrontStoreStatus,
@@ -471,8 +472,12 @@ function fakeMcp(over: Partial<StorefrontMcp> = {}): StorefrontMcp {
     listFindings: () => Promise.resolve([]),
     getFinding: () => Promise.resolve({
       fingerprint: FP_A, title: "Lỗi", meta: "", severity: "high", locale: "de", page: "/products/abc", text: "nội dung lỗi",
-      where: "/products/abc", judgement: "judge thấy chồng chữ", dismissed: false, fixed: false, consoleLink: "https://sw.transcy.io/console/1",
+      where: "shop-x.myshopify.com · de · /products/abc · 1440px wide", judgement: "judge thấy chồng chữ", dismissed: false, fixed: false, acknowledged: false, consoleLink: "https://sw.transcy.io/console/1",
     }),
+    acknowledgeFinding: () => Promise.resolve("ok"),
+    markFixed: () => Promise.resolve("ok"),
+    dismissFinding: () => Promise.resolve("ok"),
+    undoFinding: () => Promise.resolve("ok"),
     ...over,
   };
 }
@@ -1005,4 +1010,140 @@ Deno.test("parseFindingsText: định dạng lạ → lỗi kèm đầu nội du
   let msg = "";
   try { parseFindingsText("Invalid shop identifier: tantaly_de@myshopify.com"); } catch (e) { msg = (e as Error).message; }
   assertEquals(msg.includes("Invalid shop identifier"), true);
+});
+
+// ---------- tool ghi (SW mở scope write 2026-10-27) ----------
+
+Deno.test("MCP client: 4 tool ghi gọi đúng tên + tham số; operator rỗng thì bỏ hẳn khỏi arguments", async () => {
+  const { f, calls } = stubFetch(okResponder("Đã ghi nhận."));
+  const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
+  await mcp.acknowledgeFinding("ws1", FP_A, "Ethan Nguyen");
+  await mcp.acknowledgeFinding("ws1", FP_A);
+  await mcp.markFixed("ws1", FP_A, "Đã sửa trong theme", "Ethan Nguyen");
+  await mcp.dismissFinding("ws1", FP_A, "false_signal", "Trang vẫn ổn", undefined);
+  await mcp.undoFinding("ws1", FP_A);
+  const toolCalls = calls.map((c) => JSON.parse(c.body)).filter((b) => b.method === "tools/call").map((b) => b.params);
+  assertEquals(toolCalls.map((p) => p.name), ["acknowledge_finding", "acknowledge_finding", "mark_fixed", "dismiss_finding", "undo"]);
+  assertEquals(toolCalls[0].arguments, { fingerprint: FP_A, operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[1].arguments, { fingerprint: FP_A });
+  assertEquals(toolCalls[2].arguments, { fingerprint: FP_A, note: "Đã sửa trong theme", operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[3].arguments, { fingerprint: FP_A, reason: "false_signal", note: "Trang vẫn ổn" });
+  assertEquals(toolCalls[4].arguments, { fingerprint: FP_A });
+});
+
+Deno.test("parse list: dòng trạng thái SW trong finding được giữ lại (không văng lỗi) và classify xếp vào Đang xử lý", () => {
+  const text = `1 open problem(s) on shop-x.myshopify.com, worst first:
+1. HIGH · Graphic lost · de /products/abc (1440px)
+   Seen 1 time(s), first 2026-10-22, last 2026-10-22
+   State: acknowledged
+   Fingerprint: ${FP_A}
+   Console: https://sw.transcy.io/#/f/${FP_A}`;
+  const out = parseFindingsText(text);
+  assertEquals(out.length, 1);
+  assertEquals(out[0].swState, "acknowledged");
+  // Đã seen (không phải finding mới) và hội thoại không nhắc tới — vẫn vào
+  // Đang xử lý nhờ chính ghi nhận của SW.
+  const groups = classifyFindings(out, new Set([FP_A]), []);
+  assertEquals(groups.in_progress.map((x) => x.fingerprint), [FP_A]);
+  assertEquals(groups.acknowledged.length, 0);
+});
+
+const ACT_REQ = { website_id: "ws1", session_id: "session_1", action: "storefront_act", fingerprint: FP_A, operator_name: "Ethan Nguyen" };
+
+function actDeps(mcp: StorefrontMcp | null, dbOver = {}) {
+  return sfDeps(mcp, {
+    getConversation: () => Promise.resolve({ ...CONV, custom_data: { shopify_domain: "shop-x.myshopify.com" } }),
+    ...dbOver,
+  });
+}
+
+function detail(over: Partial<StorefrontFindingDetail> = {}): StorefrontFindingDetail {
+  return {
+    fingerprint: FP_A, title: "Lỗi", meta: "", severity: "high", locale: "de", page: "/products/abc", text: "nội dung lỗi",
+    where: "shop-x.myshopify.com · de · /products/abc · 1440px wide", judgement: null, dismissed: false, fixed: false,
+    acknowledged: false, consoleLink: null, state: "open", alsoKinds: [],
+    ...over,
+  };
+}
+
+Deno.test("action storefront_act acknowledge: ghi đúng fingerprint + operator theo account Crisp, status ok", async () => {
+  const seen: unknown[][] = [];
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_A)]),
+    acknowledgeFinding: (w: string, fp: string, op?: string) => { seen.push([w, fp, op]); return Promise.resolve("ok"); },
+  });
+  const { deps } = actDeps(mcp);
+  const r = await handle({ ...ACT_REQ, sf_act: "acknowledge" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { status: string }).status, "ok");
+  assertEquals(seen, [["ws1", FP_A, "Ethan Nguyen"]]);
+});
+
+Deno.test("action storefront_act fixed: thiếu ghi chú → 400 và KHÔNG gọi tool ghi", async () => {
+  let fixedCalls = 0;
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_A)]),
+    markFixed: () => { fixedCalls++; return Promise.resolve("ok"); },
+  });
+  const { deps } = actDeps(mcp);
+  const r = await handle({ ...ACT_REQ, sf_act: "fixed" }, TOKEN, deps);
+  assertEquals(r.status, 400);
+  assertEquals(fixedCalls, 0);
+});
+
+Deno.test("action storefront_act dismiss: lý do ngoài 2 giá trị của SW → 400; đúng lý do thì ghi kèm note + operator", async () => {
+  const seen: unknown[][] = [];
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_A)]),
+    dismissFinding: (w: string, fp: string, reason: string, note: string, op?: string) => { seen.push([fp, reason, note, op]); return Promise.resolve("ok"); },
+  });
+  const { deps } = actDeps(mcp);
+  const bad = await handle({ ...ACT_REQ, sf_act: "dismiss", note: "bỏ qua đi", reason: "whatever" }, TOKEN, deps);
+  assertEquals(bad.status, 400);
+  assertEquals(seen.length, 0);
+  const ok = await handle({ ...ACT_REQ, sf_act: "dismiss", note: "Trang vẫn ổn", reason: "false_signal" }, TOKEN, deps);
+  assertEquals(ok.status, 200);
+  assertEquals((ok.body as { status: string }).status, "ok");
+  assertEquals(seen, [[FP_A, "false_signal", "Trang vẫn ổn", "Ethan Nguyen"]]);
+});
+
+Deno.test("action storefront_act: fingerprint không thuộc store của chat → status error, không ghi gì", async () => {
+  let ackCalls = 0;
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_B)]), // store của chat chỉ có FP_B
+    acknowledgeFinding: () => { ackCalls++; return Promise.resolve("ok"); },
+  });
+  const { deps } = actDeps(mcp);
+  const r = await handle({ ...ACT_REQ, sf_act: "acknowledge" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { status: string }).status, "error");
+  assertEquals(ackCalls, 0);
+});
+
+Deno.test("action storefront_act undo: finding đã dismiss + Where khớp domain store của chat → gọi undo", async () => {
+  let undoCalls = 0;
+  const mcp = fakeMcp({
+    getFinding: () => Promise.resolve(detail({ dismissed: true, state: "dismissed" })),
+    undoFinding: () => { undoCalls++; return Promise.resolve("ok"); },
+  });
+  const { deps } = actDeps(mcp);
+  const r = await handle({ ...ACT_REQ, sf_act: "undo" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { status: string }).status, "ok");
+  assertEquals(undoCalls, 1);
+});
+
+Deno.test("action storefront_act undo: Where thuộc store khác → error, không gọi undo; finding đang mở → error", async () => {
+  let undoCalls = 0;
+  const mk = (d: StorefrontFindingDetail) => fakeMcp({
+    getFinding: () => Promise.resolve(d),
+    undoFinding: () => { undoCalls++; return Promise.resolve("ok"); },
+  });
+  const other = actDeps(mk(detail({ dismissed: true, state: "dismissed", where: "store-khac.com · de · /products/abc · 1440px wide" })));
+  const r1 = await handle({ ...ACT_REQ, sf_act: "undo" }, TOKEN, other.deps);
+  assertEquals((r1.body as { status: string }).status, "error");
+  const open = actDeps(mk(detail({ state: "open" })));
+  const r2 = await handle({ ...ACT_REQ, sf_act: "undo" }, TOKEN, open.deps);
+  assertEquals((r2.body as { status: string }).status, "error");
+  assertEquals(undoCalls, 0);
 });
