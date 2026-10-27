@@ -156,7 +156,10 @@ export function draftPanel(handlers) {
         ])
       ))
       : null,
-    state.bridge === "ready"
+    // Thanh chọn Thay thế/Huỷ đang mở cho draft thì ẩn nút điền: hai lớp
+    // nút chồng nhau gây khó hiểu (Ethan bắt live 2026-10-26 ở cả popup
+    // Draft lẫn Xin review).
+    state.bridge === "ready" && !(state.choice && state.choiceFor === "draft")
       ? el("div", { className: "row draft-actions single" }, [
         state.draftPlacement === "inserted"
           ? el("button", { className: "button-secondary", textContent: "Điền lại vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() })
@@ -187,7 +190,7 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
       : state.bridge === "ready" ? `Extension sẵn sàng điền note vào ô Note${state.bridgeVersion ? ` · v${state.bridgeVersion}` : ""}` : "Cài extension để điền note thẳng vào ô Note của Crisp nhé" }),
     el("div", { className: "note-text", textContent: handoff.note }),
     el("div", { className: "row" }, [
-      state.bridge === "ready"
+      state.bridge === "ready" && !(state.choice && state.choiceFor === "note")
         ? el("button", { className: inserted ? "button-secondary" : "button-primary", textContent: inserted ? "Điền lại vào ô Note" : "Điền vào ô Note", disabled: state.insertPending, onclick: () => onInsertNote() })
         : null,
       el("button", { className: "button-link", disabled: noteBtn.disabled, onclick: () => onHandoff(true) }, buttonContent(noteBtn.running, "Đang viết…", "Viết lại")),
@@ -664,7 +667,7 @@ function reviewEditor(handlers) {
     area,
     suggestionCard("review", handlers),
     state.choice && state.choiceFor === "review" ? handlers.insertChoice() : null,
-    el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendReviewInsert("auto") }),
+    state.choice && state.choiceFor === "review" ? null : el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendReviewInsert("auto") }),
     !ready ? el("p", { className: "muted", textContent: "Cài extension để điền tin xin review thẳng vào ô Reply của Crisp." }) : null,
   ]);
 }
@@ -703,7 +706,7 @@ function explainModal(handlers) {
     head ? el("p", { className: "muted", textContent: head }) : null,
     el("p", { className: "explain-text", textContent: state.explainText }),
     state.choice && state.choiceFor === "explain" ? handlers.insertChoice() : null,
-    el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendExplainInsert("auto") }),
+    state.choice && state.choiceFor === "explain" ? null : el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendExplainInsert("auto") }),
     !ready ? el("p", { className: "muted", textContent: "Cài extension để điền mẫu giải thích thẳng vào ô Reply của Crisp." }) : null,
   ];
 }

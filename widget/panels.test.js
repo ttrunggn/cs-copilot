@@ -494,8 +494,8 @@ Deno.test("panels: extensionHint — bridge ready nhưng version cũ hơn bản 
   const hint = extensionHint(makeHandlers());
   assertEquals(hint === null, false);
   assertEquals(allText(hint).includes("Extension đang ở bản cũ v1.2.0"), true);
-  assertEquals(allText(hint).includes("1.2.2"), true);
-  state.bridgeVersion = "1.2.2";
+  assertEquals(allText(hint).includes("1.2.3"), true);
+  state.bridgeVersion = "1.2.3";
   assertEquals(extensionHint(makeHandlers()), null);
   state.bridgeVersion = "";
   assertEquals(extensionHint(makeHandlers()), null);
@@ -538,4 +538,19 @@ Deno.test("panels: knowledgePanel — không tìm thấy thì có Thử từ kho
   buttonByText(p, "Thử từ khoá khác").onclick();
   buttonByText(p, "Ghi private note hỏi quản lý").onclick();
   assertEquals(calls, [["askRetry"], ["handoff", false]]);
+});
+
+Deno.test("panels: thanh chọn Thay thế/Huỷ đang mở thì nút điền gốc ẨN (hết hai lớp nút chồng nhau — ca live 2026-10-26)", () => {
+  reset();
+  state.modal = "csat";
+  state.csatChoice = "review";
+  state.check = { ...CHECK, review_template: { source: "default", text: "Hi there, review please", suggestion: null } };
+  // Chưa hỏi thay thế: nút Điền hiện.
+  let overlay = modalView(makeHandlers());
+  assertEquals(Boolean(buttonByText(overlay, "Điền vào ô Reply")), true);
+  // Đang hỏi thay thế cho review: nút Điền gốc biến mất, chỉ còn thanh chọn.
+  state.choice = true;
+  state.choiceFor = "review";
+  overlay = modalView(makeHandlers());
+  assertEquals(buttonByText(overlay, "Điền vào ô Reply"), undefined);
 });
