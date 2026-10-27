@@ -81,6 +81,16 @@ export interface Db {
   getRecentShopDomains(websiteId: string, days: number): Promise<string[]>;
   /** Toàn bộ bản chụp SW của workspace (job gắn segment đọc để biết store nào đủ điều kiện mang segment). */
   listStorefrontStoreStatus(websiteId: string): Promise<StorefrontStoreStatus[]>;
+  /** Mốc digest Storefront Watch của một store (migration 031); null = store chưa có mốc nền. */
+  getDigestState(websiteId: string, shop: string): Promise<{ last_good_check: string | null } | null>;
+  /** Ghi mốc digest cho store (upsert theo PK website_id+shop). */
+  setDigestState(websiteId: string, shop: string, lastGoodCheck: string | null): Promise<void>;
+  /** Các fingerprint digest đã tính cho store (đã thuộc mốc nền hoặc đã báo qua email). */
+  getDigestFindings(websiteId: string, shop: string): Promise<string[]>;
+  /** Ghi thêm fingerprint vào tập đã tính của digest (trùng PK thì bỏ qua). */
+  addDigestFindings(websiteId: string, shop: string, fingerprints: string[]): Promise<void>;
+  /** session_id của conversation MỚI NHẤT có custom_data.shopify_domain = shop (link Crisp trong email digest); null = store chưa từng có session nào. */
+  getLatestSessionForShop(websiteId: string, shop: string): Promise<string | null>;
   /**
    * Ứng viên đồng bộ segment `storefront-watch`: (a) các conversation cập
    * nhật trong `days` ngày gần nhất có shopify_domain hợp lệ (kèm shop đã
@@ -352,6 +362,55 @@ export function createDb(sb: SupabaseClient): Db {
         .eq("website_id", websiteId);
       if (error) throw error;
       return (data ?? []) as StorefrontStoreStatus[];
+    },
+    async getDigestState(websiteId, shop) {
+      const { data, error } = await sb.from("storefront_digest_state")
+        .select("last_good_check")
+        .eq("website_id", websiteId).eq("shop", shop).maybeSingle();
+      if (error) throw error;
+      return data as { last_good_check: string | null } | null;
+    },
+    async setDigestState(websiteId, shop, lastGoodCheck) {
+      const { error } = await sb.from("storefront_digest_state")
+        .upsert(
+          { website_id: websiteId, shop, last_good_check: lastGoodCheck, updated_at: new Date().toISOString() },
+          { onConflict: "website_id,shop" },
+        );
+      if (error) throw error;
+    },
+    async getDigestFindings(websiteId, shop) {
+      const { data, error } = await sb.from("storefront_digest_findings")
+        .select("fingerprint")
+        .eq("website_id", websiteId).eq("shop", shop);
+      if (error) throw error;
+      return (data ?? []).map((r) => r.fingerprint as string);
+    },
+    async addDigestFindings(websiteId, shop, fingerprints) {
+      if (!fingerprints.length) return;
+      const rows = [...new Set(fingerprints)].map((fingerprint) => ({ website_id: websiteId, shop, fingerprint }));
+      const { error } = await sb.from("storefront_digest_findings")
+        .upsert(rows, { onConflict: "website_id,shop,fingerprint", ignoreDuplicates: true });
+      if (error) throw error;
+    },
+    async getLatestSessionForShop(websiteId, shop) {
+      // custom_data là dữ liệu phía khách ghi: lấy các conversation gần
+      // nhất rồi khớp shopify_domain ở đây (cùng quy ước getRecentShopDomains)
+      // thay vì đẩy toán tử JSON xuống PostgREST.
+      const { data, error } = await sb.from("conversations")
+        .select("session_id,custom_data,updated_at")
+        .eq("website_id", websiteId)
+        .not("custom_data", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      for (const r of data ?? []) {
+        const cd = (r as { custom_data?: Record<string, unknown> | null }).custom_data;
+        const v = cd?.shopify_domain;
+        if (isPlausibleShop(v) && v.trim() === shop) {
+          return (r as { session_id: string }).session_id;
+        }
+      }
+      return null;
     },
     async getStorefrontSegmentCandidates(websiteId, days) {
       const since = new Date(Date.now() - days * 86_400_000).toISOString();
