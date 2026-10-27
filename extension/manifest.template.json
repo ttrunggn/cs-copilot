@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CS Copilot — chèn draft",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Chèn draft của CS Copilot vào ô Reply và private note vào ô Note của Crisp. Không gọi mạng, không lưu dữ liệu.",
   "background": { "service_worker": "background.js" },
   "content_scripts": [
