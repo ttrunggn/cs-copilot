@@ -112,6 +112,10 @@ export interface HelpdeskChunk {
   url: string;
   text: string;
   similarity: number;
+  /** Điểm RRF của hybrid search (chỉ có khi lấy qua hybridMatchHelpdesk) — dùng xếp hạng/gộp ứng viên. */
+  score?: number;
+  /** Hạng full-text của đoạn (1 = khớp nhất); null = không khớp full-text, undefined = không qua hybrid. */
+  ftsRank?: number | null;
 }
 
 export interface CaseMatch {
