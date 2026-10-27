@@ -449,7 +449,7 @@ function sfActForm(row, kind, handlers) {
     className: "sf-act sf-confirm",
     disabled: busy || !valid(),
     onclick: () => handlers.onStorefrontAct?.(fp, kind),
-  }, buttonContent(busy, "Đang gửi…", kind === "fixed" ? "Xác nhận Fixed" : "Xác nhận Dismiss"));
+  }, buttonContent(busy, "Đang gửi…", kind === "fixed" ? "Xác nhận Fix" : "Xác nhận Dismiss"));
   return el("div", { className: "sf-form" }, [
     kind === "dismiss" ? el("div", { className: "sf-flabel", textContent: "Lý do Dismiss (bắt buộc)" }) : null,
     kind === "dismiss" ? el("div", { className: "sf-chips" }, [
@@ -488,8 +488,8 @@ function sfActForm(row, kind, handlers) {
  * loại) + nhãn bug ngắn + meta dữ kiện + đúng 1 link ↗ unit sang Console.
  * Không hiện nội dung/message của SW trong panel.
  * Từ 2026-10-27 (SW mở scope write, Ethan duyệt bản giả lập): bấm vào dòng
- * mở MENU THAO TÁC ngay dưới dòng — Acknowledge (trái nhất, một chạm) ·
- * Fixed · Dismiss (cả hai qua form ghi chú phía server bắt buộc); finding
+ * mở MENU THAO TÁC ngay dưới dòng — Take case (trái nhất, một chạm) ·
+ * Fix · Dismiss (cả hai qua form ghi chú phía server bắt buộc); finding
  * vừa đóng trong phiên panel hiện ghi chú kèm quyết định + nút Mở lại.
  */
 function sfRow(row, handlers = {}) {
@@ -517,7 +517,7 @@ function sfRow(row, handlers = {}) {
   if (closed) {
     kids.push(el("div", {
       className: "sf-closed-note",
-      textContent: `${closed.via === "fixed" ? "Fixed" : "Dismiss"} · ${state.operatorName || "CS"}: “${closed.note}”`,
+      textContent: `${closed.via === "fixed" ? "Fix" : "Dismiss"} · ${state.operatorName || "CS"}: “${closed.note}”`,
     }));
     kids.push(el("button", {
       className: "sf-undo",
@@ -530,11 +530,11 @@ function sfRow(row, handlers = {}) {
     kids.push(el("div", { className: "sf-menu" }, [
       el("div", { className: "sf-actions" }, [
         row.status !== "in_progress"
-          ? el("button", { className: "sf-act sf-act-ack", disabled: busy, onclick: () => handlers.onStorefrontAct?.(fp, "acknowledge") },
-            buttonContent(busy, "Đang gửi…", "Acknowledge"))
+          ? el("button", { className: "sf-act sf-act-take", disabled: busy, onclick: () => handlers.onStorefrontAct?.(fp, "acknowledge") },
+            buttonContent(busy, "Đang gửi…", "Take case"))
           : null,
-        el("button", { className: "sf-act", disabled: busy, textContent: "Fixed", onclick: () => handlers.onStorefrontForm?.(fp, "fixed") }),
-        el("button", { className: "sf-act", disabled: busy, textContent: "Dismiss", onclick: () => handlers.onStorefrontForm?.(fp, "dismiss") }),
+        el("button", { className: "sf-act sf-act-fix", disabled: busy, textContent: "Fix", onclick: () => handlers.onStorefrontForm?.(fp, "fixed") }),
+        el("button", { className: "sf-act sf-act-dismiss", disabled: busy, textContent: "Dismiss", onclick: () => handlers.onStorefrontForm?.(fp, "dismiss") }),
       ]),
       state.sfForm?.fingerprint === fp ? sfActForm(row, state.sfForm.kind, handlers) : null,
     ]));
