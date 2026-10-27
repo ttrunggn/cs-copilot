@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { crispFromEnv } from "../_shared/crisp.ts";
+import { operatorMailerFromEnv } from "../_shared/crisp-operators.ts";
 import { createAiStore, createDb, createJiraStore } from "../_shared/db.ts";
 import { jiraFromEnv } from "../_shared/jira-api.ts";
 import { createOpenAi } from "../_shared/openai.ts";
@@ -10,6 +11,7 @@ import { storefrontFromEnv } from "../_shared/storefront.ts";
 import { handle } from "./handler.ts";
 import { handlePrecompute } from "./precompute.ts";
 import { handleStorefrontSegments } from "./storefront-segments.ts";
+import { handleStorefrontDigest } from "./storefront-digest.ts";
 import { handleStorefrontSweep } from "./storefront-sweep.ts";
 
 const CORS = {
@@ -35,6 +37,11 @@ const storefront = storefrontFromEnv((k) => Deno.env.get(k));
 // (ngoại lệ ghi duy nhất Ethan đã duyệt, xem _shared/crisp.ts). Thiếu
 // CRISP_PLUGIN_IDENTIFIER/CRISP_PLUGIN_KEY → null, job trả unconfigured.
 const crisp = crispFromEnv((k) => Deno.env.get(k));
+// Mailer gửi email digest Storefront Watch tới operator (Ethan duyệt
+// 2026-10-27, xem _shared/crisp-operators.ts): dùng chung plugin token
+// với client segment; thiếu credential → null, job digest trả
+// mail_unconfigured.
+const mailer = operatorMailerFromEnv((k) => Deno.env.get(k));
 // Jira REST chỉ-đọc cho đường tự sync khi mở panel (Ethan chốt 2026-10-26):
 // thiếu JIRA_EMAIL/JIRA_API_TOKEN → null, check giữ mirror cũ và nút Sync
 // ngay báo unconfigured trung thực. Kho mirror dùng chung với function
@@ -57,7 +64,7 @@ Deno.serve(async (req) => {
   // shared secret ở header x-copilot-secret, hoặc service role key
   // (n8n gọi bằng credential Supabase API có sẵn của nó: apikey/Bearer).
   const internalAction = (body as { action?: unknown } | null)?.action;
-  if (internalAction === "precompute_sentiment" || internalAction === "storefront_sweep" || internalAction === "storefront_segments") {
+  if (internalAction === "precompute_sentiment" || internalAction === "storefront_sweep" || internalAction === "storefront_segments" || internalAction === "storefront_digest") {
     const presented = req.headers.get("x-copilot-secret") ?? req.headers.get("apikey") ??
       (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const shared = Deno.env.get("N8N_SHARED_SECRET") ?? "";
@@ -69,6 +76,8 @@ Deno.serve(async (req) => {
       ? await handlePrecompute(body, { db, ai })
       : internalAction === "storefront_sweep"
       ? await handleStorefrontSweep(body, { db, storefront })
+      : internalAction === "storefront_digest"
+      ? await handleStorefrontDigest(body, { db, storefront, mailer })
       : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
