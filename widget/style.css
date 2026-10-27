@@ -465,8 +465,10 @@ button.sf-row { cursor: pointer; }
 .sf-footer { justify-content: flex-start; gap: 8px; }
 .sf-open { text-decoration: none; display: inline-flex; align-items: center; }
 .sf-line { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
-.sf-bug-link { text-decoration: none; font-weight: 700; }
-.sf-line .sf-bug-link { margin-left: auto; }
+.sf-line > div { min-width: 0; overflow-wrap: anywhere; }
+.sf-line .pill-sf { flex: none; }
+.sf-bug-link { text-decoration: none; font-weight: 700; font-size: 15px; line-height: 1; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; }
+.sf-line .sf-bug-link { margin-left: auto; flex: none; }
 /* Đầu thẻ Storefront cho rớt dòng: ở khung Crisp hẹp (~260px) nút Mở
    Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
    live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */
@@ -476,14 +478,16 @@ button.sf-row { cursor: pointer; }
 .sf-rows { display: grid; gap: 4px; }
 .sf-clickable { cursor: pointer; }
 .pill-sf.sf-closed { border-color: var(--success); color: var(--success); }
-/* Menu thao tác dưới dòng finding: nút màu ĐẬM theo lệnh Ethan 2026-10-27 —
-   Take case vàng · Fix xanh lá · Dismiss đen, nằm dưới dòng, đủ bề ngang. */
+/* Menu thao tác dưới dòng finding (Ethan chốt live 2026-10-27): Take case
+   vàng · Fix xanh lá · Dismiss đen — màu vừa phải (bản đậm bị chê quá tay),
+   3 nút CHIA ĐỀU bề ngang, nằm dưới dòng finding. */
 .sf-menu { margin: 2px 0 6px; }
 .sf-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.sf-act { font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
-.sf-act-take { background: #f5b301; border-color: #f5b301; color: #221a00; }
-.sf-act-fix { background: #16a34a; border-color: #16a34a; color: #fff; }
-.sf-act-dismiss { background: #101216; border-color: #454c5c; color: #fff; }
+.sf-actions .sf-act { flex: 1 1 0; text-align: center; }
+.sf-act { font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
+.sf-act-take { background: #e6b93d; border-color: #e6b93d; color: #2a2103; }
+.sf-act-fix { background: #419e66; border-color: #419e66; color: #fff; }
+.sf-act-dismiss { background: #2b2f38; border-color: #4a5162; color: #fff; }
 .sf-act:disabled { opacity: .45; cursor: default; }
 .sf-form { margin-top: 6px; border: 1px dashed var(--border); border-radius: 9px; padding: 8px; display: grid; gap: 6px; }
 .sf-flabel { font-size: 11px; font-weight: 700; }
