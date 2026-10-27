@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { confirmNoteMode, decideInsert, fillVerified, isCopilotMessage, isYellowishColor, placeholderKind, sessionFromUrl, signalTrace, tabLooksActive, textsMatch, verifyWritten } from "./composer-core.js";
+import { accessibleName, confirmNoteMode, createExpandTracker, decideInsert, fillVerified, findExpandButton, isCopilotMessage, isWidgetIframe, isYellowishColor, placeholderKind, sessionFromUrl, signalTrace, tabLooksActive, textsMatch, verifyWritten, widgetSessionFromSrc } from "./composer-core.js";
 
 Deno.test("sessionFromUrl reads the open conversation", () => {
   assertEquals(sessionFromUrl("https://app.crisp.chat/website/ws1/inbox/session_abc-123/"), "session_abc-123");
@@ -159,4 +159,97 @@ Deno.test("fillVerified: dòng đánh số bị editor biến thành marker danh
   assertEquals(fillVerified(missingTail, expected), false);
   // Nội dung khác hẳn → false.
   assertEquals(fillVerified("Một nội dung hoàn toàn khác không liên quan gì tới bản kỳ vọng cả.", expected), false);
+});
+
+// ─── Tự mở rộng hộp widget ──────────────────────────────────────────────────
+
+function fakeEl(tag, opts = {}, kids = []) {
+  const e = {
+    tagName: String(tag).toUpperCase(),
+    attrs: opts.attrs ?? {},
+    text: opts.text ?? "",
+    parentElement: null,
+    children: kids,
+    getAttribute(n) { return n in this.attrs ? this.attrs[n] : null; },
+    get textContent() { return this.text + this.children.map((c) => c.textContent).join(""); },
+    querySelectorAll() { const out = []; const rec = (n) => { for (const c of n.children) { out.push(c); rec(c); } }; rec(this); return out; },
+  };
+  for (const k of kids) k.parentElement = e;
+  return e;
+}
+
+Deno.test("accessibleName: aria-label thắng title/text, chuẩn hoá hoa thường + khoảng trắng", () => {
+  assertEquals(accessibleName(fakeEl("button", { attrs: { "aria-label": "  Expand ", title: "Khác" }, text: "Khác nữa" })), "expand");
+  assertEquals(accessibleName(fakeEl("button", { attrs: { title: "Expand" } })), "expand");
+  assertEquals(accessibleName(fakeEl("button", { text: "Thu   gọn" })), "thu gọn");
+});
+
+Deno.test("isWidgetIframe + widgetSessionFromSrc", () => {
+  const f = fakeEl("iframe", { attrs: { src: "https://copilot-oe.netlify.app/index.html?session_id=session_9&website_id=ws1" } });
+  assertEquals(isWidgetIframe(f, "https://copilot-oe.netlify.app"), true);
+  assertEquals(isWidgetIframe(f, "https://khac.example"), false);
+  assertEquals(isWidgetIframe(fakeEl("div", { attrs: { src: "https://copilot-oe.netlify.app/x" } }), "https://copilot-oe.netlify.app"), false);
+  assertEquals(widgetSessionFromSrc(f.attrs.src), "session_9");
+  assertEquals(widgetSessionFromSrc("https://copilot-oe.netlify.app/index.html"), null);
+});
+
+/** Dựng hộp widget: sidebar > [hộp khác có nút Expand riêng] + [hộp mình: iframe + footer]. */
+function widgetBox({ expandButtons = 1, otherBoxExpand = true } = {}) {
+  const frame = fakeEl("iframe", { attrs: { src: "https://copilot-oe.netlify.app/index.html?session_id=session_1" } });
+  const btns = Array.from({ length: expandButtons }, () => fakeEl("button", { attrs: { title: "Expand" } }));
+  const footer = fakeEl("div", {}, btns);
+  const box = fakeEl("div", {}, [frame, footer]);
+  const otherBtn = fakeEl("button", { attrs: { "aria-label": "Expand" } });
+  const otherFrame = fakeEl("iframe", { attrs: { src: "https://plugin-khac.example/widget" } });
+  const otherBox = fakeEl("div", {}, otherBoxExpand ? [otherFrame, otherBtn] : [otherFrame]);
+  fakeEl("div", {}, [otherBox, box]); // sidebar — gán parentElement qua constructor
+  return { frame, btns, otherBtn };
+}
+
+Deno.test("findExpandButton: nút ở chân hộp của mình", () => {
+  const { frame, btns } = widgetBox();
+  assertEquals(findExpandButton(frame), btns[0]);
+});
+
+Deno.test("findExpandButton: không có nút Expand trong hộp → null (không leo sang hộp khác)", () => {
+  const { frame } = widgetBox({ expandButtons: 0 });
+  assertEquals(findExpandButton(frame), null);
+});
+
+Deno.test("findExpandButton: 2 nút Expand cùng phạm vi → null, không bấm đoán", () => {
+  const { frame } = widgetBox({ expandButtons: 2 });
+  assertEquals(findExpandButton(frame), null);
+});
+
+Deno.test("expand tracker: bấm 1 lần/phiên; người đóng tay thì phiên đó không mở lại; sang phiên mới thì mở", () => {
+  const t = createExpandTracker();
+  assertEquals(t.observe("s1", true), true); // lần đầu thấy nút → bấm
+  t.noteClicked();
+  assertEquals(t.observe("s1", true), false); // nút chưa kịp biến mất
+  assertEquals(t.observe("s1", false), false); // lớp phủ đang mở
+  assertEquals(t.observe("s1", false), false);
+  assertEquals(t.observe("s1", true), false); // nút quay lại = người vừa đóng → thôi hẳn
+  assertEquals(t.observe("s1", true), false);
+  assertEquals(t.observe("s2", true), true); // phiên mới → mở lại
+});
+
+Deno.test("expand tracker: lớp phủ mang sang từ phiên trước — người đóng là hết, không bật lại", () => {
+  const t = createExpandTracker();
+  assertEquals(t.observe("s1", false), false); // vào phiên đã ở trạng thái mở sẵn
+  assertEquals(t.observe("s1", false), false);
+  assertEquals(t.observe("s1", true), false); // người đóng → không tự mở lại
+});
+
+Deno.test("expand tracker: nút vắng mặt thoáng qua 1 nhịp không bị hiểu nhầm là đã mở", () => {
+  const t = createExpandTracker();
+  assertEquals(t.observe("s1", false), false); // DOM chưa dựng xong
+  assertEquals(t.observe("s1", true), true);
+});
+
+Deno.test("expand tracker: bấm trượt (nút còn nguyên) → cho bấm lại sau 6 nhịp", () => {
+  const t = createExpandTracker();
+  assertEquals(t.observe("s1", true), true);
+  t.noteClicked();
+  for (let i = 0; i < 5; i++) assertEquals(t.observe("s1", true), false);
+  assertEquals(t.observe("s1", true), true); // nhịp thứ 6 sau lần bấm trượt
 });

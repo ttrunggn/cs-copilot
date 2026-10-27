@@ -167,3 +167,111 @@ export function signalTrace(signals = {}) {
   const bit = (v) => (v ? "1" : "0");
   return `tab${bit(signals.tabActive)} yel${bit(signals.yellowBg)} cls${bit(signals.noteClass)} ph${bit(signals.notePlaceholder)} pil${bit(signals.notePill)}`;
 }
+
+/**
+ * Tên truy cập của một phần tử: aria-label → title → text, chuẩn hoá
+ * (trim, gộp khoảng trắng, chữ thường) để so khớp nhãn nút của Crisp
+ * mà không phụ thuộc hoa/thường hay khoảng trắng thừa.
+ */
+export function accessibleName(el) {
+  const raw = el?.getAttribute?.("aria-label") ?? el?.getAttribute?.("title") ?? el?.textContent ?? "";
+  return String(raw).replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/** Đúng iframe widget của copilot: thẻ IFRAME và src bắt đầu bằng origin của widget. */
+export function isWidgetIframe(el, origin) {
+  if (!el || String(el.tagName ?? "").toUpperCase() !== "IFRAME" || !origin) return false;
+  return String(el.getAttribute?.("src") ?? "").startsWith(origin);
+}
+
+/** session_id trong query của src iframe widget (Crisp gắn sẵn); không có → null. */
+export function widgetSessionFromSrc(src) {
+  const m = String(src ?? "").match(/[?&]session_id=([^&#]+)/);
+  if (!m) return null;
+  try { return decodeURIComponent(m[1]); } catch { return m[1]; }
+}
+
+/**
+ * Nút Expand của hộp widget: leo tổ tiên của iframe, mỗi tầng gom các nút
+ * hậu duệ có tên truy cập đúng "expand". Tầng HẸP nhất có ứng viên quyết
+ * định: đúng 1 → trả về; nhiều hơn 1 → null (mơ hồ, không bấm đoán);
+ * không có → leo tiếp, tối đa maxLevels tầng. Leo dừng ngay khi phạm vi
+ * chứa thêm một iframe khác (đã ra khỏi hộp của mình, sang container
+ * chung của sidebar) — nút Expand của hộp plugin khác vì thế không lọt.
+ * (Dò Crisp thật 2026-10-27: nút chevron ở đáy hộp Copilot CS, tooltip
+ * "Expand", tên truy cập "Expand".)
+ */
+export function findExpandButton(iframe, maxLevels = 8) {
+  let scope = iframe ?? null;
+  for (let level = 0; level < maxLevels && scope; level++) {
+    scope = scope.parentElement ?? null;
+    if (!scope) break;
+    // Phạm vi chứa thêm iframe khác = đã ra khỏi hộp của mình (container
+    // chung của sidebar) — dừng ngay, không xét nút ở phạm vi đó.
+    const frames = [...(scope.querySelectorAll?.("iframe") ?? [])]
+      .filter((el) => String(el?.tagName ?? "").toUpperCase() === "IFRAME");
+    if (frames.length > 1) return null;
+    const buttons = [...(scope.querySelectorAll?.("button") ?? [])]
+      .filter((el) => String(el?.tagName ?? "").toUpperCase() === "BUTTON" && accessibleName(el) === "expand");
+    if (buttons.length === 1) return buttons[0];
+    if (buttons.length > 1) return null;
+  }
+  return null;
+}
+
+/**
+ * Máy trạng thái tự mở rộng, theo từng phiên chat:
+ * - Thấy nút Expand ở phiên chưa từng bấm → bấm (observe trả true).
+ * - Sau khi bấm, nút biến mất (lớp phủ đã mở) từ 2 lần quan sát liên tiếp
+ *   → coi như ĐÃ MỞ. Lớp phủ mang sang từ phiên trước cũng vào trạng
+ *   thái này (vào phiên mới mà 2 lần liền không thấy nút dù iframe đã có).
+ * - ĐÃ MỞ mà nút xuất hiện lại = người dùng vừa bấm Close → phiên đó
+ *   không bao giờ tự mở lại nữa (không giành nhau với người dùng).
+ * - Bấm xong mà nút vẫn còn nguyên sau 6 lần quan sát (lần bấm trượt)
+ *   → cho bấm lại.
+ */
+export function createExpandTracker() {
+  let session = null;
+  let clicked = false;
+  let absentStreak = 0;
+  let expanded = false;
+  let closedByUser = false;
+  let stuck = 0;
+  return {
+    observe(nextSession, buttonPresent) {
+      if (nextSession !== session) {
+        session = nextSession;
+        clicked = false;
+        absentStreak = 0;
+        expanded = false;
+        closedByUser = false;
+        stuck = 0;
+      }
+      if (closedByUser) return false;
+      if (!buttonPresent) {
+        absentStreak++;
+        if (absentStreak >= 2) expanded = true;
+        return false;
+      }
+      absentStreak = 0;
+      if (expanded) {
+        closedByUser = true;
+        return false;
+      }
+      if (clicked) {
+        stuck++;
+        if (stuck >= 6) {
+          clicked = false;
+          stuck = 0;
+          return true;
+        }
+        return false;
+      }
+      return true;
+    },
+    noteClicked() {
+      clicked = true;
+      stuck = 0;
+    },
+  };
+}
