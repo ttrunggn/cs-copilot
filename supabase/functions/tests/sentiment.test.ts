@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
-import { parseSentiment, sentimentGuidance, sentimentPrompt } from "../_shared/sentiment.ts";
+import { looksVietnamese, parseSentiment, sentimentGuidance, sentimentPrompt, vietnamizeSentiment } from "../_shared/sentiment.ts";
 import { customerMessageCount, sentimentFingerprint } from "../copilot/analyze.ts";
 import { handle } from "../copilot/handler.ts";
 import { fakeAi, makeDeps, TOKEN } from "./fakes.ts";
@@ -33,6 +33,67 @@ Deno.test("sentimentPrompt: rubric có neo điểm, trục urgency riêng và v�
   assertStringIncludes(p, "Negation flips meaning");
   assertStringIncludes(p, "urgency is a SEPARATE axis");
   assertStringIncludes(p, "still not resolved");
+});
+
+Deno.test("sentimentPrompt: model viết bằng ngôn ngữ tự nhiên của khách, KHÔNG ép tiếng Việt trong prompt phân tích (pipeline mới 2026-10-27)", () => {
+  const p = sentimentPrompt("User: still not resolved");
+  assertStringIncludes(p, "SAME language the customer uses");
+  assertStringIncludes(p, "do NOT translate anything yourself");
+  assertEquals(p.includes("ALWAYS Vietnamese"), false);
+});
+
+Deno.test("looksVietnamese: phân biệt tiếng Việt / tiếng Anh / chữ ngoài Latin", () => {
+  assertEquals(looksVietnamese("Khách bị trừ tiền sau khi gỡ app"), true);
+  // Tiếng Việt KHÔNG dấu không nhận diện được chắc chắn (dễ nhầm với ngôn
+  // ngữ Latin khác) → coi là chưa, để bước dịch xử lý: an toàn hơn bỏ sót
+  // một câu tiếng Anh/ngôn ngữ khác không được dịch.
+  assertEquals(looksVietnamese("Khach chua nhan duoc tien hoan"), false);
+  assertEquals(looksVietnamese("Charged after uninstalling the app"), false);
+  assertEquals(looksVietnamese("لم يصل الاسترداد بعد"), false); // tiếng Ả Rập
+  assertEquals(looksVietnamese(""), true); // rỗng = không cần dịch
+});
+
+Deno.test("vietnamizeSentiment: phân tích tiếng Anh → dịch gộp 1 lượt sang tiếng Việt, đủ summary/signals/issues", async () => {
+  const f = fakeAi({
+    translate: JSON.stringify({
+      items: [
+        { i: 0, vi: "Khách bực vì vẫn bị trừ tiền" },
+        { i: 1, vi: "vẫn bị trừ tiền sau khi gỡ app" },
+        { i: 2, vi: "Bị trừ tiền sau khi đã gỡ app" },
+        { i: 3, vi: "đã gỡ app từ tháng 4" },
+      ],
+    }),
+  });
+  const out = await vietnamizeSentiment(f.ai, {
+    score: 25, mood: "frustrated", urgency: "medium", confidence: 0.8,
+    summary: "Customer angry about still being charged",
+    signals: ["still charged after uninstalling"],
+    issues: [{ summary: "Charged after uninstalling the app", evidence: "deleted it in April" }],
+  });
+  assertEquals(out.summary, "Khách bực vì vẫn bị trừ tiền");
+  assertEquals(out.signals, ["vẫn bị trừ tiền sau khi gỡ app"]);
+  assertEquals(out.issues, [{ summary: "Bị trừ tiền sau khi đã gỡ app", evidence: "đã gỡ app từ tháng 4" }]);
+  assertEquals(f.calls.filter((c) => c.task === "translate").length, 1);
+  assertEquals(out.score, 25); // trục số/mood không đổi
+});
+
+Deno.test("vietnamizeSentiment: đã tiếng Việt thì bỏ qua, không tốn lượt dịch", async () => {
+  const f = fakeAi({}); // không có reply translate: gọi là reject ngay
+  const s = {
+    score: 50, mood: "neutral" as const, urgency: "low" as const, confidence: 0.5,
+    summary: "Khách đang chờ phản hồi", signals: ["chưa rõ giới hạn dịch thuật"], issues: [],
+  };
+  assertEquals(await vietnamizeSentiment(f.ai, s), s);
+  assertEquals(f.calls.length, 0);
+});
+
+Deno.test("vietnamizeSentiment: dịch lỗi thì giữ nguyên bản phân tích, không làm mất sentiment", async () => {
+  const f = fakeAi({ translate: new Error("quota") });
+  const s = {
+    score: 25, mood: "frustrated" as const, urgency: "medium" as const, confidence: 0.8,
+    summary: "Customer angry about still being charged", signals: [], issues: [],
+  };
+  assertEquals(await vietnamizeSentiment(f.ai, s), s);
 });
 
 Deno.test("sentimentGuidance: khách bực/khẩn cấp thì cấm emoji và cấm xin review", () => {
@@ -101,7 +162,7 @@ Deno.test("analyze: AI lỗi và chưa có cache → reason ai_unavailable, sent
   assertEquals(body.reason, "ai_unavailable");
 });
 
-Deno.test("sentimentFingerprint: đổi khi khách nhắn thêm VÀ khi CS trả lời thêm (v3 — issues tính lại sau khi CS đã trả lời)", async () => {
+Deno.test("sentimentFingerprint: đổi khi khách nhắn thêm VÀ khi CS trả lời thêm (issues tính lại sau khi CS đã trả lời)", async () => {
   const base = [msg({ content: "help" })];
   const fp1 = await sentimentFingerprint(base);
   const fp2 = await sentimentFingerprint([...base, msg({ from: "operator", content: "sure", created_at: "2026-01-01T00:01:00Z" })]);

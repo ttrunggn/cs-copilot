@@ -38,6 +38,17 @@ function findComposer() {
   return null;
 }
 
+/** MỌI phần tử ứng viên ô soạn (mọi selector, khử trùng, giữ thứ tự ưu tiên). */
+function findComposers() {
+  const out = [];
+  for (const sel of COMPOSER_SELECTORS) {
+    for (const el of document.querySelectorAll(sel)) {
+      if (visible(el) && !out.includes(el)) out.push(el);
+    }
+  }
+  return out;
+}
+
 function readText(el) {
   const raw = el.tagName === "TEXTAREA" ? el.value : el.innerText;
   // Editor rich-text hay giữ ký tự zero-width trong ô "trống" — bỏ đi để
@@ -231,16 +242,30 @@ function signalScope(editor) {
 function collectNoteSignals(editor) {
   const root = signalScope(editor);
   const tab = findModeTab(editor, "Note");
+  // Leo từ EDITOR THẬT (contenteditable), không phải từ phần tử selector
+  // khớp: selector đầu có thể trúng WRAPPER bọc ngoài editor, mà nền vàng
+  // của Note mode nằm ngay trên chính contenteditable / lớp bọc trong của
+  // nó — leo từ wrapper đi lên thì không bao giờ chạm được lớp đó (ca live
+  // 2026-10-27: tab Note mở sẵn, editor nền vàng rõ ràng mà trace vẫn
+  // yel0, cổng chỉ còn pil1 nên không qua nổi).
+  const start = editableOf(editor) ?? editor;
   let yellowBg = false;
   let noteClass = false;
-  for (let node = editor; node; node = node.parentElement) {
+  for (let node = start; node; node = node.parentElement) {
     if (/(^|[\s_-])note(?=$|[\s_-])/i.test(classOf(node))) noteClass = true;
     if (!yellowBg) yellowBg = isYellowishColor(getComputedStyle(node).backgroundColor);
     if (node === root) break;
   }
-  const attrPh = editor.getAttribute("data-placeholder")
-    ?? editor.closest("[data-placeholder]")?.getAttribute("data-placeholder")
-    ?? editor.getAttribute("aria-label")
+  // Nền vàng có thể phủ ở container NGOÀI phạm vi tín hiệu đúng một tầng
+  // (phiên dò 2026-10-26: phủ cả hàng tab) — kiểm thêm đúng một tầng đó.
+  if (!yellowBg && root.parentElement) {
+    yellowBg = isYellowishColor(getComputedStyle(root.parentElement).backgroundColor);
+    if (!noteClass) noteClass = /(^|[\s_-])note(?=$|[\s_-])/i.test(classOf(root.parentElement));
+  }
+  const attrPh = start.getAttribute?.("data-placeholder")
+    ?? start.closest?.("[data-placeholder]")?.getAttribute("data-placeholder")
+    ?? start.getAttribute?.("aria-label")
+    ?? editor.getAttribute("data-placeholder")
     ?? "";
   // Placeholder trên Crisp thật là CHỮ RENDER quanh editor ("Send a private
   // note to your team…" / "Send your message to … in chat…", phiên dò
@@ -255,7 +280,9 @@ function collectNoteSignals(editor) {
   let notePill = false;
   const tabBar = tab?.parentElement ?? null;
   for (const el of root.querySelectorAll("*")) {
-    if (el === editor || editor.contains(el) || el.children.length) continue;
+    // Bỏ qua lá nằm TRONG editor thật (đó là chữ người dùng gõ); lá trong
+    // wrapper nhưng ngoài editor (pill "Note" ở mép ô soạn) vẫn tính.
+    if (el === start || start.contains(el) || el.children.length) continue;
     const t = (el.textContent || "").trim();
     if (!t) continue;
     const k = placeholderKind(t);
@@ -277,44 +304,59 @@ function collectNoteSignals(editor) {
 }
 
 /**
+ * Chọn ứng viên editor cho đích Note: Crisp có thể giữ NHIỀU editor trong
+ * DOM cùng lúc (cả hai mode) và selector đầu tiên không phân biệt mode —
+ * bản cũ chỉ chấm tín hiệu trên ứng viên đầu tiên tìm thấy, ứng viên đó là
+ * editor của mode kia thì mọi tín hiệu đọc về 0 dù Note mode đang bật đúng
+ * (ca live 2026-10-27, trace chỉ pil1). Nay chấm TỪNG ứng viên: lấy ứng
+ * viên đầu tiên qua cổng xác nhận; không ai qua thì lấy ứng viên nhiều tín
+ * hiệu editor nhất (phục vụ trace + bấm tab chuyển mode).
+ */
+function pickNoteEditor() {
+  let best = null;
+  for (const editor of findComposers()) {
+    const got = collectNoteSignals(editor);
+    const n = [got.signals.yellowBg, got.signals.noteClass, got.signals.notePlaceholder, got.signals.notePill].filter(Boolean).length;
+    if (!best || n > best.n) best = { editor, tab: got.tab, signals: got.signals, n };
+    if (confirmNoteMode(got.signals)) break;
+  }
+  return best;
+}
+
+/**
  * Điền private note vào ô Note: bấm tab Note → chờ + xác nhận Note mode bằng
  * confirmNoteMode → kiểm tra lại lần cuối ngay trước khi ghi. Bất kỳ bước nào
  * không chắc chắn đều trả "note_unconfirmed" và KHÔNG ghi ký tự nào.
  */
 async function insertIntoNote(msg, reply) {
   const trace = [];
-  let editor = findComposer();
-  if (!editor) return reply("composer_not_found", trace);
-  let { tab, signals } = collectNoteSignals(editor);
-  trace.push(`sig0 ${signalTrace(signals)}`);
-  // BẢN CŨ bắt buộc tìm thấy tab Note rồi mới xét tín hiệu — mà tìm tab là
-  // khâu dễ trượt nhất (class băm, tab nằm ngoài tầm leo DOM), nên Note mode
-  // đã bật sẵn vẫn bị trả note_unconfirmed (Ethan test live 2026-10-26: tab
-  // Note đang mở, placeholder "Send a private note…" hiện rõ mà vẫn lỗi).
-  // Nay: tín hiệu phía editor là quyết định chính (đúng thiết kế cổng v2);
-  // tab chỉ dùng để BẤM CHUYỂN mode khi tín hiệu chưa đạt.
-  if (!confirmNoteMode(signals) && tab) {
-    tab.click();
+  let pick = pickNoteEditor();
+  if (!pick) return reply("composer_not_found", trace);
+  trace.push(`sig0 ${signalTrace(pick.signals)}`);
+  // Tín hiệu phía editor là quyết định chính (đúng thiết kế cổng v2); tab
+  // chỉ dùng để BẤM CHUYỂN mode khi tín hiệu chưa đạt.
+  if (!confirmNoteMode(pick.signals) && pick.tab) {
+    pick.tab.click();
     trace.push("click");
     // Chuyển mode là bất đồng bộ (Crisp thay node editor/nền): chờ tối đa ~1s.
     for (let i = 0; i < 12; i++) {
       await delay(80);
-      editor = findComposer();
-      if (!editor) continue;
-      ({ tab, signals } = collectNoteSignals(editor));
-      if (confirmNoteMode(signals)) break;
+      const next = pickNoteEditor();
+      if (!next) continue;
+      pick = next;
+      if (confirmNoteMode(pick.signals)) break;
     }
   }
-  editor = findComposer();
-  if (!editor) return reply("composer_not_found", trace);
-  ({ signals } = collectNoteSignals(editor));
-  trace.push(`sig1 ${signalTrace(signals)}`);
-  if (!confirmNoteMode(signals)) return reply("note_unconfirmed", trace);
+  pick = pickNoteEditor() ?? pick;
+  trace.push(`sig1 ${signalTrace(pick.signals)}`);
+  if (!confirmNoteMode(pick.signals)) return reply("note_unconfirmed", trace);
+  const editor = pick.editor;
   const d = decideInsert({ urlSession: sessionFromUrl(location.href), cmd: msg, composerText: readText(editor), insertedIds: inserted, lastFilledText: lastFilled.note });
   if (d.status !== "inserted") return reply(d.status, trace);
   // Điền và kiểm chứng TOÀN VĂN: lệch là báo insert_unverified, không báo
-  // inserted giả (xem fillEditor).
-  if (!(await fillEditor(editor, d.text, trace, findComposer))) return reply("insert_unverified", trace);
+  // inserted giả (xem fillEditor). Crisp có thể thay node khi điền → refind
+  // lấy lại đúng ứng viên Note đang xác nhận được.
+  if (!(await fillEditor(editor, d.text, trace, () => pickNoteEditor()?.editor ?? null))) return reply("insert_unverified", trace);
   inserted.add(msg.output_id);
   lastFilled.note = d.text;
   reply("inserted", trace);

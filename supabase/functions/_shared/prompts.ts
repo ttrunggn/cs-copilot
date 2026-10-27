@@ -53,6 +53,35 @@ export function translatePrompt(texts: string[]): string {
   ].join("\n\n");
 }
 
+export const TRANSLATE_VI_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    items: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { i: { type: "INTEGER" }, vi: { type: "STRING" } }, required: ["i", "vi"] },
+    },
+  },
+  required: ["items"],
+};
+
+/**
+ * Dịch một loạt câu ngắn (kết quả phân tích sentiment) sang tiếng Việt —
+ * chiều ngược của translatePrompt. Ethan chốt 2026-10-27: model phân tích
+ * bằng ngôn ngữ tự nhiên của hội thoại rồi dịch kết quả, thay vì ép model
+ * vừa phân tích vừa xuất tiếng Việt (ca tiếng Ả Rập: model hoặc bê nguyên
+ * tiếng khách lên panel, hoặc dịch ẩu ngay trong đầu ra phân tích).
+ */
+export function translateViPrompt(texts: string[]): string {
+  return [
+    "Translate each short support-analysis phrase in the JSON array below into natural Vietnamese.",
+    "Keep product names, plan names, URLs, store names, codes and numbers exactly as written.",
+    "Do not add or drop meaning; keep each phrase about as short as the original.",
+    "If a phrase is already Vietnamese, return it unchanged.",
+    `Return JSON {"items":[{"i":<array index>,"vi":"<Vietnamese>"}]} with exactly one item per phrase. ${DATA_ONLY}`,
+    `<phrases>\n${JSON.stringify(texts.map(neutralize))}\n</phrases>`,
+  ].join("\n\n");
+}
+
 // ---------- variants ----------
 
 export const DEFAULT_VARIANT: Variant = { prompt_version: "draft-v1", template_notes: null, weight: 100 };

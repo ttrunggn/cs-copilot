@@ -351,3 +351,82 @@ Deno.test("composer DOM (g): trang trí Note mode nằm TRÊN box-field (contain
   // Trace phải ghi nhận tín hiệu đã thấy ở phạm vi rộng (yel/ph/pil).
   assertEquals(res.trace.some((t) => t.includes("yel1") && t.includes("ph1")), true);
 });
+
+/**
+ * Mô phỏng ca live 2026-10-27: Note mode ĐÃ bật sẵn trên editor Lexical
+ * (contenteditable) — nền vàng nằm ngay TRÊN contenteditable, phần tử khớp
+ * selector đầu là WRAPPER bọc ngoài; editor còn chứa draft reply cũ (nên
+ * không có placeholder), class tab là chuỗi băm, pill "Note" ở mép ô soạn.
+ * Bản cũ leo tín hiệu từ wrapper đi lên → không chạm được nền vàng →
+ * trace yel0, chỉ còn pil1 → note_unconfirmed oan dù mode đúng.
+ * Khác các page giả khác: editor là contenteditable nên loader phải cấp
+ * thêm các constructor sự kiện (KeyboardEvent/InputEvent/ClipboardEvent/
+ * DataTransfer) mà nhánh Lexical của composer dùng.
+ */
+function buildEditorYellowPage({ yellow = true } = {}) {
+  const doc = { focused: null };
+  const container = new FakeEl("div", { bg: "rgb(20, 24, 36)" });
+  const toolbar = new FakeEl("div");
+  const field = new FakeEl("div", { className: "c-conversation-box-field" });
+  const wrapper = new FakeEl("div", { className: "c-conversation-box-field__field-composer-field", bg: "rgb(20, 24, 36)" });
+  const editable = new FakeEl("div", { attrs: { contenteditable: "true" }, bg: yellow ? "rgb(255, 249, 196)" : "rgb(20, 24, 36)" });
+  editable.innerText = "DRAFT REPLY CŨ";
+  editable.ownerDoc = doc;
+  const pill = new FakeEl("span", { text: "Note" });
+  const mkTab = (label) => {
+    const div = new FakeEl("div", { className: "css-h4sh", cursor: "pointer" });
+    div.append(new FakeEl("span", { text: label, cursor: "pointer" }));
+    return div;
+  };
+  const replyTab = mkTab("Reply");
+  const noteTab = mkTab("Note");
+  toolbar.append(replyTab, noteTab);
+  wrapper.append(pill, editable);
+  field.append(wrapper);
+  container.append(toolbar, field);
+  const documentFake = {
+    querySelectorAll: (sel) => {
+      if (sel.includes("c-conversation-box-field__field-composer-field")) return [wrapper];
+      if (sel.includes("contenteditable")) return [editable];
+      return [];
+    },
+    createRange: () => ({ selectNodeContents() {}, deleteContents() {} }),
+    execCommand: (cmd, _ui, val) => {
+      if (cmd === "insertText" && doc.focused) doc.focused.innerText = val;
+      if (cmd === "delete" && doc.focused) doc.focused.innerText = "";
+      return true;
+    },
+  };
+  return { doc, documentFake, root: container, noteTab, wrapper, editable };
+}
+
+async function loadComposerRich(page) {
+  const core = await Deno.readTextFile(new URL("./composer-core.js", import.meta.url));
+  const src = await Deno.readTextFile(new URL("./composer.js", import.meta.url));
+  const bundle = `${core.replace(/^export /gm, "")}\n\n${src}`;
+  let listener = null;
+  const chromeFake = { runtime: { onMessage: { addListener: (fn) => { listener = fn; } } } };
+  const getComputedStyleFake = (elm) => ({ backgroundColor: elm.__bg ?? "rgb(255, 255, 255)", cursor: elm.__cursor ?? "auto" });
+  class FakeEvent { constructor(type, opts = {}) { this.type = type; Object.assign(this, opts); } }
+  class FakeDataTransfer { setData() {} }
+  const run = new Function("document", "chrome", "location", "getComputedStyle", "getSelection", "KeyboardEvent", "InputEvent", "ClipboardEvent", "DataTransfer", bundle);
+  run(page.documentFake, chromeFake, { href: "https://app.crisp.chat/website/ws1/inbox/session_1/" }, getComputedStyleFake, () => ({ removeAllRanges() {}, addRange() {}, rangeCount: 0 }), FakeEvent, FakeEvent, FakeEvent, FakeDataTransfer);
+  return (msg) => new Promise((resolve) => listener(msg, {}, resolve));
+}
+
+Deno.test("composer DOM (h): nền vàng nằm trên contenteditable (trong wrapper) + pill → xác nhận được Note mode và thay toàn bộ draft cũ (hồi quy ca live 2026-10-27)", async () => {
+  const page = buildEditorYellowPage();
+  const send = await loadComposerRich(page);
+  const res = await send({ ...NOTE_MSG, output_id: "note-8", mode: "replace" });
+  assertEquals(res.status, "inserted");
+  assertEquals(page.editable.innerText, "NOTE NỘI BỘ"); // draft cũ bị thay sạch, không chèn chồng
+  assertEquals(res.trace.some((t) => t.includes("yel1")), true); // tín hiệu vàng đọc được từ editor thật
+});
+
+Deno.test("composer DOM (h2): cùng cấu trúc nhưng KHÔNG có nền vàng (chỉ còn pill) → vẫn note_unconfirmed, không điền ký tự nào", async () => {
+  const page = buildEditorYellowPage({ yellow: false });
+  const send = await loadComposerRich(page);
+  const res = await send({ ...NOTE_MSG, output_id: "note-9", mode: "replace" });
+  assertEquals(res.status, "note_unconfirmed");
+  assertEquals(page.editable.innerText, "DRAFT REPLY CŨ");
+});

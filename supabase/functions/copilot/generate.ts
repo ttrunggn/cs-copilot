@@ -9,12 +9,9 @@ import {
   classifySchema,
   type DraftTone,
   draftPrompt,
-  parsePolish,
   parseTopic,
   parseWarnings,
   pickVariant,
-  POLISH_SCHEMA,
-  polishPrompt,
   stripEmDashes,
   VERIFY_SCHEMA,
   verifyPrompt,
@@ -54,7 +51,7 @@ export interface GenerateResult {
   profile_source: ProfileSource;
   prompt_version: string;
   sentiment: Sentiment | null;
-  /** Gợi ý tối ưu cho draft (cơ chế gợi ý — Ethan 2026-10-26): bản gọn hơn + lý do khi draft còn đoạn người bản xứ đọc sẽ khựng; null = draft đã tự nhiên, hoặc bản cache (không chạy bước kiểm tra cho bản cache). */
+  /** ĐÃ BỎ gợi ý tối ưu cho draft (Ethan chốt 2026-10-27: bỏ thẻ gợi ý khỏi luồng draft + bỏ luôn bước polish để draft nhanh hơn một lượt gọi). Giữ field luôn null cho khớp shape response; cơ chế gợi ý vẫn sống ở template xin review. */
   draft_suggestion: { reason: string; text: string } | null;
 }
 
@@ -127,22 +124,6 @@ async function retrieve(deps: Deps, websiteId: string, messages: MessageRow[]) {
   } catch (e) {
     console.error("retrieval failed", e);
     return { ok: false, helpdesk: [] as HelpdeskChunk[], cases: [] as CaseMatch[] };
-  }
-}
-
-/**
- * Kiểm tra tối ưu draft (cơ chế gợi ý): draft còn đoạn người bản xứ đọc sẽ
- * khựng → trả {reason, text} cho panel hiện thẻ gợi ý; draft không bị sửa —
- * CS tự quyết. Best-effort tuyệt đối: lỗi gọi/parse → null (không có gợi ý),
- * không bao giờ làm hỏng luồng soạn draft chính.
- */
-async function polish(deps: Deps, draft: string): Promise<{ reason: string; text: string } | null> {
-  try {
-    const { text } = await deps.ai.generate("polish", polishPrompt(draft), { schema: POLISH_SCHEMA });
-    return parsePolish(text, draft);
-  } catch (e) {
-    console.error("polish failed", e);
-    return null;
   }
 }
 
@@ -274,12 +255,11 @@ export async function runGenerate(
     prompt_version: variant.prompt_version,
     posted: null,
   });
-  const draftSuggestion = await polish(deps, draft);
   return {
     action: "generate", stale, cached: false, output_id: outputId, draft, warnings: checked.warnings,
     verified: checked.verified, helpdesk_matches: found.helpdesk.length,
     sources: found.helpdesk.map((c) => ({ title: c.title, url: c.url })), topic, topic_label: label(topic),
     profile_source: source, prompt_version: variant.prompt_version, sentiment: mood.sentiment,
-    draft_suggestion: draftSuggestion,
+    draft_suggestion: null,
   };
 }
