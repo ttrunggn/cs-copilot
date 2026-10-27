@@ -12,7 +12,7 @@ export type Urgency = "low" | "medium" | "high";
 
 export interface SentimentIssue {
   summary: string; // câu phát biểu VẤN ĐỀ bằng tiếng Việt (AI tổng hợp, không phải trích nguyên văn)
-  evidence: string; // trích ngắn nguyên văn lời khách làm bằng chứng; rỗng nếu không có câu nào đắt
+  evidence: string; // ý khách DỊCH sang tiếng Việt, tối đa ~10 từ (Ethan chốt 2026-10-27: không ôm nguyên văn tin khách lên panel); rỗng nếu không có ý nào đắt
 }
 
 export interface Sentiment {
@@ -77,20 +77,20 @@ export function sentimentPrompt(transcript: string): string {
       "- low: general question, no time pressure.",
     ].join("\n"),
     "confidence: 0-1 — low when there are few customer messages, mixed signals, or heavy sarcasm/ambiguity.",
-    "summary: in Vietnamese, at most 15 words, the customer's final state and why. If the agent's latest reply already addressed the customer's problems, say that (đã được trả lời, chờ khách xác nhận) instead of calling them unresolved. signals: up to 3 short evidence phrases (quote or paraphrase the decisive customer words).",
+    "summary: in Vietnamese (ALWAYS Vietnamese, whatever language the customer writes in), at most 15 words, the customer's final state and why. If the agent's latest reply already addressed the customer's problems, say that (đã được trả lời, chờ khách xác nhận) instead of calling them unresolved. signals: up to 3 short evidence phrases, also IN VIETNAMESE — render the customer's decisive point in Vietnamese; never quote the original language.",
     [
-      "issues: the customer's distinct PROBLEMS, at most 3, each as ONE short Vietnamese problem statement YOU synthesize from the whole conversation (never a raw quote as the statement).",
+      "issues: the customer's distinct PROBLEMS, at most 3, each as ONE short Vietnamese problem statement YOU synthesize from the whole conversation (never a raw quote as the statement, and never in the customer's own language — translate and condense the problem into Vietnamese).",
       "- Only real problems the customer needs solved: something broken, blocked, charged wrongly, not understood, or waited on too long.",
       "- A customer message that merely reports progress or a status (e.g. \"I have accepted you\", \"done\", \"ok thanks\") is NOT an issue — never turn it into one.",
       "- Merge messages about the same underlying problem into a single issue. If the customer states no concrete problem, return an empty array.",
       "- EXCLUDE a problem the agent has already substantively answered in the transcript (a real answer, not a holding reply like 'let me check'): it is no longer an open issue even if the customer has not confirmed yet.",
-      "- evidence: one short verbatim customer quote (at most ~10 words) backing the issue, or an empty string when no single quote is decisive.",
-      "Example: customer says \"I deleted it in April but it is still charging\" → issue summary \"Khách bị trừ tiền sau khi đã gỡ app\", evidence \"it is still charging\".",
+      "- evidence: the customer's decisive point backing the issue, rendered IN VIETNAMESE (translate it — never copy the customer's original words or language), at most ~10 words, or an empty string when no single point is decisive.",
+      "Example: customer says \"I deleted it in April but it is still charging\" → issue summary \"Khách bị trừ tiền sau khi đã gỡ app\", evidence \"vẫn bị trừ tiền sau khi gỡ app\".",
     ].join("\n"),
     "Examples: customer ends \"still not working after 3 days, my store launch is tomorrow\" → score ~25, mood frustrated, urgency high. " +
       "Customer ends \"ya funciona, muchas gracias!\" → score ~80, mood happy, urgency low. " +
       "Customer asks \"how do I translate the checkout page?\" with no emotion → score ~50, mood neutral, urgency low.",
-    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<Vietnamese>","signals":["..."],"issues":[{"summary":"<Vietnamese problem statement>","evidence":"<short quote or empty>"}]}. ${DATA_ONLY}`,
+    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<Vietnamese>","signals":["..."],"issues":[{"summary":"<Vietnamese problem statement>","evidence":"<the point in Vietnamese, or empty>"}]}. ${DATA_ONLY}`,
     `<conversation>\n${neutralize(transcript)}\n</conversation>`,
   ].join("\n\n");
 }

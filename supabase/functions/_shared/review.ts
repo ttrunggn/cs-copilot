@@ -78,8 +78,11 @@ export function mineReviewTemplate(contents: string[]): string | null {
 
 /**
  * Chọn template xin review cho CS đang trực: ưu tiên dòng profile khớp topic
- * của conversation, rồi bất kỳ dòng nào của chính CS có template; không có
- * thì mặc định. Chỉ đọc profile của CHÍNH CS — không mượn template người khác.
+ * của conversation, rồi bất kỳ dòng nào của chính CS có template. CS chưa có
+ * template của mình thì dùng template profile TỐT NHẤT của team trong cùng
+ * workspace (nguồn vẫn ghi "default" cho minh bạch — Ethan chốt 2026-10-27:
+ * không để CS rơi về template mẫu trung tính trong khi team đã có mẫu thật).
+ * Cả team chưa ai có mẫu đã học mới dùng template mẫu trung tính.
  */
 /** Gợi ý lưu trong profile → dạng trả về panel: validate hình dạng, thay link theo workspace, và chỉ giữ khi thật sự khác template gốc (gợi ý trùng gốc thì vô nghĩa). */
 function resolveSuggestion(row: ProfileRow, templateText: string, reviewLink: string | null): TemplateSuggestion | null {
@@ -95,12 +98,27 @@ export function resolveReviewTemplate(
   profiles: ProfileRow[],
   topic: string | null,
   reviewLink: string | null,
+  fallbackRows: ProfileRow[] = [],
 ): ResolvedReviewTemplate {
   const usable = profiles.filter((p) => typeof p.review_template === "string" && p.review_template.trim());
   const row = usable.find((p) => topic !== null && p.topic === topic) ?? usable[0];
   if (row) {
     const text = applyReviewLink(row.review_template as string, reviewLink);
     return { text, source: "profile", suggestion: resolveSuggestion(row, text, reviewLink) };
+  }
+  // Dự phòng theo team: mẫu của CS học được nhiều nhất trong workspace (cùng
+  // thứ tự ưu tiên với pickBestProfileRow: conversations_used giảm dần, rồi
+  // learned_at mới nhất). Nguồn ghi "default" vì đây không phải mẫu của
+  // chính CS đang trực; gợi ý tối ưu không áp cho mẫu mượn.
+  const pool = fallbackRows
+    .filter((p) => typeof p.review_template === "string" && p.review_template.trim())
+    .sort((a, b) =>
+      (b.conversations_used ?? 0) - (a.conversations_used ?? 0) ||
+      String(b.learned_at ?? "").localeCompare(String(a.learned_at ?? ""))
+    );
+  const donor = pool.find((p) => topic !== null && p.topic === topic) ?? pool[0];
+  if (donor) {
+    return { text: applyReviewLink(donor.review_template as string, reviewLink), source: "default", suggestion: null };
   }
   return { text: applyReviewLink(DEFAULT_REVIEW_TEMPLATE, reviewLink), source: "default", suggestion: null };
 }
