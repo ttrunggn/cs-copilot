@@ -63,6 +63,8 @@ function reset() {
     askQuestion: "", askResult: null, hint: "", tone: "default", csatChoice: "",
     reviewText: "", reviewInsertId: "", composeOpen: true, notice: "", noticeKind: "",
     explainText: "", explainFinding: null, explainInsertId: "",
+    sfMenu: "", sfForm: null, sfNoteInput: "", sfReason: "", sfClosed: {}, sfActBusy: "", sfMsg: "",
+    operatorName: "",
   });
 }
 function makeHandlers(calls = []) {
@@ -72,6 +74,7 @@ function makeHandlers(calls = []) {
     onSurvey: rec("survey"), onAsk: rec("ask"), onAskCompose: rec("askCompose"), onAskRetry: rec("askRetry"),
     onEditInCrisp: rec("edit"), onInsertNote: rec("insertNote"), onJiraSync: rec("jiraSync"),
     onJiraUnlink: rec("jiraUnlink"), onStorefrontLoad: rec("sfLoad"), onStorefrontFinding: rec("sfFinding"),
+    onStorefrontMenu: rec("sfMenu"), onStorefrontForm: rec("sfForm"), onStorefrontAct: rec("sfAct"),
     onExplain: rec("explain"), sendExplainInsert: rec("explainInsert"),
     sendReviewInsert: rec("reviewInsert"), detectExtension: rec("detect"),
     onOpenModal: rec("openModal"), onCloseModal: rec("closeModal"),
@@ -330,6 +333,107 @@ Deno.test("panels: storefrontPanel results → list đủ từng bug: pill trạ
   assertEquals(hrefs.includes("https://sw.transcy.io"), true);
 });
 
+const SF_ONE = (over = {}) => ({
+  status: "ok", store: "shop.myshopify.com", scannedAt: null,
+  new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · de · /products/a", fingerprint: "a".repeat(40), locale: "de", page: "/products/a", consoleLink: null }],
+  acknowledged: [], inProgress: [],
+  ...over,
+});
+
+Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ tự nút Acknowledge · Fixed · Dismiss (Ethan duyệt giả lập 2026-10-27)", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.storefront = SF_ONE();
+  const fp = "a".repeat(40);
+  const calls = [];
+  const h = makeHandlers(calls);
+  // Menu đóng: không có nút thao tác nào.
+  let p = storefrontPanel(h);
+  assertEquals(buttonByText(p, "Acknowledge"), undefined);
+  assertEquals(buttonByText(p, "Fixed"), undefined);
+  // Bấm vào dòng (không phải link/nút con) → gọi mở menu.
+  const line = walk(p).find((n) => (n.className ?? "").includes("sf-line"));
+  line.onclick({ target: { closest: () => null } });
+  assertEquals(calls, [["sfMenu", fp]]);
+  // Menu mở: đúng 3 nút theo thứ tự đã duyệt; Acknowledge gọi thẳng act, Fixed mở form.
+  state.sfMenu = fp;
+  calls.length = 0;
+  p = storefrontPanel(h);
+  const labels = buttons(p).map((b) => allText(b).trim()).filter((t) => ["Acknowledge", "Fixed", "Dismiss"].includes(t));
+  assertEquals(labels, ["Acknowledge", "Fixed", "Dismiss"]);
+  buttonByText(p, "Acknowledge").onclick();
+  buttonByText(p, "Fixed").onclick();
+  assertEquals(calls, [["sfAct", fp, "acknowledge"], ["sfForm", fp, "fixed"]]);
+});
+
+Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện nút Acknowledge nữa", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  const fp = "b".repeat(40);
+  state.storefront = SF_ONE({
+    new: [],
+    inProgress: [{ title: "Layout degraded", kind: "Layout degraded", meta: "medium · fr · /", fingerprint: fp, locale: "fr", page: "/", consoleLink: null }],
+  });
+  state.sfMenu = fp;
+  const p = storefrontPanel(makeHandlers([]));
+  assertEquals(buttonByText(p, "Acknowledge"), undefined);
+  assertEquals(Boolean(buttonByText(p, "Fixed")), true);
+});
+
+Deno.test("panels: storefront form Fixed — chưa ghi chú thì nút xác nhận khoá; có ghi chú thì bấm được và gọi act fixed", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.storefront = SF_ONE();
+  const fp = "a".repeat(40);
+  state.sfMenu = fp;
+  state.sfForm = { fingerprint: fp, kind: "fixed" };
+  const calls = [];
+  const h = makeHandlers(calls);
+  let p = storefrontPanel(h);
+  assertEquals(buttonByText(p, "Xác nhận Fixed").disabled, true);
+  state.sfNoteInput = "Đã sửa trong theme";
+  p = storefrontPanel(h);
+  const btn = buttonByText(p, "Xác nhận Fixed");
+  assertEquals(btn.disabled, false);
+  btn.onclick();
+  assertEquals(calls, [["sfAct", fp, "fixed"]]);
+});
+
+Deno.test("panels: storefront form Dismiss — cần cả lý do lẫn ghi chú mới xác nhận được; chip chọn lý do ghi vào state", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.storefront = SF_ONE();
+  const fp = "a".repeat(40);
+  state.sfMenu = fp;
+  state.sfForm = { fingerprint: fp, kind: "dismiss" };
+  state.sfNoteInput = "Trang vẫn ổn";
+  const h = makeHandlers([]);
+  let p = storefrontPanel(h);
+  assertEquals(buttonByText(p, "Xác nhận Dismiss").disabled, true); // chưa chọn lý do
+  buttonByText(p, "Báo sai, trang vẫn ổn").onclick();
+  assertEquals(state.sfReason, "false_signal");
+  p = storefrontPanel(h);
+  assertEquals(buttonByText(p, "Xác nhận Dismiss").disabled, false);
+});
+
+Deno.test("panels: storefront finding vừa đóng — hiện pill Đã đóng + ghi chú kèm tên CS + nút Mở lại; đầu thẻ trừ số đã đóng", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.operatorName = "Ethan Nguyen";
+  state.storefront = SF_ONE({
+    acknowledged: [{ title: "Region missing", kind: "Region missing", meta: "critical · ja · /", fingerprint: "b".repeat(40), locale: "ja", page: "/", consoleLink: null }],
+  });
+  const fp = "a".repeat(40);
+  state.sfClosed = { [fp]: { via: "fixed", note: "Đã sửa trong theme" } };
+  const calls = [];
+  const p = storefrontPanel(makeHandlers(calls));
+  const t = allText(p);
+  assertEquals(t.includes("1 lỗi đã xác nhận"), true); // tổng 2, đã đóng 1
+  assertEquals(t.includes("Đã đóng") && t.includes("Fixed · Ethan Nguyen: “Đã sửa trong theme”"), true);
+  buttonByText(p, "Mở lại").onclick();
+  assertEquals(calls, [["sfAct", fp, "undo"]]);
+});
+
 Deno.test("panels: storefrontPanel list — finding gom trùng căn nguyên vẫn hiện ĐỦ từng finding (3 finding = 3 dòng, 3 link riêng)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
@@ -528,16 +632,24 @@ Deno.test("panels: knowledgePanel — Enter trong ô hỏi gọi onAsk; có đá
   assertEquals(calls[calls.length - 1], ["askCompose", "Bật Auto Currency"]);
 });
 
-Deno.test("panels: knowledgePanel — không tìm thấy thì có Thử từ khoá khác + Ghi private note hỏi quản lý, không có nút Soạn", () => {
+Deno.test("panels: knowledgePanel — không tìm thấy thì KHÔNG hiện khối nào thêm (Ethan chốt 2026-10-27: bỏ thẻ không tìm thấy + 2 nút kèm)", () => {
   reset();
   state.askResult = { question: "xyz", found: false, answer: "", sources: [] };
-  const calls = [];
-  const p = knowledgePanel(makeHandlers(calls));
-  assertEquals(allText(p).includes("không tìm thấy bài nào"), true);
+  const p = knowledgePanel(makeHandlers([]));
+  assertEquals(allText(p).includes("không tìm thấy bài nào"), false);
+  assertEquals(buttonByText(p, "Thử từ khoá khác"), undefined);
+  assertEquals(buttonByText(p, "Ghi private note hỏi quản lý"), undefined);
   assertEquals(buttonByText(p, "Soạn thành tin trả lời khách"), undefined);
-  buttonByText(p, "Thử từ khoá khác").onclick();
-  buttonByText(p, "Ghi private note hỏi quản lý").onclick();
-  assertEquals(calls, [["askRetry"], ["handoff", false]]);
+});
+
+Deno.test("panels: draft — không tin chờ, không ticket, nhưng hội thoại ĐÃ có tin khách (ca email auto-reply) thì vẫn cho soạn", () => {
+  reset();
+  state.modal = "draft";
+  state.check = { ...CHECK, needs_reply: false, jira: [], last_customer_at: "2026-10-27T02:00:00.000Z" };
+  const overlay = modalView(makeHandlers());
+  const t = allText(overlay);
+  assertEquals(t.includes("Chưa có tin khách đang chờ trong conversation này."), false);
+  assertEquals(Boolean(buttonByText(overlay, "Soạn tin trả lời")), true);
 });
 
 Deno.test("panels: thanh chọn Thay thế/Huỷ đang mở thì nút điền gốc ẨN (hết hai lớp nút chồng nhau — ca live 2026-10-26)", () => {
