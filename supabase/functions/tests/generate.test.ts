@@ -52,6 +52,15 @@ Deno.test("generate returns draft, warnings and stores output", async () => {
   assertEquals(inserted[0].input_fp.length, 64);
 });
 
+Deno.test("generate: KHÔNG còn bước polish — draft_suggestion luôn null và không gọi task polish (Ethan bỏ gợi ý draft 2026-10-27)", async () => {
+  const f = fakeAi({ draft: "Currency is automatic.", verify: WARN, polish: JSON.stringify({ reason: "r", text: "t" }) });
+  const { deps, calls } = setup({ ai: f });
+  const r = await handle(REQ, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { draft_suggestion: unknown }).draft_suggestion, null);
+  assertEquals(calls.some((c) => c.task === "polish"), false);
+});
+
 Deno.test("generate: tên trong draft prompt theo account CS gửi kèm, thắng display_name trong DB", async () => {
   const { deps, calls } = setup();
   // DB (fake) có display_name "Lan Nguyen" — account đang đăng nhập là Ethan thì draft phải theo Ethan.

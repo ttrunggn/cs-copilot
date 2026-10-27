@@ -2,7 +2,7 @@ import { sha256Hex } from "../_shared/auth.ts";
 import { humanTranscript } from "../_shared/context.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai } from "../_shared/gemini.ts";
-import { parseSentiment, SENTIMENT_SCHEMA, type Sentiment, sentimentPrompt } from "../_shared/sentiment.ts";
+import { parseSentiment, SENTIMENT_SCHEMA, type Sentiment, sentimentPrompt, vietnamizeSentiment } from "../_shared/sentiment.ts";
 import type { MessageRow } from "../_shared/types.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
 
@@ -35,8 +35,11 @@ export function customerMessageCount(messages: MessageRow[]): number {
  * đã lưu tự thành stale và được tính lại đúng một lần khi mở panel.
  * v2 (2026-10-26): issues là câu phát biểu vấn đề AI tổng hợp, không trích thô.
  * v3 (2026-10-26): băm cả tin CS trả lời; issues loại vấn đề CS đã trả lời.
+ * v4 (2026-10-27): pipeline đổi — model phân tích bằng ngôn ngữ tự nhiên của
+ * khách rồi dịch kết quả sang tiếng Việt (vietnamizeSentiment), thay cho ép
+ * xuất tiếng Việt ngay trong prompt phân tích.
  */
-const SENTIMENT_FP_VERSION = "v3";
+const SENTIMENT_FP_VERSION = "v4";
 export function sentimentFingerprint(messages: MessageRow[]): Promise<string> {
   const body = JSON.stringify(
     messages
@@ -71,7 +74,7 @@ export async function resolveSentiment(
   try {
     const transcript = humanTranscript(messages, 40, true);
     const { text, model } = await deps.ai.generate("sentiment", sentimentPrompt(transcript), { schema: SENTIMENT_SCHEMA });
-    const sentiment = parseSentiment(text);
+    const sentiment = await vietnamizeSentiment(deps.ai, parseSentiment(text));
     await deps.db.saveSentiment({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model }).catch(() => {});
     return { sentiment, cached: false, reason: null };
   } catch (e) {

@@ -5,14 +5,15 @@
 // không bao giờ hiện, công thức trộn điểm là số tay không hiệu chuẩn.
 // Bản này: AI là nguồn chính với rubric + ví dụ mẫu; mood và urgency là HAI
 // trục độc lập; có confidence để nơi dùng tự quyết có tin hay không.
-import { DATA_ONLY, neutralize, parseJson } from "./prompts.ts";
+import type { Ai } from "./gemini.ts";
+import { DATA_ONLY, neutralize, parseJson, TRANSLATE_VI_SCHEMA, translateViPrompt } from "./prompts.ts";
 
 export type Mood = "frustrated" | "confused" | "neutral" | "satisfied" | "happy";
 export type Urgency = "low" | "medium" | "high";
 
 export interface SentimentIssue {
-  summary: string; // câu phát biểu VẤN ĐỀ bằng tiếng Việt (AI tổng hợp, không phải trích nguyên văn)
-  evidence: string; // ý khách DỊCH sang tiếng Việt, tối đa ~10 từ (Ethan chốt 2026-10-27: không ôm nguyên văn tin khách lên panel); rỗng nếu không có ý nào đắt
+  summary: string; // câu phát biểu VẤN ĐỀ do AI tổng hợp (không trích nguyên văn); bản LƯU/HIỆN đã dịch sang tiếng Việt ở bước vietnamizeSentiment
+  evidence: string; // ý khách quyết định, tối đa ~10 từ; bản lưu/hiện cũng là bản tiếng Việt sau bước dịch
 }
 
 export interface Sentiment {
@@ -20,7 +21,7 @@ export interface Sentiment {
   mood: Mood;
   urgency: Urgency;
   confidence: number; // 0-1
-  summary: string; // tiếng Việt, tối đa ~15 từ
+  summary: string; // tối đa ~15 từ; bản lưu/hiện là tiếng Việt (dịch sau phân tích — xem vietnamizeSentiment)
   signals: string[];
   // Vấn đề của khách, tách riêng khỏi signals (Lỗi 4, Ethan 2026-10-26:
   // panel từng map signals — trích nguyên văn — thành thẻ issue, và cả tin
@@ -77,20 +78,21 @@ export function sentimentPrompt(transcript: string): string {
       "- low: general question, no time pressure.",
     ].join("\n"),
     "confidence: 0-1 — low when there are few customer messages, mixed signals, or heavy sarcasm/ambiguity.",
-    "summary: in Vietnamese (ALWAYS Vietnamese, whatever language the customer writes in), at most 15 words, the customer's final state and why. If the agent's latest reply already addressed the customer's problems, say that (đã được trả lời, chờ khách xác nhận) instead of calling them unresolved. signals: up to 3 short evidence phrases, also IN VIETNAMESE — render the customer's decisive point in Vietnamese; never quote the original language.",
+    "Write summary, signals and issues in the SAME language the customer uses in this conversation — write naturally in that language; a later step translates your output for the support team, so do NOT translate anything yourself.",
+    "summary: at most 15 words, the customer's final state and why. If the agent's latest reply already addressed the customer's problems, say that (already answered, waiting for the customer to confirm) instead of calling them unresolved. signals: up to 3 short evidence phrases rendering the customer's decisive points; short quotes are fine.",
     [
-      "issues: the customer's distinct PROBLEMS, at most 3, each as ONE short Vietnamese problem statement YOU synthesize from the whole conversation (never a raw quote as the statement, and never in the customer's own language — translate and condense the problem into Vietnamese).",
+      "issues: the customer's distinct PROBLEMS, at most 3, each as ONE short problem statement YOU synthesize from the whole conversation (never a raw quote as the statement).",
       "- Only real problems the customer needs solved: something broken, blocked, charged wrongly, not understood, or waited on too long.",
       "- A customer message that merely reports progress or a status (e.g. \"I have accepted you\", \"done\", \"ok thanks\") is NOT an issue — never turn it into one.",
       "- Merge messages about the same underlying problem into a single issue. If the customer states no concrete problem, return an empty array.",
       "- EXCLUDE a problem the agent has already substantively answered in the transcript (a real answer, not a holding reply like 'let me check'): it is no longer an open issue even if the customer has not confirmed yet.",
-      "- evidence: the customer's decisive point backing the issue, rendered IN VIETNAMESE (translate it — never copy the customer's original words or language), at most ~10 words, or an empty string when no single point is decisive.",
-      "Example: customer says \"I deleted it in April but it is still charging\" → issue summary \"Khách bị trừ tiền sau khi đã gỡ app\", evidence \"vẫn bị trừ tiền sau khi gỡ app\".",
+      "- evidence: the customer's decisive point backing the issue, at most ~10 words, or an empty string when no single point is decisive.",
+      "Example: customer says \"I deleted it in April but it is still charging\" → issue summary \"Charged after uninstalling the app\", evidence \"still charging after I deleted it\".",
     ].join("\n"),
     "Examples: customer ends \"still not working after 3 days, my store launch is tomorrow\" → score ~25, mood frustrated, urgency high. " +
       "Customer ends \"ya funciona, muchas gracias!\" → score ~80, mood happy, urgency low. " +
       "Customer asks \"how do I translate the checkout page?\" with no emotion → score ~50, mood neutral, urgency low.",
-    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<Vietnamese>","signals":["..."],"issues":[{"summary":"<Vietnamese problem statement>","evidence":"<the point in Vietnamese, or empty>"}]}. ${DATA_ONLY}`,
+    `Return JSON {"score":<int>,"mood":"<one of ${MOODS.join("|")}>","urgency":"<one of ${URGENCIES.join("|")}>","confidence":<0-1>,"summary":"<in the customer's language>","signals":["..."],"issues":[{"summary":"<problem statement in the customer's language>","evidence":"<the point, or empty>"}]}. ${DATA_ONLY}`,
     `<conversation>\n${neutralize(transcript)}\n</conversation>`,
   ].join("\n\n");
 }
@@ -141,6 +143,68 @@ export function parseIssues(raw: unknown): SentimentIssue[] {
     if (out.length >= 3) break;
   }
   return out;
+}
+
+const VI_MARKED = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i;
+const NON_LATIN = /[؀-ۿ֐-׿Ѐ-ӿͰ-Ͽऀ-ॿ฀-๿぀-ヿ一-鿿가-힯]/;
+const VI_WORDS = /\b(khách|không|chưa|vẫn|đang|được|bị|gói|dịch|này|của|cho|khi|nâng cấp|giới hạn)\b/i;
+
+/**
+ * Đoán nhanh một câu phân tích đã là tiếng Việt chưa (không gọi AI): có dấu
+ * tiếng Việt hoặc từ chức năng tiếng Việt thì coi là rồi; chứa chữ ngoài
+ * Latin (Ả Rập, CJK, Cyrillic…) thì chắc chắn chưa.
+ */
+export function looksVietnamese(text: string): boolean {
+  const t = text.trim();
+  if (!t) return true; // rỗng thì không có gì để dịch
+  if (NON_LATIN.test(t)) return false;
+  if (VI_MARKED.test(t)) return true;
+  return VI_WORDS.test(t);
+}
+
+/**
+ * Bước dịch sau phân tích (Ethan chốt 2026-10-27): model phân tích bằng ngôn
+ * ngữ tự nhiên của khách, hàm này dịch summary/signals/issues sang tiếng
+ * Việt trong MỘT lượt gọi gộp. Đã là tiếng Việt thì bỏ qua (không tốn lượt
+ * gọi). Dịch lỗi/thiếu mục thì giữ nguyên câu gốc — thà hiện ngôn ngữ khách
+ * còn hơn mất phân tích.
+ */
+export async function vietnamizeSentiment(ai: Ai, s: Sentiment): Promise<Sentiment> {
+  const probe = [s.summary, ...s.signals, ...s.issues.map((i) => i.summary)].filter((x) => x.trim());
+  if (!probe.length || probe.every((x) => looksVietnamese(x))) return s;
+  const items: string[] = [];
+  const push = (x: string) => {
+    if (!x.trim()) return -1; // câu rỗng không đưa vào lượt dịch; at() giữ nguyên
+    items.push(x);
+    return items.length - 1;
+  };
+  const iSummary = push(s.summary);
+  const iSignals = s.signals.map(push);
+  const iIssueSummary = s.issues.map((i) => push(i.summary));
+  const iIssueEvidence = s.issues.map((i) => push(i.evidence));
+  try {
+    const { text } = await ai.generate("translate", translateViPrompt(items), { schema: TRANSLATE_VI_SCHEMA });
+    const got = new Map<number, string>();
+    const seen = new Set<number>();
+    for (const it of parseJson<{ items: { i: number; vi: string }[] }>(text).items ?? []) {
+      if (seen.has(it.i) || typeof it.vi !== "string" || !it.vi.trim() || !items[it.i]) continue;
+      seen.add(it.i);
+      got.set(it.i, it.vi.trim());
+    }
+    const at = (idx: number, orig: string) => (idx >= 0 ? got.get(idx) ?? orig : orig);
+    return {
+      ...s,
+      summary: at(iSummary, s.summary),
+      signals: s.signals.map((x, k) => at(iSignals[k], x)),
+      issues: s.issues.map((iss, k) => ({
+        summary: at(iIssueSummary[k], iss.summary),
+        evidence: at(iIssueEvidence[k], iss.evidence),
+      })),
+    };
+  } catch (e) {
+    console.error("sentiment translate-to-Vietnamese failed, keeping original language", e);
+    return s;
+  }
 }
 
 export const MOOD_EMOJI: Record<Mood, string> = {
