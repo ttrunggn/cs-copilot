@@ -506,9 +506,11 @@ function sfActForm(row, kind, handlers) {
  * Một dòng bug (Ethan chốt lại 2026-10-26 23:24): pill trạng thái (Mới / Đã
  * xác nhận / Đang xử lý — Đang xử lý = team đã báo khách, server tự phân
  * loại) + nhãn bug ngắn + meta dữ kiện + link ↗ unit sang Console.
- * Từ 2026-10-29 (Ethan): thêm nút "Trang lỗi ↗" ngay cạnh link Console —
- * mở tab mới tới đúng trang trên store mà SW quét thấy lỗi (pageLink server
- * cấu từ domain + page của finding), tách bạch với link Console.
+ * Từ 2026-10-29 (Ethan): hàng link của finding gồm 3 link THẲNG HÀNG, tên
+ * cố định — "Default page" (pageLink: trang ở ngôn ngữ mặc định của store),
+ * "Issue page" (issuePageLink: đúng locale tool quét thấy lỗi; ẩn khi trùng
+ * Default page), "Console" (consoleLink sang SW). Server cấu cả ba từ
+ * domain + locale + page của finding.
  * Không hiện nội dung/message của SW trong panel.
  * Từ 2026-10-27 (SW mở scope write, Ethan duyệt bản giả lập): bấm vào dòng
  * mở MENU THAO TÁC ngay dưới dòng — Take case (trái nhất, một chạm) ·
@@ -532,13 +534,16 @@ function sfRow(row, handlers = {}) {
         el("div", { textContent: row.shortLabel }),
         row.meta ? el("div", { className: "muted", textContent: row.meta }) : null,
       ]),
-      (row.pageLink && /^https:\/\//.test(row.pageLink)) || (row.consoleLink && /^https:\/\//.test(row.consoleLink))
+      (row.pageLink && /^https:\/\//.test(row.pageLink)) || (row.issuePageLink && /^https:\/\//.test(row.issuePageLink)) || (row.consoleLink && /^https:\/\//.test(row.consoleLink))
         ? el("span", { className: "sf-links" }, [
           row.pageLink && /^https:\/\//.test(row.pageLink)
-            ? el("a", { className: "sf-bug-link sf-page-link", href: row.pageLink, target: "_blank", rel: "noreferrer", textContent: "Trang lỗi ↗", title: "Mở trang trên store mà tool quét thấy lỗi này" })
+            ? el("a", { className: "sf-bug-link sf-page-link", href: row.pageLink, target: "_blank", rel: "noreferrer", textContent: "Default page", title: "Mở trang này trên store, ở ngôn ngữ mặc định" })
+            : null,
+          row.issuePageLink && /^https:\/\//.test(row.issuePageLink) && row.issuePageLink !== row.pageLink
+            ? el("a", { className: "sf-bug-link sf-issue-link", href: row.issuePageLink, target: "_blank", rel: "noreferrer", textContent: "Issue page", title: "Mở đúng trang ở ngôn ngữ mà tool quét thấy lỗi này" })
             : null,
           row.consoleLink && /^https:\/\//.test(row.consoleLink)
-            ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "↗", title: "Mở bug này trong Storefront Watch" })
+            ? el("a", { className: "sf-bug-link", href: row.consoleLink, target: "_blank", rel: "noreferrer", textContent: "Console", title: "Mở bug này trong Storefront Watch" })
             : null,
         ])
         : null,
