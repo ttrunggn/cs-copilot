@@ -183,7 +183,7 @@ export async function runGenerate(
   const [topic, found, mood, variants, jiraRows] = await Promise.all([
     resolveTopic(deps, ws, req.website_id, req.session_id, conv.topic, transcript),
     retrieve(deps, req.website_id, messages),
-    resolveSentiment(deps, req.website_id, req.session_id, messages),
+    resolveSentiment(deps, req.website_id, req.session_id, messages, false, "generate"),
     deps.db.getVariants("draft"),
     deps.db.getJiraRows(req.website_id, req.session_id),
   ]);

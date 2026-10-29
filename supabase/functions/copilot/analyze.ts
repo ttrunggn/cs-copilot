@@ -54,12 +54,16 @@ export function sentimentFingerprint(messages: MessageRow[]): Promise<string> {
  * không thì gọi AI rồi lưu. Lỗi AI → trả bản cache cũ (nếu có) hoặc null,
  * không bao giờ làm hỏng luồng chính (check/generate).
  */
+/** Nguồn kích hoạt một lần đo sentiment — ghi vào sentiment_history (migration 032) để truy vết được đo khi nào, từ luồng nào. */
+export type SentimentSource = "analyze" | "precompute" | "generate" | "unknown";
+
 export async function resolveSentiment(
   deps: { db: Db; ai: Ai },
   websiteId: string,
   sessionId: string,
   messages: MessageRow[],
   force = false,
+  source: SentimentSource = "unknown",
 ): Promise<{ sentiment: Sentiment | null; cached: boolean; reason: SentimentReason | null }> {
   const cached = await deps.db.getSentiment(websiteId, sessionId).catch(() => null);
   const strip = (s: Sentiment & { input_fp: string }): Sentiment => {
@@ -76,6 +80,9 @@ export async function resolveSentiment(
     const { text, model } = await deps.ai.generate("sentiment", sentimentPrompt(transcript), { schema: SENTIMENT_SCHEMA });
     const sentiment = await vietnamizeSentiment(deps.ai, parseSentiment(text));
     await deps.db.saveSentiment({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model }).catch(() => {});
+    // Lịch sử đo (migration 032): chỉ ghi khi vừa tính MỚI (cache hit không
+    // tới đây). Ghi hỏng thì nuốt — truy vết không được làm gãy luồng đo.
+    await deps.db.appendSentimentHistory({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model, source }).catch(() => {});
     return { sentiment, cached: false, reason: null };
   } catch (e) {
     console.error("sentiment failed", e);
@@ -90,6 +97,6 @@ export async function runAnalyze(
 ): Promise<AnalyzeResult> {
   const { conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
   void conv;
-  const { sentiment, cached, reason } = await resolveSentiment(deps, req.website_id, req.session_id, messages, req.force);
+  const { sentiment, cached, reason } = await resolveSentiment(deps, req.website_id, req.session_id, messages, req.force, "analyze");
   return { action: "analyze", sentiment, cached, msg_count: customerMessageCount(messages), reason };
 }
