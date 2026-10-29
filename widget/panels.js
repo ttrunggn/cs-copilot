@@ -164,7 +164,7 @@ export function draftPanel(handlers) {
       ? el("div", { className: "row draft-actions single" }, [
         state.draftPlacement === "inserted"
           ? el("button", { className: "button-secondary", textContent: "Điền lại vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() })
-          : el("button", { className: "button-primary draft-insert", textContent: "Điền vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() }),
+          : el("button", { className: "act-blue draft-insert", textContent: "Điền vào Reply", disabled: state.insertPending, onclick: () => onEditInCrisp() }),
       ])
       : null,
   ]);
@@ -192,7 +192,7 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
     el("div", { className: "note-text", textContent: handoff.note }),
     el("div", { className: "row" }, [
       state.bridge === "ready" && !(state.choice && state.choiceFor === "note")
-        ? el("button", { className: inserted ? "button-secondary" : "button-primary", textContent: inserted ? "Điền lại vào ô Note" : "Điền vào ô Note", disabled: state.insertPending, onclick: () => onInsertNote() })
+        ? el("button", { className: inserted ? "button-secondary" : "act-amber", textContent: inserted ? "Điền lại vào ô Note" : "Điền vào ô Note", disabled: state.insertPending, onclick: () => onInsertNote() })
         : null,
       el("button", { className: "button-link", disabled: noteBtn.disabled, onclick: () => onHandoff(true) }, buttonContent(noteBtn.running, "Đang viết…", "Viết lại")),
     ]),
@@ -208,7 +208,8 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
  * nhất; ticket Done chưa báo khách ở lại với nhãn "Chờ báo khách" (Done
  * trên Jira không có nghĩa khách đã được báo). Hai thao tác: "↻ Sync ngay"
  * (server đồng bộ ngay rồi panel nạp lại) và "✕ Gỡ" từng ticket (xác nhận 2
- * bước tại chỗ).
+ * bước tại chỗ). Màu nút theo ngữ cảnh (bản Support Operation v9,
+ * 2026-10-29): Sync = ghost xanh dương, Gỡ = ghost đỏ.
  */
 export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
   if (!enabledModules(state.check).jira) return null;
@@ -219,13 +220,13 @@ export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
     return el("div", { className: "jira-section" }, [
       el("section", { className: "card mod-jira jira-card" }, [
         el("strong", { className: "jira-title", textContent: "Jira" }),
-        el("p", { className: "muted", textContent: "Không có ticket Jira." }),
+        el("p", { className: "muted", textContent: "Không có ticket" }),
       ]),
     ]);
   }
   return el("div", { className: "jira-section" }, [
     el("div", { className: "jira-toolbar" }, [
-      el("button", { className: "button-secondary compact-button", disabled: syncBtn.disabled, onclick: () => onJiraSync() }, buttonContent(syncBtn.running, "Đang đồng bộ…", "↻ Sync ngay")),
+      el("button", { className: "button-secondary compact-button ghost-blue", disabled: syncBtn.disabled, onclick: () => onJiraSync() }, buttonContent(syncBtn.running, "Đang đồng bộ…", "↻ Sync ngay")),
     ]),
     ...items.map((j) =>
     el("section", { className: "card mod-jira jira-card" }, [
@@ -250,7 +251,7 @@ export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
       el("div", { className: "jira-actions" }, [
         state.unlinkConfirm === j.key
           ? el("span", { className: "unlink-confirm" }, [
-            el("button", { className: "button-secondary compact-button", disabled: unlinkBtn.disabled, onclick: () => onJiraUnlink(j.key) }, buttonContent(unlinkBtn.running, "Đang gỡ…", "Gỡ liên kết này?")),
+            el("button", { className: "button-secondary compact-button ghost-red", disabled: unlinkBtn.disabled, onclick: () => onJiraUnlink(j.key) }, buttonContent(unlinkBtn.running, "Đang gỡ…", "Gỡ liên kết này?")),
             el("button", { className: "button-link", onclick: () => { state.unlinkConfirm = ""; rerender(); } }, [document.createTextNode("Huỷ")]),
           ])
           : el("button", { className: "button-link unlink-button", onclick: () => { state.unlinkConfirm = j.key; rerender(); } }, [document.createTextNode("✕ Gỡ")]),
@@ -280,30 +281,44 @@ export function moodText(s) {
    Chip Ngôn ngữ trong preview v4 chỉ là chữ tĩnh của bản mock — widget thật
    không có dữ liệu ngôn ngữ khách trong check nên không dựng chip giả. */
 
-/** Module Tâm trạng khách (màu tím) — dữ liệu thật từ check/analyze/generate, kèm dòng tóm tắt (sentiment.summary). */
-export function insightPanel({ onAnalyze }) {
+/**
+ * Dải màu theo ĐIỂM (Ethan chốt ở bản Support Operation v9, 2026-10-29):
+ * điểm quyết định màu, chữ mood đi cùng mang đúng màu của điểm — ≤25 đỏ,
+ * 26–42 cam, 43–57 màu chữ mặc định, 58–74 xanh dương, 75 trở lên xanh lá.
+ */
+export function scoreBandClass(score) {
+  if (score <= 25) return "band-red";
+  if (score <= 42) return "band-orange";
+  if (score <= 57) return "band-default";
+  if (score <= 74) return "band-blue";
+  return "band-green";
+}
+
+/**
+ * Module Tâm trạng khách (màu tím) — dữ liệu thật từ check/analyze/generate,
+ * kèm dòng tóm tắt (sentiment.summary). KHÔNG còn nút "Phân tích lại"
+ * (Ethan bỏ ở bản Support Operation v9, 2026-10-29): sentiment tự cập nhật
+ * qua đường analyze nền trong app.js (precompute + compute-on-view); chưa
+ * có dữ liệu thì thẻ chỉ hiện đúng một dòng trạng thái.
+ */
+export function insightPanel() {
   const s = state.sentiment;
-  const anBtn = actionButtonState(state.busyAction, "analyze");
-  const moodCls = s ? `mood-${s.mood}` : "";
-  const fill = s ? el("div", { className: `score-fill mood-bg-${s.mood}` }) : null;
+  const band = s ? scoreBandClass(s.score) : "";
+  const fill = s ? el("div", { className: `score-fill ${band}` }) : null;
   if (fill) fill.style.width = `${s.score}%`;
   return el("section", { className: "card insight-card mod-sent" }, [
-    el("div", { className: "row" }, [
-      el("span", { className: "eyebrow", textContent: "TÂM TRẠNG KHÁCH" }),
-      el("button", { className: "button-secondary compact-button", disabled: anBtn.disabled, onclick: () => onAnalyze(true) }, buttonContent(anBtn.running, "Đang phân tích…", s ? "Phân tích lại" : "Phân tích")),
-    ]),
+    el("span", { className: "eyebrow", textContent: "TÂM TRẠNG KHÁCH" }),
     s
       ? el("div", { className: "mood-row" }, [
-        el("b", { className: `mood-label ${moodCls}`, textContent: MOOD_LABELS[s.mood] ?? s.mood }),
-        el("span", {}, [el("b", { className: `score-num ${moodCls}`, textContent: String(s.score) }), el("span", { className: "muted", textContent: "/100" })]),
+        el("b", { className: `mood-label ${band}`, textContent: MOOD_LABELS[s.mood] ?? s.mood }),
+        el("span", {}, [el("b", { className: `score-num ${band}`, textContent: String(s.score) }), el("span", { className: "muted", textContent: "/100" })]),
       ])
       : el("strong", { className: "future-title", textContent: "Chưa có dữ liệu phân tích" }),
     s ? el("div", { className: "score-bar" }, [fill]) : null,
     state.sentimentRefreshing ? el("p", { className: "muted", textContent: "Đang cập nhật phân tích theo tin mới nhất…" }) : null,
-    s?.urgency === "high" ? el("p", { className: "warn", textContent: "Mức khẩn cấp cao — ưu tiên xử lý case này." }) : null,
+    s?.urgency === "high" ? el("p", { className: "warn urgent", textContent: "Mức khẩn cấp cao — ưu tiên xử lý case này." }) : null,
     s?.summary ? el("p", { className: "muted", textContent: s.summary }) : null,
     ...(s?.signals ?? []).map((t) => el("p", { className: "muted", textContent: `• ${t}` })),
-    !s ? el("p", { className: "muted", textContent: "Chưa có dữ liệu phân tích." }) : null,
     s && s.confidence < 0.4 ? el("p", { className: "muted", textContent: "Độ tin cậy thấp (ít tín hiệu) — chỉ tham khảo." }) : null,
   ]);
 }
@@ -385,7 +400,7 @@ export function knowledgePanel({ onAsk, onAskCompose }) {
       el("p", { className: "subtitle", textContent: "Tìm trong FAQ nội bộ, trả lời kèm nguồn" }),
     ]),
     input,
-    el("button", { className: "button-primary", disabled: askBtn.disabled, onclick: () => onAsk() }, buttonContent(askBtn.running, "Đang tìm…", "Tìm trong tài liệu")),
+    el("button", { className: "act-teal", disabled: askBtn.disabled, onclick: () => onAsk() }, buttonContent(askBtn.running, "Đang tìm…", "Tìm trong tài liệu")),
     r ? el("div", { className: "ask-question", textContent: r.question }) : null,
     // Không tìm thấy: đúng MỘT dòng trạng thái (Ethan bắt live 2026-10-27:
     // im lặng hoàn toàn khiến CS tưởng hệ thống hỏng). Không hồi sinh khối
@@ -401,7 +416,7 @@ export function knowledgePanel({ onAsk, onAskCompose }) {
         ]),
       ]) : null,
       el("div", { className: "row" }, [
-        el("button", { className: "button-primary", disabled: genBtn.disabled, onclick: () => onAskCompose(r.answer) }, buttonContent(genBtn.running, state.busy, "Soạn thành tin trả lời khách")),
+        el("button", { className: "act-blue", disabled: genBtn.disabled, onclick: () => onAskCompose(r.answer) }, buttonContent(genBtn.running, state.busy, "Soạn thành tin trả lời khách")),
       ]),
     ]) : null,
   ]);
@@ -615,6 +630,22 @@ export function storefrontPanel(handlers = {}) {
   // (dữ liệu server chưa nạp lại) — con số trên đầu thẻ phải khớp mắt nhìn.
   const closedHere = new Set((vm.rows ?? []).map((r) => r.fingerprint).filter((fp) => fp && state.sfClosed[fp]));
   const openNow = Math.max(0, (vm.totalCount ?? 0) - closedHere.size);
+  // Hai tab ở đầu thân thẻ (Ethan chốt ở bản Support Operation v9,
+  // 2026-10-29): "Đang mở" chứa finding chưa đóng; "Đã đóng" chứa finding
+  // đã đóng — payload server hiện chỉ trả finding đang mở, nên finding đã
+  // đóng trên server chỉ còn xuất hiện ở đây khi chính phiên panel này đóng
+  // chúng (state.sfClosed) và dữ liệu chưa nạp lại. CS đã bấm chọn tab thì
+  // giữ đúng tab đó; chưa chọn thì mặc định Đang mở, trừ khi không còn lỗi
+  // mở nào mà có lỗi đã đóng thì mở sẵn Đã đóng.
+  const isClosedRow = (r) => Boolean(r.fingerprint && state.sfClosed[r.fingerprint]);
+  const openRows = (vm.rows ?? []).filter((r) => !isClosedRow(r));
+  const closedRows = (vm.rows ?? []).filter(isClosedRow);
+  const sfTab = state.sfTab === "closed" || state.sfTab === "open"
+    ? state.sfTab
+    : openRows.length === 0 && closedRows.length > 0
+    ? "closed"
+    : "open";
+  const tabRows = sfTab === "closed" ? closedRows : openRows;
   return el("section", { className: "card storefront-card mod-store" }, [
     el("div", { className: "row sf-head" }, [
       vm.notWatched
@@ -628,7 +659,17 @@ export function storefrontPanel(handlers = {}) {
     vm.notWatched
       ? el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." })
       : null,
-    el("div", { className: "sf-rows" }, (vm.rows ?? []).map((r) => sfRow(r, handlers))),
+    !vm.notWatched
+      ? el("div", { className: "sf-tabs" }, [
+        el("button", { className: `sf-tab${sfTab === "open" ? " on" : ""}`, textContent: `Đang mở · ${openRows.length}`, onclick: () => { state.sfTab = "open"; handlers.rerender?.(); } }),
+        el("button", { className: `sf-tab${sfTab === "closed" ? " on" : ""}`, textContent: `Đã đóng · ${closedRows.length}`, onclick: () => { state.sfTab = "closed"; handlers.rerender?.(); } }),
+      ])
+      : null,
+    vm.notWatched
+      ? el("div", { className: "sf-rows" }, [])
+      : tabRows.length
+      ? el("div", { className: "sf-rows" }, tabRows.map((r) => sfRow(r, handlers)))
+      : el("p", { className: "muted", textContent: sfTab === "closed" ? "Chưa có lỗi nào được đóng." : "Không còn lỗi đang mở." }),
     state.sfMsg ? el("p", { className: "muted sf-msg", textContent: state.sfMsg }) : null,
     !vm.notWatched
       ? el("div", { className: "row sf-footer" }, [
@@ -684,7 +725,7 @@ export function draftCompose({ onGenerate }) {
     hintBox,
     el("div", { className: "row draft-actions" }, [
       toneSelect,
-      el("button", { className: "button-primary compose-button", disabled: genBtn.disabled, onclick: () => onGenerate(Boolean(state.draft)) }, buttonContent(genBtn.running, state.busy, state.draft ? "Soạn lại tin trả lời" : "Soạn tin trả lời")),
+      el("button", { className: "act-blue compose-button", disabled: genBtn.disabled, onclick: () => onGenerate(Boolean(state.draft)) }, buttonContent(genBtn.running, state.busy, state.draft ? "Soạn lại tin trả lời" : "Soạn tin trả lời")),
     ]),
   ]);
 }
@@ -718,7 +759,7 @@ function noteModal(handlers) {
     // popup khi không có popup nào mở, thiếu dòng này thì CS kẹt không thấy nút.
     state.choice && state.choiceFor === "note" ? handlers.insertChoice() : null,
     state.handoff ? handoffPanel(handlers) : el("div", { className: "compose-form" }, [
-      el("button", { className: "button-primary", disabled: noteBtn.disabled, onclick: () => handlers.onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "Viết private note")),
+      el("button", { className: "act-amber", disabled: noteBtn.disabled, onclick: () => handlers.onHandoff(false) }, buttonContent(noteBtn.running, "Đang viết private note…", "Viết private note")),
     ]),
   ];
 }
@@ -759,7 +800,7 @@ function reviewEditor(handlers) {
     area,
     suggestionCard("review", handlers),
     state.choice && state.choiceFor === "review" ? handlers.insertChoice() : null,
-    state.choice && state.choiceFor === "review" ? null : el("button", { className: "button-primary", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendReviewInsert("auto") }),
+    state.choice && state.choiceFor === "review" ? null : el("button", { className: "act-violet", disabled: !ready || state.insertPending, textContent: "Điền vào ô Reply", onclick: () => handlers.sendReviewInsert("auto") }),
     !ready ? el("p", { className: "muted", textContent: "Cài extension để điền tin xin review thẳng vào ô Reply của Crisp." }) : null,
   ]);
 }
