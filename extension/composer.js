@@ -385,10 +385,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // ─── Tự mở rộng hộp Copilot CS ─────────────────────────────────────────────
 // Hộp widget trong sidebar bị Crisp cắt ở ~330px, muốn xem hết phải bấm
-// nút Expand ở đáy hộp (dò thật 2026-10-27). Extension tự bấm thay người:
-// một lần cho mỗi phiên chat, và tôn trọng lần đóng tay của CS (xem
-// createExpandTracker ở composer-core). Chỉ là thao tác giao diện của
-// chính trang Crisp — không gọi mạng, không lưu dữ liệu.
+// nút Expand ở đáy hộp. Extension tự bấm thay người: một lần cho mỗi
+// phiên chat, và tôn trọng lần đóng tay của CS (xem createExpandTracker
+// ở composer-core). Chỉ là thao tác giao diện của chính trang Crisp —
+// không gọi mạng, không lưu dữ liệu.
+// DOM thật (dò lại 2026-10-28, bản 1.2.6): nút là span.c-conversation-
+// profile-widget__expand chứ không phải <button> "Expand" như bản 1.2.5
+// tưởng; "thấy nút" với tracker là nút còn BẤM ĐƯỢC (isExpandActionable)
+// vì khi hộp đã mở, span vẫn nằm trong DOM nhưng bị iframe phủ lên.
 const WIDGET_ORIGIN = "__WIDGET_ORIGIN__";
 const expandTracker = createExpandTracker();
 
@@ -397,9 +401,10 @@ function autoExpandTick() {
     const frame = [...document.querySelectorAll("iframe")].find((el) => isWidgetIframe(el, WIDGET_ORIGIN));
     if (!frame) return;
     const session = widgetSessionFromSrc(frame.getAttribute("src") ?? "") ?? "unknown";
-    const button = findExpandButton(frame);
-    if (expandTracker.observe(session, !!button) && button) {
-      button.click();
+    const control = findExpandButton(frame);
+    const present = control ? isExpandActionable(control) : false;
+    if (expandTracker.observe(session, present) && control) {
+      activateControl(control);
       expandTracker.noteClicked();
     }
   } catch { /* lỗi ở tính năng phụ này không bao giờ được ảnh hưởng trang Crisp */ }
