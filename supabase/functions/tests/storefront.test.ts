@@ -1101,8 +1101,9 @@ Deno.test("MCP client: 4 tool ghi gọi đúng tên + tham số; operator rỗng
   await mcp.markFixed("ws1", FP_A, "Đã sửa trong theme", "Ethan Nguyen");
   await mcp.dismissFinding("ws1", FP_A, "false_signal", "Trang vẫn ổn", undefined);
   await mcp.undoFinding("ws1", FP_A);
-  // Note rỗng VẪN phải có mặt dưới dạng "" — schema SW bắt buộc field note
-  // là string; bỏ field → MCP error -32602 (bắt live 2026-10-29).
+  // Note rỗng được thay bằng câu mặc định — schema SW bắt buộc field note
+  // là string ≥ 1 ký tự; bỏ field hoặc gửi "" đều → MCP error -32602
+  // (bắt live 2026-10-29).
   await mcp.markFixed("ws1", FP_A, "", "Ethan Nguyen");
   await mcp.dismissFinding("ws1", FP_A, "not_important", "", "Ethan Nguyen");
   const toolCalls = calls.map((c) => JSON.parse(c.body)).filter((b) => b.method === "tools/call").map((b) => b.params);
@@ -1112,8 +1113,8 @@ Deno.test("MCP client: 4 tool ghi gọi đúng tên + tham số; operator rỗng
   assertEquals(toolCalls[2].arguments, { fingerprint: FP_A, note: "Đã sửa trong theme", operator: "Ethan Nguyen" });
   assertEquals(toolCalls[3].arguments, { fingerprint: FP_A, reason: "false_signal", note: "Trang vẫn ổn" });
   assertEquals(toolCalls[4].arguments, { fingerprint: FP_A });
-  assertEquals(toolCalls[5].arguments, { fingerprint: FP_A, note: "", operator: "Ethan Nguyen" });
-  assertEquals(toolCalls[6].arguments, { fingerprint: FP_A, reason: "not_important", note: "", operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[5].arguments, { fingerprint: FP_A, note: "Đã sửa", operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[6].arguments, { fingerprint: FP_A, reason: "not_important", note: "Lỗi thật, không đáng sửa", operator: "Ethan Nguyen" });
 });
 
 Deno.test("parse list: dòng trạng thái SW trong finding được giữ lại (không văng lỗi) và classify xếp vào Đang xử lý", () => {
