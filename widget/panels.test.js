@@ -344,21 +344,37 @@ Deno.test("panels: storefrontPanel results → list đủ từng bug: pill trạ
   assertEquals(hrefs.includes("https://sw.transcy.io"), true);
 });
 
-Deno.test("panels: storefront finding có pageLink → hiện nút 'Trang lỗi ↗' cạnh link Console, trỏ thẳng trang store (Ethan 2026-10-29)", () => {
+Deno.test("panels: storefront finding → hàng 3 link thẳng hàng 'Default page' / 'Issue page' / 'Console' đúng thứ tự (Ethan 2026-10-29)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = {
     status: "ok", store: "shop.myshopify.com", scannedAt: null,
-    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · de · /products/a", fingerprint: "a".repeat(40), locale: "de", page: "/products/a", consoleLink: "https://sw.transcy.io/#/f/x", pageLink: "https://shop.myshopify.com/products/a" }],
+    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · de · /products/a", fingerprint: "a".repeat(40), locale: "de", page: "/products/a", consoleLink: "https://sw.transcy.io/#/f/x", pageLink: "https://shop.myshopify.com/products/a", issuePageLink: "https://shop.myshopify.com/de/products/a" }],
     acknowledged: [], inProgress: [],
   };
   const p = storefrontPanel(makeHandlers([]));
   const links = walk(p).filter((n) => n.tagName === "A");
-  const pageA = links.find((a) => (a.attrs.href ?? a.href) === "https://shop.myshopify.com/products/a");
-  assertEquals(Boolean(pageA), true);
-  assertEquals(pageA.textContent ?? "", "Trang lỗi ↗");
-  // Link Console vẫn còn, tách bạch với link trang lỗi.
-  assertEquals(links.some((a) => (a.attrs.href ?? a.href) === "https://sw.transcy.io/#/f/x"), true);
+  const byHref = (h) => links.find((a) => (a.attrs.href ?? a.href) === h);
+  assertEquals(byHref("https://shop.myshopify.com/products/a")?.textContent ?? "", "Default page");
+  assertEquals(byHref("https://shop.myshopify.com/de/products/a")?.textContent ?? "", "Issue page");
+  assertEquals(byHref("https://sw.transcy.io/#/f/x")?.textContent ?? "", "Console");
+  // Thứ tự trong DOM: Default page → Issue page → Console.
+  const order = links.map((a) => a.textContent).filter((t) => ["Default page", "Issue page", "Console"].includes(t ?? ""));
+  assertEquals(order, ["Default page", "Issue page", "Console"]);
+});
+
+Deno.test("panels: issuePageLink trùng pageLink → ẩn link Issue page, chỉ còn Default page + Console", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.storefront = {
+    status: "ok", store: "shop.myshopify.com", scannedAt: null,
+    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · en · /products/a", fingerprint: "b".repeat(40), locale: "en", page: "/products/a", consoleLink: "https://sw.transcy.io/#/f/y", pageLink: "https://shop.myshopify.com/products/a", issuePageLink: "https://shop.myshopify.com/products/a" }],
+    acknowledged: [], inProgress: [],
+  };
+  const p = storefrontPanel(makeHandlers([]));
+  const texts = walk(p).filter((n) => n.tagName === "A").map((a) => a.textContent);
+  assertEquals(texts.includes("Issue page"), false);
+  assertEquals(texts.includes("Default page") && texts.includes("Console"), true);
 });
 
 const SF_ONE = (over = {}) => ({

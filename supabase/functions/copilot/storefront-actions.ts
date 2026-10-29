@@ -6,6 +6,7 @@ import { enabledModules, jiraForConversation } from "../_shared/jira.ts";
 import {
   classifyFindings,
   consoleUnitUrl,
+  storefrontIssuePageUrl,
   storefrontPageUrl,
   SW_DISMISS_REASONS,
   type StorefrontFinding,
@@ -31,8 +32,10 @@ export interface StorefrontItem {
   text: string | null;
   /** Link console của CHÍNH finding này (từ dữ kiện MCP) — CS bấm sang đúng trang bug để Mark fixed/Dismiss ở SW. */
   consoleLink: string | null;
-  /** URL trang thật trên store mà SW quét thấy lỗi này — nút "Xem trang lỗi" cạnh finding trên panel (Ethan, 2026-10-29). */
+  /** URL trang thật trên store ở ngôn ngữ mặc định — link "Default page" cạnh finding trên panel (Ethan, 2026-10-29). */
   pageLink: string | null;
+  /** URL trang ở đúng locale SW quét thấy lỗi — link "Issue page" cạnh finding trên panel (Ethan, 2026-10-29). */
+  issuePageLink: string | null;
 }
 
 export interface StorefrontResult {
@@ -116,6 +119,7 @@ function toItem(f: StorefrontFinding, domain?: string | null): StorefrontItem {
     // in sẵn (Console báo "no audited unit").
     consoleLink: consoleUnitUrl(domain, f),
     pageLink: storefrontPageUrl(domain, f),
+    issuePageLink: storefrontIssuePageUrl(domain, f),
   };
 }
 

@@ -417,6 +417,27 @@ export function storefrontPageUrl(domain: string | null | undefined, f: { page?:
   return `https://${clean}${page}`;
 }
 
+/**
+ * URL trang ở ĐÚNG locale mà SW đã quét thấy finding này (Ethan, 2026-10-29):
+ * panel hiện 3 link thẳng hàng — "Default page" (storefrontPageUrl: trang ở
+ * ngôn ngữ mặc định của store), "Issue page" (hàm này: chắp tiền tố locale
+ * theo quy ước subfolder của Shopify, vd /en/products/… — đúng biến thể tool
+ * đã audit), "Console" (consoleUnitUrl). Locale không phải mã ngôn ngữ hợp
+ * lệ thì trả null; page đã chứa sẵn tiền tố locale thì trả luôn URL mặc
+ * định (khỏi chắp trùng — panel tự ẩn link Issue khi trùng Default).
+ */
+export function storefrontIssuePageUrl(domain: string | null | undefined, f: { locale?: string | null; page?: string | null }): string | null {
+  const base = storefrontPageUrl(domain, f);
+  if (!base) return null;
+  const locale = (f.locale ?? "").trim();
+  if (!/^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/.test(locale)) return null;
+  const page = (f.page ?? "").trim();
+  if (page === `/${locale}` || page.startsWith(`/${locale}/`)) return base;
+  const clean = (domain ?? "").trim().replace(/\s*\(asked as [^)]*\)$/, "").trim();
+  return `https://${clean}/${locale}${page}`;
+}
+
+
 export function consoleUnitUrl(domain: string | null | undefined, f: { locale?: string | null; page?: string | null; widthPx?: number | null }): string | null {
   // Chốt chặn tại chỗ cấu URL (parseStoreText đã lột ở nguồn): domain còn dính
   // chú thích "(asked as …)" thì lột; vẫn còn khoảng trắng/ngoặc (không thể là

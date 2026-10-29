@@ -906,6 +906,24 @@ Deno.test("storefrontPageUrl: cấu URL trang thật từ domain + page; page l�
   assertEquals(storefrontPageUrl("shop .com", { page: "/" }), null);
 });
 
+Deno.test("storefrontIssuePageUrl: chắp tiền tố locale vào URL trang (Issue page); locale lạ/page đã có tiền tố thì xử lý đúng", async () => {
+  const { storefrontIssuePageUrl } = await import("../_shared/storefront.ts");
+  // Mẫu như ảnh Ethan gửi 29/10: locale en, page /products/… → /en/products/…
+  assertEquals(storefrontIssuePageUrl("elfbar.de", { locale: "en", page: "/products/elfbar-800" }),
+    "https://elfbar.de/en/products/elfbar-800");
+  assertEquals(storefrontIssuePageUrl("shop.com", { locale: "pt-BR", page: "/" }), "https://shop.com/pt-BR/");
+  // Page đã chứa sẵn tiền tố locale → trả URL mặc định (panel ẩn link trùng).
+  assertEquals(storefrontIssuePageUrl("shop.com", { locale: "de", page: "/de/products/x" }),
+    "https://shop.com/de/products/x");
+  // Locale không phải mã ngôn ngữ / thiếu dữ kiện → null, không đoán.
+  assertEquals(storefrontIssuePageUrl("shop.com", { locale: null, page: "/products/x" }), null);
+  assertEquals(storefrontIssuePageUrl("shop.com", { locale: "x", page: "/products/x" }), null);
+  assertEquals(storefrontIssuePageUrl("shop.com", { locale: "../en", page: "/products/x" }), null);
+  assertEquals(storefrontIssuePageUrl(null, { locale: "en", page: "/products/x" }), null);
+  assertEquals(storefrontIssuePageUrl("shop.com", { locale: "en", page: null }), null);
+});
+
+
 // ---------- bản chụp trạng thái store (storeStatusFromStore) ----------
 
 Deno.test("storeStatusFromStore: store có theo dõi — counts theo severity, worst = mức nặng nhất còn lỗi, shop là domain đã truy vấn", () => {
