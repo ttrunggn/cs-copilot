@@ -819,14 +819,16 @@ export function createStorefrontMcp(opts: {
       return await callToolText(websiteId, "acknowledge_finding", args, true);
     },
     async markFixed(websiteId, fingerprint, note, operator) {
-      const args: Rec = { fingerprint };
-      if (note?.trim()) args.note = note.trim();
+      // note LUÔN gửi (kể cả ""): schema của tool SW khai note là string
+      // bắt buộc — bỏ hẳn field thì SW trả MCP error -32602 "expected
+      // string, received undefined at note" (bắt live 2026-10-29 sau khi
+      // thử bỏ field; giao diện bắt buộc nhập hay không là chuyện của panel).
+      const args: Rec = { fingerprint, note: (note ?? "").trim() };
       if (operator?.trim()) args.operator = operator.trim();
       return await callToolText(websiteId, "mark_fixed", args, true);
     },
     async dismissFinding(websiteId, fingerprint, reason, note, operator) {
-      const args: Rec = { fingerprint, reason };
-      if (note?.trim()) args.note = note.trim();
+      const args: Rec = { fingerprint, reason, note: (note ?? "").trim() };
       if (operator?.trim()) args.operator = operator.trim();
       return await callToolText(websiteId, "dismiss_finding", args, true);
     },
