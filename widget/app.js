@@ -792,10 +792,13 @@ function render() {
               : null,
           ])
           : null,
+        // Dòng báo dữ liệu chậm nằm TRONG card đầu panel (Ethan, 2026-10-28):
+        // trước đây nó nằm trơ dưới header trên nền tối nhất, lap của CS nhìn
+        // tối và rời rạc — cả cụm đầu đã thành một card như các khối khác.
+        vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
       ]),
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
     ]),
-    vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
     insightPanel(handlers),
     issuesPanel(vm),
     storefrontPanel(handlers),
