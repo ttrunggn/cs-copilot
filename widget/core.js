@@ -15,6 +15,30 @@ export function readContext(search) {
   return { websiteId, sessionId, crispToken };
 }
 
+/**
+ * Deep-link từ mặt native (Crisp Generic Widget): nút modal mở widget với
+ * ?open=<view> để vào thẳng đúng view (xem widget/native-panel.json). Sáu
+ * view hợp lệ; giá trị lạ → null (bỏ qua, panel mở như thường).
+ */
+export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira"];
+
+export function parseOpenParam(search) {
+  const open = new URLSearchParams(search).get("open") ?? "";
+  return OPEN_VIEWS.includes(open) ? open : null;
+}
+
+/**
+ * View deep-link → tên modal thật của widget (modalView ở panels.js chỉ có
+ * draft | note | ask | csat | explain). Xin review nằm trong modal csat.
+ * storefront/jira không có modal — chúng là card inline trên panel, hàm
+ * trả null và app.js cuộn tới card thay vì mở modal.
+ */
+export function openModalName(open) {
+  if (open === "review") return "csat";
+  if (open === "draft" || open === "note" || open === "ask") return open;
+  return null;
+}
+
 export function mapError(status, body) {
   const msg = body?.error;
   if (status === 401) return { kind: "fatal", message: msg ?? "Widget không hợp lệ cho workspace này" };
