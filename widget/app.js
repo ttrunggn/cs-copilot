@@ -1,4 +1,4 @@
-import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, openModalName, operatorIdFrom, operatorNameFrom, parseOpenParam, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -839,6 +839,25 @@ function applyCheck(sessionId) {
   }
 }
 
+/**
+ * Deep-link ?open= từ mặt native (Generic Widget): sau khi check đầu tiên
+ * của session hoàn tất, mở thẳng modal tương ứng (draft/note/ask/review)
+ * hoặc cuộn tới card inline (storefront/jira). Chỉ áp MỘT lần cho mỗi
+ * session — các lần load() sau (refresh, nạp lại Jira…) không mở lại.
+ * URL sidebar thường không có ?open= nên luồng cũ không đổi.
+ */
+let deepLinkDoneFor = "";
+function applyOpenDeepLink(sessionId) {
+  if (deepLinkDoneFor === sessionId) return;
+  deepLinkDoneFor = sessionId;
+  const open = parseOpenParam(location.search);
+  if (!open) return;
+  const name = openModalName(open);
+  if (name) return openModal(name);
+  const sel = open === "storefront" ? ".storefront-card" : ".jira-section";
+  document.querySelector(sel)?.scrollIntoView({ block: "start" });
+}
+
 let loadInFlight = false;
 
 async function load() {
@@ -874,6 +893,7 @@ async function load() {
     checkCache.set(sessionId, state.check);
     applyCheck(sessionId);
     render();
+    applyOpenDeepLink(sessionId);
     maybeAutoRefreshSentiment(sessionId);
     // Mirror Jira cũ lúc mở panel: server đã cho sync chạy nền (check
     // không còn chờ Jira nữa) — nạp lại ĐÚNG một lần sau 3 giây để card

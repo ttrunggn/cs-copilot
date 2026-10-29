@@ -126,6 +126,8 @@ export function makeDeps(opts: {
     saveSentiment: () => Promise.resolve(),
     appendSentimentHistory: () => Promise.resolve(),
     getSentimentHistory: () => Promise.resolve([]),
+    getOperatorIdByEmail: () => Promise.resolve(null),
+    getReviewSend: () => Promise.resolve(null),
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
     releaseCsatSend: () => Promise.resolve(),
