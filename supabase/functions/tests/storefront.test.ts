@@ -1158,16 +1158,19 @@ Deno.test("action storefront_act acknowledge: ghi đúng fingerprint + operator 
   assertEquals(seen, [["ws1", FP_A, "Ethan Nguyen"]]);
 });
 
-Deno.test("action storefront_act fixed: thiếu ghi chú → 400 và KHÔNG gọi tool ghi", async () => {
-  let fixedCalls = 0;
+Deno.test("action storefront_act fixed: ghi chú KHÔNG bắt buộc — không ghi chú vẫn ghi được (200); có ghi chú thì truyền kèm (Ethan 2026-10-29)", async () => {
+  const seen: unknown[][] = [];
   const mcp = fakeMcp({
     listFindings: () => Promise.resolve([finding(FP_A)]),
-    markFixed: () => { fixedCalls++; return Promise.resolve("ok"); },
+    markFixed: (w: string, fp: string, note: string, op?: string) => { seen.push([fp, note, op]); return Promise.resolve("ok"); },
   });
   const { deps } = actDeps(mcp);
-  const r = await handle({ ...ACT_REQ, sf_act: "fixed" }, TOKEN, deps);
-  assertEquals(r.status, 400);
-  assertEquals(fixedCalls, 0);
+  const r1 = await handle({ ...ACT_REQ, sf_act: "fixed" }, TOKEN, deps);
+  assertEquals(r1.status, 200);
+  assertEquals((r1.body as { status: string }).status, "ok");
+  const r2 = await handle({ ...ACT_REQ, sf_act: "fixed", note: "Đã sửa trong theme" }, TOKEN, deps);
+  assertEquals(r2.status, 200);
+  assertEquals(seen, [[FP_A, "", "Ethan Nguyen"], [FP_A, "Đã sửa trong theme", "Ethan Nguyen"]]);
 });
 
 Deno.test("action storefront_act dismiss: lý do ngoài 2 giá trị của SW → 400; đúng lý do thì ghi kèm note + operator", async () => {
@@ -1183,7 +1186,10 @@ Deno.test("action storefront_act dismiss: lý do ngoài 2 giá trị của SW �
   const ok = await handle({ ...ACT_REQ, sf_act: "dismiss", note: "Trang vẫn ổn", reason: "false_signal" }, TOKEN, deps);
   assertEquals(ok.status, 200);
   assertEquals((ok.body as { status: string }).status, "ok");
-  assertEquals(seen, [[FP_A, "false_signal", "Trang vẫn ổn", "Ethan Nguyen"]]);
+  // Không ghi chú vẫn dismiss được (Ethan 2026-10-29) — note truyền xuống là "".
+  const okNoNote = await handle({ ...ACT_REQ, sf_act: "dismiss", reason: "not_important" }, TOKEN, deps);
+  assertEquals(okNoNote.status, 200);
+  assertEquals(seen, [[FP_A, "false_signal", "Trang vẫn ổn", "Ethan Nguyen"], [FP_A, "not_important", "", "Ethan Nguyen"]]);
 });
 
 Deno.test("action storefront_act: fingerprint không thuộc store của chat → status error, không ghi gì", async () => {
