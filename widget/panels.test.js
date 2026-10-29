@@ -333,6 +333,23 @@ Deno.test("panels: storefrontPanel results → list đủ từng bug: pill trạ
   assertEquals(hrefs.includes("https://sw.transcy.io"), true);
 });
 
+Deno.test("panels: storefront finding có pageLink → hiện nút 'Trang lỗi ↗' cạnh link Console, trỏ thẳng trang store (Ethan 2026-10-29)", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.storefront = {
+    status: "ok", store: "shop.myshopify.com", scannedAt: null,
+    new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · de · /products/a", fingerprint: "a".repeat(40), locale: "de", page: "/products/a", consoleLink: "https://sw.transcy.io/#/f/x", pageLink: "https://shop.myshopify.com/products/a" }],
+    acknowledged: [], inProgress: [],
+  };
+  const p = storefrontPanel(makeHandlers([]));
+  const links = walk(p).filter((n) => n.tagName === "A");
+  const pageA = links.find((a) => (a.attrs.href ?? a.href) === "https://shop.myshopify.com/products/a");
+  assertEquals(Boolean(pageA), true);
+  assertEquals(pageA.textContent ?? "", "Trang lỗi ↗");
+  // Link Console vẫn còn, tách bạch với link trang lỗi.
+  assertEquals(links.some((a) => (a.attrs.href ?? a.href) === "https://sw.transcy.io/#/f/x"), true);
+});
+
 const SF_ONE = (over = {}) => ({
   status: "ok", store: "shop.myshopify.com", scannedAt: null,
   new: [{ title: "Graphic lost", kind: "Graphic lost", meta: "high · de · /products/a", fingerprint: "a".repeat(40), locale: "de", page: "/products/a", consoleLink: null }],
@@ -598,8 +615,8 @@ Deno.test("panels: extensionHint — bridge ready nhưng version cũ hơn bản 
   const hint = extensionHint(makeHandlers());
   assertEquals(hint === null, false);
   assertEquals(allText(hint).includes("Extension đang ở bản cũ v1.2.0"), true);
-  assertEquals(allText(hint).includes("1.2.5"), true);
-  state.bridgeVersion = "1.2.5";
+  assertEquals(allText(hint).includes("1.2.6"), true);
+  state.bridgeVersion = "1.2.6";
   assertEquals(extensionHint(makeHandlers()), null);
   state.bridgeVersion = "";
   assertEquals(extensionHint(makeHandlers()), null);

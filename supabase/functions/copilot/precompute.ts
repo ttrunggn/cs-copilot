@@ -23,7 +23,7 @@ export async function runPrecompute(
   if (!ws) return { sentiment: false, cached: false, skipped: "unknown_workspace" };
   const messages = await deps.db.getMessages(websiteId, sessionId, MESSAGE_LIMIT).catch(() => []);
   if (!messages.length) return { sentiment: false, cached: false, skipped: "no_messages" };
-  const r = await resolveSentiment(deps, websiteId, sessionId, messages);
+  const r = await resolveSentiment(deps, websiteId, sessionId, messages, false, "precompute");
   return { sentiment: Boolean(r.sentiment), cached: r.cached, skipped: r.sentiment ? null : (r.reason ?? "no_sentiment") };
 }
 

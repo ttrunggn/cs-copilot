@@ -97,11 +97,11 @@ a { color: var(--link); }
 .subtitle { margin-top: 4px; font-size: 13px; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
-.inbox-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.inbox-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
 .inbox-header > div { min-width: 0; }
 .refresh-button { flex: none; width: 38px; min-height: 38px; padding: 0; border: 1px solid var(--btn-border); border-radius: 9px; background: var(--btn); color: var(--muted); font-size: 21px; line-height: 1; }
 .refresh-button:hover:not(:disabled) { color: var(--fg); }
-.stale-line { color: var(--warn-fg); font-size: 12px; }
+.stale-line { margin-top: 6px; color: var(--warn-fg); font-size: 12px; }
 
 .pending-section { display: grid; gap: 9px; }
 .pending-message { min-width: 0; padding: 12px 14px; border: 0; border-radius: 14px; background: var(--surface-raised); }
@@ -470,6 +470,9 @@ button.sf-row { cursor: pointer; }
 .sf-line .pill-sf { flex: none; }
 .sf-bug-link { text-decoration: none; font-weight: 700; font-size: 15px; line-height: 1; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; }
 .sf-line .sf-bug-link { margin-left: auto; flex: none; }
+.sf-line .sf-links { margin-left: auto; flex: none; display: flex; gap: 6px; align-items: center; }
+.sf-line .sf-links .sf-bug-link { margin-left: 0; }
+.sf-page-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
 /* Đầu thẻ Storefront cho rớt dòng: ở khung Crisp hẹp (~260px) nút Mở
    Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
    live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */

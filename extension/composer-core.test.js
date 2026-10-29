@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { accessibleName, confirmNoteMode, createExpandTracker, decideInsert, fillVerified, findExpandButton, isCopilotMessage, isWidgetIframe, isYellowishColor, placeholderKind, sessionFromUrl, signalTrace, tabLooksActive, textsMatch, verifyWritten, widgetSessionFromSrc } from "./composer-core.js";
+import { accessibleName, activateControl, confirmNoteMode, createExpandTracker, decideInsert, elHasClass, EXPAND_CONTROL_CLASS, fillVerified, findExpandButton, isCopilotMessage, isExpandActionable, isWidgetIframe, isYellowishColor, placeholderKind, sessionFromUrl, signalTrace, tabLooksActive, textsMatch, verifyWritten, widgetSessionFromSrc } from "./composer-core.js";
 
 Deno.test("sessionFromUrl reads the open conversation", () => {
   assertEquals(sessionFromUrl("https://app.crisp.chat/website/ws1/inbox/session_abc-123/"), "session_abc-123");
@@ -219,6 +219,50 @@ Deno.test("findExpandButton: không có nút Expand trong hộp → null (không
 Deno.test("findExpandButton: 2 nút Expand cùng phạm vi → null, không bấm đoán", () => {
   const { frame } = widgetBox({ expandButtons: 2 });
   assertEquals(findExpandButton(frame), null);
+});
+
+Deno.test("findExpandButton: DOM Crisp thật — span Expand theo class (không phải button), trả đúng span đó", () => {
+  const frame = fakeEl("iframe", { attrs: { src: "https://copilot-oe.netlify.app/index.html?session_id=session_1" } });
+  const icon = fakeEl("svg", { attrs: { class: "c-base-icon c-conversation-profile-widget__expand-icon" } });
+  const span = fakeEl("span", { attrs: { class: "c-conversation-profile-widget__expand u-has-tooltip" } }, [icon]);
+  const body = fakeEl("div", { attrs: { class: "c-conversation-profile-widget__body" } }, [span]);
+  fakeEl("div", {}, [fakeEl("div", {}, [frame, body])]);
+  assertEquals(findExpandButton(frame), span);
+  assertEquals(elHasClass(span, EXPAND_CONTROL_CLASS), true);
+  assertEquals(elHasClass(icon, EXPAND_CONTROL_CLASS), false);
+});
+
+Deno.test("isExpandActionable: tâm nút bị iframe phủ (đã mở rộng) → false; còn trống → true; thiếu API đo → true", () => {
+  const rect = { left: 0, top: 0, width: 100, height: 24 };
+  const mk = (hit) => {
+    const el = {
+      getBoundingClientRect: () => rect,
+      contains: (n) => n === "child",
+      ownerDocument: { elementFromPoint: () => hit },
+    };
+    return el;
+  };
+  const self = mk(null);
+  self.ownerDocument.elementFromPoint = () => self;
+  assertEquals(isExpandActionable(self), true);
+  assertEquals(isExpandActionable(mk("child")), true);
+  assertEquals(isExpandActionable(mk({ tagName: "IFRAME" })), false);
+  assertEquals(isExpandActionable({ getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 }) }), false);
+  assertEquals(isExpandActionable({}), true);
+  assertEquals(isExpandActionable(null), false);
+});
+
+Deno.test("activateControl: phát mousedown/mouseup/click lên svg con; phần tử không dispatchEvent thì .click()", () => {
+  globalThis.MouseEvent ??= class {
+    constructor(type, opts = {}) { this.type = type; Object.assign(this, opts); }
+  };
+  const seen = [];
+  const svg = { dispatchEvent: (e) => { seen.push(e.type); return true; } };
+  activateControl({ querySelectorAll: () => [svg], click: () => seen.push("span-click") });
+  assertEquals(seen, ["mousedown", "mouseup", "click"]);
+  let clicks = 0;
+  activateControl({ querySelectorAll: () => [], click: () => clicks++ });
+  assertEquals(clicks, 1);
 });
 
 Deno.test("expand tracker: bấm 1 lần/phiên; người đóng tay thì phiên đó không mở lại; sang phiên mới thì mở", () => {

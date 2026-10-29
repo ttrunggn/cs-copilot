@@ -4,10 +4,12 @@ import { assertEquals } from "jsr:@std/assert@1";
 // THẬT: nạp bundle composer-core + composer như build-extension.mjs, chạy
 // bằng new Function với document/MutationObserver/setInterval giả — test
 // điều khiển từng nhịp tick tay để khẳng định đúng chuỗi bấm/không bấm.
-// Giới hạn: cây DOM là cấu trúc hộp widget suy từ phiên dò Crisp thật
-// 2026-10-27 (iframe + nút chevron "Expand" ở chân hộp); selector/class
-// thật của Crisp không phơi ra được trong phiên dò — lần bấm live đầu
-// tiên mới là phán quyết cuối.
+// Cây DOM theo cấu trúc đã kiểm chứng trên Crisp thật 2026-10-28: hộp
+// widget = iframe + div body chứa span.c-conversation-profile-widget__
+// expand (trong có svg icon). "Đã mở rộng" được giả lập bằng cách gỡ span
+// khỏi cây — tương đương tín hiệu thật (span còn trong DOM nhưng bị
+// iframe phủ, isExpandActionable trả false); FakeEl không có API đo hình
+// học nên isExpandActionable ở đây luôn true khi span còn hiện diện.
 
 class FakeEl {
   constructor(tag, opts = {}, kids = []) {
@@ -33,19 +35,21 @@ class FakeEl {
     return out;
   }
   click() { this.clickCount++; this.onClick?.(this); }
+  dispatchEvent(evt) { if (evt?.type === "click") this.click(); return true; }
 }
 
-/** Trang Crisp giả: sidebar > hộp Copilot (iframe + chân hộp chứa nút Expand). */
+/** Trang Crisp giả theo DOM thật 2026-10-28: hộp Copilot = iframe + div body chứa span Expand > svg icon. */
 function buildPage(session = "session_1") {
   const frame = new FakeEl("iframe", { attrs: { src: `__WIDGET_ORIGIN__/index.html?session_id=${session}&website_id=ws1` } });
-  const expandBtn = new FakeEl("button", { attrs: { title: "Expand" } });
-  const footer = new FakeEl("div", {}, [expandBtn]);
-  const box = new FakeEl("div", {}, [frame, footer]);
+  const expandIcon = new FakeEl("svg", { attrs: { class: "c-base-icon c-conversation-profile-widget__expand-icon" } });
+  const expandSpan = new FakeEl("span", { attrs: { class: "c-conversation-profile-widget__expand u-has-tooltip" } }, [expandIcon]);
+  const body = new FakeEl("div", {}, [expandSpan]);
+  const box = new FakeEl("div", {}, [frame, body]);
   const root = new FakeEl("div", {}, [box]);
   const page = {
-    frame, expandBtn, footer, root,
-    collapse() { if (!footer.children.includes(expandBtn)) footer.append(expandBtn); },
-    expandApplied() { if (footer.children.includes(expandBtn)) footer.remove(expandBtn); },
+    frame, expandSpan, expandIcon, body, root,
+    collapse() { if (!body.children.includes(expandSpan)) body.append(expandSpan); },
+    expandApplied() { if (body.children.includes(expandSpan)) body.remove(expandSpan); },
     switchSession(next) {
       frame.setAttribute("src", `__WIDGET_ORIGIN__/index.html?session_id=${next}&website_id=ws1`);
       page.collapse();
@@ -80,19 +84,19 @@ async function loadExpander(page) {
 Deno.test("expander DOM: tự bấm Expand khi nạp; người đóng tay thì không mở lại; sang chat mới thì mở lại", async () => {
   const page = buildPage("session_1");
   const { tick } = await loadExpander(page);
-  assertEquals(page.expandBtn.clickCount, 1); // autoExpandTick chạy ngay khi nạp
+  assertEquals(page.expandIcon.clickCount, 1); // autoExpandTick chạy ngay khi nạp
 
-  page.expandApplied(); // Crisp mở lớp phủ → nút biến mất
+  page.expandApplied(); // Crisp mở lớp phủ → nút không còn bấm được
   tick(); tick();
-  assertEquals(page.expandBtn.clickCount, 1);
+  assertEquals(page.expandIcon.clickCount, 1);
 
   page.collapse(); // người dùng bấm Close → hộp thu gọn trở lại
   tick(); tick();
-  assertEquals(page.expandBtn.clickCount, 1); // không giành lại
+  assertEquals(page.expandIcon.clickCount, 1); // không giành lại
 
   page.switchSession("session_2"); // chat mới, hộp thu gọn
   tick();
-  assertEquals(page.expandBtn.clickCount, 2); // mở cho chat mới
+  assertEquals(page.expandIcon.clickCount, 2); // mở cho chat mới
 });
 
 Deno.test("expander DOM: iframe của plugin khác → không bấm gì", async () => {
@@ -100,5 +104,5 @@ Deno.test("expander DOM: iframe của plugin khác → không bấm gì", async 
   page.frame.setAttribute("src", "https://plugin-khac.example/widget?session_id=session_1");
   const { tick } = await loadExpander(page);
   tick(); tick();
-  assertEquals(page.expandBtn.clickCount, 0);
+  assertEquals(page.expandIcon.clickCount, 0);
 });

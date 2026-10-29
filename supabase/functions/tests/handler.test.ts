@@ -70,6 +70,8 @@ function deps(over: Partial<Db> = {}, stale = false) {
     mergeConversationCustomData: () => Promise.resolve(true),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
+    appendSentimentHistory: () => Promise.resolve(),
+    getSentimentHistory: () => Promise.resolve([]),
     getStorefrontSeen: () => Promise.resolve([]),
     markStorefrontSeen: () => Promise.resolve(),
     getStorefrontStoreStatus: () => Promise.resolve(null),

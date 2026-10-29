@@ -312,7 +312,7 @@ export const SF_GROUPS = [
  * hội thoại). state.storefront do app.js đổ vào:
  * { status: "loading"|"ok"|"error"|"unconfigured"|"need-shop", store,
  *   scannedAt, isStale, notWatched, error,
- *   new: [{title,meta,fingerprint,kind,locale,page,severity,text,consoleLink}],
+ *   new: [{title,meta,fingerprint,kind,locale,page,severity,text,consoleLink,pageLink}],
  *   acknowledged: [...], inProgress: [...] }.
  * Trong mỗi nhóm, finding trùng căn nguyên (cùng kind+page, khác locale)
  * được gom thành một mục có entries[] giữ từng finding riêng (groupSameRootCause).
@@ -342,6 +342,7 @@ function groupSameRootCause(items) {
       severity: d.severity ?? null,
       text: d.text ?? null,
       consoleLink: d.consoleLink ?? null,
+      pageLink: d.pageLink ?? null,
       title: d.title ?? "",
     };
     const kind = d.kind ?? null;
@@ -376,7 +377,7 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
   const push = (status, d) => buckets[status].push({
     title: d?.title ?? "", meta: d?.meta ?? "", fingerprint: d?.fingerprint ?? null,
     kind: d?.kind ?? null, locale: d?.locale ?? null, page: d?.page ?? null,
-    severity: d?.severity ?? null, text: d?.text ?? null, consoleLink: d?.consoleLink ?? null,
+    severity: d?.severity ?? null, text: d?.text ?? null, consoleLink: d?.consoleLink ?? null, pageLink: d?.pageLink ?? null,
   });
   for (const d of sf.new ?? []) push("new", d);
   for (const d of sf.acknowledged ?? []) push("acknowledged", d);
@@ -398,6 +399,7 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
     shortLabel: SF_SHORT_LABELS[e.kind ?? d.kind ?? d.title] ?? d.title,
     meta: e.meta ?? "",
     consoleLink: e.consoleLink ?? null,
+    pageLink: e.pageLink ?? null,
     fingerprint: e.fingerprint ?? null,
   }))));
   return {

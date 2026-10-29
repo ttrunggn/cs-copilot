@@ -15,7 +15,7 @@ import type { JiraClient } from "../_shared/jira-api.ts";
 import type { JiraStore } from "../jira-sync/handler.ts";
 import type { StorefrontMcp } from "../_shared/storefront.ts";
 import { runStorefront, runStorefrontAct, runStorefrontFinding, SF_NOTE_MAX } from "./storefront-actions.ts";
-import { writeTrace } from "../_shared/trace.ts";
+import { newFlowId, writeTrace } from "../_shared/trace.ts";
 import { runSaveSuggestion, SUGGESTION_TEXT_MAX } from "./suggestions.ts";
 
 export type { AskResult } from "./ask.ts";
@@ -179,6 +179,9 @@ export async function handle(body: unknown, token: string, deps: Deps): Promise<
     website_id: typeof meta.website_id === "string" ? meta.website_id : null,
     session_id: typeof meta.session_id === "string" ? meta.session_id : null,
     action: typeof meta.action === "string" ? meta.action : "unknown",
+    // Khung truy vết (migration 032): một request = một flow_id, cả dòng
+    // timing lẫn dòng error của request này mang cùng mã để truy toàn bộ lượt.
+    flow_id: newFlowId(typeof meta.action === "string" ? meta.action : "unknown"),
   };
   const r = await handleInner(body, token, deps);
   const duration_ms = Math.round(performance.now() - t0);
