@@ -185,6 +185,24 @@ export function isPlausibleShop(v: unknown): v is string {
 //     Store: X
 //     Storefront Watch does not watch this store and has never scanned it.
 //     That means nothing is known about it, not that it has no problems.
+//   find_store (có theo dõi, chưa quét thành công trang nào — mẫu thật
+//   2026-10-28, dev.bouwmaat.nl):
+//     Store: dev.bouwmaat.nl (asked as bouwmaat-dev.myshopify.com)
+//     In the weekly sweep: yes
+//     Languages: de, en, pl, tr · pages: 4
+//     Last good check: none yet
+//     Open problems: unknown, no page has been checked successfully yet
+//     Not checked, so unknown (not clean): 4 page(s)
+//     - de /: the language could not be confirmed (inconclusive)
+//   find_store (domain không tới được, SW không giữ gì — mẫu thật
+//   2026-10-28, 5f5291-40.myshopify.com):
+//     Store: 5f5291-40.myshopify.com
+//     Storefront Watch could not reach 5f5291-40.myshopify.com to find its
+//     main domain (HTTP 404), and holds nothing under that name.
+//   list_findings (chưa quét thành công — mẫu thật 2026-10-28):
+//     Problems on dev.bouwmaat.nl are unknown: no page has been checked
+//     successfully yet.
+//     4 page(s) could not be checked, so this list may be incomplete.
 //   list_findings:
 //     9 open problem(s) on amirobeauty.com, worst first:
 //     1. CRITICAL · Region missing · ja / (1440px)
@@ -215,6 +233,13 @@ function rec(v: unknown): Rec {
 }
 
 const NOT_WATCHED_MARK = "does not watch this store";
+// Mẫu thật 2026-10-28: domain SW không với tới được / không giữ dữ liệu gì —
+// cùng nghĩa "không biết gì" với NOT_WATCHED_MARK nhưng khác câu chữ.
+const UNREACHABLE_MARK = "holds nothing under that name";
+// Mẫu thật 2026-10-28: store ĐƯỢC theo dõi nhưng chưa trang nào quét thành
+// công — xuất hiện ở cả find_store ("Open problems: unknown, …") lẫn
+// list_findings ("Problems on X are unknown: …").
+const UNKNOWN_PROBLEMS_MARK = "no page has been checked successfully yet";
 const SEEN_RE = /^Seen (\d+) time\(s\), first (\d{4}-\d{2}-\d{2}), last (\d{4}-\d{2}-\d{2})$/;
 const FINGERPRINT_RE = /^[0-9a-f]{40}$/;
 
@@ -268,15 +293,24 @@ export function parseStoreText(text: string, shopArg: string): StorefrontStore {
   // live 2026-10-27 trên ca tantaly).
   const shop = storeLine.slice("Store: ".length).trim()
     .replace(/\s*\(asked as [^)]*\)$/, "").trim() || shopArg;
-  if (text.includes(NOT_WATCHED_MARK)) {
+  if (text.includes(NOT_WATCHED_MARK) || text.includes(UNREACHABLE_MARK)) {
     return { watched: false, shop, lastCheckedAt: null, openBySeverity: {}, uncheckedPages: [], languages: [], pagesChecked: null };
   }
   const openLine = lines.find((l) => l.startsWith("Open problems: "));
   if (!openLine) throw new StorefrontError("find_store trả định dạng lạ (thiếu dòng 'Open problems:'), không đọc được");
+  // Store được theo dõi nhưng CHƯA trang nào quét thành công (mẫu thật
+  // 2026-10-28, dev.bouwmaat.nl + united-arrows-global.com): dòng Open
+  // problems ghi "unknown, no page has been checked successfully yet" —
+  // không có số đếm nào để đọc, và đó là SỰ THẬT (chưa biết), không phải
+  // định dạng lạ. Trả counts rỗng; tính "chưa biết" được phân biệt với store
+  // sạch nhờ lastCheckedAt null + uncheckedPages bên dưới.
+  const problemsUnknown = openLine.includes(UNKNOWN_PROBLEMS_MARK);
   const openBySeverity: Record<string, number> = {};
-  for (const m of openLine.matchAll(/(\d+)\s+(critical|high|medium|low)\b/g)) openBySeverity[m[2]] = Number(m[1]);
-  if (!Object.keys(openBySeverity).length) {
-    throw new StorefrontError("find_store trả định dạng lạ (dòng 'Open problems:' không có số đếm), không đọc được");
+  if (!problemsUnknown) {
+    for (const m of openLine.matchAll(/(\d+)\s+(critical|high|medium|low)\b/g)) openBySeverity[m[2]] = Number(m[1]);
+    if (!Object.keys(openBySeverity).length) {
+      throw new StorefrontError("find_store trả định dạng lạ (dòng 'Open problems:' không có số đếm), không đọc được");
+    }
   }
   let languages: string[] = [];
   let pagesChecked: number | null = null;
@@ -289,14 +323,26 @@ export function parseStoreText(text: string, shopArg: string): StorefrontStore {
     if (pm) pagesChecked = Number(pm[1]);
   }
   const checkLine = lines.find((l) => l.startsWith("Last good check: "));
+  const checkRaw = checkLine ? checkLine.slice("Last good check: ".length).trim() : null;
+  // "none yet" = chưa từng có lần quét thành công → null như chưa có mốc
+  // (giữ nguyên văn sẽ làm hỏng cột ngày ở storeStatusFromStore).
+  const lastCheckedAt = checkRaw && checkRaw !== "none yet" ? checkRaw : null;
+  // Khối trang chưa quét được — mẫu thật 2026-10-28: dòng "Not checked, so
+  // unknown (not clean): N page(s)" rồi mỗi trang một dòng "- <nội dung>".
+  const uncheckedPages: string[] = [];
+  const ncIdx = lines.findIndex((l) => l.startsWith("Not checked, so unknown"));
+  if (ncIdx >= 0) {
+    for (const l of lines.slice(ncIdx + 1)) {
+      if (l.startsWith("- ")) uncheckedPages.push(l.slice(2).trim());
+      else if (l.trim()) break;
+    }
+  }
   return {
     watched: true,
     shop,
-    lastCheckedAt: checkLine ? checkLine.slice("Last good check: ".length).trim() : null,
+    lastCheckedAt,
     openBySeverity,
-    // Mẫu thật không liệt kê trang không quét được trong find_store — giữ rỗng
-    // thay vì đoán một dòng chưa từng thấy.
-    uncheckedPages: [],
+    uncheckedPages,
     languages,
     pagesChecked,
   };
@@ -352,6 +398,25 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
  * (domain/locale/page/bề rộng) thì trả null: thà không có link còn hơn gắn
  * link chết cho CS bấm.
  */
+/**
+ * URL TRANG THẬT trên store mà SW quét thấy finding này (Ethan, 2026-10-29):
+ * panel đặt nút "Xem trang lỗi" ngay cạnh từng finding để CS mở tab mới nhìn
+ * tận mắt lỗi trên trang khách đang thấy, tách bạch với link Console (trang
+ * quản trị SW). Cấu từ domain + page (path SW ghi trong finding, vd
+ * "/products/abc"; trang chủ là "/"). Thiếu domain hợp lệ hoặc page không
+ * phải path bắt đầu bằng "/" thì trả null: thà không có nút còn hơn gắn link
+ * chết/đoán mò. Locale KHÔNG chắp vào URL: SW không cho biết store dùng tiền
+ * tố ngôn ngữ kiểu nào (path prefix, subdomain hay query) — đoán sẽ sinh link
+ * sai; trang đích vẫn là đúng trang có lỗi, ở ngôn ngữ mặc định của store.
+ */
+export function storefrontPageUrl(domain: string | null | undefined, f: { page?: string | null }): string | null {
+  const clean = (domain ?? "").trim().replace(/\s*\(asked as [^)]*\)$/, "").trim();
+  if (!clean || /[\s()]/.test(clean)) return null;
+  const page = (f.page ?? "").trim();
+  if (!page.startsWith("/") || /[\s<>"']/.test(page)) return null;
+  return `https://${clean}${page}`;
+}
+
 export function consoleUnitUrl(domain: string | null | undefined, f: { locale?: string | null; page?: string | null; widthPx?: number | null }): string | null {
   // Chốt chặn tại chỗ cấu URL (parseStoreText đã lột ở nguồn): domain còn dính
   // chú thích "(asked as …)" thì lột; vẫn còn khoảng trắng/ngoặc (không thể là
@@ -363,6 +428,12 @@ export function consoleUnitUrl(domain: string | null | undefined, f: { locale?: 
 
 export function parseFindingsText(text: string): StorefrontFinding[] {
   if (text.includes(NOT_WATCHED_MARK)) return [];
+  // Store chưa từng quét thành công trang nào (mẫu thật 2026-10-28): SW trả
+  // "Problems on X are unknown: no page has been checked successfully yet." —
+  // chưa BIẾT lỗi nào, khác "không có lỗi", nhưng với nơi dùng danh sách
+  // finding thì cả hai đều là danh sách rỗng; tính "chưa biết" nằm ở
+  // find_store (lastCheckedAt null + uncheckedPages), không lặp lại ở đây.
+  if (text.includes(UNKNOWN_PROBLEMS_MARK)) return [];
   const lines = textLines(text);
   // Store đang theo dõi nhưng không còn lỗi mở: SW trả một dòng báo trống
   // thay cho khối danh sách — đó là kết quả HỢP LỆ (0 lỗi), không phải lỗi
