@@ -92,6 +92,24 @@ Languages: es, ja, zh · pages: 31
 Last good check: 2026-10-22
 Open problems: 3 critical, 6 high, 0 medium, 0 low`;
 
+// Mẫu thật 2026-10-28 (Sarina gọi find_store trực tiếp): store được theo dõi
+// nhưng chưa trang nào quét thành công.
+const BOUWMAAT_STORE = `Store: dev.bouwmaat.nl (asked as bouwmaat-dev.myshopify.com)
+In the weekly sweep: yes
+Languages: de, en, pl, tr · pages: 4
+Last good check: none yet
+Open problems: unknown, no page has been checked successfully yet
+Not checked, so unknown (not clean): 4 page(s)
+- de /: the language could not be confirmed (inconclusive)
+- pl /: the language could not be confirmed (inconclusive)
+- tr /: the language could not be confirmed (inconclusive)
+- en /: the language could not be confirmed (inconclusive)`;
+
+// Mẫu thật 2026-10-28: domain SW không với tới được, không giữ dữ liệu gì.
+const UNREACHABLE_STORE = `Store: 5f5291-40.myshopify.com
+Storefront Watch could not reach 5f5291-40.myshopify.com to find its main domain (HTTP 404), and holds nothing under that name.
+That means nothing is known about it, not that it has no problems.`;
+
 const AMIRO_LIST = `9 open problem(s) on amirobeauty.com, worst first:
 1. CRITICAL · Region missing · ja / (1440px)
    Seen 2 time(s), first 2026-10-14, last 2026-10-22
@@ -212,6 +230,34 @@ Deno.test("parseStoreText: store không theo dõi → watched=false, không bị
   assertEquals(s.watched, false);
   assertEquals(s.openBySeverity, {});
   assertEquals(s.lastCheckedAt, null);
+});
+
+Deno.test("parseStoreText: có theo dõi nhưng chưa quét thành công trang nào (mẫu thật 2026-10-28) → watched=true, lastCheckedAt null, uncheckedPages đầy đủ", () => {
+  const s = parseStoreText(BOUWMAAT_STORE, "bouwmaat-dev.myshopify.com");
+  assertEquals(s.watched, true);
+  assertEquals(s.shop, "dev.bouwmaat.nl");
+  assertEquals(s.lastCheckedAt, null);
+  assertEquals(s.openBySeverity, {});
+  assertEquals(s.languages, ["de", "en", "pl", "tr"]);
+  assertEquals(s.pagesChecked, 4);
+  assertEquals(s.uncheckedPages.length, 4);
+  assertStringIncludes(s.uncheckedPages[0], "de /");
+  // Snapshot sweep phải nhận null cho cột ngày, không phải chuỗi "none yet".
+  assertEquals(storeStatusFromStore("ws1", "bouwmaat-dev.myshopify.com", s, "2026-10-28T00:00:00Z").last_good_check, null);
+});
+
+Deno.test("parseStoreText: domain SW không tới được / không giữ gì (mẫu thật 2026-10-28) → watched=false", () => {
+  const s = parseStoreText(UNREACHABLE_STORE, "5f5291-40.myshopify.com");
+  assertEquals(s.watched, false);
+  assertEquals(s.lastCheckedAt, null);
+  assertEquals(s.openBySeverity, {});
+});
+
+Deno.test("parseFindingsText: store chưa quét thành công (mẫu thật 2026-10-28) → [] thay vì văng lỗi định dạng", () => {
+  assertEquals(
+    parseFindingsText("Problems on dev.bouwmaat.nl are unknown: no page has been checked successfully yet.\n4 page(s) could not be checked, so this list may be incomplete."),
+    [],
+  );
 });
 
 Deno.test("parseFindingsText: amirobeauty — đủ 9 findings, field trích đúng từng loại dòng", () => {
@@ -843,6 +889,21 @@ Deno.test("consoleUnitUrl: đủ mảnh mới cấu link; thiếu bề rộng/lo
   assertEquals(consoleUnitUrl("www.tantaly.de (asked as tantaly-de.myshopify.com)", { locale: "nl", page: "/products/x", widthPx: 1440 }),
     "https://sw.transcy.io/#/f/www.tantaly.de%7Cnl%7C%2Fproducts%2Fx%7C1440");
   assertEquals(consoleUnitUrl("www.tantaly.de (ghi chú lạ)", { locale: "nl", page: "/products/x", widthPx: 1440 }), null);
+});
+
+Deno.test("storefrontPageUrl: cấu URL trang thật từ domain + page; page lạ/domain bẩn thì null (không gắn link chết)", async () => {
+  const { storefrontPageUrl } = await import("../_shared/storefront.ts");
+  assertEquals(storefrontPageUrl("amirobeauty.com", { page: "/products/amiro-oath-makeup-lighted-mirror" }),
+    "https://amirobeauty.com/products/amiro-oath-makeup-lighted-mirror");
+  assertEquals(storefrontPageUrl("amirobeauty.com", { page: "/" }), "https://amirobeauty.com/");
+  // Domain dính chú thích "(asked as …)" → lột sạch như consoleUnitUrl.
+  assertEquals(storefrontPageUrl("www.tantaly.de (asked as tantaly-de.myshopify.com)", { page: "/products/x" }),
+    "https://www.tantaly.de/products/x");
+  assertEquals(storefrontPageUrl(null, { page: "/products/x" }), null);
+  assertEquals(storefrontPageUrl("shop.com", { page: null }), null);
+  assertEquals(storefrontPageUrl("shop.com", { page: "products/x" }), null); // thiếu "/" đầu — không phải path SW ghi
+  assertEquals(storefrontPageUrl("shop.com", { page: "/products/x y" }), null); // khoảng trắng → không đoán
+  assertEquals(storefrontPageUrl("shop .com", { page: "/" }), null);
 });
 
 // ---------- bản chụp trạng thái store (storeStatusFromStore) ----------
