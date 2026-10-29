@@ -9,6 +9,7 @@ import { createN8n } from "../_shared/n8n.ts";
 import { secretOk } from "../_shared/secret.ts";
 import { storefrontFromEnv } from "../_shared/storefront.ts";
 import { handle } from "./handler.ts";
+import { handleNativeEvent, isNativeEvent } from "./native.ts";
 import { handlePrecompute } from "./precompute.ts";
 import { handleStorefrontSegments } from "./storefront-segments.ts";
 import { handleStorefrontDigest } from "./storefront-digest.ts";
@@ -52,11 +53,29 @@ const jiraStore = createJiraStore(sb);
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return json(405, { error: "Chỉ hỗ trợ POST" });
+  // Đọc RAW body trước: sự kiện Generic Widget cần nguyên văn để verify
+  // chữ ký HMAC (parse rồi stringify lại không đảm bảo khớp byte).
+  const rawBody = await req.text();
   let body: unknown;
   try {
-    body = await req.json();
+    body = JSON.parse(rawBody);
   } catch {
     return json(400, { error: "Body không phải JSON" });
+  }
+  const background = (task: Promise<unknown>) => {
+    const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+    if (rt?.waitUntil) rt.waitUntil(task);
+    else void task;
+  };
+  // Mặt native (Crisp Generic Widget): sự kiện mang action dạng object và
+  // chữ ký X-Crisp-Signature, KHÔNG mang credential nội bộ hay widget
+  // token — phải rẽ nhánh TRƯỚC cả hai cổng auth dưới đây (xem native.ts).
+  if (isNativeEvent(body)) {
+    const r = await handleNativeEvent(body, rawBody, {
+      signature: req.headers.get("x-crisp-signature"),
+      timestamp: req.headers.get("x-crisp-request-timestamp"),
+    }, { db, ai, n8n, background, pluginKey: Deno.env.get("CRISP_PLUGIN_KEY") ?? "" });
+    return json(r.status, r.body);
   }
   // Các route nội bộ (n8n/lập lịch gọi): precompute sentiment ngay sau khi
   // ingest tin khách, job đối chiếu nền Storefront Watch, và job đồng bộ
@@ -81,11 +100,6 @@ Deno.serve(async (req) => {
       : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
-  const background = (task: Promise<unknown>) => {
-    const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
-    if (rt?.waitUntil) rt.waitUntil(task);
-    else void task;
-  };
   const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp });
   return json(r.status, r.body);
 });

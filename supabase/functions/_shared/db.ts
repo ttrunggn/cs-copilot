@@ -116,6 +116,16 @@ export interface Db {
    * trước khi ghi, job đọc lại bản thật từ Crisp API.
    */
   getStorefrontSegmentCandidates(websiteId: string, days: number): Promise<StorefrontSegmentCandidate[]>;
+  /** Resolve operator (crisp_user_id) theo email — dùng cho hook của mặt native Crisp (Generic Widget), nơi Crisp chỉ gắn được email của CS qua data binding, không có crisp_user_id. null = không có operator nào mang email này. */
+  getOperatorIdByEmail(email: string): Promise<string | null>;
+  /**
+   * Lần "xin review" gần nhất của conversation theo bảng outputs (kind
+   * "review"). LƯU Ý: hiện CHƯA có đường nào ghi outputs kind "review" —
+   * xin review là insert-only qua extension (CS tự gửi), server không ghi
+   * nhận. Method này tồn tại để mặt native có nguồn đọc chuẩn; khi nào có
+   * writer ghi kind "review" thì trạng thái tự đúng, không phải sửa reader.
+   */
+  getReviewSend(websiteId: string, sessionId: string): Promise<{ sent_at: string } | null>;
   getCsatSend(websiteId: string, sessionId: string): Promise<{ sent_by: string; sent_at: string } | null>;
   /**
    * Claim quyền gửi CSAT cho conversation: insert ignoreDuplicates trên PK
@@ -459,6 +469,24 @@ export function createDb(sb: SupabaseClient): Db {
       for (const r of recent.data ?? []) add(r as { session_id?: unknown; custom_data?: unknown; segments?: unknown });
       for (const r of tagged.data ?? []) add(r as { session_id?: unknown; custom_data?: unknown; segments?: unknown });
       return [...bySession.values()];
+    },
+    async getOperatorIdByEmail(email) {
+      const { data, error } = await sb.from("operators")
+        .select("crisp_user_id")
+        .eq("email", email)
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0]?.crisp_user_id as string | undefined) ?? null;
+    },
+    async getReviewSend(websiteId, sessionId) {
+      const { data, error } = await sb.from("outputs")
+        .select("created_at")
+        .eq("website_id", websiteId).eq("session_id", sessionId).eq("kind", "review")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      const at = data?.[0]?.created_at as string | undefined;
+      return at ? { sent_at: at } : null;
     },
     async getCsatSend(websiteId, sessionId) {
       const { data, error } = await sb.from("csat_survey_sends")
