@@ -399,7 +399,7 @@ Deno.test("toStorefrontViewModel: results giữ fingerprint từng item để b�
   // fingerprint của finding nằm ở entries[0] để panels bấm mở chi tiết.
   assertEquals(vm.groups[0].items[0], {
     title: "Lỗi 1", meta: "high · de", kind: null, page: null, locales: [], count: 1,
-    entries: [{ fingerprint: fp, locale: null, meta: "high · de", severity: null, text: null, consoleLink: null, title: "Lỗi 1" }],
+    entries: [{ fingerprint: fp, locale: null, meta: "high · de", severity: null, text: null, consoleLink: null, pageLink: null, title: "Lỗi 1" }],
   });
 });
 
