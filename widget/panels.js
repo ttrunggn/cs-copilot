@@ -506,8 +506,8 @@ function sfActForm(row, kind, handlers) {
  * Một dòng bug (Ethan chốt lại 2026-10-26 23:24): pill trạng thái (Mới / Đã
  * xác nhận / Đang xử lý — Đang xử lý = team đã báo khách, server tự phân
  * loại) + nhãn bug ngắn + meta dữ kiện + link ↗ unit sang Console.
- * Từ 2026-10-29 (Ethan): hàng link của finding gồm 3 link THẲNG HÀNG, tên
- * cố định — "Default page" (pageLink: trang ở ngôn ngữ mặc định của store),
+ * Từ 2026-10-29 (Ethan): hàng link của finding gồm 3 link xếp DỌC thành
+ * một cột, tên cố định — "Default page" (pageLink: trang ở ngôn ngữ mặc định của store),
  * "Issue page" (issuePageLink: đúng locale tool quét thấy lỗi; ẩn khi trùng
  * Default page), "Console" (consoleLink sang SW). Server cấu cả ba từ
  * domain + locale + page của finding.
