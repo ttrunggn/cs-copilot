@@ -29,6 +29,18 @@ export interface TraceRow {
   duration_ms?: number | null;
   message?: string | null;
   detail?: Record<string, unknown> | null;
+  /** Mã luồng (migration 032): mọi stage của cùng một lượt vận hành mang cùng flow_id. */
+  flow_id?: string | null;
+}
+
+/** Một lần đo sentiment MỚI được ghi vào sentiment_history (migration 032, append-only). */
+export interface SentimentHistoryRow extends Sentiment {
+  website_id: string;
+  session_id: string;
+  input_fp: string;
+  model: string | null;
+  /** Nguồn kích hoạt lần đo: analyze | precompute | generate | unknown. */
+  source: string;
 }
 
 export interface Db {
@@ -68,6 +80,10 @@ export interface Db {
   /** Gỡ theo dõi một ticket khỏi một chat (active=false đúng dòng website+session+key). true = có dòng bị gỡ. */
   unlinkJira(websiteId: string, sessionId: string, issueKey: string): Promise<boolean>;
   getSentiment(websiteId: string, sessionId: string): Promise<(Sentiment & { input_fp: string }) | null>;
+  /** Ghi 1 dòng lịch sử đo sentiment (migration 032, append-only). Chỉ gọi khi vừa tính MỚI, không gọi ở cache hit. */
+  appendSentimentHistory(row: SentimentHistoryRow): Promise<void>;
+  /** Các lần đo sentiment gần nhất của một conversation, mới nhất trước — dữ kiện trend cho panel gộp. */
+  getSentimentHistory(websiteId: string, sessionId: string, limit: number): Promise<(Sentiment & { input_fp: string; source: string; created_at: string })[]>;
   saveSentiment(row: Sentiment & { website_id: string; session_id: string; input_fp: string; model: string | null }): Promise<void>;
   /** Fingerprint Storefront Watch đã từng hiện trên panel của workspace (mốc chia Mới / Đã xác nhận). */
   getStorefrontSeen(websiteId: string): Promise<string[]>;
@@ -131,6 +147,7 @@ export function createDb(sb: SupabaseClient): Db {
         duration_ms: row.duration_ms ?? null,
         message: row.message ?? null,
         detail: row.detail ?? null,
+        flow_id: row.flow_id ?? null,
       });
       if (error) throw error;
     },
@@ -465,6 +482,31 @@ export function createDb(sb: SupabaseClient): Db {
     async saveSentiment(row) {
       const { error } = await sb.from("conversation_sentiment").upsert({ ...row, updated_at: new Date().toISOString() });
       if (error) throw error;
+    },
+    async appendSentimentHistory(row) {
+      const { error } = await sb.from("sentiment_history").insert({
+        website_id: row.website_id,
+        session_id: row.session_id,
+        input_fp: row.input_fp,
+        score: row.score,
+        mood: row.mood,
+        urgency: row.urgency,
+        confidence: row.confidence,
+        summary: row.summary,
+        signals: row.signals,
+        issues: row.issues,
+        model: row.model,
+        source: row.source,
+      });
+      if (error) throw error;
+    },
+    async getSentimentHistory(websiteId, sessionId, limit) {
+      const { data, error } = await sb.from("sentiment_history")
+        .select("score,mood,urgency,confidence,summary,signals,issues,input_fp,source,created_at")
+        .eq("website_id", websiteId).eq("session_id", sessionId)
+        .order("created_at", { ascending: false }).limit(limit);
+      if (error) throw error;
+      return (data ?? []) as (Sentiment & { input_fp: string; source: string; created_at: string })[];
     },
     async getVariants(task) {
       const { data, error } = await sb.from("prompt_variants").select("prompt_version,template_notes,weight").eq("task", task);
