@@ -192,14 +192,30 @@ export function widgetSessionFromSrc(src) {
 }
 
 /**
- * Nút Expand của hộp widget: leo tổ tiên của iframe, mỗi tầng gom các nút
- * hậu duệ có tên truy cập đúng "expand". Tầng HẸP nhất có ứng viên quyết
- * định: đúng 1 → trả về; nhiều hơn 1 → null (mơ hồ, không bấm đoán);
- * không có → leo tiếp, tối đa maxLevels tầng. Leo dừng ngay khi phạm vi
- * chứa thêm một iframe khác (đã ra khỏi hộp của mình, sang container
- * chung của sidebar) — nút Expand của hộp plugin khác vì thế không lọt.
- * (Dò Crisp thật 2026-10-27: nút chevron ở đáy hộp Copilot CS, tooltip
- * "Expand", tên truy cập "Expand".)
+ * Class của nút Expand trên DOM Crisp THẬT (dò đi dò lại trên trang Crisp
+ * đang chạy, 2026-10-28): nút KHÔNG phải <button> và không mang nhãn chữ
+ * nào — nó là span.c-conversation-profile-widget__expand (trong có svg
+ * .c-conversation-profile-widget__expand-icon), nằm ở chân hộp widget.
+ * Bản 1.2.5 tìm <button> tên "expand" nên không bao giờ thấy nó — đó là
+ * lý do auto-expand chết live dù test giả lập xanh. Giữ nhánh <button>
+ * tên "expand" làm đường dự phòng nếu Crisp đổi lại markup.
+ */
+export const EXPAND_CONTROL_CLASS = "c-conversation-profile-widget__expand";
+
+/** Phần tử có mang class này không (đọc qua getAttribute để đúng cả SVG). */
+export function elHasClass(el, cls) {
+  const raw = el?.getAttribute?.("class") ?? (typeof el?.className === "string" ? el.className : "");
+  return String(raw).split(/\s+/).includes(cls);
+}
+
+/**
+ * Nút Expand của hộp widget: leo tổ tiên của iframe, mỗi tầng gom ứng viên
+ * trong phạm vi đó (ưu tiên span Expand theo class Crisp, rồi <button> tên
+ * "expand"). Tầng HẸP nhất có ứng viên quyết định: đúng 1 → trả về; nhiều
+ * hơn 1 → null (mơ hồ, không bấm đoán); không có → leo tiếp, tối đa
+ * maxLevels tầng. Leo dừng ngay khi phạm vi chứa thêm một iframe khác (đã
+ * ra khỏi hộp của mình, sang container chung của sidebar) — nút Expand của
+ * hộp plugin khác vì thế không lọt.
  */
 export function findExpandButton(iframe, maxLevels = 8) {
   let scope = iframe ?? null;
@@ -211,6 +227,10 @@ export function findExpandButton(iframe, maxLevels = 8) {
     const frames = [...(scope.querySelectorAll?.("iframe") ?? [])]
       .filter((el) => String(el?.tagName ?? "").toUpperCase() === "IFRAME");
     if (frames.length > 1) return null;
+    const spans = [...(scope.querySelectorAll?.("span") ?? [])]
+      .filter((el) => String(el?.tagName ?? "").toUpperCase() === "SPAN" && elHasClass(el, EXPAND_CONTROL_CLASS));
+    if (spans.length === 1) return spans[0];
+    if (spans.length > 1) return null;
     const buttons = [...(scope.querySelectorAll?.("button") ?? [])]
       .filter((el) => String(el?.tagName ?? "").toUpperCase() === "BUTTON" && accessibleName(el) === "expand");
     if (buttons.length === 1) return buttons[0];
@@ -220,14 +240,64 @@ export function findExpandButton(iframe, maxLevels = 8) {
 }
 
 /**
- * Máy trạng thái tự mở rộng, theo từng phiên chat:
- * - Thấy nút Expand ở phiên chưa từng bấm → bấm (observe trả true).
- * - Sau khi bấm, nút biến mất (lớp phủ đã mở) từ 2 lần quan sát liên tiếp
- *   → coi như ĐÃ MỞ. Lớp phủ mang sang từ phiên trước cũng vào trạng
- *   thái này (vào phiên mới mà 2 lần liền không thấy nút dù iframe đã có).
- * - ĐÃ MỞ mà nút xuất hiện lại = người dùng vừa bấm Close → phiên đó
+ * Nút Expand có THẬT SỰ bấm được lúc này không. Đo live cả hai trạng thái
+ * (2026-10-28): khi hộp mở rộng, span và icon KHÔNG đổi class, KHÔNG đổi
+ * vị trí — khác biệt duy nhất là iframe của widget phủ lên đúng tâm icon,
+ * nên elementFromPoint tại tâm nút trả iframe thay vì svg. Còn bấm được =
+ * rect có kích thước và phần tử trên cùng tại tâm nút là chính nút hoặc
+ * con của nó. Thiếu API đo (môi trường test) thì coi như bấm được.
+ */
+export function isExpandActionable(el) {
+  if (!el) return false;
+  const rect = typeof el.getBoundingClientRect === "function" ? el.getBoundingClientRect() : null;
+  if (!rect) return true;
+  if (rect.width <= 0 || rect.height <= 0) return false;
+  const doc = el.ownerDocument ?? (typeof document !== "undefined" ? document : null);
+  if (!doc || typeof doc.elementFromPoint !== "function") return true;
+  const hit = doc.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+  if (!hit) return true;
+  return hit === el || (typeof el.contains === "function" && el.contains(hit));
+}
+
+/**
+ * Bấm nút Expand: phát chuỗi mousedown/mouseup/click nổi bọt từ phần tử
+ * sâu nhất (svg icon trong span) — đúng cách lần bấm qua console đã mở
+ * được hộp trên Crisp thật 2026-10-28. Môi trường không có MouseEvent
+ * hoặc không dispatchEvent được thì rơi xuống .click().
+ */
+export function activateControl(el) {
+  if (!el) return;
+  const target = [...(el.querySelectorAll?.("svg") ?? [])][0] ?? el;
+  try {
+    if (typeof target.dispatchEvent === "function" && typeof MouseEvent !== "undefined") {
+      const rect = typeof target.getBoundingClientRect === "function" ? target.getBoundingClientRect() : null;
+      const opts = {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect ? rect.left + rect.width / 2 : 0,
+        clientY: rect ? rect.top + rect.height / 2 : 0,
+      };
+      target.dispatchEvent(new MouseEvent("mousedown", opts));
+      target.dispatchEvent(new MouseEvent("mouseup", opts));
+      target.dispatchEvent(new MouseEvent("click", opts));
+      return;
+    }
+  } catch { /* rơi xuống .click() bên dưới */ }
+  target.click?.();
+}
+
+/**
+ * Máy trạng thái tự mở rộng, theo từng phiên chat. "Thấy nút" ở đây là
+ * nút còn BẤM ĐƯỢC (isExpandActionable): trên Crisp thật nút không biến
+ * mất khi hộp mở mà bị iframe phủ lên, nên tín hiệu mở/đóng là tính bấm
+ * được chứ không phải sự tồn tại trong DOM.
+ * - Thấy nút bấm được ở phiên chưa từng bấm → bấm (observe trả true).
+ * - Sau khi bấm, nút không còn bấm được (lớp phủ đã mở) từ 2 lần quan sát
+ *   liên tiếp → coi như ĐÃ MỞ. Lớp phủ mang sang từ phiên trước cũng vào
+ *   trạng thái này (vào phiên mới mà 2 lần liền nút không bấm được).
+ * - ĐÃ MỞ mà nút bấm được trở lại = người dùng vừa bấm Close → phiên đó
  *   không bao giờ tự mở lại nữa (không giành nhau với người dùng).
- * - Bấm xong mà nút vẫn còn nguyên sau 6 lần quan sát (lần bấm trượt)
+ * - Bấm xong mà nút vẫn bấm được sau 6 lần quan sát (lần bấm trượt)
  *   → cho bấm lại.
  */
 export function createExpandTracker() {
