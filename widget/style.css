@@ -494,8 +494,9 @@ button.sf-row { cursor: pointer; }
 .sf-line .sf-links { margin-left: auto; flex: none; display: flex; gap: 6px; align-items: center; }
 .sf-line .sf-links .sf-bug-link { margin-left: 0; }
 .sf-page-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-/* Hàng 3 link của finding (Default page / Issue page / Console — Ethan 2026-10-29): cùng một cỡ chữ + không xuống dòng để thẳng hàng với nhau. */
-.sf-line .sf-links .sf-bug-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+/* Hàng 3 link của finding (Default page / Issue page / Console — Ethan 2026-10-29): xếp DỌC thành một cột bên phải dòng, cùng cỡ chữ, canh giữa cho thẳng cột. */
+.sf-line .sf-links { flex-direction: column; align-items: stretch; gap: 4px; }
+.sf-line .sf-links .sf-bug-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: center; }
 /* Đầu thẻ Storefront cho rớt dòng: ở khung Crisp hẹp (~260px) nút Mở
    Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
    live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */
