@@ -124,6 +124,8 @@ export function makeDeps(opts: {
     getStorefrontSegmentCandidates: () => Promise.resolve([]),
     getSentiment: () => Promise.resolve(null),
     saveSentiment: () => Promise.resolve(),
+    appendSentimentHistory: () => Promise.resolve(),
+    getSentimentHistory: () => Promise.resolve([]),
     getCsatSend: () => Promise.resolve(null),
     recordCsatSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }),
     releaseCsatSend: () => Promise.resolve(),
