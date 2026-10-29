@@ -160,3 +160,30 @@ baseline advances only after a successful send.
 - The merged "Support Operation" panel (hybrid native Crisp UI) is designed
   and briefed separately; this repo's widget remains the fallback until the
   merged panel ships.
+
+## 9. Native face (Crisp Generic Widget) — added 2026-10-29
+
+The copilot plugin now also carries a native Generic Widget face
+("Support Operation") alongside the iframe panel, because Generic Widget
+sections are deployed (expanded) by default when a conversation opens.
+It is deliberately thin: data items display state, buttons open the
+existing iframe widget in a modal deep-linked via `?open=<view>`, and one
+hook (CSAT) sends server-side. All heavy UI stays in the iframe widget.
+
+- Schema: `widget/native-panel.json` (3 sections: Khách / Trạng thái /
+  Action; no Chatbot section in this phase). Setup steps, the exact action
+  URL, and the color-enum mapping live in `docs/native-panel.md`.
+- Server: `supabase/functions/copilot/native.ts`, routed inside the
+  `copilot` function BEFORE both auth gates (widget events carry
+  `X-Crisp-Signature`, not internal credentials). Data fetches are DB-only
+  reads; the CSAT hook reuses `runSurvey` unchanged (same atomic claim +
+  30s anti-double window). Every event writes `trace_log` rows
+  (actions `native_fetch` / `native_hook`, flow ids `native-<item_id>-…`).
+- Widget: `?open=` deep-link support in `widget/app.js` / `core.js`
+  (`parseOpenParam`, `openModalName`); review maps to the existing `csat`
+  modal, storefront/jira scroll to their inline cards.
+- Unverified until first live use (see docs/native-panel.md): the exact
+  HMAC composition Crisp uses for widget signatures and whether Crisp
+  signs every widget event — the verifier therefore accepts unsigned
+  events and trace-flags them, but rejects present-but-invalid
+  signatures with 401.

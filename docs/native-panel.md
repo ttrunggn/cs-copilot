@@ -1,0 +1,111 @@
+# Mặt native "Support Operation" — Crisp Generic Widget trên plugin Copilot CS
+
+Tài liệu vận hành cho mặt native: nó là gì, Ethan cần cấu hình gì trên
+Crisp, và những điểm nào CHƯA được kiểm chứng trên Crisp thật.
+
+## Vì sao có mặt này
+
+Panel iframe hiện tại bị Crisp thu nhỏ khi mở conversation (CS phải bấm
+expand). Section của Generic Widget thì được Crisp **deploy (xổ) mặc
+định** — đó là lý do duy nhất và là lý do chính đáng: mặt native thay
+mặt iframe ở vị trí sidebar, còn mọi UI nặng (soạn draft, note, hỏi KB,
+Storefront, Jira) vẫn là widget iframe hiện tại, mở dạng **modal** từ
+các nút của mặt native qua deep-link `?open=<view>`.
+
+Mặt native gồm 3 section (bản thiết kế Ethan duyệt 29/10; section
+Chatbot KHÔNG có trong đợt này — thuộc đợt mapping sang panel chatbot
+sau):
+
+- **Khách**: Tâm trạng · Tóm tắt · Vấn đề · Tin đang chờ (data items,
+  fetch khi mở conversation).
+- **Trạng thái**: CSAT survey · Review · Storefront Watch · Jira (data
+  items).
+- **Action**: Soạn draft · Private note · Hỏi KB · Xin review ·
+  Storefront Watch · Jira (nút modal mở widget iframe) + **Gửi CSAT
+  survey** (nút hook — bấm là gửi ngay phía server, đúng hành vi nút
+  survey trên panel hiện tại).
+
+## Việc Ethan cần làm trên Crisp (một lần)
+
+1. Vào **Crisp Marketplace → plugin Copilot CS → Settings** (nơi cấu
+   hình plugin), thêm một **Generic Widget** vào plugin.
+2. Dán toàn bộ nội dung file `widget/native-panel.json` vào ô schema
+   của Generic Widget đó.
+3. Đặt **Action URL** của widget về đúng URL function copilot hiện tại:
+
+   `https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot`
+
+   (Cùng một URL mà n8n/panel đang gọi — server tự nhận diện sự kiện
+   Generic Widget qua trường `action` dạng object và rẽ nhánh trước cả
+   hai cổng auth; không cần function mới, không cần secret mới.)
+4. Lưu và mở thử một conversation: 3 section phải xổ sẵn, các data item
+   tự nạp sau khi mở.
+
+Không cần đổi gì ở extension, Netlify hay n8n. Widget iframe cũ vẫn
+chạy song song (nó là nội dung của các modal).
+
+## Ánh xạ màu nút (enum của Crisp chỉ có 6 màu)
+
+Crisp chỉ cho `color` thuộc: black, blue, green, orange, red, purple.
+Ánh xạ từ bản thiết kế (màu tự do trên mock) sang enum:
+
+| Nút | Màu thiết kế | Màu Crisp |
+| --- | --- | --- |
+| Soạn draft | xanh dương | blue |
+| Private note | vàng/cam | orange |
+| Hỏi KB | teal | black (teal không có trong enum) |
+| Gửi CSAT survey | xanh dương | blue |
+| Xin review | tím | purple |
+| Storefront Watch | cam | orange |
+| Jira | xám/trung tính | black |
+
+Data item không mang màu trong schema này (chỉ nút mới có `color`).
+
+## Hành vi phía server (đã có test khoá)
+
+- **Data fetch**: chỉ đọc DB (conversation_sentiment, messages,
+  csat_survey_sends, outputs, jira_links, bản chụp
+  storefront_store_status) — không gọi AI đồng bộ. Sentiment thiếu/cũ
+  thì fetch vẫn trả bản đang lưu (hoặc "Chưa phân tích") và kích
+  analyze chạy nền đúng đường compute-on-view của panel.
+- **Hook CSAT**: dùng lại nguyên `runSurvey` — cùng claim nguyên tử,
+  cùng cửa sổ chống bấm đúp 30 giây, nút không bị khoá quá cửa sổ đó.
+  Operator được resolve từ `payload.data.operator_email` (item gắn
+  `{operator.email}` qua data binding) → `operators.email` →
+  `crisp_user_id`, và phải thuộc workspace mới gửi.
+- **Mọi sự kiện** đều ghi `trace_log` (action `native_fetch` /
+  `native_hook`, flow_id dạng `native-<item_id>-…`).
+- Lỗi nghiệp vụ luôn trả **200** (kèm trace) để Crisp không retry nhân
+  đôi hành động; ngoại lệ duy nhất là chữ ký sai → **401**.
+
+## Các điểm CHƯA kiểm chứng (đọc trước khi tin là xong)
+
+1. **Cách Crisp ghép chuỗi ký HMAC cho sự kiện widget.** Code hiện ký
+   kiểm theo `HMAC-SHA256(secret, "<timestamp>.<rawBody>")` với secret
+   là env `CRISP_PLUGIN_KEY`, mô phỏng semantics của crisp-api.
+   Tài liệu công khai không mô tả byte-exact cho Generic Widget. Nếu
+   Crisp ký khác cách ghép này, sự kiện CÓ chữ ký sẽ bị 401 — dấu hiệu
+   nhận biết: trace_log có dòng error stage `signature` ngay khi mở
+   conversation. Khi đó đối chiếu lại cách ghép, đừng tắt verify.
+2. **Crisp có ký mọi sự kiện widget hay không** — chưa rõ. Chính sách
+   hiện tại: header chữ ký VẮNG → vẫn chấp nhận và ghi trace cờ
+   `unsigned: true`; header CÓ mà sai → 401. Nếu env thiếu
+   `CRISP_PLUGIN_KEY`, trace mang cờ `signature_unconfigured: true`.
+3. **Data item KHÔNG có hậu tố "· N mới" cho Storefront.** Bản thiết kế
+   ghi "3 lỗi · 2 mới", nhưng số finding MỚI chỉ tính được từ
+   list_findings trực tiếp + tập fingerprint đã thấy; fetch native chủ
+   đích chỉ đọc DB nên item hiện `{tổng} lỗi` / `Không có lỗi` /
+   `Không áp dụng` từ bản chụp sweep (cùng nguồn badge của panel).
+4. **Trạng thái Review** đọc từ `outputs` kind `review` — hiện CHƯA có
+   đường nào ghi kind đó (xin review là insert-only qua extension, CS
+   tự gửi), nên item sẽ hiện "Chưa xin" cho tới khi có writer ghi nhận.
+   Reader đã sẵn (`Db.getReviewSend`); thiếu writer là việc riêng.
+5. **Nhãn mood rút gọn**: "Đang bực" thay cho nhãn đầy đủ "Đang bực /
+   chưa hài lòng" của panel — theo đúng chữ bản thiết kế mặt native
+   Ethan duyệt (chỗ hiển thị native hẹp).
+6. Modal của Generic Widget nhận `website_id`/`token`/`session_id` qua
+   query params do Crisp gắn (theo tài liệu) — widget hiện tại đọc ngữ
+   cảnh từ đúng các param này (`readContext`), nhưng hành vi thật của
+   modal trong workspace Transcy cần một lần mở thử để xác nhận, đặc
+   biệt là việc SDK Crisp trong iframe modal có acquire được operator
+   hay không (nút điền vào ô soạn vẫn cần extension như thường lệ).
