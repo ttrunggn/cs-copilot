@@ -47,6 +47,7 @@ export const state = {
   sfNoteInput: "", // ghi chú CS đang gõ trong form Fix/Dismiss (giữ qua các lần render)
   sfReason: "", // lý do Dismiss đang chọn: "" | false_signal | not_important
   sfClosed: {}, // finding CS vừa đóng ngay trong phiên panel này (server chưa nạp lại): fingerprint -> { via: "fixed" | "dismiss", note }
+  sfTab: "", // tab đang xem trong thẻ Storefront: "" (tự chọn theo dữ kiện) | "open" | "closed"
   sfActBusy: "", // fingerprint đang chờ server ghi thao tác; "" = rảnh
   sfMsg: "", // dòng trạng thái một câu sau thao tác Storefront gần nhất
   explainText: "", // đoạn mẫu giải thích finding đang mở trong popup Mẫu giải thích (explanationTemplate dựng sẵn)
@@ -115,6 +116,7 @@ export function resetSessionScopedState(target) {
   target.sfNoteInput = "";
   target.sfReason = "";
   target.sfClosed = {};
+  target.sfTab = "";
   target.sfActBusy = "";
   target.sfMsg = "";
   target.explainText = "";

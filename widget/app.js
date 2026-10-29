@@ -402,7 +402,8 @@ async function maybeAutoRefreshSentiment(sessionId) {
     if (state.check) state.check.sentiment_stale = false;
   } catch {
     // Lỗi thì giữ bản phân tích cũ đang hiện — im lặng, không báo lỗi chen
-    // ngang; nút "Phân tích lại" thủ công vẫn còn đó cho CS.
+    // ngang; sentiment tự tính lại ở lần mở chat kế tiếp (compute-on-view),
+    // panel không còn nút phân tích thủ công (Ethan bỏ 2026-10-29).
   }
   state.sentimentRefreshing = false;
   render();

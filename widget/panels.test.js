@@ -63,7 +63,7 @@ function reset() {
     askQuestion: "", askResult: null, hint: "", tone: "default", csatChoice: "",
     reviewText: "", reviewInsertId: "", composeOpen: true, notice: "", noticeKind: "",
     explainText: "", explainFinding: null, explainInsertId: "",
-    sfMenu: "", sfForm: null, sfNoteInput: "", sfReason: "", sfClosed: {}, sfActBusy: "", sfMsg: "",
+    sfMenu: "", sfForm: null, sfNoteInput: "", sfReason: "", sfClosed: {}, sfActBusy: "", sfMsg: "", sfTab: "",
     operatorName: "",
   });
 }
@@ -181,17 +181,12 @@ Deno.test("panels: popup Private note chưa có note → nút Viết private not
 });
 
 // ---------- sentiment / issues ----------
-Deno.test("panels: insightPanel chưa có sentiment → trạng thái rỗng + nút Phân tích gọi onAnalyze(true); đang bận thì khoá", () => {
+Deno.test("panels: insightPanel chưa có sentiment → chỉ hiện dòng trạng thái, KHÔNG còn nút Phân tích/Phân tích lại (Ethan bỏ 2026-10-29 — sentiment tự cập nhật qua đường nền)", () => {
   reset();
-  const calls = [];
-  const p = insightPanel(makeHandlers(calls));
+  const p = insightPanel(makeHandlers());
   assertEquals(allText(p).includes("Chưa có dữ liệu phân tích"), true);
-  const btn = buttonByText(p, "Phân tích");
-  assertEquals(btn.disabled, false);
-  btn.onclick();
-  assertEquals(calls, [["analyze", true]]);
-  state.busyAction = "ask";
-  assertEquals(buttonByText(insightPanel(makeHandlers()), "Phân tích").disabled, true);
+  assertEquals(buttons(p).length, 0);
+  assertEquals(buttonByText(p, "Phân tích"), undefined);
 });
 
 Deno.test("panels: insightPanel đang tự làm tươi (compute-on-view) → hiện dòng 'Đang cập nhật phân tích theo tin mới nhất…'", () => {
@@ -213,7 +208,23 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   assertEquals(t.includes("Mức khẩn cấp cao"), true);
   assertEquals(t.includes("tin của khách"), false); // hết dòng giải thích nguồn số liệu (Ethan bỏ 2026-10-26)
   assertEquals(t.includes("Chờ 3 ngày"), true);
-  assertEquals(Boolean(buttonByText(p, "Phân tích lại")), true);
+  assertEquals(buttonByText(p, "Phân tích lại"), undefined); // nút phân tích thủ công đã bỏ (v9)
+  // Điểm 18 nằm ở dải đỏ: nhãn mood + số điểm mang class band-red, hộp khẩn cũng đỏ.
+  assertEquals(walk(p).some((n) => (n.className ?? "").includes("band-red")), true);
+  assertEquals(walk(p).some((n) => (n.className ?? "").includes("urgent")), true);
+});
+
+Deno.test("panels: insightPanel màu theo DẢI ĐIỂM — 18 đỏ, 38 cam, 50 mặc định, 68 xanh dương, 88 xanh lá (v9)", () => {
+  reset();
+  const cases = [[18, "band-red"], [38, "band-orange"], [50, "band-default"], [68, "band-blue"], [88, "band-green"]];
+  for (const [score, cls] of cases) {
+    state.sentiment = { mood: "neutral", score, urgency: "low", summary: "", signals: [], confidence: 0.9 };
+    const p = insightPanel(makeHandlers());
+    const label = walk(p).find((n) => (n.className ?? "").includes("mood-label"));
+    const num = walk(p).find((n) => (n.className ?? "").includes("score-num"));
+    assertEquals((label.className ?? "").includes(cls), true, `score ${score}`);
+    assertEquals((num.className ?? "").includes(cls), true, `score ${score}`);
+  }
 });
 
 Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); không còn khối tin khách nguyên văn trên panel (Ethan bỏ 2026-10-26 — đọc ngay trong chat, chừa chỗ cho Jira/Storefront); không issue thì ẩn module", () => {
@@ -239,14 +250,14 @@ const JIRA_ITEM = {
   has_update: true, status_changed: false, prev_status: null, awaiting_report: true, new_comments: [],
   recent_comments: [{ author: "Đình Lương", role: "tech", body: "Đã fix, chờ deploy.", created_at: "2026-10-20T09:00:00Z" }],
 };
-Deno.test("panels: jiraPanel ẩn khi module tắt; module bật mà chưa có ticket → card trống 'Không có ticket Jira.'", () => {
+Deno.test("panels: jiraPanel ẩn khi module tắt; module bật mà chưa có ticket → card trống ghi rõ 'Không có ticket'", () => {
   reset();
   state.check = { modules: { jira: false, storefront: false }, jira: [JIRA_ITEM] };
   assertEquals(jiraPanel(makeHandlers()), null);
   state.check = { modules: { jira: true, storefront: false }, jira: [] };
   const p = jiraPanel(makeHandlers());
   assertEquals(p === null, false);
-  assertEquals(allText(p).includes("Không có ticket Jira."), true);
+  assertEquals(allText(p).includes("Không có ticket"), true);
 });
 
 Deno.test("panels: jiraPanel hiện badge Cập nhật mới + Chờ báo khách, nút Sync gọi onJiraSync, gỡ liên kết 2 bước", () => {
@@ -433,7 +444,7 @@ Deno.test("panels: storefront form Dismiss — cần cả lý do lẫn ghi chú 
   assertEquals(buttonByText(p, "Xác nhận Dismiss").disabled, false);
 });
 
-Deno.test("panels: storefront finding vừa đóng — hiện pill Đã đóng + ghi chú kèm tên CS + nút Mở lại; đầu thẻ trừ số đã đóng", () => {
+Deno.test("panels: storefront finding vừa đóng — nằm ở tab Đã đóng: pill Đã đóng + ghi chú kèm tên CS + nút Mở lại; đầu thẻ trừ số đã đóng", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.operatorName = "Ethan Nguyen";
@@ -443,12 +454,48 @@ Deno.test("panels: storefront finding vừa đóng — hiện pill Đã đóng +
   const fp = "a".repeat(40);
   state.sfClosed = { [fp]: { via: "fixed", note: "Đã sửa trong theme" } };
   const calls = [];
-  const p = storefrontPanel(makeHandlers(calls));
-  const t = allText(p);
+  const h = makeHandlers(calls);
+  let p = storefrontPanel(h);
+  let t = allText(p);
   assertEquals(t.includes("1 lỗi đã xác nhận"), true); // tổng 2, đã đóng 1
+  assertEquals(t.includes("Đang mở · 1") && t.includes("Đã đóng · 1"), true); // hai tab kèm số
+  assertEquals(t.includes("Đã sửa trong theme"), false); // finding đã đóng chưa hiện ở tab Đang mở
+  buttonByText(p, "Đã đóng · 1").onclick();
+  assertEquals(state.sfTab, "closed");
+  p = storefrontPanel(h);
+  t = allText(p);
   assertEquals(t.includes("Đã đóng") && t.includes("Fix · Ethan Nguyen: “Đã sửa trong theme”"), true);
   buttonByText(p, "Mở lại").onclick();
-  assertEquals(calls, [["sfAct", fp, "undo"]]);
+  assertEquals(calls.filter((c) => c[0] === "sfAct"), [["sfAct", fp, "undo"]]);
+});
+
+Deno.test("panels: storefront tab — mặc định Đang mở; bấm tab Đã đóng khi chưa đóng lỗi nào thì hiện dòng trống", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.storefront = SF_ONE();
+  const h = makeHandlers([]);
+  let p = storefrontPanel(h);
+  let t = allText(p);
+  assertEquals(t.includes("Đang mở · 1") && t.includes("Đã đóng · 0"), true);
+  assertEquals(t.includes("Mất hình ảnh"), true); // finding đang mở hiện sẵn
+  buttonByText(p, "Đã đóng · 0").onclick();
+  assertEquals(state.sfTab, "closed");
+  p = storefrontPanel(h);
+  assertEquals(allText(p).includes("Chưa có lỗi nào được đóng."), true);
+});
+
+Deno.test("panels: storefront tab — đóng hết lỗi đang mở thì mặc định mở sẵn tab Đã đóng", () => {
+  reset();
+  state.check = { modules: { jira: false, storefront: true } };
+  state.operatorName = "Ethan Nguyen";
+  state.storefront = SF_ONE();
+  const fp = "a".repeat(40);
+  state.sfClosed = { [fp]: { via: "dismiss", note: "Trang vẫn ổn" } };
+  const p = storefrontPanel(makeHandlers([]));
+  const t = allText(p);
+  assertEquals(t.includes("Đang mở · 0") && t.includes("Đã đóng · 1"), true);
+  assertEquals(t.includes("Dismiss · Ethan Nguyen: “Trang vẫn ổn”"), true); // hiện ngay, không cần bấm tab
+  assertEquals(Boolean(buttonByText(p, "Mở lại")), true);
 });
 
 Deno.test("panels: storefrontPanel list — finding gom trùng căn nguyên vẫn hiện ĐỦ từng finding (3 finding = 3 dòng, 3 link riêng)", () => {

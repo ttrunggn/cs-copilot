@@ -19,4 +19,5 @@ Deno.test("state khởi tạo: không bận, không tiến trình, không popup,
   assertEquals(state.unlinkConfirm, "");
   assertEquals(state.storefront, null);
   assertEquals(state.storefrontDetailLoading, "");
+  assertEquals(state.sfTab, "");
 });
