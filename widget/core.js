@@ -367,6 +367,7 @@ function groupSameRootCause(items) {
       text: d.text ?? null,
       consoleLink: d.consoleLink ?? null,
       pageLink: d.pageLink ?? null,
+      issuePageLink: d.issuePageLink ?? null,
       title: d.title ?? "",
     };
     const kind = d.kind ?? null;
@@ -401,7 +402,7 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
   const push = (status, d) => buckets[status].push({
     title: d?.title ?? "", meta: d?.meta ?? "", fingerprint: d?.fingerprint ?? null,
     kind: d?.kind ?? null, locale: d?.locale ?? null, page: d?.page ?? null,
-    severity: d?.severity ?? null, text: d?.text ?? null, consoleLink: d?.consoleLink ?? null, pageLink: d?.pageLink ?? null,
+    severity: d?.severity ?? null, text: d?.text ?? null, consoleLink: d?.consoleLink ?? null, pageLink: d?.pageLink ?? null, issuePageLink: d?.issuePageLink ?? null,
   });
   for (const d of sf.new ?? []) push("new", d);
   for (const d of sf.acknowledged ?? []) push("acknowledged", d);
@@ -424,6 +425,7 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
     meta: e.meta ?? "",
     consoleLink: e.consoleLink ?? null,
     pageLink: e.pageLink ?? null,
+    issuePageLink: e.issuePageLink ?? null,
     fingerprint: e.fingerprint ?? null,
   }))));
   return {
