@@ -30,6 +30,13 @@
   --csat: #e8334f;
   --highlight-bg: #f2b84b;
   --highlight-text: #2a1a00;
+  /* Dải màu theo điểm sentiment + màu nút theo ngữ cảnh (bản Support
+     Operation v9, Ethan chốt 2026-10-29): điểm ≤25 đỏ, 26–42 cam, 43–57
+     mặc định, 58–74 xanh dương, 75+ xanh lá; "Khẩn: cao" đỏ. */
+  --band-red: #ff8580;
+  --band-orange: #ffab5e;
+  --band-blue: #6db3f7;
+  --band-green: #4ed07f;
   /* Private note: vàng hổ phách pha loãng (Ethan chốt lại 2026-10-23 — vàng là
      màu nhận diện private note như trong Crisp; chỉ bỏ khoá, không bỏ vàng). */
   --note-bg: rgba(242, 184, 75, .10);
@@ -86,18 +93,18 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 main { display: grid; align-content: start; gap: 12px; padding: 16px; }
 h1, h2, h3, p { margin: 0; }
-h1 { font-size: 20px; line-height: 1.2; letter-spacing: -.02em; }
-h2 { font-size: 17px; line-height: 1.25; letter-spacing: -.015em; }
-h3 { font-size: 14px; }
+h1 { font-size: 21px; line-height: 1.2; letter-spacing: -.02em; font-weight: 800; }
+h2 { font-size: 18px; line-height: 1.25; letter-spacing: -.015em; font-weight: 800; }
+h3 { font-size: 15px; }
 a { color: var(--link); }
 .muted, .subtitle, .hint { color: var(--muted); }
-.subtitle { margin-top: 4px; font-size: 13px; }
+.subtitle { margin-top: 4px; font-size: 14px; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
-.inbox-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.inbox-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); }
 .inbox-header > div { min-width: 0; }
 .refresh-button { flex: none; width: 38px; min-height: 38px; padding: 0; border: 1px solid var(--btn-border); border-radius: 9px; background: var(--btn); color: var(--muted); font-size: 21px; line-height: 1; }
 .refresh-button:hover:not(:disabled) { color: var(--fg); }
@@ -120,7 +127,7 @@ a { color: var(--link); }
 /* Hệ nút mềm (Ethan 2026-10-26: bản cũ "nhìn robot quá"): bo tròn lớn hơn,
    viền pha trong suốt cho dịu, đổ bóng nhẹ, hover nhấc lên thay vì đổi màu
    gắt. Nút chính dùng gradient + bóng màu theo accent, hết cảnh phẳng lì. */
-button { min-height: 44px; border: 1px solid var(--btn-border); border-radius: 12px; padding: 9px 14px; background: var(--btn); color: var(--fg); font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: background .18s ease, border-color .18s ease, transform .18s ease, filter .18s ease, box-shadow .18s ease; }
+button { min-height: 44px; border: 1px solid var(--btn-border); border-radius: 12px; padding: 9px 14px; background: var(--btn); color: var(--fg); font: inherit; font-weight: 700; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: background .18s ease, border-color .18s ease, transform .18s ease, filter .18s ease, box-shadow .18s ease; }
 button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--btn-border) 80%, #ffffff 20%); background: color-mix(in srgb, var(--btn) 82%, #ffffff 12%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .30); }
 button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
 button:disabled { opacity: .55; cursor: default; }
@@ -134,14 +141,23 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
    nhìn như chưa đổi màu (Ethan test live 2026-10-26 trên nút "Soạn lại"). */
 .button-secondary { background: var(--btn); }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
+/* Nút màu theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông màu —
+   Draft/CSAT xanh dương, Private note hổ phách, Hỏi KB ngọc, Review tím;
+   ghost là bản nhạt cho thao tác phụ (Sync Jira xanh, Gỡ Jira đỏ). */
+.act-blue { border-color: #2f6db3; background: rgba(47, 109, 179, .18); color: var(--band-blue); }
+.act-amber { border-color: #9a7420; background: rgba(154, 116, 32, .18); color: #f5b942; }
+.act-teal { border-color: #247a72; background: rgba(36, 122, 114, .18); color: #4fd1c5; }
+.act-violet { border-color: #6a4fb0; background: rgba(106, 79, 176, .20); color: #b79df7; }
+.ghost-blue { border-color: #2f6db3; background: rgba(47, 109, 179, .10); color: var(--band-blue); }
+.ghost-red { border-color: #a03a3e; background: rgba(229, 72, 77, .10); color: var(--band-red); }
 .button-link:hover:not(:disabled) { background: transparent; color: #b8caff; }
 .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .compose-button { grid-column: 1 / -1; min-height: 52px; font-size: 16px; }
 .private-button { min-height: 44px; }
 .knowledge-button { min-height: 44px; }
 
-.eyebrow { color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .035em; }
-.compact-button { min-height: 40px; padding: 6px 9px; font-size: 12px; }
+.eyebrow { color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .035em; }
+.compact-button { min-height: 40px; padding: 6px 9px; font-size: 13px; }
 .future-card { position: relative; }
 .future-title { color: var(--fg); font-size: 16px; }
 .insight-card { gap: 9px; }
@@ -155,8 +171,9 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .ask-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ask-notfound .warn p { margin-top: 4px; font-weight: 400; }
 .csat-panel { display: grid; gap: 10px; padding: 14px 0 0; border-top: 1px solid var(--line); }
-.csat-button { border-color: transparent; background: linear-gradient(180deg, #f0446a, var(--csat)); color: #fff; box-shadow: 0 4px 14px rgba(232, 51, 79, .30); }
-.csat-button:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, #f0446a, var(--csat)); filter: brightness(1.09); }
+/* Gửi CSAT = xanh dương theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông. */
+.csat-button { border-color: #2f6db3; background: rgba(47, 109, 179, .18); color: var(--band-blue); box-shadow: 0 4px 14px rgba(47, 109, 179, .22); }
+.csat-button:hover:not(:disabled) { border-color: #2f6db3; background: rgba(47, 109, 179, .28); filter: brightness(1.09); }
 .csat-button:disabled { opacity: .5; }
 .csat-sent { display: grid; gap: 3px; }
 .csat-error { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--error-border); border-radius: 14px; background: var(--surface); }
@@ -167,20 +184,24 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .chip { border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--text); }
 .chip b { font-weight: 700; }
 
-/* Thẻ tâm trạng: nhãn mood tô màu theo mood + điểm N/100 + thanh điểm 6px */
+/* Thẻ tâm trạng: màu theo DẢI ĐIỂM (v9) — nhãn mood, số điểm và thanh điểm
+   cùng một màu dải; urgency cao thì hộp cảnh báo chuyển đỏ. */
 .mood-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.mood-label { font-size: 18px; font-weight: 700; }
-.score-num { font-size: 18px; font-weight: 700; }
-.mood-frustrated { color: var(--warn); }
-.mood-confused { color: var(--ai); }
-.mood-neutral { color: var(--text-muted); }
-.mood-satisfied, .mood-happy { color: var(--success); }
+.mood-label { font-size: 20px; font-weight: 700; }
+.score-num { font-size: 20px; font-weight: 700; }
+.band-red { color: var(--band-red); }
+.band-orange { color: var(--band-orange); }
+.band-default { color: var(--text); }
+.band-blue { color: var(--band-blue); }
+.band-green { color: var(--band-green); }
 .score-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
 .score-fill { height: 100%; border-radius: 3px; }
-.mood-bg-frustrated { background: var(--warn); }
-.mood-bg-confused { background: var(--ai); }
-.mood-bg-neutral { background: var(--text-muted); }
-.mood-bg-satisfied, .mood-bg-happy { background: var(--success); }
+.score-fill.band-red { background: var(--band-red); }
+.score-fill.band-orange { background: var(--band-orange); }
+.score-fill.band-default { background: var(--text-muted); }
+.score-fill.band-blue { background: var(--band-blue); }
+.score-fill.band-green { background: var(--band-green); }
+.warn.urgent { color: var(--band-red); border-color: var(--danger-line); background: var(--danger-bg); }
 
 /* Card Tóm tắt (AI) */
 .ai-mark { color: var(--ai); }
@@ -214,7 +235,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .success-text { color: var(--success); }
 .storefront-card { gap: 10px; }
 .error-card { border-color: var(--error-border); }
-.sf-item { display: grid; gap: 2px; font-size: 13px; }
+.sf-item { display: grid; gap: 2px; font-size: 14px; }
 .storefront-card input.input { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px; background: var(--input); color: var(--fg); font: inherit; }
 button.sf-item.sf-clickable { width: 100%; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
 button.sf-item.sf-clickable:hover > div { text-decoration: underline; }
@@ -264,7 +285,7 @@ button.sf-explain { padding: 2px 8px; font-size: 12px; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 4px; font-size: 12px; }
 .meta-row > span:last-child { color: var(--fg); font-weight: 600; overflow-wrap: anywhere; }
 
-.card, .loading-card, .state-card { display: grid; gap: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.card, .loading-card, .state-card { display: grid; gap: 11px; padding: 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); }
 .ai-card { border-color: #24384f; background: var(--surface-ai); }
 .draft-card { gap: 12px; }
 .draft-heading { display: grid; gap: 3px; }
@@ -273,7 +294,7 @@ button.sf-explain { padding: 2px 8px; font-size: 12px; }
 .verify-state { font-size: 12px; font-weight: 700; }
 .is-ok { color: var(--accent-fg); }
 .is-warn { color: var(--warn-fg); }
-.draft { padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.draft { padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 16px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
 mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg); color: var(--highlight-text); font-weight: 750; }
 .warn, .warning-item, .notice-card { padding: 10px 12px; border: 1px solid var(--warn-line); border-radius: 9px; background: var(--warn-bg); color: var(--warn-fg); }
 .warn { font-weight: 700; }
@@ -304,9 +325,9 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
    2026-10-27 tăng lại độ sáng + tương phản vì bản dịu nổi chưa đủ trên nền tối:
    nền nhuốm .68 và chữ sáng thêm một nấc; viền giữ nguyên màu đặc. */
 .cmd { font-weight: 700; }
-.cmd-draft { --tint: rgba(122, 92, 255, .68); border-color: #7a5cff; color: #ece7ff; }
+.cmd-draft { --tint: rgba(47, 109, 179, .55); border-color: #2f6db3; color: #d7e9ff; }
 .cmd-note { --tint: rgba(217, 169, 44, .68); border-color: #d9a92c; color: #fff0b8; }
-.cmd-ask { --tint: rgba(62, 142, 222, .68); border-color: #3e8ede; color: #e2f1ff; }
+.cmd-ask { --tint: rgba(36, 122, 114, .55); border-color: #247a72; color: #d9f6f2; }
 .cmd-csat { --tint: rgba(224, 86, 107, .68); border-color: #e0566b; color: #ffe0e5; }
 .customer-line { margin: 3px 0 0; font-size: 14.5px; }
 .customer-line b { font-size: 16px; }
@@ -317,9 +338,9 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .cmds .cmd:active:not(:disabled) { transform: scale(.98); }
 
 .overlay { position: fixed; inset: 0; background: rgba(5, 6, 10, .62); display: grid; place-items: center; padding: 12px; z-index: 50; }
-.modal { width: 100%; max-height: 88vh; overflow: auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; display: grid; gap: 10px; align-content: start; }
+.modal { width: 100%; max-height: 88vh; overflow: auto; background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; padding: 14px; display: grid; gap: 10px; align-content: start; }
 .mhead { display: flex; align-items: center; gap: 8px; }
-.mhead b { flex: 1; font-size: 15px; }
+.mhead b { flex: 1; font-size: 16px; }
 .mclose { min-height: 36px; padding: 4px 10px; }
 .modal .csat-panel { border-top: 0; padding-top: 0; }
 .opt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: var(--surface-inset); border: 1px solid var(--border); border-radius: 14px; padding: 12px; min-height: 44px; font-size: 13px; }
@@ -361,19 +382,19 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .jira-news li { overflow-wrap: anywhere; color: var(--muted); font-size: 12px; }
 .jira-actions { display: flex; justify-content: flex-end; }
 .jira-toolbar { display: flex; justify-content: flex-end; }
-.jira-title { font-size: 13.5px; font-weight: 750; }
+.jira-title { font-size: 14.5px; font-weight: 750; }
 .pill-status { display: inline-flex; align-items: center; padding: 3px 10px; border: 1px solid var(--warn); border-radius: 999px; color: var(--warn-fg); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
 .pill-status.done { border-color: var(--success); color: var(--success); }
 .jira-badges { justify-content: flex-start; }
 .jira-comment { display: grid; gap: 3px; }
 .jira-comment p { margin: 0; }
-.unlink-button { color: var(--muted); font-size: 12px; min-height: 32px; }
+.unlink-button { color: var(--band-red); font-size: 13px; min-height: 32px; }
 .unlink-confirm { display: inline-flex; align-items: center; gap: 8px; }
 
 /* Private note màu VÀNG mặc định (Ethan chốt lại 2026-10-23, thắng chỉ đạo
    "bỏ sơn vàng" ban sáng): vàng hổ phách pha loãng theo token --note-*, khớp
    màu nhận diện private note của Crisp. Biểu tượng khoá vẫn bỏ như đã chốt. */
-.handoff-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--note-border); border-radius: 14px; background: var(--note-bg); }
+.handoff-card { display: grid; gap: 10px; padding: 14px; border: 1.5px solid var(--note-border); border-radius: 14px; background: var(--note-bg); }
 .note-text { line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
 .handoff-card .button-link { color: var(--warn); }
 .handoff-card .row:last-child { justify-content: flex-start; }
@@ -456,7 +477,7 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
   .draft-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .draft-actions .button-link { grid-column: 1 / -1; justify-self: start; }
 }
-.pill-sf { display: inline-flex; align-items: center; padding: 2px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.pill-sf { display: inline-flex; align-items: center; padding: 2px 9px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 .pill-sf.sf-new { border-color: var(--link); color: var(--link); }
 .pill-sf.sf-ack { border-color: var(--warn); color: var(--warn-fg); }
 .pill-sf.sf-prog { border-color: var(--success); color: var(--success); }
@@ -480,18 +501,22 @@ button.sf-row { cursor: pointer; }
 /* Danh sách lỗi hiện FULL như cũ (Ethan đổi ý sau test live 2026-10-27:
    cuộn trong thẻ nhỏ quá bất tiện — để panel tự cuộn theo trang). */
 .sf-rows { display: grid; gap: 4px; }
+/* Hai tab Đang mở / Đã đóng ở đầu thân thẻ Storefront (v9, 2026-10-29). */
+.sf-tabs { display: flex; gap: 8px; }
+.sf-tab { flex: 1; min-height: 38px; padding: 6px 10px; border-radius: 999px; border: 1.5px solid var(--border); background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; box-shadow: none; }
+.sf-tab.on { color: var(--error); border-color: var(--error-border); background: rgba(255, 138, 128, .08); }
 .sf-clickable { cursor: pointer; }
 .pill-sf.sf-closed { border-color: var(--success); color: var(--success); }
-/* Menu thao tác dưới dòng finding (Ethan chốt live 2026-10-27): Take case
-   vàng · Fix xanh lá · Dismiss đen — màu vừa phải (bản đậm bị chê quá tay),
-   3 nút CHIA ĐỀU bề ngang, nằm dưới dòng finding. */
+/* Menu thao tác dưới dòng finding. Màu theo ngữ cảnh ở bản Support
+   Operation v9 (Ethan chốt 2026-10-29, thay bộ vàng/xanh lá/đen của đợt
+   2026-10-27): Take case xanh dương đặc · Fix trung tính · Dismiss đỏ
+   ghost. 3 nút CHIA ĐỀU bề ngang, nằm dưới dòng finding. */
 .sf-menu { margin: 2px 0 6px; }
 .sf-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .sf-actions .sf-act { flex: 1 1 0; text-align: center; }
-.sf-act { font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
-.sf-act-take { background: #e6b93d; border-color: #e6b93d; color: #2a2103; }
-.sf-act-fix { background: #419e66; border-color: #419e66; color: #fff; }
-.sf-act-dismiss { background: #2b2f38; border-color: #4a5162; color: #fff; }
+.sf-act { font-size: 13px; font-weight: 700; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-inset); color: inherit; cursor: pointer; }
+.sf-act-take { background: #2f6db3; border-color: #2f6db3; color: #fff; }
+.sf-act-dismiss { background: rgba(229, 72, 77, .10); border-color: #a03a3e; color: var(--band-red); }
 .sf-act:disabled { opacity: .45; cursor: default; }
 .sf-form { margin-top: 6px; border: 1px dashed var(--border); border-radius: 9px; padding: 8px; display: grid; gap: 6px; }
 .sf-flabel { font-size: 11px; font-weight: 700; }
