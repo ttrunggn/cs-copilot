@@ -460,19 +460,18 @@ export function csatPanel({ onSurvey }) {
 /** Class màu pill theo trạng thái Storefront. */
 const SF_STATUS_CLASS = { new: "sf-new", acknowledged: "sf-ack", in_progress: "sf-prog" };
 
-/** Form ghi chú trong menu thao tác: Fixed chỉ cần ghi chú; Dismiss thêm 2 lựa chọn lý do (đúng 2 giá trị schema SW nhận). */
+/** Form Dismiss trong menu thao tác: CHỈ chọn lý do (đúng 2 giá trị schema SW nhận) — không còn ô ghi chú, Fix bấm là xong không qua form (Ethan chốt lại 2026-10-29: comment thừa). */
 function sfActForm(row, kind, handlers) {
   const fp = row.fingerprint;
   const busy = state.sfActBusy === fp;
-  const valid = () => state.sfNoteInput.trim().length > 0 && (kind === "fixed" || Boolean(state.sfReason));
   const confirmBtn = el("button", {
     className: "sf-act sf-confirm",
-    disabled: busy || !valid(),
-    onclick: () => handlers.onStorefrontAct?.(fp, kind),
-  }, buttonContent(busy, "Đang gửi…", kind === "fixed" ? "Xác nhận Fix" : "Xác nhận Dismiss"));
+    disabled: busy || !state.sfReason,
+    onclick: () => handlers.onStorefrontAct?.(fp, "dismiss"),
+  }, buttonContent(busy, "Đang gửi…", "Xác nhận Dismiss"));
   return el("div", { className: "sf-form" }, [
-    kind === "dismiss" ? el("div", { className: "sf-flabel", textContent: "Lý do Dismiss (bắt buộc)" }) : null,
-    kind === "dismiss" ? el("div", { className: "sf-chips" }, [
+    el("div", { className: "sf-flabel", textContent: "Lý do Dismiss (bắt buộc)" }),
+    el("div", { className: "sf-chips" }, [
       el("button", {
         className: `sf-chip${state.sfReason === "false_signal" ? " on" : ""}`,
         textContent: "Báo sai, trang vẫn ổn",
@@ -483,18 +482,7 @@ function sfActForm(row, kind, handlers) {
         textContent: "Lỗi thật, không đáng sửa",
         onclick: () => { state.sfReason = "not_important"; handlers.rerender?.(); },
       }),
-    ]) : null,
-    el("textarea", {
-      className: "sf-note-input",
-      rows: 2,
-      placeholder: "Ghi chú (bắt buộc) — Console hiện ghi chú này kèm quyết định",
-      value: state.sfNoteInput,
-      // Gõ ghi chú không render lại (mất focus); chỉ bật/tắt nút xác nhận tại chỗ.
-      oninput: (e) => {
-        state.sfNoteInput = e.target.value;
-        confirmBtn.disabled = busy || !valid();
-      },
-    }),
+    ]),
     el("div", { className: "sf-fbtns" }, [
       confirmBtn,
       el("button", { className: "sf-act", disabled: busy, textContent: "Huỷ", onclick: () => handlers.onStorefrontForm?.(fp, null) }),
@@ -514,7 +502,7 @@ function sfActForm(row, kind, handlers) {
  * Không hiện nội dung/message của SW trong panel.
  * Từ 2026-10-27 (SW mở scope write, Ethan duyệt bản giả lập): bấm vào dòng
  * mở MENU THAO TÁC ngay dưới dòng — Take case (trái nhất, một chạm) ·
- * Fix · Dismiss (cả hai qua form ghi chú phía server bắt buộc); finding
+ * Fix · Dismiss (ghi chú không bắt buộc từ 2026-10-29; Dismiss bắt buộc lý do); finding
  * vừa đóng trong phiên panel hiện ghi chú kèm quyết định + nút Mở lại.
  */
 function sfRow(row, handlers = {}) {
@@ -552,7 +540,7 @@ function sfRow(row, handlers = {}) {
   if (closed) {
     kids.push(el("div", {
       className: "sf-closed-note",
-      textContent: `${closed.via === "fixed" ? "Fix" : "Dismiss"} · ${state.operatorName || "CS"}: “${closed.note}”`,
+      textContent: `${closed.via === "fixed" ? "Fix" : "Dismiss"} · ${state.operatorName || "CS"}${closed.note ? `: “${closed.note}”` : ""}`,
     }));
     kids.push(el("button", {
       className: "sf-undo",
@@ -568,7 +556,8 @@ function sfRow(row, handlers = {}) {
           ? el("button", { className: "sf-act sf-act-take", disabled: busy, onclick: () => handlers.onStorefrontAct?.(fp, "acknowledge") },
             buttonContent(busy, "Đang gửi…", "Take case"))
           : null,
-        el("button", { className: "sf-act sf-act-fix", disabled: busy, textContent: "Fix", onclick: () => handlers.onStorefrontForm?.(fp, "fixed") }),
+        el("button", { className: "sf-act sf-act-fix", disabled: busy, onclick: () => handlers.onStorefrontAct?.(fp, "fixed") },
+          buttonContent(busy, "Đang gửi…", "Fix")),
         el("button", { className: "sf-act sf-act-dismiss", disabled: busy, textContent: "Dismiss", onclick: () => handlers.onStorefrontForm?.(fp, "dismiss") }),
       ]),
       state.sfForm?.fingerprint === fp ? sfActForm(row, state.sfForm.kind, handlers) : null,

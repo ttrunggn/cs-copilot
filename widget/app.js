@@ -704,7 +704,7 @@ const SF_ACT_MSG = {
 
 /**
  * Gửi thao tác ghi lên server (action storefront_act): acknowledge một chạm;
- * fixed/dismiss kèm ghi chú (và lý do) lấy từ form trong menu; undo mở lại
+ * fixed/dismiss kèm ghi chú tuỳ chọn (Dismiss kèm lý do bắt buộc) lấy từ form trong menu; undo mở lại
  * finding vừa đóng trong phiên panel này. Thành công thì cập nhật cục bộ
  * ngay (chuyển nhóm / đánh dấu đã đóng / bỏ đánh dấu) + một dòng trạng thái;
  * lỗi thì hiện nguyên văn lỗi server trong cùng dòng trạng thái đó, form giữ
@@ -715,11 +715,6 @@ async function onStorefrontAct(fingerprint, act) {
   const extra = { fingerprint, sf_act: act };
   if (act === "fixed" || act === "dismiss") {
     extra.note = state.sfNoteInput.trim();
-    if (!extra.note) {
-      state.sfMsg = "Cần ghi chú trước khi xác nhận.";
-      render();
-      return;
-    }
     if (act === "dismiss") {
       extra.reason = state.sfReason;
       if (!extra.reason) {

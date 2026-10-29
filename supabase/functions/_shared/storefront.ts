@@ -819,12 +819,14 @@ export function createStorefrontMcp(opts: {
       return await callToolText(websiteId, "acknowledge_finding", args, true);
     },
     async markFixed(websiteId, fingerprint, note, operator) {
-      const args: Rec = { fingerprint, note };
+      const args: Rec = { fingerprint };
+      if (note?.trim()) args.note = note.trim();
       if (operator?.trim()) args.operator = operator.trim();
       return await callToolText(websiteId, "mark_fixed", args, true);
     },
     async dismissFinding(websiteId, fingerprint, reason, note, operator) {
-      const args: Rec = { fingerprint, reason, note };
+      const args: Rec = { fingerprint, reason };
+      if (note?.trim()) args.note = note.trim();
       if (operator?.trim()) args.operator = operator.trim();
       return await callToolText(websiteId, "dismiss_finding", args, true);
     },

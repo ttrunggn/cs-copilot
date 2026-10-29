@@ -399,7 +399,7 @@ Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ t�
   const line = walk(p).find((n) => (n.className ?? "").includes("sf-line"));
   line.onclick({ target: { closest: () => null } });
   assertEquals(calls, [["sfMenu", fp]]);
-  // Menu mở: đúng 3 nút theo thứ tự đã duyệt; Take case gọi thẳng act, Fix mở form.
+  // Menu mở: đúng 3 nút theo thứ tự đã duyệt; Take case và Fix đều gọi thẳng act (Fix bấm là xong từ 2026-10-29), Dismiss mở form lý do.
   state.sfMenu = fp;
   calls.length = 0;
   p = storefrontPanel(h);
@@ -407,7 +407,7 @@ Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ t�
   assertEquals(labels, ["Take case", "Fix", "Dismiss"]);
   buttonByText(p, "Take case").onclick();
   buttonByText(p, "Fix").onclick();
-  assertEquals(calls, [["sfAct", fp, "acknowledge"], ["sfForm", fp, "fixed"]]);
+  assertEquals(calls, [["sfAct", fp, "acknowledge"], ["sfAct", fp, "fixed"]]);
 });
 
 Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện nút Take case nữa", () => {
@@ -424,33 +424,27 @@ Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện
   assertEquals(Boolean(buttonByText(p, "Fix")), true);
 });
 
-Deno.test("panels: storefront form Fix — chưa ghi chú thì nút xác nhận khoá; có ghi chú thì bấm được và gọi act fixed", () => {
+Deno.test("panels: storefront menu — Fix bấm là xong: gọi act fixed ngay, KHÔNG mở form (Ethan 2026-10-29)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
   const fp = "a".repeat(40);
   state.sfMenu = fp;
-  state.sfForm = { fingerprint: fp, kind: "fixed" };
   const calls = [];
   const h = makeHandlers(calls);
-  let p = storefrontPanel(h);
-  assertEquals(buttonByText(p, "Xác nhận Fix").disabled, true);
-  state.sfNoteInput = "Đã sửa trong theme";
-  p = storefrontPanel(h);
-  const btn = buttonByText(p, "Xác nhận Fix");
-  assertEquals(btn.disabled, false);
-  btn.onclick();
+  const p = storefrontPanel(h);
+  assertEquals(walk(p).some((n) => n.tagName === "TEXTAREA"), false);
+  buttonByText(p, "Fix").onclick();
   assertEquals(calls, [["sfAct", fp, "fixed"]]);
 });
 
-Deno.test("panels: storefront form Dismiss — cần cả lý do lẫn ghi chú mới xác nhận được; chip chọn lý do ghi vào state", () => {
+Deno.test("panels: storefront form Dismiss — chỉ cần lý do, ghi chú không bắt buộc; chip chọn lý do ghi vào state (Ethan 2026-10-29)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
   const fp = "a".repeat(40);
   state.sfMenu = fp;
   state.sfForm = { fingerprint: fp, kind: "dismiss" };
-  state.sfNoteInput = "Trang vẫn ổn";
   const h = makeHandlers([]);
   let p = storefrontPanel(h);
   assertEquals(buttonByText(p, "Xác nhận Dismiss").disabled, true); // chưa chọn lý do

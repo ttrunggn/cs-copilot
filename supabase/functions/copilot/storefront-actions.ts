@@ -348,8 +348,8 @@ const normDomain = (s: string) => s.trim().toLowerCase().replace(/^www\./, "").r
  *   dismiss chỉ trên finding ĐANG MỞ của store đó (đối chiếu listFindings);
  *   undo (finding đã đóng, không còn trong list) đối chiếu qua getFinding —
  *   domain trong "Where:" phải khớp store của conversation;
- * - fixed/dismiss bắt buộc ghi chú theo lời CS; dismiss bắt buộc lý do thuộc
- *   đúng 2 giá trị schema SW nhận;
+ * - ghi chú KHÔNG bắt buộc cho fixed/dismiss (Ethan chốt lại 2026-10-29);
+ *   dismiss bắt buộc lý do thuộc đúng 2 giá trị schema SW nhận;
  * - tên người thực hiện = operator_name theo account Crisp đang đăng nhập
  *   (handler đã parse; rỗng thì KHÔNG gửi — schema SW: thà bỏ trống còn hơn đoán).
  */
@@ -364,9 +364,9 @@ export async function runStorefrontAct(
   if (!SF_ACTS.includes(act)) throw new HttpError(400, `sf_act không hợp lệ: ${req.sf_act}`);
   if (!FINGERPRINT.test(req.fingerprint ?? "")) throw new HttpError(400, `fingerprint không hợp lệ: ${req.fingerprint}`);
   const note = (req.note ?? "").trim();
-  if ((act === "fixed" || act === "dismiss") && !note) {
-    throw new HttpError(400, act === "fixed" ? "Fixed cần ghi chú (theo lời của bạn) để Console hiện kèm quyết định." : "Dismiss cần ghi chú (theo lời của bạn) để Console hiện kèm quyết định.");
-  }
+  // Ghi chú KHÔNG bắt buộc cho cả fixed lẫn dismiss (Ethan chốt lại
+  // 2026-10-29: "không cần comment, thừa" — bên SW dismiss chỉ cần lý do,
+  // fix cũng vậy). Có ghi thì Console hiện kèm quyết định như cũ.
   if (note.length > SF_NOTE_MAX) throw new HttpError(400, `Ghi chú quá dài (tối đa ${SF_NOTE_MAX} ký tự).`);
   const reason = (req.reason ?? "").trim() as SwDismissReason;
   if (act === "dismiss" && !(SW_DISMISS_REASONS as readonly string[]).includes(reason)) {

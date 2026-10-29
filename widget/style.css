@@ -240,7 +240,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 button.sf-item.sf-clickable { width: 100%; text-align: left; background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; }
 button.sf-item.sf-clickable:hover > div { text-decoration: underline; }
 .sf-detail { display: grid; gap: 4px; margin: 2px 0 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--input); font-size: 12.5px; }
-.sf-group { display: grid; gap: 6px; }
+.sf-group { display: grid; gap: 10px; }
 .sf-group-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
 .sf-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .sf-dot.sf-new { background: var(--error); }
@@ -494,9 +494,9 @@ button.sf-row { cursor: pointer; }
 .sf-line .sf-links { margin-left: auto; flex: none; display: flex; gap: 6px; align-items: center; }
 .sf-line .sf-links .sf-bug-link { margin-left: 0; }
 .sf-page-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-/* Hàng 3 link của finding (Default page / Issue page / Console — Ethan 2026-10-29): xếp DỌC thành một cột bên phải dòng, cùng cỡ chữ, canh giữa cho thẳng cột. */
-.sf-line .sf-links { flex-direction: column; align-items: stretch; gap: 4px; }
-.sf-line .sf-links .sf-bug-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: center; }
+/* Hàng 3 link của finding (Default page / Issue page / Console — Ethan 2026-10-29): xếp DỌC thành một cột bên phải dòng, cùng cỡ chữ, canh giữa cho thẳng cột. Gap + padding nới ra để dễ bấm (Ethan bắt live 2026-10-29: nút gần nhau quá, khó click). */
+.sf-line .sf-links { flex-direction: column; align-items: stretch; gap: 8px; }
+.sf-line .sf-links .sf-bug-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: center; padding: 7px 10px; }
 /* Đầu thẻ Storefront cho rớt dòng: ở khung Crisp hẹp (~260px) nút Mở
    Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
    live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */
