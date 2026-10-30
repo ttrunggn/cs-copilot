@@ -28,7 +28,7 @@ Deno.test("native-panel: mọi item id là duy nhất trên toàn schema", () =>
     "tt_csat", "act_csat", "tt_review", "act_review",
     "tt_storefront", "act_storefront",
     "tt_jira", "act_jira",
-    "act_draft", "act_note", "act_kb",
+    "act_draft", "act_note", "act_kb", "act_monitor",
   ]);
 });
 
@@ -89,8 +89,8 @@ Deno.test("native-panel: panel gộp — Chatbot stub đủ mặt; mỗi module 
   assertEquals(note.value.color, "orange");
 });
 
-Deno.test("open param: chỉ nhận 6 view hợp lệ, còn lại bỏ qua", () => {
-  for (const v of ["draft", "note", "ask", "review", "storefront", "jira"]) {
+Deno.test("open param: chỉ nhận 7 view hợp lệ, còn lại bỏ qua", () => {
+  for (const v of ["draft", "note", "ask", "review", "storefront", "jira", "monitor"]) {
     assertEquals(parseOpenParam(`?open=${v}&session_id=session_1`), v);
   }
   assertEquals(parseOpenParam("?open=csat"), null);

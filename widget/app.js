@@ -794,12 +794,13 @@ function render() {
   // (modal "explain" của Storefront vẫn mở chồng lên card) — kèm thẻ
   // thông báo. Không header, không hàng lệnh, không giữ vị trí cuộn.
   if (standaloneView) {
+    const cardView = standaloneView === "storefront" || standaloneView === "jira" || standaloneView === "monitor";
     show(
-      standaloneView === "storefront" ? storefrontPanel(handlers)
-        : standaloneView === "jira" ? jiraPanel(handlers)
-        : modalView(handlers),
+      standaloneView === "storefront" || standaloneView === "monitor" ? storefrontPanel(handlers) : null,
+      standaloneView === "jira" || standaloneView === "monitor" ? jiraPanel(handlers) : null,
+      cardView ? null : modalView(handlers),
       noticeNode(),
-      standaloneView === "storefront" || standaloneView === "jira" ? modalView(handlers) : null,
+      cardView ? modalView(handlers) : null,
     );
     return;
   }
@@ -887,6 +888,59 @@ function applyOpenDeepLink(sessionId) {
  * render lại). Các load() sau (refresh, nạp lại Jira…) không mở lại —
  * view gốc không đóng được nên state.modal luôn còn nguyên.
  */
+// ---------- Monitor (Storefront + Jira trong MỘT modal nổi) ----------
+// Ethan chốt ý tưởng 30/10 17:38: modal thu nhỏ/di chuyển sống xuyên
+// conversation — mở MỘT lần rồi tự bám theo chat đang mở. Kiểm chứng
+// live 30/10 17:49 bằng trang probe: Widget JS SDK trong modal báo
+// ĐÚNG conversation đang mở trong inbox (không phải conversation đóng
+// dấu trong URL lúc mở), nên trang cứ 3 giây hỏi lại một lần; session
+// khác URL hiện tại thì tự nạp lại theo session mới (giữ nguyên token
+// và các param Crisp gắn). Đang thao tác Storefront (gửi hành động /
+// mở form / menu) thì HOÃN — nhịp hỏi kế tiếp thử lại, không giật màn
+// hình giữa chừng. Các view standalone khác KHÔNG tự nạp lại (draft
+// đang gõ mà nạp lại là mất chữ).
+function monitorOnConversation() {
+  if (standaloneView !== "monitor") return;
+  const sid = $crisp.data?.conversation?.session_id ?? "";
+  const current = readContext(location.search).sessionId ?? "";
+  if (!sid || sid === current) return;
+  if (state.sfActBusy || state.sfForm || state.busyAction) return;
+  const url = new URL(location.href);
+  url.searchParams.set("session_id", sid);
+  location.replace(url.toString());
+}
+
+let monitorPollStarted = false;
+function startMonitorPolling() {
+  if (standaloneView !== "monitor" || monitorPollStarted) return;
+  monitorPollStarted = true;
+  if (monitorSuperseded) { try { $crisp.closeModal(); } catch { /* SDK chưa sẵn sàng thì thôi */ } }
+  const tick = () => { try { $crisp.acquireData("conversation"); } catch { /* nhịp sau thử lại */ } };
+  tick();
+  setInterval(tick, 3000);
+}
+
+// Crisp mở một modal MỚI mỗi lần bấm nút (bắt live 30/10 17:47: bấm ở
+// chat khác là chồng thêm một thẻ nổi, bản cũ không tự đóng). Các
+// iframe modal cùng origin widget nghe nhau qua BroadcastChannel:
+// instance monitor mới mở thì instance cũ tự đóng mình.
+const MONITOR_BORN_AT = Date.now();
+const MONITOR_INSTANCE_ID = `${MONITOR_BORN_AT}-${Math.random().toString(36).slice(2, 8)}`;
+let monitorSuperseded = false;
+function startMonitorSupersede() {
+  if (standaloneView !== "monitor") return;
+  try {
+    const ch = new BroadcastChannel("copilot-monitor");
+    ch.onmessage = (e) => {
+      const m = e?.data ?? {};
+      if (m.type !== "hello" || m.id === MONITOR_INSTANCE_ID || !(m.ts > MONITOR_BORN_AT)) return;
+      monitorSuperseded = true;
+      try { window.$crisp?.closeModal?.(); } catch { /* SDK chưa sẵn sàng: startMonitorPolling đóng lại khi ready */ }
+    };
+    ch.postMessage({ type: "hello", id: MONITOR_INSTANCE_ID, ts: MONITOR_BORN_AT });
+  } catch { /* Không có BroadcastChannel thì bỏ qua cơ chế thay thế */ }
+}
+
 let standaloneOpened = false;
 function openStandaloneView() {
   if (standaloneOpened) return;
@@ -954,6 +1008,7 @@ async function load() {
 // CS đang đăng nhập lấy từ SDK chính thức của Crisp, không cần nhập token.
 window.CRISP_READY_TRIGGER = () => {
   $crisp.onDataAcquired = (namespace) => {
+    if (namespace === "conversation") return monitorOnConversation();
     if (namespace !== "operator") return;
     state.operatorId = operatorIdFrom($crisp.data.operator);
     state.operatorName = operatorNameFrom($crisp.data.operator);
@@ -964,12 +1019,14 @@ window.CRISP_READY_TRIGGER = () => {
     load();
   };
   $crisp.acquireData("operator");
+  startMonitorPolling();
 };
 
 const ctx = readContext(location.search);
 if ("error" in ctx) showMessage(ctx.error);
 else showLoading("Đang xác định CS đang đăng nhập…");
 extension.detectExtension();
+startMonitorSupersede();
 // Esc đóng popup đang mở (bấm ra ngoài hộp cũng đóng — xem modalView ở panels.js).
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && state.modal) closeModal();

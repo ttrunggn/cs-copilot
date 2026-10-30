@@ -20,7 +20,7 @@ export function readContext(search) {
  * ?open=<view> để vào thẳng đúng view (xem widget/native-panel.json). Sáu
  * view hợp lệ; giá trị lạ → null (bỏ qua, panel mở như thường).
  */
-export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira"];
+export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira", "monitor"];
 
 export function parseOpenParam(search) {
   const open = new URLSearchParams(search).get("open") ?? "";
@@ -49,7 +49,7 @@ export function openModalName(open) {
 export function standaloneViewFor(open) {
   const m = openModalName(open);
   if (m) return m;
-  if (open === "storefront" || open === "jira") return open;
+  if (open === "storefront" || open === "jira" || open === "monitor") return open;
   return null;
 }
 

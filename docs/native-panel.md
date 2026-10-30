@@ -164,3 +164,27 @@ lệ ghi Crisp thứ hai Ethan duyệt 30/10 vì thế cũng hết vai trò.
    cho function test.
 7. **Nhãn mood rút gọn** trên data item: "Đang bực" thay cho nhãn đầy
    đủ của panel — theo đúng chữ bản thiết kế (chỗ hiển thị hẹp).
+
+## Monitor gộp Storefront + Jira (30/10 17:49)
+
+Nút **Theo dõi Storefront + Jira** (`act_monitor`, `?open=monitor`)
+mở MỘT modal chứa cả hai card Storefront và Jira. Modal Crisp thu
+nhỏ/di chuyển được và sống xuyên conversation; trang standalone của
+monitor tự bám theo conversation đang mở trong inbox:
+
+- Cơ chế: Widget JS SDK (`$crisp.acquireData("conversation")`) mỗi 3
+  giây. **Đã kiểm chứng live 30/10 17:49 bằng trang `widget/probe.html`
+  + nút tạm "Probe SDK (tạm)" trên plugin survey**: SDK trong modal
+  báo đúng conversation đang mở trong inbox, KHÔNG phải conversation
+  đóng dấu trong URL lúc mở modal (trạng thái probe lật sang "ĐÃ BÁM
+  SANG CHAT KHÁC" sau khi Ethan chuyển chat; cùng trang mở dạng tab
+  thường thì SDK im lặng — dữ liệu chỉ chảy qua cầu Crisp trong modal).
+- Session khác URL hiện tại → `location.replace` với session mới (giữ
+  nguyên token + param Crisp gắn). Đang thao tác Storefront (busy /
+  form / menu) thì hoãn sang nhịp hỏi kế tiếp. Chỉ view monitor có cơ
+  chế này — draft/note đang gõ không bao giờ bị nạp lại.
+- Chồng modal: Crisp mở instance MỚI mỗi lần bấm nút (bắt live 30/10
+  17:47). Instance monitor nghe nhau qua BroadcastChannel
+  `copilot-monitor` (cùng origin widget): bản mới mở thì bản cũ tự
+  `$crisp.closeModal()`. Chưa kiểm chứng live lần đầu — xem vòng test
+  monitor.
