@@ -12,12 +12,34 @@ expand). Section của Generic Widget thì được Crisp **deploy (xổ) mặc
 tại, mở dạng **modal** từ các nút của mặt native qua deep-link
 `?open=<view>`.
 
-## Xe test: plugin survey
+## Xe test: plugin survey + function `copilot-test`
 
 Bản 6 section chạy thử trên **plugin survey (CSAT tool)** — Ethan chốt
 30/10: dùng chính plugin survey làm xe test, KHÔNG tạo plugin mới,
-KHÔNG đụng plugin Copilot CS đang chạy cho team. Ổn rồi mới mapping
-sang plugin chính.
+KHÔNG đụng plugin Copilot CS đang chạy cho team.
+
+Vì repo + DB chỉ có một, merge lên master là deploy đè lên function
+`copilot` production ngay — nên phần server cũng đi đường test riêng
+(Ethan chốt 30/10): deploy code của branch này thành **một Edge
+Function riêng tên `copilot-test`** trong cùng project, plugin survey
+trỏ Action URL vào đó. Function `copilot` production không đổi một
+dòng nào trong suốt quá trình test. Test ổn trên Crisp thật mới merge
+PR này để đưa vào production, rồi gỡ `copilot-test`.
+
+Cách deploy function test (máy của Ethan, tại checkout repo): copy
+tạm thư mục function rồi deploy dưới tên mới, xong xoá bản copy (KHÔNG
+commit thư mục `copilot-test` — test deploy-workflow khoá mọi function
+có index.ts phải có trong workflow deploy):
+
+```
+git checkout -- extension/dist
+git fetch origin
+git checkout feat/native-panel-6-sections
+git pull
+Copy-Item -Recurse supabase/functions/copilot supabase/functions/copilot-test
+npx supabase functions deploy copilot-test --no-verify-jwt --use-api --project-ref rbodkthyuiyfotewgxku
+Remove-Item -Recurse -Force supabase/functions/copilot-test
+```
 
 ## 6 section (theo design Ethan duyệt 30/10)
 
@@ -56,22 +78,26 @@ thật, chỉ PATCH khi dải đổi, PATCH object đã merge giữ mọi key kh
 đúng một nút; bấm nút nào cũng là hook **phân tích lại** (force) — đo
 xong dải mới tự đồng bộ lên custom data cho lần mở sau.
 
-## Việc Ethan cần làm trên Crisp + Supabase (một lần, cho xe test)
+## Việc cần làm trên Crisp + Supabase (một lần, cho xe test)
 
 1. **Supabase secrets**: thêm `CRISP_PLUGIN_KEY_SURVEY` = secret của
    Production Token của **plugin survey** (trang tokens của plugin).
-   Server verify sự kiện bằng cả hai khoá (plugin chính + survey).
-2. Vào **Crisp Marketplace → plugin survey → Settings**, thêm một
+   Function test verify sự kiện bằng cả hai khoá (plugin chính +
+   survey); secret là cấp project nên `copilot-test` đọc được ngay,
+   code production hiện tại không dùng tới key này.
+2. **Deploy function `copilot-test`** theo mục "Xe test" ở trên.
+3. Vào **Crisp Marketplace → plugin survey → Settings**, thêm một
    **Generic Widget**, dán toàn bộ `widget/native-panel.json` vào ô
    schema.
-3. Đặt **Action URL** của plugin survey về URL function copilot hiện
-   tại: `https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot`
+4. Đặt **Action URL** của plugin survey về URL function TEST:
+   `https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot-test`
    (server tự nhận diện sự kiện Generic Widget qua trường `action`
    dạng object và rẽ nhánh trước cả hai cổng auth).
-4. Mở thử một conversation: 6 section phải xổ sẵn, data item tự nạp,
-   nút Tâm trạng hiện đúng một dải (với điều kiện conversation đã có
-   sentiment + dải đã được ghi — đo mới một lần bằng nút Phân tích ở
-   panel hoặc chờ tin khách mới để precompute chạy).
+5. Mở thử một conversation: 6 section phải xổ sẵn, data item tự nạp,
+   nút Tâm trạng hiện đúng một dải. Lưu ý: dải chỉ được ghi khi có một
+   lượt đo sentiment MỚI chạy qua `copilot-test` (mở chat để fetch
+   kích analyze nền, hoặc bấm nút Tâm trạng khi nó hiện — lần đầu chưa
+   có dải thì cả 4 nút đều ẩn, đó là dấu hiệu cần đo mới một lần).
 
 ## Hành vi phía server (đã có test khoá)
 
