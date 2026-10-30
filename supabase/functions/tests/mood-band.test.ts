@@ -68,3 +68,31 @@ Deno.test("syncMoodBand: Crisp lỗi (đọc hoặc ghi) → failed, KHÔNG thro
   const r2 = await syncMoodBand({ crisp: b.crisp }, "ws1", "s1", 38);
   assertEquals(r2.status, "failed");
 });
+
+Deno.test("cách ly panel team: resolveSentiment KHÔNG syncBand → không một lời gọi ghi Crisp nào, dù có crisp client", async () => {
+  const { resolveSentiment } = await import("../copilot/analyze.ts");
+  const { fakeAi, makeDeps } = await import("./fakes.ts");
+  let writes = 0;
+  const crisp: CrispClient = {
+    getConversationSegments: () => Promise.resolve([]),
+    setConversationSegments: () => Promise.resolve(),
+    getConversationCustomData: () => Promise.resolve({}),
+    setConversationCustomData: () => {
+      writes++;
+      return Promise.resolve();
+    },
+  };
+  const { ai } = fakeAi({
+    sentiment: JSON.stringify({ score: 30, mood: "frustrated", urgency: "high", confidence: 0.9, summary: "Khách đang bực vì lỗi dịch", signals: [], issues: [] }),
+  });
+  const { deps } = makeDeps({ ai });
+  const messages = await deps.db.getMessages("ws1", "session_1", 40);
+  // Đường panel (analyze/generate) không truyền syncBand:
+  const r1 = await resolveSentiment({ db: deps.db, ai: deps.ai, crisp }, "ws1", "session_1", messages, true, "analyze");
+  assertEquals(Boolean(r1.sentiment), true);
+  assertEquals(writes, 0);
+  // Đường được phép (precompute/native) có truyền cờ:
+  const r2 = await resolveSentiment({ db: deps.db, ai: deps.ai, crisp, syncBand: true }, "ws1", "session_1", messages, true, "precompute");
+  assertEquals(Boolean(r2.sentiment), true);
+  assertEquals(writes, 1);
+});

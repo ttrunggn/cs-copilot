@@ -202,7 +202,7 @@ async function kickAnalyzeIfStale(deps: NativeDeps, websiteId: string, sessionId
     if (!hasCustomerText) return;
     const stale = !row || row.input_fp !== await sentimentFingerprint(messages);
     if (!stale) return;
-    const task = resolveSentiment({ db: deps.db, ai: deps.ai, crisp: deps.crisp }, websiteId, sessionId, messages, false, "analyze")
+    const task = resolveSentiment({ db: deps.db, ai: deps.ai, crisp: deps.crisp, syncBand: true }, websiteId, sessionId, messages, false, "analyze")
       .then(() => undefined, () => undefined);
     if (deps.background) deps.background(task);
     else waitUntilBg(task);
@@ -384,7 +384,7 @@ async function runMoodRecompute(ev: CrispWidgetEvent, deps: NativeDeps, tracer: 
   const t0 = performance.now();
   const messages = await deps.db.getMessages(ev.websiteId, ev.sessionId, MESSAGE_LIMIT).catch(() => []);
   const r = await resolveSentiment(
-    { db: deps.db, ai: deps.ai, crisp: deps.crisp },
+    { db: deps.db, ai: deps.ai, crisp: deps.crisp, syncBand: true },
     ev.websiteId,
     ev.sessionId,
     messages,

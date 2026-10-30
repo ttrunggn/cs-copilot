@@ -24,7 +24,10 @@ export async function runPrecompute(
   if (!ws) return { sentiment: false, cached: false, skipped: "unknown_workspace" };
   const messages = await deps.db.getMessages(websiteId, sessionId, MESSAGE_LIMIT).catch(() => []);
   if (!messages.length) return { sentiment: false, cached: false, skipped: "no_messages" };
-  const r = await resolveSentiment(deps, websiteId, sessionId, messages, false, "precompute");
+  // Precompute là job nền (n8n gọi sau ingest, không ai chờ đồng bộ) —
+  // bật syncBand ở đây: dải cảm xúc lên custom data Crisp ngay khi có
+  // điểm mới, để mặt native mở ra là hiện đúng nút màu.
+  const r = await resolveSentiment({ ...deps, syncBand: true }, websiteId, sessionId, messages, false, "precompute");
   return { sentiment: Boolean(r.sentiment), cached: r.cached, skipped: r.sentiment ? null : (r.reason ?? "no_sentiment") };
 }
 

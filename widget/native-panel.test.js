@@ -13,19 +13,22 @@ const BUTTON_COLORS = ["black", "blue", "green", "orange", "red", "purple"];
 const BUTTON_TYPES = ["link", "modal", "hook", "submit"];
 const MODAL_SIZES = ["normal", "medium", "large", "wide"];
 
-Deno.test("native-panel: version 1.0 và đúng 3 section Khách / Trạng thái / Action", () => {
+Deno.test("native-panel: version 1.0 và đúng 6 section theo design 30/10", () => {
   assertEquals(schema.version, "1.0");
-  assertEquals(schema.sections.map((s) => s.id), ["khach", "trang_thai", "action"]);
-  assertEquals(schema.sections.map((s) => s.title), ["Khách", "Trạng thái", "Action"]);
+  assertEquals(schema.sections.map((s) => s.id), ["chatbot", "khach", "trang_thai", "storefront", "jira", "lenh"]);
+  assertEquals(schema.sections.map((s) => s.title), ["Chatbot", "Khách", "Trạng thái", "Storefront", "Jira", "Lệnh"]);
 });
 
 Deno.test("native-panel: mọi item id là duy nhất trên toàn schema", () => {
   const ids = schema.sections.flatMap((s) => s.items.map((i) => i.id));
   assertEquals(new Set(ids).size, ids.length);
   assertEquals(ids, [
-    "khach_tam_trang", "khach_tom_tat", "khach_van_de", "khach_tin_cho",
-    "tt_csat", "tt_review", "tt_storefront", "tt_jira",
-    "act_draft", "act_note", "act_kb", "act_csat", "act_review", "act_storefront", "act_jira",
+    "bot_trang_thai", "bot_tra_loi", "bot_chan",
+    "khach_tam_trang", "tam_red", "tam_orange", "tam_black", "tam_green", "khach_tom_tat", "khach_van_de",
+    "tt_csat", "tt_review", "act_csat", "act_review",
+    "tt_storefront", "act_storefront",
+    "jira_ticket_1", "jira_ticket_2", "jira_ticket_3", "act_jira",
+    "act_draft", "act_note", "act_kb",
   ]);
 });
 
@@ -53,9 +56,29 @@ Deno.test("native-panel: button hợp lệ — màu trong enum Crisp, modal có 
       }
     }
   }
-  const csat = schema.sections.find((s) => s.id === "action").items.find((i) => i.id === "act_csat");
+  const csat = schema.sections.find((s) => s.id === "trang_thai").items.find((i) => i.id === "act_csat");
   assertEquals(csat.value.type, "hook");
   assertEquals(csat.value.data.operator_email, "{operator.email}");
+});
+
+Deno.test("native-panel: 4 nút Tâm trạng theo dải — màu khớp dải, condition đọc custom data copilot_mood_band, đều là hook", () => {
+  const khach = schema.sections.find((s) => s.id === "khach");
+  for (const band of ["red", "orange", "black", "green"]) {
+    const btn = khach.items.find((i) => i.id === `tam_${band}`);
+    assert(btn, band);
+    assertEquals(btn.value.color, band);
+    assertEquals(btn.value.type, "hook");
+    assertEquals(btn.condition, `{conversation.meta.data.copilot_mood_band === '${band}'}`);
+  }
+});
+
+Deno.test("native-panel: nút Chatbot là hook (bản giả), nút Private note màu orange (enum không có vàng)", () => {
+  const chatbot = schema.sections.find((s) => s.id === "chatbot");
+  for (const id of ["bot_tra_loi", "bot_chan"]) {
+    assertEquals(chatbot.items.find((i) => i.id === id).value.type, "hook", id);
+  }
+  const note = schema.sections.find((s) => s.id === "lenh").items.find((i) => i.id === "act_note");
+  assertEquals(note.value.color, "orange");
 });
 
 Deno.test("open param: chỉ nhận 6 view hợp lệ, còn lại bỏ qua", () => {

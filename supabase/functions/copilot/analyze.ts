@@ -60,7 +60,7 @@ export function sentimentFingerprint(messages: MessageRow[]): Promise<string> {
 export type SentimentSource = "analyze" | "precompute" | "generate" | "unknown";
 
 export async function resolveSentiment(
-  deps: { db: Db; ai: Ai; crisp?: CrispClient | null },
+  deps: { db: Db; ai: Ai; crisp?: CrispClient | null; syncBand?: boolean },
   websiteId: string,
   sessionId: string,
   messages: MessageRow[],
@@ -87,9 +87,12 @@ export async function resolveSentiment(
     await deps.db.appendSentimentHistory({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model, source }).catch(() => {});
     // Dải cảm xúc lên custom data Crisp cho nút Tâm trạng của mặt native
     // (Ethan duyệt 2026-10-30, xem copilot/mood-band.ts). Chỉ khi vừa tính
-    // MỚI; sync tự nuốt lỗi và tự bỏ qua khi dải không đổi — không bao
-    // giờ làm gãy luồng đo. Thiếu crisp (chưa cấu hình) thì bỏ qua.
-    if (deps.crisp) {
+    // MỚI, và CHỈ khi caller bật cờ syncBand: các đường của panel iframe
+    // team đang dùng (check/generate/analyze) KHÔNG truyền cờ này nên
+    // hành vi + độ trễ của chúng không đổi một ly — đường đồng bộ chỉ
+    // chạy ở precompute (job nền qua n8n) và các hook/fetch của mặt
+    // native. Sync tự nuốt lỗi, tự bỏ qua khi dải không đổi.
+    if (deps.crisp && deps.syncBand) {
       await syncMoodBand({ crisp: deps.crisp }, websiteId, sessionId, sentiment.score).catch(() => null);
     }
     return { sentiment, cached: false, reason: null };
