@@ -378,6 +378,7 @@ export async function runStorefrontAct(
   const operator = (req.operator_name ?? "").trim() || undefined;
   const t0 = performance.now();
   try {
+    let logSource: StorefrontFinding | null = null;
     if (act === "undo") {
       const detail = await deps.storefront.getFinding(req.website_id, req.fingerprint);
       if (!detail.dismissed && !detail.fixed) return fail("Finding này đang mở, không có gì để mở lại.");
@@ -390,14 +391,40 @@ export async function runStorefrontAct(
         return fail("Finding này không thuộc store của conversation hiện tại.");
       }
       await deps.storefront.undoFinding(req.website_id, req.fingerprint);
+      logSource = detail;
     } else {
       const findings = await deps.storefront.listFindings(req.website_id, shop);
-      if (!findings.some((f) => f.fingerprint === req.fingerprint)) {
+      const finding = findings.find((f) => f.fingerprint === req.fingerprint);
+      if (!finding) {
         return fail("Finding này không thuộc store của conversation hiện tại.");
       }
       if (act === "acknowledge") await deps.storefront.acknowledgeFinding(req.website_id, req.fingerprint, operator);
       else if (act === "fixed") await deps.storefront.markFixed(req.website_id, req.fingerprint, note, operator);
       else await deps.storefront.dismissFinding(req.website_id, req.fingerprint, reason, note, operator);
+      logSource = finding;
+    }
+    // Nhật ký report Google Sheet (migration 033, Ethan 2026-10-30): ghi
+    // SAU khi SW đã nhận thao tác. Lỗi ghi log KHÔNG được phá kết quả trả
+    // cho CS (thao tác thật đã xong) — nuốt lỗi, chỉ để lại trace.
+    try {
+      await deps.db.insertStorefrontActionLog({
+        website_id: req.website_id,
+        session_id: req.session_id,
+        operator_name: operator ?? null,
+        act,
+        shop,
+        fingerprint: req.fingerprint,
+        title: logSource?.title ?? null,
+        severity: logSource?.severity ?? null,
+        locale: logSource?.locale ?? null,
+        page: logSource?.page ?? null,
+        reason: act === "dismiss" ? reason : null,
+        note: note || null,
+        crisp_url: `https://app.crisp.chat/website/${req.website_id}/inbox/${req.session_id}`,
+        console_url: logSource ? (logSource.consoleLink ?? consoleUnitUrl(shop, logSource)) : null,
+      });
+    } catch (logErr) {
+      await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "error", stage: "storefront_act_log", detail: { act, error: errText(logErr) } }).catch(() => null);
     }
     await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "timing", stage: "storefront_act", duration_ms: Math.round(performance.now() - t0), detail: { act } });
     return { action: "storefront_act", status: "ok", act, error: null };
