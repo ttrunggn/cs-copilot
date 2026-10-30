@@ -13,6 +13,7 @@ import { handleNativeEvent, isNativeEvent } from "./native.ts";
 import { handlePrecompute } from "./precompute.ts";
 import { handleStorefrontSegments } from "./storefront-segments.ts";
 import { handleStorefrontDigest } from "./storefront-digest.ts";
+import { handleStorefrontReportAck, handleStorefrontReportPull } from "./storefront-report.ts";
 import { handleStorefrontSweep } from "./storefront-sweep.ts";
 
 const CORS = {
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
   // shared secret ở header x-copilot-secret, hoặc service role key
   // (n8n gọi bằng credential Supabase API có sẵn của nó: apikey/Bearer).
   const internalAction = (body as { action?: unknown } | null)?.action;
-  if (internalAction === "precompute_sentiment" || internalAction === "storefront_sweep" || internalAction === "storefront_segments" || internalAction === "storefront_digest") {
+  if (internalAction === "precompute_sentiment" || internalAction === "storefront_sweep" || internalAction === "storefront_segments" || internalAction === "storefront_digest" || internalAction === "storefront_report_pull" || internalAction === "storefront_report_ack") {
     const presented = req.headers.get("x-copilot-secret") ?? req.headers.get("apikey") ??
       (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const shared = Deno.env.get("N8N_SHARED_SECRET") ?? "";
@@ -97,6 +98,10 @@ Deno.serve(async (req) => {
       ? await handleStorefrontSweep(body, { db, storefront })
       : internalAction === "storefront_digest"
       ? await handleStorefrontDigest(body, { db, storefront, mailer })
+      : internalAction === "storefront_report_pull"
+      ? await handleStorefrontReportPull(body, { db })
+      : internalAction === "storefront_report_ack"
+      ? await handleStorefrontReportAck(body, { db })
       : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
