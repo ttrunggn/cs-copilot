@@ -356,6 +356,17 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
    nền, hộp thoại trải hết khung modal của Crisp — view là cả trang. */
 body.standalone .overlay { position: static; background: transparent; padding: 0; display: block; }
 body.standalone .modal { max-height: none; min-height: 100vh; border: 0; border-radius: 0; }
+/* Standalone (modal từ mặt native) rộng hơn panel hẹp nhiều: hàng link của
+   finding KHÔNG xếp cột ở mép phải nữa (bản panel giữ nguyên cột dọc theo
+   chốt 2026-10-29) mà rớt xuống thành MỘT HÀNG NGANG trong thân dòng, ngay
+   dưới tiêu đề + meta — đúng vùng Ethan khoanh đỏ khi test live 2026-10-30.
+   Danh sách lỗi canh trên, không giãn cách theo chiều cao khung modal. */
+body.standalone .sf-line { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
+body.standalone .sf-line .sf-links { order: 3; flex: 1 1 100%; margin-left: 0; flex-direction: row; align-items: center; gap: 6px; }
+body.standalone .sf-line .sf-links .sf-bug-link { text-align: left; }
+body.standalone .storefront-card { justify-content: flex-start; }
+body.standalone .sf-rows { align-content: start; flex: none; }
+body.standalone .sf-item { padding: 6px 0; border-bottom: 1px solid var(--line); }
 .opt { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; background: var(--surface-inset); border: 1px solid var(--border); border-radius: 14px; padding: 12px; min-height: 44px; font-size: 13px; }
 .opt b { display: block; font-size: 14px; }
 .opt .opt-desc { display: block; font-size: 12px; font-weight: 400; }

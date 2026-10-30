@@ -11,7 +11,7 @@ const schema = JSON.parse(await Deno.readTextFile(new URL("./native-panel.json",
 
 const BUTTON_COLORS = ["black", "blue", "green", "orange", "red", "purple"];
 const BUTTON_TYPES = ["link", "modal", "hook", "submit"];
-const MODAL_SIZES = ["normal", "medium", "large", "wide"];
+const MODAL_SIZES = ["normal", "medium", "large", "wide"]; // đúng enum reference Crisp: normal < medium < large < wide
 
 Deno.test("native-panel: version 1.0 và đúng 6 section của panel GỘP — mỗi module một section gọn, dữ kiện đi cặp với nút (Ethan đính chính 30/10)", () => {
   assertEquals(schema.version, "1.0");
@@ -54,6 +54,7 @@ Deno.test("native-panel: button hợp lệ — màu trong enum Crisp, modal có 
         assert(item.value.url.includes("session_id={conversation.session_id}"), item.id);
         assert(item.value.url.includes("fn=copilot-test"), item.id); // pha test: modal gọi function copilot-test, promote production thì bỏ
         assert(MODAL_SIZES.includes(item.value.size), item.id);
+        assertEquals(item.value.size, "normal", item.id); // Ethan chốt 30/10 17:18: mọi modal dùng cỡ NHỎ NHẤT (Crisp không có mini; normal là nhỏ nhất)
       }
     }
   }

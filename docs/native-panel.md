@@ -62,9 +62,15 @@ sidebar không cuộn nổi khi widget xếp chồng — mặt native chỉ còn
   ngay qua runSurvey như panel) đi cặp; data "Review: …" + nút modal
   **Xin review** đi cặp.
 - **Storefront**: data một dòng "Storefront: N lỗi · quét … trước" (số
-  lỗi từ bản chụp sweep) ngay trên nút modal lớn **Xử lý lỗi
-  Storefront** — nhìn một chỗ biết có lỗi hay không (Ethan bắt 30/10:
-  nút đứng riêng ở section Lệnh thì không báo trạng thái).
+  lỗi từ bản chụp sweep) ngay trên nút modal **Xử lý lỗi Storefront** —
+  nhìn một chỗ biết có lỗi hay không (Ethan bắt 30/10: nút đứng riêng ở
+  section Lệnh thì không báo trạng thái). Mọi nút modal đều dùng size
+  `normal` — cỡ nhỏ nhất theo reference Crisp (enum: normal < medium <
+  large < wide; KHÔNG có mini) — Ethan chốt 30/10 17:18 sau khi thấy
+  large/medium đều quá khổ. Ở màn standalone, hàng link Default /
+  Target / Console của mỗi finding rớt xuống thành một hàng ngang
+  trong thân dòng (CSS scoped `body.standalone`); bản panel hẹp giữ
+  nguyên cột dọc bên phải theo chốt 2026-10-29.
 - **Jira**: data một dòng "Jira: Không có / N ticket" (handler
   `tt_jira` — bỏ hẳn 3 ô ticket khai sẵn) ngay trên nút modal **Xem
   ticket Jira**.
