@@ -432,12 +432,16 @@ export async function runStorefrontAct(
     }
     // Đẩy REAL-TIME lên Sheet qua webhook n8n (Ethan chốt 2026-10-30:
     // team cần track liên tục, không chờ gom 15 phút). Đẩy hỏng thì dòng
-    // vẫn chưa reported — workflow pull 15 phút lấp lại, không mất dòng.
+    // vẫn chưa reported — workflow pull lấp lại, không mất dòng. Kết quả
+    // cú đẩy (kèm status/lỗi) PHẢI vào trace: bản đầu nuốt im lặng nên
+    // lỗi production không truy được (2026-10-30).
+    let pushOutcome: Record<string, unknown> = { skipped: loggedId === null ? "no_id" : "no_n8n" };
     if (loggedId !== null && deps.n8n) {
       const sheetRow = toSheetRow({ ...logRow, id: loggedId, created_at: new Date().toISOString() });
-      await deps.n8n.pushStorefrontReport(sheetRow as unknown as Record<string, unknown>).catch(() => false);
+      pushOutcome = await deps.n8n.pushStorefrontReport(sheetRow as unknown as Record<string, unknown>)
+        .catch((e) => ({ ok: false, error: errText(e) }));
     }
-    await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "timing", stage: "storefront_act", duration_ms: Math.round(performance.now() - t0), detail: { act } });
+    await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "timing", stage: "storefront_act", duration_ms: Math.round(performance.now() - t0), detail: { act, logged_id: loggedId, push: pushOutcome } });
     return { action: "storefront_act", status: "ok", act, error: null };
   } catch (e) {
     return fail(errText(e));
