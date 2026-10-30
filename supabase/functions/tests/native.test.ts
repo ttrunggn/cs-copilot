@@ -2,6 +2,7 @@ import { assertEquals } from "jsr:@std/assert@1";
 import { sentimentFingerprint } from "../copilot/analyze.ts";
 import {
   computeCrispWidgetSignature,
+  diagnoseCrispWidgetSignature,
   formatMoodValue,
   handleNativeEvent,
   hhmmSaigon,
@@ -433,4 +434,28 @@ Deno.test("native: schema native-panel.json khớp handler — data item nào c�
       }
     }
   }
+});
+
+Deno.test("diagnoseCrispWidgetSignature: nhận ra các biến thể ghép chuỗi ký", async () => {
+  const secret = "diag-secret-0123456789";
+  const ts = "1761733000123";
+  const body = '{"action":{"type":"data","method":"fetch"}}';
+  const enc = new TextEncoder();
+  const sign = async (payload: string) => {
+    const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(payload)));
+    return [...sig].map((x) => x.toString(16).padStart(2, "0")).join("");
+  };
+  // Công thức theo tài liệu — biến thể [ms;raw]
+  assertEquals(await diagnoseCrispWidgetSignature(secret, ts, body, await sign(`[${ts};${body}]`)), ["[ms;raw]:hex"]);
+  // Không ngoặc vuông
+  assertEquals(await diagnoseCrispWidgetSignature(secret, ts, body, await sign(`${ts};${body}`)), ["ms;raw:hex"]);
+  // Timestamp theo giây trong khi header là mili-giây
+  assertEquals(await diagnoseCrispWidgetSignature(secret, ts, body, await sign(`[${ts.slice(0, 10)};${body}]`)), ["[sec;raw]:hex"]);
+  // Chỉ ký body
+  assertEquals(await diagnoseCrispWidgetSignature(secret, ts, body, await sign(body)), ["raw-only:hex"]);
+  // Chữ ký rác → không biến thể nào
+  assertEquals(await diagnoseCrispWidgetSignature(secret, ts, body, "0".repeat(64)), []);
+  // Khoá khác → không biến thể nào
+  assertEquals(await diagnoseCrispWidgetSignature("another-secret-987654321", ts, body, await sign(`[${ts};${body}]`)), []);
 });

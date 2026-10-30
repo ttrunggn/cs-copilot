@@ -147,6 +147,83 @@ export async function verifyCrispWidgetSignature(
   return false;
 }
 
+// ---------- Chẩn đoán chữ ký (chỉ chạy khi verify fail) ----------
+//
+// Verify theo đúng tài liệu vẫn fail trên request THẬT của Crisp
+// (30/10: plugin survey, key Ethan khẳng định đúng mà mọi fetch đều
+// 401). Hàm này thử một loạt biến thể ghép chuỗi ký / dạng body /
+// đơn vị timestamp / định dạng digest để xác định Crisp thật sự ký
+// theo biến thể nào; nhãn biến thể khớp được ghi vào trace ở nhánh
+// 401. NÓ KHÔNG NỚI LỎNG VERIFY: khớp biến thể lạ vẫn trả 401 như
+// thường — biến thể thắng sẽ được chốt cứng vào verify sau, bằng một
+// thay đổi riêng có kiểm chứng.
+
+async function hmacSha256(secret: string, payload: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(payload)));
+}
+
+function hexOf(bytes: Uint8Array): string {
+  return [...bytes].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+function b64Of(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+function sortKeysDeep(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(sortKeysDeep);
+  if (v && typeof v === "object") {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(v as Record<string, unknown>).sort()) out[k] = sortKeysDeep((v as Record<string, unknown>)[k]);
+    return out;
+  }
+  return v;
+}
+
+/** Trả nhãn mọi biến thể khớp chữ ký đã cho (rỗng = không biến thể nào khớp — khi đó nghi vấn quay về phía khoá). */
+export async function diagnoseCrispWidgetSignature(
+  secret: string,
+  timestamp: string,
+  rawBody: string,
+  signature: string,
+): Promise<string[]> {
+  if (!secret || !timestamp || !signature) return [];
+  const got = signature.trim();
+  const gotHex = got.toLowerCase();
+  const bodies: Array<[string, string]> = [["raw", rawBody]];
+  try {
+    const parsed = JSON.parse(rawBody);
+    const norm = JSON.stringify(parsed);
+    if (norm !== rawBody) bodies.push(["json", norm]);
+    const sorted = JSON.stringify(sortKeysDeep(parsed));
+    if (sorted !== rawBody && sorted !== norm) bodies.push(["sorted", sorted]);
+  } catch { /* body không phải JSON: chỉ còn dạng thô */ }
+  const stamps: Array<[string, string]> = [["ms", timestamp]];
+  if (/^\d{13}$/.test(timestamp)) stamps.push(["sec", timestamp.slice(0, 10)]);
+  const matches: string[] = [];
+  for (const [bl, body] of bodies) {
+    for (const [tl, ts] of stamps) {
+      const variants: Array<[string, string]> = [
+        [`[${tl};${bl}]`, `[${ts};${body}]`],
+        [`${tl};${bl}`, `${ts};${body}`],
+        [`${tl}.${bl}`, `${ts}.${body}`],
+        [`${tl}+${bl}`, `${ts}${body}`],
+      ];
+      for (const [label, payload] of variants) {
+        const digest = await hmacSha256(secret, payload);
+        if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${label}:hex`);
+        if (b64Of(digest) === got) matches.push(`${label}:b64`);
+      }
+    }
+    const digest = await hmacSha256(secret, body);
+    if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${bl}-only:hex`);
+  }
+  return matches;
+}
+
 // ---------- Định dạng giá trị hiển thị (hàm thuần, có test) ----------
 
 /** Nhãn mood rút gọn cho mặt native (chỗ hiển thị hẹp): giữ đúng chữ của bản thiết kế Ethan duyệt — frustrated là "Đang bực", các mood khác trùng MOOD_LABEL ở _shared/sentiment.ts. */
@@ -429,7 +506,20 @@ export async function handleNativeEvent(
       }
     }
     if (!ok) {
-      await tracer.error("signature", "AUTH", "Chữ ký sự kiện widget không hợp lệ", { item_id: ev.itemId });
+      // Chẩn đoán biến thể ký (xem diagnoseCrispWidgetSignature): ghi
+      // nhãn biến thể khớp theo từng khoá (k1, k2, ... theo thứ tự
+      // deps.pluginKeys) vào trace; "none" = không biến thể nào khớp.
+      const diag: string[] = [];
+      for (let i = 0; i < keys.length; i++) {
+        const m = await diagnoseCrispWidgetSignature(keys[i], headers.timestamp ?? "", rawBody, headers.signature ?? "");
+        for (const label of m) diag.push(`k${i + 1}:${label}`);
+      }
+      await tracer.error("signature", "AUTH", "Chữ ký sự kiện widget không hợp lệ", {
+        item_id: ev.itemId,
+        sig_diag: diag.length ? diag : "none",
+        sig_len: (headers.signature ?? "").trim().length,
+        ts_len: (headers.timestamp ?? "").trim().length,
+      });
       return { status: 401, body: { error: "invalid signature" } };
     }
   }
