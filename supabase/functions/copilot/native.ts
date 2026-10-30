@@ -159,8 +159,30 @@ export async function verifyCrispWidgetSignature(
 // thay đổi riêng có kiểm chứng.
 
 async function hmacSha256(secret: string, payload: string): Promise<Uint8Array> {
-  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return hmacSha256Bytes(enc.encode(secret), payload);
+}
+
+async function hmacSha256Bytes(keyBytes: Uint8Array, payload: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", keyBytes as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(payload)));
+}
+
+/** Các dạng "khoá hiệu dụng" suy từ chuỗi khoá đã cấu hình: nguyên văn, giải mã hex (khoá Crisp hiển thị dạng hex 64 ký tự — phía ký có thể dùng bytes đã giải mã), giải mã base64. */
+function keyVariants(secret: string): Array<[string, Uint8Array]> {
+  const out: Array<[string, Uint8Array]> = [["lit", enc.encode(secret)]];
+  const s = secret.trim();
+  if (/^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0) {
+    const bytes = new Uint8Array(s.length / 2);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);
+    out.push(["hex", bytes]);
+  }
+  try {
+    const bin = atob(s);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (bytes.length >= 16) out.push(["b64", bytes]);
+  } catch { /* không phải base64 hợp lệ */ }
+  return out;
 }
 
 function hexOf(bytes: Uint8Array): string {
@@ -203,23 +225,35 @@ export async function diagnoseCrispWidgetSignature(
   } catch { /* body không phải JSON: chỉ còn dạng thô */ }
   const stamps: Array<[string, string]> = [["ms", timestamp]];
   if (/^\d{13}$/.test(timestamp)) stamps.push(["sec", timestamp.slice(0, 10)]);
-  const matches: string[] = [];
-  for (const [bl, body] of bodies) {
-    for (const [tl, ts] of stamps) {
-      const variants: Array<[string, string]> = [
-        [`[${tl};${bl}]`, `[${ts};${body}]`],
-        [`${tl};${bl}`, `${ts};${body}`],
-        [`${tl}.${bl}`, `${ts}.${body}`],
-        [`${tl}+${bl}`, `${ts}${body}`],
-      ];
-      for (const [label, payload] of variants) {
-        const digest = await hmacSha256(secret, payload);
-        if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${label}:hex`);
-        if (b64Of(digest) === got) matches.push(`${label}:b64`);
-      }
+  // Body bớt từng trường top-level một (phòng khi phía Crisp ký trước
+  // khi gắn thêm trường vào body đã gửi).
+  try {
+    const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+    for (const k of Object.keys(parsed)) {
+      const copy = { ...parsed };
+      delete copy[k];
+      bodies.push([`no-${k}`, JSON.stringify(copy)]);
     }
-    const digest = await hmacSha256(secret, body);
-    if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${bl}-only:hex`);
+  } catch { /* bỏ qua */ }
+  const matches: string[] = [];
+  for (const [kvLabel, kvBytes] of keyVariants(secret)) {
+    for (const [bl, body] of bodies) {
+      for (const [tl, ts] of stamps) {
+        const variants: Array<[string, string]> = [
+          [`[${tl};${bl}]`, `[${ts};${body}]`],
+          [`${tl};${bl}`, `${ts};${body}`],
+          [`${tl}.${bl}`, `${ts}.${body}`],
+          [`${tl}+${bl}`, `${ts}${body}`],
+        ];
+        for (const [label, payload] of variants) {
+          const digest = await hmacSha256Bytes(kvBytes, payload);
+          if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${kvLabel}:${label}:hex`);
+          if (b64Of(digest) === got) matches.push(`${kvLabel}:${label}:b64`);
+        }
+      }
+      const digest = await hmacSha256Bytes(kvBytes, body);
+      if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${kvLabel}:${bl}-only:hex`);
+    }
   }
   return matches;
 }
@@ -519,6 +553,10 @@ export async function handleNativeEvent(
         sig_diag: diag.length ? diag : "none",
         sig_len: (headers.signature ?? "").trim().length,
         ts_len: (headers.timestamp ?? "").trim().length,
+        // Độ dài từng khoá đã cấu hình (chỉ độ dài, không lộ giá trị):
+        // phân biệt "chưa có khoá" với "khoá sai". Khoá token Crisp
+        // đúng chuẩn dài 64 ký tự hex; identifier là UUID 36 ký tự.
+        key_lens: keys.map((k) => k.length),
       });
       return { status: 401, body: { error: "invalid signature" } };
     }
