@@ -801,6 +801,7 @@ function render() {
       cardView ? null : modalView(handlers),
       noticeNode(),
       cardView ? modalView(handlers) : null,
+      standaloneView === "monitor" ? el("p", { id: "monitor-debug", className: "muted", textContent: monitorDebugText }) : null,
     );
     return;
   }
@@ -899,10 +900,24 @@ function applyOpenDeepLink(sessionId) {
 // mở form / menu) thì HOÃN — nhịp hỏi kế tiếp thử lại, không giật màn
 // hình giữa chừng. Các view standalone khác KHÔNG tự nạp lại (draft
 // đang gõ mà nạp lại là mất chữ).
+// Dòng chẩn đoán TẠM trong view monitor (vòng gỡ lỗi 30/10 17:57):
+// monitor không sync live dù probe từng báo bám được — nghi vấn session_id
+// của SDK nằm LỒNG một cấp ($crisp.data.conversation.data.conversation)
+// nên bản đầu đọc ra rỗng và không bao giờ nạp lại, đồng thời trạng thái
+// "ĐÃ BÁM" của probe có thể là dương tính giả (chuỗi thay thế đem so với
+// URL luôn khác). Dòng này in cả hai đường ứng viên để nhìn một phát biết
+// đường nào sống và có nhảy theo chat không; chốt được thì gỡ dòng này.
+let monitorDebugText = "SDK: chưa có dữ liệu";
 function monitorOnConversation() {
   if (standaloneView !== "monitor") return;
-  const sid = $crisp.data?.conversation?.session_id ?? "";
+  const conv = $crisp.data?.conversation ?? {};
+  const direct = conv.session_id ?? "";
+  const nested = conv.data?.conversation?.session_id ?? "";
+  const sid = direct || nested;
   const current = readContext(location.search).sessionId ?? "";
+  monitorDebugText = `URL: ${current || "?"} · SDK trực tiếp: ${direct || "—"} · SDK lồng: ${nested || "—"}`;
+  const dbg = document.getElementById("monitor-debug");
+  if (dbg) dbg.textContent = monitorDebugText;
   if (!sid || sid === current) return;
   if (state.sfActBusy || state.sfForm || state.busyAction) return;
   const url = new URL(location.href);
