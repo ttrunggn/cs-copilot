@@ -171,9 +171,11 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .ask-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ask-notfound .warn p { margin-top: 4px; font-weight: 400; }
 .csat-panel { display: grid; gap: 10px; padding: 14px 0 0; border-top: 1px solid var(--line); }
-/* Gửi CSAT = xanh dương theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông. */
+/* Gửi CSAT = xanh dương theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông.
+   Hover đổ màu ĐẶC + chữ trắng (công thức nút Ethan duyệt 2026-10-30 cho
+   panel native: nền nhạt lúc thường, hover mới đổ đậm như bản design). */
 .csat-button { border-color: #2f6db3; background: rgba(47, 109, 179, .18); color: var(--band-blue); box-shadow: 0 4px 14px rgba(47, 109, 179, .22); }
-.csat-button:hover:not(:disabled) { border-color: #2f6db3; background: rgba(47, 109, 179, .28); filter: brightness(1.09); }
+.csat-button:hover:not(:disabled) { border-color: #2f6db3; background: #2f6db3; color: #fff; filter: none; }
 .csat-button:disabled { opacity: .5; }
 .csat-sent { display: grid; gap: 3px; }
 .csat-error { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--error-border); border-radius: 14px; background: var(--surface); }
@@ -325,16 +327,23 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
    2026-10-27 tăng lại độ sáng + tương phản vì bản dịu nổi chưa đủ trên nền tối:
    nền nhuốm .68 và chữ sáng thêm một nấc; viền giữ nguyên màu đặc. */
 .cmd { font-weight: 700; }
-.cmd-draft { --tint: rgba(47, 109, 179, .55); border-color: #2f6db3; color: #d7e9ff; }
-.cmd-note { --tint: rgba(217, 169, 44, .68); border-color: #d9a92c; color: #fff0b8; }
-.cmd-ask { --tint: rgba(36, 122, 114, .55); border-color: #247a72; color: #d9f6f2; }
-.cmd-csat { --tint: rgba(224, 86, 107, .68); border-color: #e0566b; color: #ffe0e5; }
+.cmd-draft { --tint: rgba(47, 109, 179, .38); border-color: #2f6db3; color: #d7e9ff; }
+.cmd-note { --tint: rgba(217, 169, 44, .45); border-color: #d9a92c; color: #fff0b8; }
+.cmd-ask { --tint: rgba(36, 122, 114, .38); border-color: #247a72; color: #d9f6f2; }
+.cmd-csat { --tint: rgba(224, 86, 107, .45); border-color: #e0566b; color: #ffe0e5; }
 .customer-line { margin: 3px 0 0; font-size: 14.5px; }
 .customer-line b { font-size: 16px; }
 .profile-status-card { gap: 4px; font-size: 12.5px; }
 .profile-status-card .eyebrow { margin-bottom: 2px; }
 
 .cmds .cmd:hover:not(:disabled) { background: var(--tint); filter: brightness(1.18); }
+/* Hover đổ màu ĐẶC theo đúng sắc của từng lệnh, chữ lật tương phản (công
+   thức Ethan duyệt 2026-10-30 qua bản xem thử panel native: nền nhạt lúc
+   thường để không đè chữ, hover mới đổ đậm như bản design). */
+.cmds .cmd-draft:hover:not(:disabled) { background: #2f6db3; color: #fff; filter: none; }
+.cmds .cmd-note:hover:not(:disabled) { background: #d9a92c; color: #1a1405; filter: none; }
+.cmds .cmd-ask:hover:not(:disabled) { background: #247a72; color: #fff; filter: none; }
+.cmds .cmd-csat:hover:not(:disabled) { background: #e0566b; color: #fff; filter: none; }
 .cmds .cmd:active:not(:disabled) { transform: scale(.98); }
 
 .overlay { position: fixed; inset: 0; background: rgba(5, 6, 10, .62); display: grid; place-items: center; padding: 12px; z-index: 50; }
