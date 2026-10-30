@@ -3,6 +3,14 @@ export interface N8n {
   sendSurvey(websiteId: string, sessionId: string, agentName: string): Promise<boolean>;
   /** Kích hoạt workflow Jira Sync quét ngay (webhook jira-sync-now) thay vì chờ lịch 5 phút. */
   triggerJiraSync(websiteId: string, sessionId: string): Promise<boolean>;
+  /**
+   * Đẩy MỘT dòng log thao tác Storefront tới webhook storefront-report của
+   * workflow "Storefront Report Live" (append Google Sheet gần như tức thì,
+   * Ethan chốt real-time 2026-10-30). Trả true khi n8n nhận (HTTP 2xx);
+   * false thì dòng vẫn nằm ở storefront_action_log chưa reported và
+   * workflow pull 15 phút sẽ lấp lại — không mất dòng.
+   */
+  pushStorefrontReport(row: Record<string, unknown>): Promise<boolean>;
 }
 
 // Refresh qua n8n (Crisp API + RPC) mất ~3s trên production.
@@ -80,6 +88,20 @@ export function createN8n(opts: {
         return await confirmed(res);
       } catch {
         return false;
+      }
+    },
+
+    async pushStorefrontReport(row) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 4000);
+      try {
+        const res = await post("storefront-report", row, ctrl.signal);
+        if (!res.ok) await res.body?.cancel();
+        return res.ok;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(timer);
       }
     },
   };

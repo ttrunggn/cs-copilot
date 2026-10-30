@@ -110,8 +110,8 @@ export interface Db {
   getStorefrontSeen(websiteId: string): Promise<string[]>;
   /** Ghi mốc đã thấy: fingerprint mới được insert, fingerprint cũ chỉ cập nhật last_seen_at. */
   markStorefrontSeen(websiteId: string, fingerprints: string[]): Promise<void>;
-  /** Ghi một dòng nhật ký thao tác ghi SW từ panel (migration 033) — nền cho report Google Sheet qua n8n. */
-  insertStorefrontActionLog(row: NewStorefrontActionLog): Promise<void>;
+  /** Ghi một dòng nhật ký thao tác ghi SW từ panel (migration 033) — nền cho report Google Sheet qua n8n. Trả id dòng mới (để đẩy real-time + ack). */
+  insertStorefrontActionLog(row: NewStorefrontActionLog): Promise<number>;
   /** Các dòng log chưa được báo lên Sheet (reported_at null), cũ nhất trước. */
   listUnreportedStorefrontActions(limit: number): Promise<StorefrontActionLogRow[]>;
   /** Đánh dấu đã báo sau khi n8n xác nhận append lên Sheet xong. */
@@ -376,8 +376,9 @@ export function createDb(sb: SupabaseClient): Db {
       if (error) throw error;
     },
     async insertStorefrontActionLog(row) {
-      const { error } = await sb.from("storefront_action_log").insert(row);
+      const { data, error } = await sb.from("storefront_action_log").insert(row).select("id").single();
       if (error) throw error;
+      return (data as { id: number }).id;
     },
     async listUnreportedStorefrontActions(limit) {
       const { data, error } = await sb.from("storefront_action_log")
