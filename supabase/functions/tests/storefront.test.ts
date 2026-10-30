@@ -1242,7 +1242,7 @@ Deno.test("action storefront_act dismiss: đẩy REAL-TIME dòng đã định d�
     triggerJiraSync: () => Promise.resolve(true),
     pushStorefrontReport: (row: Record<string, unknown>) => {
       pushed.push(row);
-      return Promise.resolve(true);
+      return Promise.resolve({ ok: true });
     },
   };
   const r = await handle({ ...ACT_REQ, sf_act: "dismiss", reason: "not_important" }, TOKEN, deps);

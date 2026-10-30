@@ -51,13 +51,13 @@ Deno.test("pushStorefrontReport: POST đúng webhook storefront-report kèm secr
   const { calls, f } = recorder(() => Promise.resolve(new Response("{}", { status: 200 })));
   const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
   const row = { id: 7, thao_tac: "Dismiss", store: "shop.myshopify.com" };
-  assertEquals(await n8n.pushStorefrontReport(row), true);
+  assertEquals(await n8n.pushStorefrontReport(row), { ok: true, status: 200 });
   assertEquals(calls[0].url, "https://n8n.test/webhook/storefront-report");
   assertEquals((calls[0].init.headers as Record<string, string>)["x-copilot-secret"], "k");
   assertEquals(JSON.parse(calls[0].init.body as string), row);
 
   const bad = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: () => Promise.resolve(new Response("err", { status: 500 })) });
-  assertEquals(await bad.pushStorefrontReport(row), false);
+  assertEquals(await bad.pushStorefrontReport(row), { ok: false, status: 500 });
 });
 
 Deno.test("refresh 200 with empty body (n8n workflow errored) -> stale true", async () => {
