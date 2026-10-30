@@ -43,6 +43,27 @@ export interface SentimentHistoryRow extends Sentiment {
   source: string;
 }
 
+/** Một dòng nhật ký thao tác ghi Storefront Watch (bảng storefront_action_log, migration 033). */
+export interface StorefrontActionLogRow {
+  id: number;
+  created_at: string;
+  website_id: string;
+  session_id: string;
+  operator_name: string | null;
+  act: string;
+  shop: string;
+  fingerprint: string;
+  title: string | null;
+  severity: string | null;
+  locale: string | null;
+  page: string | null;
+  reason: string | null;
+  note: string | null;
+  crisp_url: string;
+  console_url: string | null;
+}
+export type NewStorefrontActionLog = Omit<StorefrontActionLogRow, "id" | "created_at">;
+
 export interface Db {
   /** Ghi truy vết (migration 028). Lỗi ghi log được nuốt ở writeTrace — impl cứ throw như thường. */
   logTrace(row: TraceRow): Promise<void>;
@@ -89,6 +110,12 @@ export interface Db {
   getStorefrontSeen(websiteId: string): Promise<string[]>;
   /** Ghi mốc đã thấy: fingerprint mới được insert, fingerprint cũ chỉ cập nhật last_seen_at. */
   markStorefrontSeen(websiteId: string, fingerprints: string[]): Promise<void>;
+  /** Ghi một dòng nhật ký thao tác ghi SW từ panel (migration 033) — nền cho report Google Sheet qua n8n. */
+  insertStorefrontActionLog(row: NewStorefrontActionLog): Promise<void>;
+  /** Các dòng log chưa được báo lên Sheet (reported_at null), cũ nhất trước. */
+  listUnreportedStorefrontActions(limit: number): Promise<StorefrontActionLogRow[]>;
+  /** Đánh dấu đã báo sau khi n8n xác nhận append lên Sheet xong. */
+  markStorefrontActionsReported(ids: number[]): Promise<void>;
   /** Bản chụp trạng thái SW của một store (job storefront_sweep ghi); null = job chưa quét tới domain này. */
   getStorefrontStoreStatus(websiteId: string, shop: string): Promise<StorefrontStoreStatus | null>;
   /** Ghi/đè bản chụp trạng thái store theo PK (website_id, shop) — job sweep chạy lại không nhân dữ liệu. */
@@ -346,6 +373,27 @@ export function createDb(sb: SupabaseClient): Db {
       // hiện" không bị ghi đè.
       const rows = fingerprints.map((fingerprint) => ({ website_id: websiteId, fingerprint, last_seen_at: new Date().toISOString() }));
       const { error } = await sb.from("storefront_seen").upsert(rows, { onConflict: "website_id,fingerprint" });
+      if (error) throw error;
+    },
+    async insertStorefrontActionLog(row) {
+      const { error } = await sb.from("storefront_action_log").insert(row);
+      if (error) throw error;
+    },
+    async listUnreportedStorefrontActions(limit) {
+      const { data, error } = await sb.from("storefront_action_log")
+        .select("id,created_at,website_id,session_id,operator_name,act,shop,fingerprint,title,severity,locale,page,reason,note,crisp_url,console_url")
+        .is("reported_at", null)
+        .order("created_at", { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as StorefrontActionLogRow[];
+    },
+    async markStorefrontActionsReported(ids) {
+      if (!ids.length) return;
+      const { error } = await sb.from("storefront_action_log")
+        .update({ reported_at: new Date().toISOString() })
+        .in("id", ids)
+        .is("reported_at", null);
       if (error) throw error;
     },
     async getStorefrontStoreStatus(websiteId, shop) {

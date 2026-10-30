@@ -1199,6 +1199,49 @@ Deno.test("action storefront_act dismiss: lý do ngoài 2 giá trị của SW �
   assertEquals(seen, [[FP_A, "false_signal", "Trang vẫn ổn", "Ethan Nguyen"], [FP_A, "not_important", "", "Ethan Nguyen"]]);
 });
 
+Deno.test("action storefront_act dismiss: ghi 1 dòng nhật ký report đầy đủ (migration 033) sau khi SW nhận thao tác", async () => {
+  const logged: unknown[] = [];
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_A, { title: "Transient text", severity: "high", locale: "es", page: "/products/abc", widthPx: 1440 })]),
+    dismissFinding: () => Promise.resolve("ok"),
+  });
+  const { deps } = actDeps(mcp, {
+    insertStorefrontActionLog: (row: unknown) => {
+      logged.push(row);
+      return Promise.resolve();
+    },
+  });
+  const r = await handle({ ...ACT_REQ, sf_act: "dismiss", reason: "false_signal" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { status: string }).status, "ok");
+  assertEquals(logged.length, 1);
+  const rowLog = logged[0] as Record<string, unknown>;
+  assertEquals(rowLog.act, "dismiss");
+  assertEquals(rowLog.shop, "shop-x.myshopify.com");
+  assertEquals(rowLog.title, "Transient text");
+  assertEquals(rowLog.severity, "high");
+  assertEquals(rowLog.locale, "es");
+  assertEquals(rowLog.page, "/products/abc");
+  assertEquals(rowLog.reason, "false_signal");
+  assertEquals(rowLog.note, null);
+  assertEquals(rowLog.operator_name, "Ethan Nguyen");
+  assertEquals(rowLog.crisp_url, "https://app.crisp.chat/website/ws1/inbox/session_1");
+  assertEquals(typeof rowLog.console_url, "string");
+});
+
+Deno.test("action storefront_act: ghi log THẤT BẠI không làm hỏng thao tác (SW đã nhận thì vẫn ok)", async () => {
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_A)]),
+    acknowledgeFinding: () => Promise.resolve("ok"),
+  });
+  const { deps } = actDeps(mcp, {
+    insertStorefrontActionLog: () => Promise.reject(new Error("log table missing")),
+  });
+  const r = await handle({ ...ACT_REQ, sf_act: "acknowledge" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals((r.body as { status: string }).status, "ok");
+});
+
 Deno.test("action storefront_act: fingerprint không thuộc store của chat → status error, không ghi gì", async () => {
   let ackCalls = 0;
   const mcp = fakeMcp({
