@@ -39,6 +39,37 @@ export function openModalName(open) {
   return null;
 }
 
+/**
+ * View deep-link → view STANDALONE của trang mở từ mặt native: trang chỉ
+ * render đúng view đó thay vì cả panel rồi popup chồng lên (Ethan chốt
+ * 30/10: modal gánh design). draft/note/ask/review dùng lại thân modal
+ * tương ứng (review → csat); storefront/jira render card của chính chúng.
+ * View lạ → null (trang panel thường).
+ */
+export function standaloneViewFor(open) {
+  const m = openModalName(open);
+  if (m) return m;
+  if (open === "storefront" || open === "jira") return open;
+  return null;
+}
+
+/**
+ * Function API đích của widget: mặc định production `copilot`. Modal mở
+ * từ mặt native bản test mang `fn=copilot-test` để mọi lời gọi đi vào
+ * function test (kèm cổng token phụ phía server). Chỉ nhận đúng tên
+ * trong danh sách — giá trị lạ rơi về production, không trỏ bừa được.
+ */
+export const API_FUNCTIONS = ["copilot", "copilot-test"];
+
+export function parseFnParam(search) {
+  const fn = new URLSearchParams(search).get("fn") ?? "";
+  return API_FUNCTIONS.includes(fn) ? fn : "copilot";
+}
+
+export function apiUrlFor(fn) {
+  return `https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/${fn}`;
+}
+
 export function mapError(status, body) {
   const msg = body?.error;
   if (status === 401) return { kind: "fatal", message: msg ?? "Widget không hợp lệ cho workspace này" };

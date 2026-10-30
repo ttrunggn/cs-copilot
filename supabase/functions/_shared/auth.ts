@@ -43,12 +43,18 @@ function safeEqual(a: string, b: string): boolean {
 export async function authorizeWidget(
   db: Db,
   req: { website_id: string; crisp_token: string; operator_id: string },
+  extraHashes: string[] = [],
 ): Promise<{ workspace: Workspace; operatorId: string }> {
   if (!req.website_id) throw new HttpError(400, "Thiếu website_id");
   if (!req.crisp_token) throw new HttpError(401, "Mở copilot từ widget trong Crisp");
   if (!req.operator_id) throw new HttpError(400, "Không xác định được CS đang đăng nhập Crisp");
-  const expected = await db.getWidgetTokenHash(req.website_id);
-  if (!expected || !safeEqual(expected, await sha256Hex(req.crisp_token))) {
+  // Hash chính từ DB = token của plugin Copilot CS. extraHashes mặc định
+  // rỗng; CHỈ function test truyền thêm hash token của plugin survey để
+  // modal mở từ xe test qua được (cổng pathname ở index.ts) — production
+  // không truyền nên hành vi không đổi.
+  const presented = await sha256Hex(req.crisp_token);
+  const candidates = [await db.getWidgetTokenHash(req.website_id), ...extraHashes].filter((h): h is string => Boolean(h));
+  if (!candidates.some((h) => safeEqual(h, presented))) {
     throw new HttpError(401, "Widget không hợp lệ cho workspace này");
   }
   const workspace = await db.getWorkspace(req.website_id);

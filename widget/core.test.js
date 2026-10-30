@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -585,4 +585,24 @@ Deno.test("toStorefrontViewModel: nhận cả key in_progress (snake_case) như 
   assertEquals(vm.groups[2].items.map((i) => i.title), ["Đang xử lý 1"]);
   assertEquals(vm.scannedLabel, null);
   assertEquals(vm.totalCount, 1);
+});
+
+Deno.test("parseFnParam: chỉ nhận copilot/copilot-test, lạ hoặc thiếu → copilot", () => {
+  assertEquals(parseFnParam("?fn=copilot-test"), "copilot-test");
+  assertEquals(parseFnParam("?fn=copilot"), "copilot");
+  assertEquals(parseFnParam("?fn=evil"), "copilot");
+  assertEquals(parseFnParam(""), "copilot");
+  assertEquals(apiUrlFor("copilot-test"), "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot-test");
+  assertEquals(apiUrlFor("copilot"), "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot");
+});
+
+Deno.test("standaloneViewFor: view modal → thân modal; storefront/jira → chính chúng; lạ → null", () => {
+  assertEquals(standaloneViewFor("draft"), "draft");
+  assertEquals(standaloneViewFor("note"), "note");
+  assertEquals(standaloneViewFor("ask"), "ask");
+  assertEquals(standaloneViewFor("review"), "csat");
+  assertEquals(standaloneViewFor("storefront"), "storefront");
+  assertEquals(standaloneViewFor("jira"), "jira");
+  assertEquals(standaloneViewFor("lạ"), null);
+  assertEquals(standaloneViewFor(null), null);
 });

@@ -13,7 +13,7 @@ const BUTTON_COLORS = ["black", "blue", "green", "orange", "red", "purple"];
 const BUTTON_TYPES = ["link", "modal", "hook", "submit"];
 const MODAL_SIZES = ["normal", "medium", "large", "wide"];
 
-Deno.test("native-panel: version 1.0 và đúng 6 section theo design 30/10", () => {
+Deno.test("native-panel: version 1.0 và đúng 6 section của panel GỘP — mỗi module một section gọn, dữ kiện đi cặp với nút (Ethan đính chính 30/10)", () => {
   assertEquals(schema.version, "1.0");
   assertEquals(schema.sections.map((s) => s.id), ["chatbot", "khach", "trang_thai", "storefront", "jira", "lenh"]);
   assertEquals(schema.sections.map((s) => s.title), ["Chatbot", "Khách", "Trạng thái", "Storefront", "Jira", "Lệnh"]);
@@ -24,10 +24,10 @@ Deno.test("native-panel: mọi item id là duy nhất trên toàn schema", () =>
   assertEquals(new Set(ids).size, ids.length);
   assertEquals(ids, [
     "bot_trang_thai", "bot_tra_loi", "bot_chan",
-    "khach_tam_trang", "tam_red", "tam_orange", "tam_black", "tam_green", "khach_tom_tat", "khach_van_de",
-    "tt_csat", "tt_review", "act_csat", "act_review",
+    "khach_tam_trang", "khach_tom_tat", "khach_van_de",
+    "tt_csat", "act_csat", "tt_review", "act_review",
     "tt_storefront", "act_storefront",
-    "jira_ticket_1", "jira_ticket_2", "jira_ticket_3", "act_jira",
+    "tt_jira", "act_jira",
     "act_draft", "act_note", "act_kb",
   ]);
 });
@@ -52,6 +52,7 @@ Deno.test("native-panel: button hợp lệ — màu trong enum Crisp, modal có 
       if (item.value.type === "modal") {
         assert(item.value.url.startsWith("https://copilot-oe.netlify.app/?open="), item.id);
         assert(item.value.url.includes("session_id={conversation.session_id}"), item.id);
+        assert(item.value.url.includes("fn=copilot-test"), item.id); // pha test: modal gọi function copilot-test, promote production thì bỏ
         assert(MODAL_SIZES.includes(item.value.size), item.id);
       }
     }
@@ -61,22 +62,28 @@ Deno.test("native-panel: button hợp lệ — màu trong enum Crisp, modal có 
   assertEquals(csat.value.data.operator_email, "{operator.email}");
 });
 
-Deno.test("native-panel: 4 nút Tâm trạng theo dải — màu khớp dải, condition đọc custom data copilot_mood_band, đều là hook", () => {
+Deno.test("native-panel: KHÔNG còn nút Tâm trạng bấm phân tích lại (Ethan bỏ 30/10 16:26 — sentiment tự cập nhật nền) — section Khách chỉ còn 3 data: điểm, tóm tắt, vấn đề", () => {
   const khach = schema.sections.find((s) => s.id === "khach");
-  for (const band of ["red", "orange", "black", "green"]) {
-    const btn = khach.items.find((i) => i.id === `tam_${band}`);
-    assert(btn, band);
-    assertEquals(btn.value.color, band);
-    assertEquals(btn.value.type, "hook");
-    assertEquals(btn.condition, `{conversation.meta.data.copilot_mood_band === '${band}'}`);
-  }
+  assertEquals(khach.items.map((i) => i.id), ["khach_tam_trang", "khach_tom_tat", "khach_van_de"]);
+  assert(khach.items.every((i) => i.type === "data"));
+  const all = schema.sections.flatMap((s) => s.items);
+  assert(!all.some((i) => i.id.startsWith("tam_")), "nút tam_* còn sót");
 });
 
-Deno.test("native-panel: nút Chatbot là hook (bản giả), nút Private note màu orange (enum không có vàng)", () => {
+Deno.test("native-panel: panel gộp — Chatbot stub đủ mặt; mỗi module một section gọn với dữ kiện đi CẶP nút của nó (Storefront/Jira/CSAT/Review); Jira một dòng đếm, không slot ticket; đúng 8 data fetch; Private note màu orange (enum không có vàng)", () => {
   const chatbot = schema.sections.find((s) => s.id === "chatbot");
   for (const id of ["bot_tra_loi", "bot_chan"]) {
     assertEquals(chatbot.items.find((i) => i.id === id).value.type, "hook", id);
   }
+  const sf = schema.sections.find((s) => s.id === "storefront");
+  assertEquals(sf.items.map((i) => i.id), ["tt_storefront", "act_storefront"]);
+  const jira = schema.sections.find((s) => s.id === "jira");
+  assertEquals(jira.items.map((i) => i.id), ["tt_jira", "act_jira"]);
+  const tt = schema.sections.find((s) => s.id === "trang_thai");
+  assertEquals(tt.items.map((i) => i.id), ["tt_csat", "act_csat", "tt_review", "act_review"]);
+  const all = schema.sections.flatMap((s) => s.items);
+  assert(!all.some((i) => i.id.startsWith("jira_ticket")), "slot jira_ticket còn sót");
+  assertEquals(all.filter((i) => i.type === "data").length, 8);
   const note = schema.sections.find((s) => s.id === "lenh").items.find((i) => i.id === "act_note");
   assertEquals(note.value.color, "orange");
 });

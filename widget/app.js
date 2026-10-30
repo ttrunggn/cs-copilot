@@ -1,4 +1,4 @@
-import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, openModalName, operatorIdFrom, operatorNameFrom, parseOpenParam, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, openModalName, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, parseOpenParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -7,7 +7,14 @@ import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modal
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
 // các panel hiển thị ở panels.js, helper DOM ở dom.js.
-const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
+// Function đích: production `copilot`; modal mở từ mặt native bản test
+// mang fn=copilot-test thì mọi lời gọi đi vào function test (parseFnParam
+// ở core.js — giá trị lạ rơi về production).
+const API = apiUrlFor(parseFnParam(location.search));
+// Chế độ standalone: trang mở từ nút modal của mặt native (?open=) — chỉ
+// render đúng view được yêu cầu thay vì cả panel (xem render()).
+const standaloneView = standaloneViewFor(parseOpenParam(location.search));
+if (standaloneView) document.body?.classList.add("standalone");
 const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
@@ -25,6 +32,9 @@ function openModal(name) {
 }
 
 function closeModal() {
+  // Standalone: view gốc chính là cả trang — đóng nó chỉ còn trang trắng
+  // (đóng hẳn modal Crisp đã có nút riêng của Crisp ở dưới modal).
+  if (standaloneView && state.modal === standaloneView) return;
   state.modal = null;
   render();
 }
@@ -761,6 +771,14 @@ async function onStorefrontAct(fingerprint, act) {
  * nằm thường trực trên panel; chúng sống trong popup (panels.js modalView).
  * Tiến trình/hỏi-cách-điền hiện trong popup khi có popup, ngược lại trên panel.
  */
+/** Thẻ thông báo kết quả hành động — dùng cho cả panel và standalone. */
+function noticeNode() {
+  return state.notice ? el("div", { className: `notice-card ${state.noticeKind === "success" ? "success-notice" : ""} ${state.noticeKind === "error" ? "error-notice" : ""}` }, [
+    el("span", { textContent: state.notice }),
+    el("button", { className: "notice-close", textContent: "×", title: "Đóng thông báo", onclick: () => (clearNotice(), render()) }),
+  ]) : null;
+}
+
 let lastRenderSession = null;
 function render() {
   if (!state.check) return;
@@ -771,6 +789,20 @@ function render() {
   const prevScrollY = sameSession && typeof window !== "undefined" ? window.scrollY : 0;
   lastRenderSession = state.shownSession;
   const vm = toViewModel(state.check, Date.now());
+  // Standalone (trang mở từ nút modal của mặt native): chỉ render đúng
+  // view — thân modal cho draft/note/ask/csat, card cho storefront/jira
+  // (modal "explain" của Storefront vẫn mở chồng lên card) — kèm thẻ
+  // thông báo. Không header, không hàng lệnh, không giữ vị trí cuộn.
+  if (standaloneView) {
+    show(
+      standaloneView === "storefront" ? storefrontPanel(handlers)
+        : standaloneView === "jira" ? jiraPanel(handlers)
+        : modalView(handlers),
+      noticeNode(),
+      standaloneView === "storefront" || standaloneView === "jira" ? modalView(handlers) : null,
+    );
+    return;
+  }
   const modalOpen = Boolean(state.modal);
   show(
     el("header", { className: "inbox-header" }, [
@@ -804,10 +836,7 @@ function render() {
       el("p", { className: "muted", textContent: state.busy }),
       el("div", { className: "skeleton" }, [el("i"), el("i"), el("i")]),
     ]) : null,
-    state.notice ? el("div", { className: `notice-card ${state.noticeKind === "success" ? "success-notice" : ""} ${state.noticeKind === "error" ? "error-notice" : ""}` }, [
-      el("span", { textContent: state.notice }),
-      el("button", { className: "notice-close", textContent: "×", title: "Đóng thông báo", onclick: () => (clearNotice(), render()) }),
-    ]) : null,
+    noticeNode(),
     !modalOpen ? insertChoiceNode() : null,
     commandsRow(handlers),
     modalView(handlers),
@@ -853,6 +882,19 @@ function applyOpenDeepLink(sessionId) {
   document.querySelector(sel)?.scrollIntoView({ block: "start" });
 }
 
+/**
+ * Standalone: mở view gốc đúng MỘT lần sau check đầu tiên (openModal tự
+ * render lại). Các load() sau (refresh, nạp lại Jira…) không mở lại —
+ * view gốc không đóng được nên state.modal luôn còn nguyên.
+ */
+let standaloneOpened = false;
+function openStandaloneView() {
+  if (standaloneOpened) return;
+  standaloneOpened = true;
+  const name = openModalName(parseOpenParam(location.search));
+  if (name) openModal(name);
+}
+
 let loadInFlight = false;
 
 async function load() {
@@ -888,7 +930,8 @@ async function load() {
     checkCache.set(sessionId, state.check);
     applyCheck(sessionId);
     render();
-    applyOpenDeepLink(sessionId);
+    if (standaloneView) openStandaloneView();
+    else applyOpenDeepLink(sessionId);
     maybeAutoRefreshSentiment(sessionId);
     // Mirror Jira cũ lúc mở panel: server đã cho sync chạy nền (check
     // không còn chờ Jira nữa) — nạp lại ĐÚNG một lần sau 3 giây để card

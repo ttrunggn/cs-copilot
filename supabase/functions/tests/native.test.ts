@@ -87,27 +87,27 @@ Deno.test("native fetch: tâm trạng có sentiment → điểm + mood + khẩn 
   const over = { db: { getSentiment: () => Promise.resolve(SENTIMENT) } };
   const r1 = await fetchValue("khach_tam_trang", over);
   assertEquals(r1.status, 200);
-  assertEquals(r1.body, { data: { value: "38/100 · Đang bực · Khẩn: cao" } });
+  assertEquals(r1.body, { data: { value: "Tâm trạng: 38/100 · Đang bực · Khẩn: cao" } });
   const r2 = await fetchValue("khach_tom_tat", over);
-  assertEquals(r2.body, { data: { value: "Khách bực vì bản dịch product bị ghi đè sau khi đồng bộ" } });
+  assertEquals(r2.body, { data: { value: "Tóm tắt: Khách bực vì bản dịch product bị ghi đè sau khi đồng bộ" } });
   const r3 = await fetchValue("khach_van_de", over);
-  assertEquals(r3.body, { data: { value: "Bản dịch trang product bị mất sau khi đồng bộ" } });
+  assertEquals(r3.body, { data: { value: "Vấn đề: Bản dịch trang product bị mất sau khi đồng bộ" } });
 });
 
 Deno.test("native fetch: urgency không cao thì không gắn 'Khẩn: cao'", async () => {
   const s: Sentiment & { input_fp: string } = { ...SENTIMENT, score: 50, mood: "neutral", urgency: "medium" };
   const r = await fetchValue("khach_tam_trang", { db: { getSentiment: () => Promise.resolve(s) } });
-  assertEquals(r.body, { data: { value: "50/100 · Trung tính" } });
-  assertEquals(formatMoodValue({ ...s, score: 88, mood: "happy", urgency: "low" }), "88/100 · Rất vui");
+  assertEquals(r.body, { data: { value: "Tâm trạng: 50/100 · Trung tính" } });
+  assertEquals(formatMoodValue({ ...s, score: 88, mood: "happy", urgency: "low" }), "Tâm trạng: 88/100 · Rất vui");
 });
 
-Deno.test("native fetch: chưa có sentiment → 'Chưa phân tích', tóm tắt/vấn đề là '—'", async () => {
+Deno.test("native fetch: chưa có sentiment → 'Tâm trạng: Chưa phân tích', tóm tắt/vấn đề là '—'", async () => {
   const r1 = await fetchValue("khach_tam_trang");
-  assertEquals(r1.body, { data: { value: "Chưa phân tích" } });
+  assertEquals(r1.body, { data: { value: "Tâm trạng: Chưa phân tích" } });
   const r2 = await fetchValue("khach_tom_tat");
-  assertEquals(r2.body, { data: { value: "—" } });
+  assertEquals(r2.body, { data: { value: "Tóm tắt: —" } });
   const r3 = await fetchValue("khach_van_de");
-  assertEquals(r3.body, { data: { value: "—" } });
+  assertEquals(r3.body, { data: { value: "Vấn đề: —" } });
 });
 
 Deno.test("native fetch: sentiment còn tươi (fingerprint khớp) thì KHÔNG kích analyze nền", async () => {
@@ -132,28 +132,28 @@ Deno.test("native fetch: tin đang chờ đếm tin khách chưa được CS tr�
 
 Deno.test("native fetch: CSAT chưa gửi / đã gửi kèm giờ Asia/Saigon", async () => {
   const r1 = await fetchValue("tt_csat");
-  assertEquals(r1.body, { data: { value: "Chưa gửi" } });
+  assertEquals(r1.body, { data: { value: "CSAT: Chưa gửi" } });
   const r2 = await fetchValue("tt_csat", {
     db: { getCsatSend: () => Promise.resolve({ sent_by: "op-lan", sent_at: "2026-10-15T03:05:00+00:00" }) },
   });
-  assertEquals(r2.body, { data: { value: "Đã gửi 10:05" } }); // 03:05 UTC = 10:05 +07
+  assertEquals(r2.body, { data: { value: "CSAT: Đã gửi 10:05" } }); // 03:05 UTC = 10:05 +07
   assertEquals(hhmmSaigon("2026-10-15T03:05:00+00:00"), "10:05");
   assertEquals(hhmmSaigon("không-phải-ngày"), "");
 });
 
 Deno.test("native fetch: Review chưa xin / đã xin (nguồn outputs kind review)", async () => {
   const r1 = await fetchValue("tt_review");
-  assertEquals(r1.body, { data: { value: "Chưa xin" } });
+  assertEquals(r1.body, { data: { value: "Review: Chưa xin" } });
   const r2 = await fetchValue("tt_review", {
     db: { getReviewSend: () => Promise.resolve({ sent_at: "2026-10-15T03:05:00+00:00" }) },
   });
-  assertEquals(r2.body, { data: { value: "Đã xin 10:05" } });
+  assertEquals(r2.body, { data: { value: "Review: Đã xin 10:05" } });
 });
 
 Deno.test("native fetch: Storefront theo cổng workspace + bản chụp sweep", async () => {
   // Workspace mặc định của fake: storefront_watch = false → Không áp dụng.
   const r0 = await fetchValue("tt_storefront");
-  assertEquals(r0.body, { data: { value: "Không áp dụng" } });
+  assertEquals(r0.body, { data: { value: "Storefront: Không áp dụng" } });
 
   const wsOn = { ...CONV, custom_data: { shopify_domain: "shop.myshopify.com" } };
   const base = {
@@ -169,23 +169,23 @@ Deno.test("native fetch: Storefront theo cổng workspace + bản chụp sweep",
     }),
   });
   const r1 = await fetchValue("tt_storefront", { db: { ...base, ...snap(true, 3) } });
-  assertEquals(r1.body, { data: { value: "3 lỗi · quét 2 giờ trước" } });
+  assertEquals(r1.body, { data: { value: "Storefront: 3 lỗi · quét 2 giờ trước" } });
   const r2 = await fetchValue("tt_storefront", { db: { ...base, ...snap(true, 0) } });
-  assertEquals(r2.body, { data: { value: "Không có lỗi" } });
+  assertEquals(r2.body, { data: { value: "Storefront: Không có lỗi" } });
   const r3 = await fetchValue("tt_storefront", { db: { ...base, ...snap(false, 3) } });
-  assertEquals(r3.body, { data: { value: "Không áp dụng" } });
+  assertEquals(r3.body, { data: { value: "Storefront: Không áp dụng" } });
 });
 
 Deno.test("native fetch: Jira không có / có N ticket", async () => {
   const r1 = await fetchValue("tt_jira");
-  assertEquals(r1.body, { data: { value: "Không có" } });
+  assertEquals(r1.body, { data: { value: "Jira: Không có" } });
   const link = {
     website_id: "ws1", session_id: "session_1", issue_key: "TNT-1",
     url: "https://firegroup.atlassian.net/browse/TNT-1", silent_baseline: false,
     last_seen_status: null, last_seen_comment_at: null,
   };
   const r2 = await fetchValue("tt_jira", { db: { getJiraRows: () => Promise.resolve([{ link, issue: null }]) } });
-  assertEquals(r2.body, { data: { value: "1 ticket" } });
+  assertEquals(r2.body, { data: { value: "Jira: 1 ticket" } });
 });
 
 Deno.test("native fetch: item lạ / thiếu origin → vẫn 200 với value rỗng (Crisp khỏi retry)", async () => {
@@ -309,11 +309,11 @@ Deno.test("native: sự kiện nút không phải hook CSAT → 200 {} và khôn
   assertEquals(traces.some((t) => t.action === "native_hook"), true);
 });
 
-// ---------- Bản 6 section theo design 30/10 ----------
+// ---------- Mặt native panel gộp theo design 30/10 ----------
 
 Deno.test("native fetch: trạng thái bot là bản giả (stub) cố định", async () => {
   const r = await fetchValue("bot_trang_thai");
-  assertEquals(r.body, { data: { value: "CS đang xử lý · Chatbot im lặng" } });
+  assertEquals(r.body, { data: { value: "Chatbot: CS đang xử lý · Chatbot im lặng" } });
 });
 
 Deno.test("native fetch: điểm cảm xúc dạng số (cho condition đọc qua custom data); chưa có → '—'", async () => {
@@ -361,7 +361,7 @@ Deno.test("native fetch: Storefront kèm tuổi đợt quét từ bản chụp (
     db: deps.db, ai: deps.ai, n8n: deps.n8n,
     now: () => new Date("2026-10-30T07:00:00.000Z").getTime(),
   });
-  assertEquals(r.body, { data: { value: "3 lỗi · quét 7 giờ trước" } });
+  assertEquals(r.body, { data: { value: "Storefront: 3 lỗi · quét 7 giờ trước" } });
   assertEquals(scanAgeText("2026-10-30T06:35:00.000Z", new Date("2026-10-30T07:00:00.000Z").getTime()), "25 phút");
   assertEquals(scanAgeText("2026-10-28T07:00:00.000Z", new Date("2026-10-30T07:00:00.000Z").getTime()), "2 ngày");
   assertEquals(scanAgeText("không-phải-ngày", 0), "");

@@ -269,9 +269,9 @@ const MOOD_SHORT: Record<string, string> = {
   happy: "Rất vui",
 };
 
-/** "38/100 · Đang bực · Khẩn: cao" — chỉ gắn mức khẩn khi urgency = high. */
+/** "Tâm trạng: 38/100 · Đang bực · Khẩn: cao" — nhãn nhúng ngay trong value vì Generic Widget không render label của data item thành nhãn dòng (native mỏng, Ethan chốt 30/10); chỉ gắn mức khẩn khi urgency = high. */
 export function formatMoodValue(s: Sentiment): string {
-  const base = `${s.score}/100 · ${MOOD_SHORT[s.mood] ?? s.mood}`;
+  const base = `Tâm trạng: ${s.score}/100 · ${MOOD_SHORT[s.mood] ?? s.mood}`;
   return s.urgency === "high" ? `${base} · Khẩn: cao` : base;
 }
 
@@ -340,7 +340,7 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
   const { websiteId, sessionId } = ev;
   switch (itemId) {
     case "bot_trang_thai": {
-      return BOT_STUB_STATUS;
+      return `Chatbot: ${BOT_STUB_STATUS}`;
     }
     case "khach_diem": {
       const row = await sentimentRow(deps, websiteId, sessionId);
@@ -351,15 +351,15 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
       const row = await sentimentRow(deps, websiteId, sessionId);
       // Không await: việc kích analyze tự đọc lại messages/fingerprint.
       void kickAnalyzeIfStale(deps, websiteId, sessionId);
-      return row ? formatMoodValue(row) : "Chưa phân tích";
+      return row ? formatMoodValue(row) : "Tâm trạng: Chưa phân tích";
     }
     case "khach_tom_tat": {
       const row = await sentimentRow(deps, websiteId, sessionId);
-      return row?.summary ? row.summary : "—";
+      return row?.summary ? `Tóm tắt: ${row.summary}` : "Tóm tắt: —";
     }
     case "khach_van_de": {
       const row = await sentimentRow(deps, websiteId, sessionId);
-      return row?.issues?.[0]?.summary ? row.issues[0].summary : "—";
+      return row?.issues?.[0]?.summary ? `Vấn đề: ${row.issues[0].summary}` : "Vấn đề: —";
     }
     case "khach_tin_cho": {
       const messages = await deps.db.getMessages(websiteId, sessionId, MESSAGE_LIMIT).catch(() => []);
@@ -367,15 +367,15 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
     }
     case "tt_csat": {
       const send = await deps.db.getCsatSend(websiteId, sessionId).catch(() => null);
-      if (!send) return "Chưa gửi";
+      if (!send) return "CSAT: Chưa gửi";
       const hhmm = hhmmSaigon(send.sent_at);
-      return hhmm ? `Đã gửi ${hhmm}` : "Đã gửi";
+      return hhmm ? `CSAT: Đã gửi ${hhmm}` : "CSAT: Đã gửi";
     }
     case "tt_review": {
       const send = await deps.db.getReviewSend(websiteId, sessionId).catch(() => null);
-      if (!send) return "Chưa xin";
+      if (!send) return "Review: Chưa xin";
       const hhmm = hhmmSaigon(send.sent_at);
-      return hhmm ? `Đã xin ${hhmm}` : "Đã xin";
+      return hhmm ? `Review: Đã xin ${hhmm}` : "Review: Đã xin";
     }
     case "tt_storefront": {
       // Cùng cổng với `check`: ngoài phạm vi Storefront Watch (cờ
@@ -386,17 +386,17 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
       // DB (số finding mới cần list_findings trực tiếp + tập đã thấy,
       // fetch native chỉ đọc DB) nên cố ý bỏ — xem docs/native-panel.md.
       const ws = await deps.db.getWorkspace(websiteId).catch(() => null);
-      if (!ws?.storefront_watch) return "Không áp dụng";
+      if (!ws?.storefront_watch) return "Storefront: Không áp dụng";
       const conv: ConversationRow | null = await deps.db.getConversation(websiteId, sessionId).catch(() => null);
       const shop = shopFromCustomData(conv);
-      if (!shop) return "Không áp dụng";
+      if (!shop) return "Storefront: Không áp dụng";
       const snap = await deps.db.getStorefrontStoreStatus(websiteId, shop).catch(() => null);
-      if (!snap || !snap.watched) return "Không áp dụng";
-      if (snap.open_total <= 0) return "Không có lỗi";
+      if (!snap || !snap.watched) return "Storefront: Không áp dụng";
+      if (snap.open_total <= 0) return "Storefront: Không có lỗi";
       // Bản thiết kế có thêm "· N mới" — số finding MỚI không suy được từ
       // bản chụp DB (cần list_findings trực tiếp), cố ý bỏ như bản v9.
       const age = scanAgeText(snap.fetched_at, (deps.now ?? Date.now)());
-      return age ? `${snap.open_total} lỗi · quét ${age} trước` : `${snap.open_total} lỗi`;
+      return age ? `Storefront: ${snap.open_total} lỗi · quét ${age} trước` : `Storefront: ${snap.open_total} lỗi`;
     }
     case "tt_jira": {
       const [rows, conv] = await Promise.all([
@@ -404,7 +404,7 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
         deps.db.getConversation(websiteId, sessionId).catch(() => null),
       ]);
       const items = jiraForConversation(rows, conv?.last_human_operator_at ?? null);
-      return items.length ? `${items.length} ticket` : "Không có";
+      return items.length ? `Jira: ${items.length} ticket` : "Jira: Không có";
     }
     case "jira_ticket_1":
     case "jira_ticket_2":

@@ -119,6 +119,14 @@ Deno.serve(async (req) => {
       : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp });
+  // Hash token phụ cho modal mở từ plugin survey (xe test mặt native):
+  // secret là CẤP PROJECT nên deployment production cũng đọc thấy env
+  // này — chỉ truyền vào khi request thật sự tới /copilot-test, production
+  // giữ đúng một hash trong DB như cũ. Giá trị là HASH sha256 của token
+  // website phía plugin survey (không lưu token thô).
+  const extraWidgetTokenHashes = new URL(req.url).pathname.endsWith("/copilot-test")
+    ? (Deno.env.get("COPILOT_EXTRA_WIDGET_TOKEN_HASHES") ?? "").split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp, extraWidgetTokenHashes });
   return json(r.status, r.body);
 });
