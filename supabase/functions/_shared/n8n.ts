@@ -6,11 +6,12 @@ export interface N8n {
   /**
    * Đẩy MỘT dòng log thao tác Storefront tới webhook storefront-report của
    * workflow "Storefront Report Live" (append Google Sheet gần như tức thì,
-   * Ethan chốt real-time 2026-10-30). Trả true khi n8n nhận (HTTP 2xx);
-   * false thì dòng vẫn nằm ở storefront_action_log chưa reported và
-   * workflow pull 15 phút sẽ lấp lại — không mất dòng.
+   * Ethan chốt real-time 2026-10-30). Trả kết quả kèm status/lỗi để caller
+   * ghi vào trace (bản đầu nuốt hết nên lỗi production không thấy được —
+   * bài học 2026-10-30). ok=false thì dòng vẫn nằm ở storefront_action_log
+   * chưa reported và workflow pull sẽ lấp lại — không mất dòng.
    */
-  pushStorefrontReport(row: Record<string, unknown>): Promise<boolean>;
+  pushStorefrontReport(row: Record<string, unknown>): Promise<{ ok: boolean; status?: number; error?: string }>;
 }
 
 // Refresh qua n8n (Crisp API + RPC) mất ~3s trên production.
@@ -91,17 +92,16 @@ export function createN8n(opts: {
       }
     },
 
+    // KHÔNG AbortSignal: gọi đúng kiểu sendSurvey (method n8n đã kiểm chứng
+    // sống trên production) — bản đầu gắn timeout 4s tự chế, một mình nó
+    // khác mọi method còn lại.
     async pushStorefrontReport(row) {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 4000);
       try {
-        const res = await post("storefront-report", row, ctrl.signal);
+        const res = await post("storefront-report", row);
         if (!res.ok) await res.body?.cancel();
-        return res.ok;
-      } catch {
-        return false;
-      } finally {
-        clearTimeout(timer);
+        return { ok: res.ok, status: res.status };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
       }
     },
   };

@@ -146,7 +146,7 @@ export function makeDeps(opts: {
     refreshConversation: () => Promise.resolve({ stale: opts.stale ?? false }),
     triggerJiraSync: () => Promise.resolve(true),
     sendSurvey: () => Promise.resolve(true),
-    pushStorefrontReport: () => Promise.resolve(true),
+    pushStorefrontReport: () => Promise.resolve({ ok: true }),
   };
   return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, traces, sfActionLog };
 }

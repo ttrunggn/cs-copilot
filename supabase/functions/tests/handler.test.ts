@@ -98,7 +98,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     refreshConversation: () => Promise.resolve({ stale }),
     sendSurvey: () => Promise.resolve(true),
     triggerJiraSync: () => Promise.resolve(true),
-    pushStorefrontReport: () => Promise.resolve(true),
+    pushStorefrontReport: () => Promise.resolve({ ok: true }),
   };
   return { db, n8n, ai: fakeAi({}).ai };
 }
