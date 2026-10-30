@@ -115,7 +115,7 @@ export function makeDeps(opts: {
     markStorefrontSeen: () => Promise.resolve(),
     insertStorefrontActionLog: (row) => {
       sfActionLog.push(row);
-      return Promise.resolve();
+      return Promise.resolve(sfActionLog.length);
     },
     listUnreportedStorefrontActions: () => Promise.resolve([]),
     markStorefrontActionsReported: () => Promise.resolve(),
@@ -146,6 +146,7 @@ export function makeDeps(opts: {
     refreshConversation: () => Promise.resolve({ stale: opts.stale ?? false }),
     triggerJiraSync: () => Promise.resolve(true),
     sendSurvey: () => Promise.resolve(true),
+    pushStorefrontReport: () => Promise.resolve(true),
   };
   return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, traces, sfActionLog };
 }

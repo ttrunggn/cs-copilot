@@ -74,7 +74,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getSentimentHistory: () => Promise.resolve([]),
     getStorefrontSeen: () => Promise.resolve([]),
     markStorefrontSeen: () => Promise.resolve(),
-    insertStorefrontActionLog: () => Promise.resolve(),
+    insertStorefrontActionLog: () => Promise.resolve(1),
     listUnreportedStorefrontActions: () => Promise.resolve([]),
     markStorefrontActionsReported: () => Promise.resolve(),
     getStorefrontStoreStatus: () => Promise.resolve(null),
@@ -98,6 +98,7 @@ function deps(over: Partial<Db> = {}, stale = false) {
     refreshConversation: () => Promise.resolve({ stale }),
     sendSurvey: () => Promise.resolve(true),
     triggerJiraSync: () => Promise.resolve(true),
+    pushStorefrontReport: () => Promise.resolve(true),
   };
   return { db, n8n, ai: fakeAi({}).ai };
 }

@@ -1208,7 +1208,7 @@ Deno.test("action storefront_act dismiss: ghi 1 dòng nhật ký report đầy �
   const { deps } = actDeps(mcp, {
     insertStorefrontActionLog: (row: unknown) => {
       logged.push(row);
-      return Promise.resolve();
+      return Promise.resolve(1);
     },
   });
   const r = await handle({ ...ACT_REQ, sf_act: "dismiss", reason: "false_signal" }, TOKEN, deps);
@@ -1227,6 +1227,32 @@ Deno.test("action storefront_act dismiss: ghi 1 dòng nhật ký report đầy �
   assertEquals(rowLog.operator_name, "Ethan Nguyen");
   assertEquals(rowLog.crisp_url, "https://app.crisp.chat/website/ws1/inbox/session_1");
   assertEquals(typeof rowLog.console_url, "string");
+});
+
+Deno.test("action storefront_act dismiss: đẩy REAL-TIME dòng đã định dạng cho Sheet qua n8n ngay sau khi ghi log (Ethan 2026-10-30)", async () => {
+  const pushed: Record<string, unknown>[] = [];
+  const mcp = fakeMcp({
+    listFindings: () => Promise.resolve([finding(FP_A, { title: "Transient text", severity: "high", locale: "es", page: "/products/abc", widthPx: 1440 })]),
+    dismissFinding: () => Promise.resolve("ok"),
+  });
+  const { deps } = actDeps(mcp);
+  deps.n8n = {
+    refreshConversation: () => Promise.resolve({ stale: false }),
+    sendSurvey: () => Promise.resolve(true),
+    triggerJiraSync: () => Promise.resolve(true),
+    pushStorefrontReport: (row: Record<string, unknown>) => {
+      pushed.push(row);
+      return Promise.resolve(true);
+    },
+  };
+  const r = await handle({ ...ACT_REQ, sf_act: "dismiss", reason: "not_important" }, TOKEN, deps);
+  assertEquals(r.status, 200);
+  assertEquals(pushed.length, 1);
+  assertEquals(pushed[0].id, 1);
+  assertEquals(pushed[0].thao_tac, "Dismiss");
+  assertEquals(pushed[0].ly_do, "Lỗi thật, không đáng sửa");
+  assertEquals(pushed[0].cs, "Ethan Nguyen");
+  assertEquals(pushed[0].link_crisp, "https://app.crisp.chat/website/ws1/inbox/session_1");
 });
 
 Deno.test("action storefront_act: ghi log THẤT BẠI không làm hỏng thao tác (SW đã nhận thì vẫn ok)", async () => {

@@ -44,7 +44,20 @@ Deno.test("n8n client has NO way to post into Crisp (CRISP WRITE RULE, structura
   const { f } = recorder(() => Promise.resolve(new Response('{"ok":true}', { status: 200 })));
   const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
   assertEquals("postNote" in n8n, false);
-  assertEquals(Object.keys(n8n).sort(), ["refreshConversation", "sendSurvey", "triggerJiraSync"]);
+  assertEquals(Object.keys(n8n).sort(), ["pushStorefrontReport", "refreshConversation", "sendSurvey", "triggerJiraSync"]);
+});
+
+Deno.test("pushStorefrontReport: POST đúng webhook storefront-report kèm secret + nguyên dòng; 2xx true, lỗi false", async () => {
+  const { calls, f } = recorder(() => Promise.resolve(new Response("{}", { status: 200 })));
+  const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
+  const row = { id: 7, thao_tac: "Dismiss", store: "shop.myshopify.com" };
+  assertEquals(await n8n.pushStorefrontReport(row), true);
+  assertEquals(calls[0].url, "https://n8n.test/webhook/storefront-report");
+  assertEquals((calls[0].init.headers as Record<string, string>)["x-copilot-secret"], "k");
+  assertEquals(JSON.parse(calls[0].init.body as string), row);
+
+  const bad = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: () => Promise.resolve(new Response("err", { status: 500 })) });
+  assertEquals(await bad.pushStorefrontReport(row), false);
 });
 
 Deno.test("refresh 200 with empty body (n8n workflow errored) -> stale true", async () => {
