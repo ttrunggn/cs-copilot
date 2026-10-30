@@ -81,6 +81,7 @@ export function makeDeps(opts: {
   const over: Partial<Db> = opts.db ?? {};
   const inserted: NewOutput[] = [];
   const traces: import("../_shared/db.ts").TraceRow[] = [];
+  const sfActionLog: import("../_shared/db.ts").NewStorefrontActionLog[] = [];
   const db: Db = {
     logTrace: (row) => {
       traces.push(row);
@@ -112,6 +113,12 @@ export function makeDeps(opts: {
     mergeConversationCustomData: () => Promise.resolve(true),
     getStorefrontSeen: () => Promise.resolve([]),
     markStorefrontSeen: () => Promise.resolve(),
+    insertStorefrontActionLog: (row) => {
+      sfActionLog.push(row);
+      return Promise.resolve();
+    },
+    listUnreportedStorefrontActions: () => Promise.resolve([]),
+    markStorefrontActionsReported: () => Promise.resolve(),
     getStorefrontStoreStatus: () => Promise.resolve(null),
     upsertStorefrontStoreStatus: () => Promise.resolve(),
     getRecentShopDomains: () => Promise.resolve([]),
@@ -140,5 +147,5 @@ export function makeDeps(opts: {
     triggerJiraSync: () => Promise.resolve(true),
     sendSurvey: () => Promise.resolve(true),
   };
-  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, traces };
+  return { deps: { db, n8n, ai: opts.ai ?? fakeAi({}).ai }, inserted, traces, sfActionLog };
 }
