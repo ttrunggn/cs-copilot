@@ -80,17 +80,20 @@ Data item không mang màu trong schema này (chỉ nút mới có `color`).
 
 ## Các điểm CHƯA kiểm chứng (đọc trước khi tin là xong)
 
-1. **Cách Crisp ghép chuỗi ký HMAC cho sự kiện widget.** Code hiện ký
-   kiểm theo `HMAC-SHA256(secret, "<timestamp>.<rawBody>")` với secret
-   là env `CRISP_PLUGIN_KEY`, mô phỏng semantics của crisp-api.
-   Tài liệu công khai không mô tả byte-exact cho Generic Widget. Nếu
-   Crisp ký khác cách ghép này, sự kiện CÓ chữ ký sẽ bị 401 — dấu hiệu
-   nhận biết: trace_log có dòng error stage `signature` ngay khi mở
-   conversation. Khi đó đối chiếu lại cách ghép, đừng tắt verify.
-2. **Crisp có ký mọi sự kiện widget hay không** — chưa rõ. Chính sách
-   hiện tại: header chữ ký VẮNG → vẫn chấp nhận và ghi trace cờ
-   `unsigned: true`; header CÓ mà sai → 401. Nếu env thiếu
-   `CRISP_PLUGIN_KEY`, trace mang cờ `signature_unconfigured: true`.
+1. **Cách Crisp ghép chuỗi ký HMAC cho sự kiện widget — ĐÃ XÁC ĐỊNH
+   TỪ DOC + SỰ CỐ LIVE 29/10.** Web Hooks Reference của Crisp
+   (docs.crisp.chat/references/web-hooks/v1, mục Delivery) mô tả
+   byte-exact: chuỗi ký là `[<timestamp>;<body_as_string>]` (có ngoặc
+   vuông và chấm phẩy), HMAC-SHA256 bằng secret của Production Token
+   (env `CRISP_PLUGIN_KEY`); Generic Widget guide dẫn về cùng thuật
+   toán này. Bản đầu ký kiểm theo `"<timestamp>.<rawBody>"` (suy từ
+   crisp-api) — SAI: mọi fetch thật của Crisp bị 401, data item kẹt ở
+   placeholder "--" trên panel live ngày 29/10 (đã rollback về iframe).
+   Đã sửa: verify thử cả body thô lẫn dạng `JSON.stringify` chuẩn hoá;
+   test khoá cứng bằng chữ ký tính ĐỘC LẬP theo công thức doc (không
+   qua helper). Chính sách mềm giữ nguyên: header VẮNG → chấp nhận +
+   trace cờ `unsigned: true`; env thiếu key → cờ
+   `signature_unconfigured: true`; có mà sai → 401.
 3. **Data item KHÔNG có hậu tố "· N mới" cho Storefront.** Bản thiết kế
    ghi "3 lỗi · 2 mới", nhưng số finding MỚI chỉ tính được từ
    list_findings trực tiếp + tập fingerprint đã thấy; fetch native chủ

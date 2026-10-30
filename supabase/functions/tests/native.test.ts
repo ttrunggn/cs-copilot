@@ -217,6 +217,33 @@ Deno.test("native: chữ ký đúng → qua; sai → 401; vắng header → qua 
   assertEquals(timing?.flow_id?.startsWith("native-khach_tin_cho-"), true);
 });
 
+Deno.test("native: chữ ký theo công thức DOC Crisp [timestamp;body] (tính độc lập, không qua helper) → qua; công thức chấm cũ → 401", async () => {
+  // Công thức lấy nguyên văn từ Web Hooks Reference của Crisp: ghép chuỗi
+  // `[timestamp;body_as_string]` rồi HMAC-SHA256 bằng secret. Test này tính
+  // chữ ký THẲNG bằng crypto.subtle, không dùng computeCrispWidgetSignature,
+  // để helper có lệch công thức là test đỏ ngay (bản cũ `${ts}.${body}` từng
+  // xanh giả vì test ký bằng chính helper).
+  const body = fetchEvent("khach_tin_cho");
+  const raw = JSON.stringify(body);
+  const ts = "1761732000";
+  const enc = new TextEncoder();
+  const signWith = async (signed: string) => {
+    const key = await crypto.subtle.importKey("raw", enc.encode(KEY), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("HMAC", key, enc.encode(signed));
+    return [...new Uint8Array(sig)].map((x) => x.toString(16).padStart(2, "0")).join("");
+  };
+
+  const docSig = await signWith(`[${ts};${raw}]`);
+  const ok = nativeDeps({}, KEY);
+  const r1 = await handleNativeEvent(body, raw, { signature: docSig, timestamp: ts }, ok.nd);
+  assertEquals(r1.status, 200);
+
+  const oldSig = await signWith(`${ts}.${raw}`);
+  const bad = nativeDeps({}, KEY);
+  const r2 = await handleNativeEvent(body, raw, { signature: oldSig, timestamp: ts }, bad.nd);
+  assertEquals(r2.status, 401);
+});
+
 /** Fake csat_survey_sends có trạng thái — cùng mô phỏng claim nguyên tử như survey.test.ts. */
 function fakeCsatDb() {
   let row: { sent_by: string; sent_at: string } | null = null;

@@ -87,10 +87,13 @@ export function parseNativeEvent(body: unknown): CrispWidgetEvent {
 //
 // Crisp ký sự kiện plugin bằng HMAC-SHA256 với khoá token của plugin, hai
 // header X-Crisp-Signature + X-Crisp-Request-Timestamp. Cách GHÉP chuỗi ký
-// ở đây là `${timestamp}.${rawBody}` — mô phỏng verifyWidget của crisp-api.
-// ĐIỂM CHƯA KIỂM CHỨNG (ghi rõ ở docs/native-panel.md): tài liệu công khai
-// không mô tả byte-exact cách ghép cho Generic Widget, và chưa rõ Crisp có
-// ký MỌI sự kiện widget hay không. Vì vậy chính sách verify mềm:
+// theo Web Hooks Reference của Crisp (docs.crisp.chat/references/web-hooks/v1,
+// mục Delivery — Generic Widget guide dẫn về cùng thuật toán này):
+//   chuỗi ký = `[${timestamp};${body_as_string}]`
+// (có cả cặp ngoặc vuông và dấu chấm phẩy; body_as_string là JSON body dạng
+// chuỗi — tài liệu ví dụ JSON.stringify() trên Node). Verify thử CẢ body thô
+// trên dây lẫn dạng stringify(parse(body)) để khớp bất kể phía Crisp chuẩn
+// hoá theo dạng nào. Chính sách verify mềm:
 // - Cả hai header đều VẮNG → chấp nhận, ghi trace cờ unsigned (tránh gãy
 //   mặt native nếu Crisp không ký loại sự kiện này).
 // - Có header → verify thật; sai → 401 (Crisp không retry 401 theo cùng
@@ -102,7 +105,7 @@ const enc = new TextEncoder();
 
 export async function computeCrispWidgetSignature(secret: string, timestamp: string, rawBody: string): Promise<string> {
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`${timestamp}.${rawBody}`));
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`[${timestamp};${rawBody}]`));
   return [...new Uint8Array(sig)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }
 
@@ -120,8 +123,17 @@ export async function verifyCrispWidgetSignature(
   signature: string,
 ): Promise<boolean> {
   if (!secret || !timestamp || !signature) return false;
-  const expected = await computeCrispWidgetSignature(secret, timestamp, rawBody);
-  return safeEqualHex(expected, signature.trim().toLowerCase());
+  const got = signature.trim().toLowerCase();
+  if (safeEqualHex(await computeCrispWidgetSignature(secret, timestamp, rawBody), got)) return true;
+  // Tài liệu mô tả body_as_string qua JSON.stringify() của body đã parse —
+  // thử thêm dạng chuẩn hoá đó phòng khi body trên dây khác dạng Crisp đã ký.
+  try {
+    const normalized = JSON.stringify(JSON.parse(rawBody));
+    if (normalized !== rawBody) {
+      return safeEqualHex(await computeCrispWidgetSignature(secret, timestamp, normalized), got);
+    }
+  } catch { /* body không phải JSON hợp lệ — dạng thô ở trên là đủ */ }
+  return false;
 }
 
 // ---------- Định dạng giá trị hiển thị (hàm thuần, có test) ----------
