@@ -1,7 +1,9 @@
 import { writeTrace } from "../_shared/trace.ts";
 import { HttpError } from "../_shared/auth.ts";
 import type { CrispClient } from "../_shared/crisp.ts";
-import type { Db } from "../_shared/db.ts";
+import type { Db, NewStorefrontActionLog } from "../_shared/db.ts";
+import type { N8n } from "../_shared/n8n.ts";
+import { toSheetRow } from "./storefront-report.ts";
 import { enabledModules, jiraForConversation } from "../_shared/jira.ts";
 import {
   classifyFindings,
@@ -250,7 +252,7 @@ export async function resolveShopDomain(
 export async function runStorefront(
   req: { website_id: string; session_id: string; shop?: string },
   ws: Workspace,
-  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; now?: () => number },
+  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; n8n?: N8n | null; now?: () => number },
 ): Promise<StorefrontResult> {
   const conv = await assertStorefrontEnabled(req, ws, deps);
   const explicit = (req.shop ?? "").trim();
@@ -356,7 +358,7 @@ const normDomain = (s: string) => s.trim().toLowerCase().replace(/^www\./, "").r
 export async function runStorefrontAct(
   req: { website_id: string; session_id: string; fingerprint: string; sf_act: string; note?: string; reason?: string; operator_name?: string },
   ws: Workspace,
-  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; now?: () => number },
+  deps: { db: Db; storefront?: StorefrontMcp | null; crisp?: CrispClient | null; n8n?: N8n | null; now?: () => number },
 ): Promise<StorefrontActResult> {
   const act = req.sf_act as StorefrontActKind;
   const fail = (error: string): StorefrontActResult => ({ action: "storefront_act", status: "error", act: req.sf_act ?? "", error });
@@ -406,25 +408,34 @@ export async function runStorefrontAct(
     // Nhật ký report Google Sheet (migration 033, Ethan 2026-10-30): ghi
     // SAU khi SW đã nhận thao tác. Lỗi ghi log KHÔNG được phá kết quả trả
     // cho CS (thao tác thật đã xong) — nuốt lỗi, chỉ để lại trace.
+    const logRow: NewStorefrontActionLog = {
+      website_id: req.website_id,
+      session_id: req.session_id,
+      operator_name: operator ?? null,
+      act,
+      shop,
+      fingerprint: req.fingerprint,
+      title: logSource?.title ?? null,
+      severity: logSource?.severity ?? null,
+      locale: logSource?.locale ?? null,
+      page: logSource?.page ?? null,
+      reason: act === "dismiss" ? reason : null,
+      note: note || null,
+      crisp_url: `https://app.crisp.chat/website/${req.website_id}/inbox/${req.session_id}`,
+      console_url: logSource ? (logSource.consoleLink ?? consoleUnitUrl(shop, logSource)) : null,
+    };
+    let loggedId: number | null = null;
     try {
-      await deps.db.insertStorefrontActionLog({
-        website_id: req.website_id,
-        session_id: req.session_id,
-        operator_name: operator ?? null,
-        act,
-        shop,
-        fingerprint: req.fingerprint,
-        title: logSource?.title ?? null,
-        severity: logSource?.severity ?? null,
-        locale: logSource?.locale ?? null,
-        page: logSource?.page ?? null,
-        reason: act === "dismiss" ? reason : null,
-        note: note || null,
-        crisp_url: `https://app.crisp.chat/website/${req.website_id}/inbox/${req.session_id}`,
-        console_url: logSource ? (logSource.consoleLink ?? consoleUnitUrl(shop, logSource)) : null,
-      });
+      loggedId = await deps.db.insertStorefrontActionLog(logRow);
     } catch (logErr) {
       await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "error", stage: "storefront_act_log", detail: { act, error: errText(logErr) } }).catch(() => null);
+    }
+    // Đẩy REAL-TIME lên Sheet qua webhook n8n (Ethan chốt 2026-10-30:
+    // team cần track liên tục, không chờ gom 15 phút). Đẩy hỏng thì dòng
+    // vẫn chưa reported — workflow pull 15 phút lấp lại, không mất dòng.
+    if (loggedId !== null && deps.n8n) {
+      const sheetRow = toSheetRow({ ...logRow, id: loggedId, created_at: new Date().toISOString() });
+      await deps.n8n.pushStorefrontReport(sheetRow as unknown as Record<string, unknown>).catch(() => false);
     }
     await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "timing", stage: "storefront_act", duration_ms: Math.round(performance.now() - t0), detail: { act } });
     return { action: "storefront_act", status: "ok", act, error: null };
