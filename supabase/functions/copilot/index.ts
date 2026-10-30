@@ -75,7 +75,21 @@ Deno.serve(async (req) => {
     const r = await handleNativeEvent(body, rawBody, {
       signature: req.headers.get("x-crisp-signature"),
       timestamp: req.headers.get("x-crisp-request-timestamp"),
-    }, { db, ai, n8n, background, pluginKey: Deno.env.get("CRISP_PLUGIN_KEY") ?? "" });
+    }, {
+      db,
+      ai,
+      n8n,
+      background,
+      crisp,
+      // Khoá ký của plugin Copilot CS + plugin survey (xe test mặt native
+      // 6 section, Ethan chốt 2026-10-30): sự kiện từ plugin nào thì verify
+      // bằng khoá của plugin đó. CRISP_PLUGIN_KEY_SURVEY trống = chỉ
+      // plugin chính.
+      pluginKeys: [
+        Deno.env.get("CRISP_PLUGIN_KEY") ?? "",
+        Deno.env.get("CRISP_PLUGIN_KEY_SURVEY") ?? "",
+      ],
+    });
     return json(r.status, r.body);
   }
   // Các route nội bộ (n8n/lập lịch gọi): precompute sentiment ngay sau khi
@@ -93,7 +107,7 @@ Deno.serve(async (req) => {
       return json(401, { error: "Thiếu credential nội bộ" });
     }
     const r = internalAction === "precompute_sentiment"
-      ? await handlePrecompute(body, { db, ai })
+      ? await handlePrecompute(body, { db, ai, crisp })
       : internalAction === "storefront_sweep"
       ? await handleStorefrontSweep(body, { db, storefront })
       : internalAction === "storefront_digest"

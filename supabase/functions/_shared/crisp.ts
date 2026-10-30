@@ -1,13 +1,19 @@
-// Client REST tối thiểu cho Crisp — CHỈ phục vụ ngoại lệ ghi duy nhất Ethan
-// đã duyệt tường minh (2026-10-23): gắn/gỡ segment `storefront-watch` trên
-// conversation để các chat thuộc store đang có lỗi Storefront Watch tự nổi
-// lên trong inbox. Đây là ghi METADATA (không phải tin nhắn, không phải
-// note, khách không nhìn thấy) và là đường ghi Crisp DUY NHẤT của hệ thống.
+// Client REST tối thiểu cho Crisp — CHỈ phục vụ HAI ngoại lệ ghi Ethan đã
+// duyệt tường minh:
+// (1) 2026-10-23: gắn/gỡ segment `storefront-watch` trên conversation để
+//     các chat thuộc store đang có lỗi Storefront Watch tự nổi lên trong
+//     inbox.
+// (2) 2026-10-30: ghi DẢI cảm xúc vào custom data của conversation (key
+//     `copilot_mood_band`) mỗi lần tính sentiment mới — để condition của
+//     Generic Widget hiện đúng nút Tâm trạng màu theo dải (condition của
+//     Crisp chỉ đọc dữ liệu Crisp, không đọc giá trị server fetch trả).
+// Cả hai đều là ghi METADATA (không phải tin nhắn, không phải note, khách
+// không nhìn thấy).
 //
-// TUYỆT ĐỐI không mở rộng client này: không thêm method gửi message/note,
-// không sửa field nào khác của meta, không đụng state/routing. CRISP WRITE
-// RULE vẫn nguyên: copilot chỉ soạn draft/note để CS tự gửi trong Crisp;
-// segment này là ngoại lệ đã chốt, không phải tiền lệ để nới thêm.
+// TUYỆT ĐỐI không mở rộng client này ngoài hai ngoại lệ trên: không thêm
+// method gửi message/note, không sửa field nào khác của meta, không đụng
+// state/routing. CRISP WRITE RULE vẫn nguyên: copilot chỉ soạn draft/note
+// để CS tự gửi trong Crisp; hai ngoại lệ này không phải tiền lệ nới thêm.
 // (getConversationCustomData là thao tác ĐỌC meta thuần — không phải ghi,
 // không thuộc diện cấm trên; Ethan duyệt 2026-10-26 cho đường tự resolve
 // shopify_domain của Storefront.)
@@ -32,6 +38,10 @@ export const CRISP_TIMEOUT_MS = 10_000;
 /** Segment duy nhất hệ thống được phép gắn/gỡ tự động (Ethan duyệt 2026-10-23). */
 export const STOREFRONT_WATCH_SEGMENT = "storefront-watch";
 
+/** Key custom data giữ dải cảm xúc cho nút Tâm trạng của mặt native (Ethan duyệt 2026-10-30). Giá trị là một trong bốn màu nút của Crisp. */
+export const MOOD_BAND_KEY = "copilot_mood_band";
+export type MoodBand = "red" | "orange" | "black" | "green";
+
 export class CrispError extends Error {}
 
 export interface CrispClient {
@@ -52,6 +62,15 @@ export interface CrispClient {
    * getConversationSegments.
    */
   setConversationSegments(websiteId: string, sessionId: string, segments: string[]): Promise<void>;
+  /**
+   * PATCH meta {data} bằng object custom data ĐÃ MERGE sẵn (ngoại lệ ghi
+   * thứ hai, Ethan duyệt 2026-10-30 — chỉ cho key `copilot_mood_band`).
+   * Client ghi nguyên object được đưa; merge là việc của caller
+   * (copilot/mood-band.ts) sau khi đọc bản thật bằng
+   * getConversationCustomData — PATCH data ghi đè cả trường data như
+   * segments, không được ghi mỗi key của mình.
+   */
+  setConversationCustomData(websiteId: string, sessionId: string, data: Record<string, unknown>): Promise<void>;
 }
 
 export function createCrispClient(opts: {
@@ -99,6 +118,9 @@ export function createCrispClient(opts: {
     },
     async setConversationSegments(websiteId, sessionId, segments) {
       await call("PATCH", websiteId, sessionId, { segments });
+    },
+    async setConversationCustomData(websiteId, sessionId, data) {
+      await call("PATCH", websiteId, sessionId, { data });
     },
     async getConversationCustomData(websiteId, sessionId) {
       const data = await call("GET", websiteId, sessionId) as { data?: unknown } | null;

@@ -1,3 +1,4 @@
+import type { CrispClient } from "../_shared/crisp.ts";
 import type { Db } from "../_shared/db.ts";
 import type { Ai } from "../_shared/gemini.ts";
 import { resolveSentiment } from "./analyze.ts";
@@ -15,7 +16,7 @@ import { MESSAGE_LIMIT } from "./load.ts";
  * lần gọi lặp (tin chưa đổi) chỉ tốn 2 lượt đọc DB, không gọi AI.
  */
 export async function runPrecompute(
-  deps: { db: Db; ai: Ai },
+  deps: { db: Db; ai: Ai; crisp?: CrispClient | null },
   websiteId: string,
   sessionId: string,
 ): Promise<{ sentiment: boolean; cached: boolean; skipped: string | null }> {
@@ -29,7 +30,7 @@ export async function runPrecompute(
 
 export async function handlePrecompute(
   body: unknown,
-  deps: { db: Db; ai: Ai },
+  deps: { db: Db; ai: Ai; crisp?: CrispClient | null },
 ): Promise<{ status: number; body: unknown }> {
   const b = (typeof body === "object" && body !== null) ? body as Record<string, unknown> : {};
   const websiteId = typeof b.website_id === "string" ? b.website_id : "";
