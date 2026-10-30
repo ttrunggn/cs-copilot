@@ -110,8 +110,8 @@ export interface Db {
   getStorefrontSeen(websiteId: string): Promise<string[]>;
   /** Ghi mốc đã thấy: fingerprint mới được insert, fingerprint cũ chỉ cập nhật last_seen_at. */
   markStorefrontSeen(websiteId: string, fingerprints: string[]): Promise<void>;
-  /** Ghi một dòng nhật ký thao tác ghi SW từ panel (migration 033) — nền cho report Google Sheet qua n8n. Trả id dòng mới (để đẩy real-time + ack). */
-  insertStorefrontActionLog(row: NewStorefrontActionLog): Promise<number>;
+  /** Ghi một dòng nhật ký thao tác ghi SW từ panel (migration 033) — nền cho report Google Sheet qua n8n. Trả id dòng mới (để đẩy real-time + ack); null = đã ghi nhưng không lấy được id, bỏ qua đẩy real-time, workflow pull sẽ lấp. */
+  insertStorefrontActionLog(row: NewStorefrontActionLog): Promise<number | null>;
   /** Các dòng log chưa được báo lên Sheet (reported_at null), cũ nhất trước. */
   listUnreportedStorefrontActions(limit: number): Promise<StorefrontActionLogRow[]>;
   /** Đánh dấu đã báo sau khi n8n xác nhận append lên Sheet xong. */
@@ -376,9 +376,23 @@ export function createDb(sb: SupabaseClient): Db {
       if (error) throw error;
     },
     async insertStorefrontActionLog(row) {
-      const { data, error } = await sb.from("storefront_action_log").insert(row).select("id").single();
+      // TÁCH insert và lấy id thành 2 thao tác (bản insert().select().single()
+      // chạy xanh với fake trong test nhưng trên production 2026-10-30 khiến
+      // id không về được — thao tác vẫn báo ok mà cú đẩy real-time không bao
+      // giờ chạy). Cả insert trơn lẫn select trên bảng này đều đã kiểm chứng
+      // sống riêng rẽ (dòng 11:59 ghi được, pull đọc được).
+      const { error } = await sb.from("storefront_action_log").insert(row);
       if (error) throw error;
-      return (data as { id: number }).id;
+      const { data } = await sb.from("storefront_action_log")
+        .select("id")
+        .eq("website_id", row.website_id)
+        .eq("session_id", row.session_id)
+        .eq("fingerprint", row.fingerprint)
+        .is("reported_at", null)
+        .order("id", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (data as { id: number } | null)?.id ?? null;
     },
     async listUnreportedStorefrontActions(limit) {
       const { data, error } = await sb.from("storefront_action_log")
