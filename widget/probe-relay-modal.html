@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Probe relay — modal</title>
+<style>
+  body { font-family: system-ui, sans-serif; font-size: 13px; padding: 12px; color: #222; margin: 0; }
+  code { word-break: break-all; font-size: 11px; }
+  #verdict { margin-top: 8px; font-weight: 600; }
+  .log { white-space: pre-wrap; font-size: 11px; color: #555; border-top: 1px solid #ddd; margin-top: 8px; padding-top: 6px; max-height: 220px; overflow: auto; }
+</style>
+<script src="https://assets.crisp.chat/widget/javascripts/sdk.min.js" defer></script>
+</head>
+<body>
+<div><b>Probe relay (modal)</b></div>
+<div>Session đóng dấu lúc mở (URL): <code id="urlsid">…</code></div>
+<div>Session mới nhất nhận qua forwardEvent: <code id="last">chưa có</code></div>
+<div id="verdict">Đang chờ sự kiện…</div>
+<div class="log" id="log"></div>
+<script>
+// Nửa modal của probe relay: chỉ NGHE $crisp.onEventForwarded và ghi nhật
+// ký nguyên văn mọi payload nhận được. Hai ẩn số cần chốt:
+// (a) sự kiện có tới được khi modal đang THU NHỎ không;
+// (b) modal do widget mở có còn nhận sự kiện sau khi widget đã nạp lại
+//     sang conversation khác không.
+// Kết luận đọc thẳng từ nhật ký: session mới (khác session URL) xuất hiện
+// trong nhật ký = relay chạy.
+var urlSid = new URLSearchParams(location.search).get("session_id") || "";
+document.getElementById("urlsid").textContent = urlSid || "(không có)";
+var logEl = document.getElementById("log");
+function log(msg) {
+  logEl.textContent += new Date().toLocaleTimeString("vi-VN") + " " + msg + "\n";
+}
+var count = 0;
+function extractSession(a0) {
+  if (!a0 || typeof a0 !== "object") return "";
+  if (a0.probe_relay && a0.probe_relay.session_id) return a0.probe_relay.session_id;
+  if (a0.session_id) return a0.session_id;
+  if (a0.data && a0.data.probe_relay && a0.data.probe_relay.session_id) return a0.data.probe_relay.session_id;
+  if (a0.payload && a0.payload.probe_relay && a0.payload.probe_relay.session_id) return a0.payload.probe_relay.session_id;
+  return "";
+}
+window.CRISP_READY_TRIGGER = function () {
+  $crisp.onEventForwarded = function () {
+    count++;
+    var raw = Array.prototype.map.call(arguments, function (a) {
+      try { return JSON.stringify(a); } catch (e) { return String(a); }
+    }).join(" | ");
+    log("event #" + count + ": " + raw);
+    var sid = extractSession(arguments[0]);
+    if (sid) {
+      document.getElementById("last").textContent = sid;
+      document.getElementById("verdict").textContent = sid !== urlSid
+        ? "ĐÃ NHẬN SESSION MỚI QUA FORWARDEVENT — relay chạy!"
+        : "Nhận được sự kiện, session vẫn là chat gốc";
+    }
+  };
+  log("modal sẵn sàng, đang chờ forwardEvent…");
+};
+</script>
+</body>
+</html>

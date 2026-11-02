@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Probe relay — widget</title>
+<style>
+  body { font-family: system-ui, sans-serif; font-size: 13px; padding: 10px; color: #222; margin: 0; }
+  code { word-break: break-all; font-size: 11px; }
+  button { padding: 6px 10px; border-radius: 8px; border: 1px solid #bbb; background: #f4f4f5; cursor: pointer; font-size: 13px; }
+  .log { white-space: pre-wrap; font-size: 11px; color: #555; border-top: 1px solid #ddd; margin-top: 8px; padding-top: 6px; max-height: 180px; overflow: auto; }
+</style>
+<script src="https://assets.crisp.chat/widget/javascripts/sdk.min.js" defer></script>
+</head>
+<body>
+<div><b>Probe relay (widget iframe)</b></div>
+<div>Session widget đang thấy: <code id="sid">đang chờ SDK…</code></div>
+<div style="margin-top:8px"><button id="open" type="button">Mở modal probe</button></div>
+<div class="log" id="log"></div>
+<script>
+// Trang probe cho đường iframe + SDK (quyết định Ethan 02/11): widget iframe
+// luôn biết conversation hiện tại (Crisp nạp lại nó theo từng chat). Nó mở
+// modal bằng $crisp.showModal và đẩy session mới sang modal bằng
+// $crisp.forwardEvent mỗi khi session đổi. Modal (probe-relay-modal.html)
+// ghi nhật ký mọi sự kiện nhận được — kết luận dựa trên session THẬT trong
+// nhật ký, không dựa trên cờ so-khác (bài học dương tính giả 30/10).
+var logEl = document.getElementById("log");
+function log(msg) {
+  logEl.textContent += new Date().toLocaleTimeString("vi-VN") + " " + msg + "\n";
+}
+function resolveSession() {
+  var byUrl = new URLSearchParams(location.search).get("session_id") || "";
+  var conv = (window.$crisp && $crisp.data && $crisp.data.conversation) || {};
+  var bySdk = conv.session_id || (conv.data && conv.data.conversation && conv.data.conversation.session_id) || "";
+  return bySdk || byUrl;
+}
+var lastForwarded = "";
+function forward(reason) {
+  var sid = resolveSession();
+  if (!sid) { log("forward(" + reason + "): chưa có session, bỏ qua"); return; }
+  document.getElementById("sid").textContent = sid;
+  if (sid === lastForwarded && reason === "poll") return;
+  lastForwarded = sid;
+  try {
+    $crisp.forwardEvent("modal", { probe_relay: { session_id: sid, ts: Date.now(), reason: reason } });
+    log("đã forward session " + sid + " (" + reason + ")");
+  } catch (e) {
+    log("forward lỗi: " + ((e && e.message) || e));
+  }
+}
+window.CRISP_READY_TRIGGER = function () {
+  $crisp.onDataAcquired = function (ns) {
+    if (ns === "conversation") forward("acquire");
+  };
+  $crisp.acquireData("conversation");
+  forward("boot");
+  // Widget có thể được Crisp giữ sống thay vì nạp lại khi đổi chat: tự hỏi
+  // lại SDK mỗi 3 giây, session đổi thì forward tiếp.
+  setInterval(function () {
+    try { $crisp.acquireData("conversation"); } catch (e) { /* SDK chưa sẵn sàng */ }
+    forward("poll");
+  }, 3000);
+};
+document.getElementById("open").addEventListener("click", function () {
+  var sid = resolveSession() || lastForwarded;
+  var url = "https://deploy-preview-58--copilot-oe.netlify.app/probe-relay-modal.html?session_id=" + encodeURIComponent(sid);
+  try {
+    $crisp.showModal(url);
+    log("đã gọi showModal cho session " + sid);
+  } catch (e) {
+    log("showModal lỗi: " + ((e && e.message) || e));
+  }
+  setTimeout(function () { forward("after-open"); }, 1000);
+});
+</script>
+</body>
+</html>
