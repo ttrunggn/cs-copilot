@@ -623,6 +623,7 @@ Deno.test("standaloneViewFor: view modal → thân modal; storefront/jira → ch
   assertEquals(standaloneViewFor("storefront"), "storefront");
   assertEquals(standaloneViewFor("jira"), "jira");
   assertEquals(standaloneViewFor("monitor"), "monitor");
+  assertEquals(standaloneViewFor("swmonitor"), "swmonitor");
   assertEquals(standaloneViewFor("lạ"), null);
   assertEquals(standaloneViewFor(null), null);
 });

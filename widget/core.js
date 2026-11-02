@@ -20,7 +20,7 @@ export function readContext(search) {
  * ?open=<view> để vào thẳng đúng view (xem widget/native-panel.json). Sáu
  * view hợp lệ; giá trị lạ → null (bỏ qua, panel mở như thường).
  */
-export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira", "monitor"];
+export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira", "monitor", "swmonitor"];
 
 export function parseOpenParam(search) {
   const open = new URLSearchParams(search).get("open") ?? "";
@@ -44,12 +44,15 @@ export function openModalName(open) {
  * render đúng view đó thay vì cả panel rồi popup chồng lên (Ethan chốt
  * 30/10: modal gánh design). draft/note/ask/review dùng lại thân modal
  * tương ứng (review → csat); storefront/jira render card của chính chúng.
- * View lạ → null (trang panel thường).
+ * monitor = Storefront + Jira trong một modal nổi; swmonitor = biến thể
+ * CHỈ Storefront (Ethan chốt 02/11: plugin survey đổi thành Storefront
+ * Watch monitor only — mặt native của nó chỉ còn section Storefront và
+ * một nút mở view này). View lạ → null (trang panel thường).
  */
 export function standaloneViewFor(open) {
   const m = openModalName(open);
   if (m) return m;
-  if (open === "storefront" || open === "jira" || open === "monitor") return open;
+  if (open === "storefront" || open === "jira" || open === "monitor" || open === "swmonitor") return open;
   return null;
 }
 

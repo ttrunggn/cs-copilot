@@ -794,9 +794,9 @@ function render() {
   // (modal "explain" của Storefront vẫn mở chồng lên card) — kèm thẻ
   // thông báo. Không header, không hàng lệnh, không giữ vị trí cuộn.
   if (standaloneView) {
-    const cardView = standaloneView === "storefront" || standaloneView === "jira" || standaloneView === "monitor";
+    const cardView = standaloneView === "storefront" || standaloneView === "jira" || standaloneView === "monitor" || standaloneView === "swmonitor";
     show(
-      standaloneView === "storefront" || standaloneView === "monitor" ? storefrontPanel(handlers) : null,
+      standaloneView === "storefront" || standaloneView === "monitor" || standaloneView === "swmonitor" ? storefrontPanel(handlers) : null,
       standaloneView === "jira" || standaloneView === "monitor" ? jiraPanel(handlers) : null,
       cardView ? null : modalView(handlers),
       noticeNode(),
@@ -970,12 +970,18 @@ function startMonitorRelay() {
 // Crisp mở một modal MỚI mỗi lần bấm nút (bắt live 30/10 17:47: bấm ở
 // chat khác là chồng thêm một thẻ nổi, bản cũ không tự đóng). Các
 // iframe modal cùng origin widget nghe nhau qua BroadcastChannel:
-// instance monitor mới mở thì instance cũ tự đóng mình.
+// instance monitor mới mở thì instance cũ tự đóng mình. Áp cho cả
+// view monitor (Storefront + Jira, mở từ panel) và swmonitor (chỉ
+// Storefront, mở từ mặt native của plugin survey — Ethan chốt 02/11
+// biến plugin survey thành Storefront Watch monitor only): hai view
+// dùng CHUNG kênh để toàn inbox chỉ có một thẻ monitor nổi mỗi lúc.
+// swmonitor mở từ plugin khác nên không nhận relay session; nó là
+// ảnh chụp của chat lúc bấm nút, như mọi modal native khác.
 const MONITOR_BORN_AT = Date.now();
 const MONITOR_INSTANCE_ID = `${MONITOR_BORN_AT}-${Math.random().toString(36).slice(2, 8)}`;
 let monitorSuperseded = false;
 function startMonitorSupersede() {
-  if (standaloneView !== "monitor") return;
+  if (standaloneView !== "monitor" && standaloneView !== "swmonitor") return;
   try {
     const ch = new BroadcastChannel("copilot-monitor");
     ch.onmessage = (e) => {
@@ -1067,6 +1073,9 @@ window.CRISP_READY_TRIGGER = () => {
   };
   $crisp.acquireData("operator");
   startMonitorRelay();
+  // swmonitor không có relay để đóng bù như monitor: nếu đã bị instance
+  // mới thay thế trước khi SDK sẵn sàng thì đóng ngay tại đây.
+  if (standaloneView === "swmonitor" && monitorSuperseded) { try { $crisp.closeModal(); } catch { /* SDK chưa sẵn sàng thì thôi */ } }
 };
 
 const ctx = readContext(location.search);
