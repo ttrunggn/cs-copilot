@@ -70,6 +70,41 @@ export function apiUrlFor(fn) {
   return `https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/${fn}`;
 }
 
+/**
+ * Relay session panel → modal monitor (cơ chế iframe + Widget JS SDK,
+ * Ethan chốt thử 02/11 sau khi SDK trong modal bị chứng minh đóng băng
+ * theo conversation lúc mở — live 30/10): panel iframe luôn biết
+ * conversation hiện tại (Crisp nạp lại panel theo từng chat) nên mỗi
+ * lần boot, panel đẩy session của mình sang modal bằng
+ * $crisp.forwardEvent("modal", payload này); modal nghe
+ * $crisp.onEventForwarded, trích session bằng sessionFromRelayPayload
+ * rồi tự nạp lại. Relay chỉ chạy TRONG CÙNG một plugin (widget đẩy thì
+ * modal của chính plugin đó mới nhận) — đã chứng minh live 02/11 bằng
+ * plugin probe riêng: modal mở từ chat A nhận đúng session của các
+ * chat mở sau, kể cả sau khi widget đã nạp lại sang chat khác.
+ */
+export function monitorRelayPayload(sessionId) {
+  return { copilot_relay: { session_id: typeof sessionId === "string" ? sessionId : "" } };
+}
+
+export function sessionFromRelayPayload(data) {
+  if (!data || typeof data !== "object") return "";
+  const relay = data.copilot_relay;
+  if (!relay || typeof relay !== "object") return "";
+  return typeof relay.session_id === "string" && SESSION_ID.test(relay.session_id) ? relay.session_id : "";
+}
+
+/** URL mở view monitor dạng modal nổi từ panel (qua $crisp.showModal). */
+export function monitorModalUrl(href, { websiteId, sessionId, token, fn }) {
+  const url = new URL(href);
+  url.searchParams.set("open", "monitor");
+  if (websiteId) url.searchParams.set("website_id", websiteId);
+  if (sessionId) url.searchParams.set("session_id", sessionId);
+  if (token) url.searchParams.set("token", token);
+  if (fn) url.searchParams.set("fn", fn);
+  return url.toString();
+}
+
 export function mapError(status, body) {
   const msg = body?.error;
   if (status === 401) return { kind: "fatal", message: msg ?? "Widget không hợp lệ cho workspace này" };

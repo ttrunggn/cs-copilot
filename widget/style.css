@@ -140,6 +140,8 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 /* Nền ĐẶC như nút thường: bản pha 78% trong suốt trước đây chìm vào nền card,
    nhìn như chưa đổi màu (Ethan test live 2026-10-26 trên nút "Soạn lại"). */
 .button-secondary { background: var(--btn); }
+.monitor-launch { margin: 2px 0 10px; }
+.monitor-launch-button { width: 100%; }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 /* Nút màu theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông màu —
    Draft/CSAT xanh dương, Private note hổ phách, Hỏi KB ngọc, Review tím;

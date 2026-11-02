@@ -1,4 +1,4 @@
-import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, openModalName, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, parseOpenParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, openModalName, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, parseOpenParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -801,7 +801,6 @@ function render() {
       cardView ? null : modalView(handlers),
       noticeNode(),
       cardView ? modalView(handlers) : null,
-      standaloneView === "monitor" ? el("p", { id: "monitor-debug", className: "muted", textContent: monitorDebugText }) : null,
     );
     return;
   }
@@ -833,6 +832,13 @@ function render() {
     issuesPanel(vm),
     storefrontPanel(handlers),
     jiraPanel(handlers),
+    // Nút mở monitor nổi: phải mở bằng showModal TỪ panel thì relay
+    // session (forwardEvent) mới tới được modal — xem khối Monitor.
+    (enabledModules(state.check).storefront || enabledModules(state.check).jira)
+      ? el("div", { className: "monitor-launch" }, [
+          el("button", { className: "button-secondary monitor-launch-button", textContent: "Theo dõi Storefront + Jira", onclick: () => openMonitorModal() }),
+        ])
+      : null,
     extensionHint(handlers),
     state.progress && !modalOpen ? progressCard() : !modalOpen && state.busy ? el("div", { className: "loading-card" }, [
       el("p", { className: "muted", textContent: state.busy }),
@@ -890,49 +896,75 @@ function applyOpenDeepLink(sessionId) {
  * view gốc không đóng được nên state.modal luôn còn nguyên.
  */
 // ---------- Monitor (Storefront + Jira trong MỘT modal nổi) ----------
-// Ethan chốt ý tưởng 30/10 17:38: modal thu nhỏ/di chuyển sống xuyên
-// conversation — mở MỘT lần rồi tự bám theo chat đang mở. Kiểm chứng
-// live 30/10 17:49 bằng trang probe: Widget JS SDK trong modal báo
-// ĐÚNG conversation đang mở trong inbox (không phải conversation đóng
-// dấu trong URL lúc mở), nên trang cứ 3 giây hỏi lại một lần; session
-// khác URL hiện tại thì tự nạp lại theo session mới (giữ nguyên token
-// và các param Crisp gắn). Đang thao tác Storefront (gửi hành động /
-// mở form / menu) thì HOÃN — nhịp hỏi kế tiếp thử lại, không giật màn
-// hình giữa chừng. Các view standalone khác KHÔNG tự nạp lại (draft
-// đang gõ mà nạp lại là mất chữ).
-// Dòng chẩn đoán TẠM trong view monitor (vòng gỡ lỗi 30/10 17:57):
-// monitor không sync live dù probe từng báo bám được — nghi vấn session_id
-// của SDK nằm LỒNG một cấp ($crisp.data.conversation.data.conversation)
-// nên bản đầu đọc ra rỗng và không bao giờ nạp lại, đồng thời trạng thái
-// "ĐÃ BÁM" của probe có thể là dương tính giả (chuỗi thay thế đem so với
-// URL luôn khác). Dòng này in cả hai đường ứng viên để nhìn một phát biết
-// đường nào sống và có nhảy theo chat không; chốt được thì gỡ dòng này.
-let monitorDebugText = "SDK: chưa có dữ liệu";
-function monitorOnConversation() {
-  if (standaloneView !== "monitor") return;
-  const conv = $crisp.data?.conversation ?? {};
-  const direct = conv.session_id ?? "";
-  const nested = conv.data?.conversation?.session_id ?? "";
-  const sid = direct || nested;
-  const current = readContext(location.search).sessionId ?? "";
-  monitorDebugText = `URL: ${current || "?"} · SDK trực tiếp: ${direct || "—"} · SDK lồng: ${nested || "—"}`;
-  const dbg = document.getElementById("monitor-debug");
-  if (dbg) dbg.textContent = monitorDebugText;
-  if (!sid || sid === current) return;
-  if (state.sfActBusy || state.sfForm || state.busyAction) return;
+// Ethan chốt ý tưởng 30/10: modal thu nhỏ/di chuyển sống xuyên
+// conversation, mở MỘT lần rồi tự bám theo chat đang mở. Đường SDK
+// trong modal đã chết (đo live 30/10: dữ liệu conversation của SDK bị
+// đóng băng theo chat lúc mở modal). Cơ chế chạy được là RELAY
+// iframe + SDK (chứng minh live 02/11 bằng plugin probe riêng): panel
+// iframe luôn biết conversation hiện tại (Crisp nạp lại panel theo
+// từng chat), mỗi lần boot panel đẩy session sang modal bằng
+// $crisp.forwardEvent; modal nghe $crisp.onEventForwarded rồi tự nạp
+// lại theo session mới (giữ nguyên token và các param Crisp gắn).
+// Relay chỉ chạy trong CÙNG một plugin — monitor phải do panel mở
+// bằng $crisp.showModal (nút "Theo dõi Storefront + Jira" trên panel)
+// mới nhận được; bản mở từ mặt native của plugin khác thì đứng yên
+// như modal thường. Đang thao tác Storefront (gửi hành động / mở
+// form) thì HOÃN nạp lại, thử lại sau 3 giây — không giật giữa chừng.
+
+/** Panel: đẩy session của conversation hiện tại sang modal monitor. */
+function relayForwardSession() {
+  if (standaloneView) return;
+  if (!("sessionId" in ctx)) return;
+  try { window.$crisp?.forwardEvent?.("modal", monitorRelayPayload(ctx.sessionId)); } catch { /* SDK chưa sẵn sàng thì thôi */ }
+}
+
+/** Panel: mở modal monitor nổi bằng SDK (cùng plugin thì relay mới tới). */
+function openMonitorModal() {
+  if (!("sessionId" in ctx)) return;
+  const url = monitorModalUrl(location.href, {
+    websiteId: ctx.websiteId,
+    sessionId: ctx.sessionId,
+    token: ctx.crispToken,
+    fn: parseFnParam(location.search),
+  });
+  try { window.$crisp?.showModal?.(url); } catch { /* ngoài Crisp thì bỏ qua */ }
+}
+
+let pendingRelaySession = "";
+let relayRetryTimer = null;
+function applyRelaySession(sid) {
   const url = new URL(location.href);
   url.searchParams.set("session_id", sid);
   location.replace(url.toString());
 }
+function monitorOnRelayEvent(data) {
+  if (standaloneView !== "monitor") return;
+  const sid = sessionFromRelayPayload(data);
+  if (!sid) return;
+  const current = readContext(location.search).sessionId ?? "";
+  if (sid === current) return;
+  if (state.sfActBusy || state.sfForm || state.busyAction) {
+    pendingRelaySession = sid;
+    if (!relayRetryTimer) {
+      relayRetryTimer = setInterval(() => {
+        if (!pendingRelaySession) { clearInterval(relayRetryTimer); relayRetryTimer = null; return; }
+        if (state.sfActBusy || state.sfForm || state.busyAction) return;
+        const target = pendingRelaySession;
+        pendingRelaySession = "";
+        applyRelaySession(target);
+      }, 3000);
+    }
+    return;
+  }
+  applyRelaySession(sid);
+}
 
-let monitorPollStarted = false;
-function startMonitorPolling() {
-  if (standaloneView !== "monitor" || monitorPollStarted) return;
-  monitorPollStarted = true;
+let monitorRelayStarted = false;
+function startMonitorRelay() {
+  if (standaloneView !== "monitor" || monitorRelayStarted) return;
+  monitorRelayStarted = true;
   if (monitorSuperseded) { try { $crisp.closeModal(); } catch { /* SDK chưa sẵn sàng thì thôi */ } }
-  const tick = () => { try { $crisp.acquireData("conversation"); } catch { /* nhịp sau thử lại */ } };
-  tick();
-  setInterval(tick, 3000);
+  try { $crisp.onEventForwarded = (data) => monitorOnRelayEvent(data); } catch { /* SDK chưa sẵn sàng thì thôi */ }
 }
 
 // Crisp mở một modal MỚI mỗi lần bấm nút (bắt live 30/10 17:47: bấm ở
@@ -950,7 +982,7 @@ function startMonitorSupersede() {
       const m = e?.data ?? {};
       if (m.type !== "hello" || m.id === MONITOR_INSTANCE_ID || !(m.ts > MONITOR_BORN_AT)) return;
       monitorSuperseded = true;
-      try { window.$crisp?.closeModal?.(); } catch { /* SDK chưa sẵn sàng: startMonitorPolling đóng lại khi ready */ }
+      try { window.$crisp?.closeModal?.(); } catch { /* SDK chưa sẵn sàng: startMonitorRelay đóng lại khi ready */ }
     };
     ch.postMessage({ type: "hello", id: MONITOR_INSTANCE_ID, ts: MONITOR_BORN_AT });
   } catch { /* Không có BroadcastChannel thì bỏ qua cơ chế thay thế */ }
@@ -1023,7 +1055,6 @@ async function load() {
 // CS đang đăng nhập lấy từ SDK chính thức của Crisp, không cần nhập token.
 window.CRISP_READY_TRIGGER = () => {
   $crisp.onDataAcquired = (namespace) => {
-    if (namespace === "conversation") return monitorOnConversation();
     if (namespace !== "operator") return;
     state.operatorId = operatorIdFrom($crisp.data.operator);
     state.operatorName = operatorNameFrom($crisp.data.operator);
@@ -1032,9 +1063,10 @@ window.CRISP_READY_TRIGGER = () => {
       return showMessage(`Không đọc được CS đang đăng nhập. Crisp trả về: ${describeShape($crisp.data.operator)}`);
     }
     load();
+    relayForwardSession();
   };
   $crisp.acquireData("operator");
-  startMonitorPolling();
+  startMonitorRelay();
 };
 
 const ctx = readContext(location.search);
