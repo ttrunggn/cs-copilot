@@ -938,7 +938,7 @@ function applyRelaySession(sid) {
   location.replace(url.toString());
 }
 function monitorOnRelayEvent(data) {
-  if (standaloneView !== "monitor") return;
+  if (standaloneView !== "monitor" && standaloneView !== "swmonitor") return;
   const sid = sessionFromRelayPayload(data);
   if (!sid) return;
   const current = readContext(location.search).sessionId ?? "";
@@ -961,7 +961,7 @@ function monitorOnRelayEvent(data) {
 
 let monitorRelayStarted = false;
 function startMonitorRelay() {
-  if (standaloneView !== "monitor" || monitorRelayStarted) return;
+  if ((standaloneView !== "monitor" && standaloneView !== "swmonitor") || monitorRelayStarted) return;
   monitorRelayStarted = true;
   if (monitorSuperseded) { try { $crisp.closeModal(); } catch { /* SDK chưa sẵn sàng thì thôi */ } }
   try { $crisp.onEventForwarded = (data) => monitorOnRelayEvent(data); } catch { /* SDK chưa sẵn sàng thì thôi */ }
@@ -975,8 +975,11 @@ function startMonitorRelay() {
 // Storefront, mở từ mặt native của plugin survey — Ethan chốt 02/11
 // biến plugin survey thành Storefront Watch monitor only): hai view
 // dùng CHUNG kênh để toàn inbox chỉ có một thẻ monitor nổi mỗi lúc.
-// swmonitor mở từ plugin khác nên không nhận relay session; nó là
-// ảnh chụp của chat lúc bấm nút, như mọi modal native khác.
+// swmonitor cũng NGHE relay như monitor: panel Copilot (plugin khác)
+// forward session mỗi lần boot — Crisp có chuyển sự kiện forwardEvent
+// XUYÊN plugin tới modal đang mở hay không là điểm quyết định bởi test
+// live 02/11; nếu sự kiện tới, swmonitor tự nạp lại theo chat mới y hệt
+// monitor, nếu không tới thì nó đứng yên như modal native thường.
 const MONITOR_BORN_AT = Date.now();
 const MONITOR_INSTANCE_ID = `${MONITOR_BORN_AT}-${Math.random().toString(36).slice(2, 8)}`;
 let monitorSuperseded = false;
@@ -1073,9 +1076,6 @@ window.CRISP_READY_TRIGGER = () => {
   };
   $crisp.acquireData("operator");
   startMonitorRelay();
-  // swmonitor không có relay để đóng bù như monitor: nếu đã bị instance
-  // mới thay thế trước khi SDK sẵn sàng thì đóng ngay tại đây.
-  if (standaloneView === "swmonitor" && monitorSuperseded) { try { $crisp.closeModal(); } catch { /* SDK chưa sẵn sàng thì thôi */ } }
 };
 
 const ctx = readContext(location.search);

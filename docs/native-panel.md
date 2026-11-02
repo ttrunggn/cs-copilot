@@ -203,8 +203,11 @@ Ethan đổi vai plugin survey: không còn là xe test của panel gộp nữa
 mà là **Storefront Watch monitor only**. Schema của plugin chỉ còn
 MỘT section "Storefront Watch": dòng trạng thái `tt_storefront` +
 một nút modal mở view `?open=swmonitor`. View này render đúng card
-Storefront (không Jira, không module nào khác). Mở từ mặt native của
-plugin khác nên **không có relay** — nó là ảnh chụp của chat lúc bấm
-nút; chống chồng vẫn áp qua chung kênh BroadcastChannel
-`copilot-monitor` với view monitor chính. Schema panel gộp 6 section
-trong `widget/native-panel.json` giữ nguyên cho đợt promote.
+Storefront (không Jira, không module nào khác). View NGHE relay y hệt
+monitor (panel Copilot forward session mỗi lần boot) — nhưng panel và
+modal nằm ở HAI plugin khác nhau, và việc Crisp có chuyển forwardEvent
+xuyên plugin hay không chỉ quyết định được bằng test live; trước khi
+có kết quả, không khẳng định swmonitor tự sync. Chống chồng vẫn áp qua
+chung kênh BroadcastChannel `copilot-monitor` với view monitor chính.
+Schema panel gộp 6 section trong `widget/native-panel.json` giữ
+nguyên cho đợt promote.
