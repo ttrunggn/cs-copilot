@@ -803,7 +803,7 @@ function render() {
   // (modal "explain" của Storefront vẫn mở chồng lên card) — kèm thẻ
   // thông báo. Không header, không hàng lệnh, không giữ vị trí cuộn.
   if (swMiniFace) {
-    show(swMiniFaceNode(vm), noticeNode());
+    show(swMiniFaceNode());
     return;
   }
   if (standaloneView) {
@@ -957,79 +957,22 @@ function openSwMonitorModal() {
 }
 
 /**
- * Mặt iframe mỏng của tool Storefront Watch thu nhỏ: chỉ tóm tắt
- * Storefront của chat hiện tại (trạng thái + tối đa 3 finding đang mở)
- * và nút mở modal swmonitor. Panel này boot là relayForwardSession đã
- * đẩy session sang modal — mặt và modal cùng plugin nên modal bám
- * theo chat như monitor chính. Chi tiết finding + thao tác nằm trong
- * modal; mặt này cố ý gọn để vừa khung iframe của Crisp.
+ * Mặt iframe của tool Storefront Watch thu nhỏ (Ethan chốt 2026-11-03):
+ * CHỈ đúng 1 nút đỏ "Mở Storefront Watch" — bấm là lên modal swmonitor,
+ * ngoài ra không hiển thị gì thêm (không tiêu đề, không tên store, không
+ * trạng thái). Mặt này tồn tại dưới dạng iframe cùng plugin với modal để
+ * relayForwardSession đẩy session sang modal được (mặt Generic không
+ * làm được việc này — đã test chết live 2026-11-02). Mọi dữ kiện và
+ * thao tác nằm trong modal; mặt không nạp dữ liệu Storefront.
  */
-function swMiniFaceNode(vm) {
-  const head = el("div", { className: "row" }, [
-    el("h3", { textContent: "Storefront Watch" }),
-    el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
+function swMiniFaceNode() {
+  return el("section", { className: "sw-mini-face" }, [
+    el("button", {
+      className: "sw-open-button",
+      textContent: "Mở Storefront Watch",
+      onclick: () => openSwMonitorModal(),
+    }),
   ]);
-  if (!enabledModules(state.check).storefront) {
-    return el("section", { className: "card storefront-card mod-store" }, [
-      head,
-      el("p", { className: "muted", textContent: "Storefront Watch không áp dụng cho chat này." }),
-    ]);
-  }
-  const sf = toStorefrontViewModel(state.storefront);
-  const store = sf.store ?? vm.shopDomain ?? null;
-  const kids = [
-    head,
-    store ? el("p", { className: "customer-line" }, [el("b", { textContent: store })]) : null,
-  ];
-  if (sf.kind === "empty" || sf.kind === "loading") {
-    kids.push(el("p", { className: "muted", textContent: "Đang kiểm tra store này…" }));
-  } else if (sf.kind === "need-shop") {
-    kids.push(
-      el("p", { className: "muted", textContent: "Nhập domain Shopify của store:" }),
-      el("input", {
-        className: "input", type: "text", placeholder: "vd: store-abc.myshopify.com",
-        value: state.storefrontShopInput,
-        oninput: (e) => { state.storefrontShopInput = e.target.value; },
-        onkeydown: (e) => { if (e.key === "Enter") handlers.onStorefrontLoad?.(); },
-      }),
-      el("button", { className: "button-secondary", textContent: "Kiểm tra store này", onclick: () => handlers.onStorefrontLoad?.() }),
-    );
-  } else if (sf.kind === "unconfigured") {
-    kids.push(el("p", { className: "muted", textContent: sf.message ?? "Storefront Watch chưa được cấu hình trên server." }));
-  } else if (sf.kind === "error") {
-    kids.push(
-      el("b", { className: "error-text", textContent: "Không kiểm tra được storefront" }),
-      sf.message ? el("p", { className: "muted", textContent: sf.message }) : null,
-      el("button", { className: "button-secondary", textContent: "Thử lại", onclick: () => handlers.onStorefrontLoad?.() }),
-    );
-  } else if (sf.kind === "missing-domain") {
-    kids.push(el("p", { textContent: "Chưa nhận ra store của khách này (thiếu shopify domain). Chưa kiểm tra được." }));
-  } else if (sf.notWatched) {
-    kids.push(el("p", { className: "muted", textContent: "Store chưa được Storefront Watch theo dõi." }));
-  } else {
-    const closedHere = new Set((sf.rows ?? []).map((r) => r.fingerprint).filter((fp) => fp && state.sfClosed[fp]));
-    const openRows = (sf.rows ?? []).filter((r) => !(r.fingerprint && closedHere.has(r.fingerprint)));
-    kids.push(el("p", {}, [
-      el("b", { textContent: openRows.length > 0 ? `${openRows.length} lỗi đang mở` : "Không phát hiện lỗi" }),
-      sf.scannedLabel ? el("span", { className: "muted", textContent: ` · quét ${sf.scannedLabel}` }) : null,
-    ]));
-    for (const r of openRows.slice(0, 3)) {
-      kids.push(el("div", { className: "sf-line" }, [
-        el("span", { className: `pill-sf ${r.status === "new" ? "sf-new" : r.status === "acknowledged" ? "sf-ack" : "sf-prog"}`, textContent: r.pill }),
-        el("div", {}, [
-          el("div", { textContent: r.shortLabel }),
-          r.meta ? el("div", { className: "muted", textContent: r.meta }) : null,
-        ]),
-      ]));
-    }
-    if (openRows.length > 3) kids.push(el("p", { className: "muted", textContent: `+${openRows.length - 3} lỗi nữa — mở monitor để xem hết.` }));
-  }
-  kids.push(el("button", {
-    className: "button-primary monitor-launch-button",
-    textContent: "Mở Storefront Watch",
-    onclick: () => openSwMonitorModal(),
-  }));
-  return el("section", { className: "card storefront-card mod-store" }, kids);
 }
 
 let pendingRelaySession = "";
@@ -1157,7 +1100,7 @@ async function load() {
     // Module Storefront được server bật mà chat này chưa có dữ liệu: tự nạp
     // luôn — server tự resolve shop từ custom data của phiên; phiên không có
     // sẵn shopify_domain thì server trả need_shop và module hiện ô nhập tay.
-    if (enabledModules(state.check).storefront && !state.storefront) onStorefrontLoad();
+    if (!swMiniFace && enabledModules(state.check).storefront && !state.storefront) onStorefrontLoad();
   } finally {
     loadInFlight = false;
   }

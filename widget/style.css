@@ -142,6 +142,11 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .button-secondary { background: var(--btn); }
 .monitor-launch { margin: 2px 0 10px; }
 .monitor-launch-button { width: 100%; }
+/* Mặt thu nhỏ của tool Storefront Watch (plugin riêng): chỉ 1 nút đỏ mở
+   modal, không nội dung nào khác (Ethan chốt 2026-11-03). */
+.sw-mini-face { padding: 10px; }
+.sw-open-button { width: 100%; min-height: 40px; border: 0; border-radius: 10px; background: #d92d20; color: #fff; font-weight: 600; cursor: pointer; }
+.sw-open-button:hover { background: #c4271c; }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
 /* Nút màu theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông màu —
    Draft/CSAT xanh dương, Private note hổ phách, Hỏi KB ngọc, Review tím;
