@@ -24,6 +24,8 @@ export type CheckDeps = LoadDeps & {
   jira?: JiraClient | null;
   jiraStore?: JiraStore | null;
   crisp?: CrispClient | null;
+  /** Xem Deps.storefrontPanelEnabled ở handler.ts: false = check không mở module Storefront cho panel (bề mặt production), dù workspace có bật cờ storefront_watch. */
+  storefrontPanelEnabled?: boolean;
 };
 
 export interface CheckResult {
@@ -148,11 +150,14 @@ export async function runCheck(
   // lại vào DB) — ca ingest chưa mang custom data về kịp, domain có sẵn
   // trong Crisp mà panel vẫn ở trạng thái need_shop (Ethan bắt lỗi live
   // 2026-10-26). Chỉ thử khi workspace thuộc phạm vi SW.
+  // Cờ hiệu lực của SW trên panel lượt này: cờ workspace VÀ cổng bề mặt
+  // (production tắt hẳn module trên panel chính từ 2026-11-03 — xem Deps).
+  const swOn = ws.storefront_watch && deps.storefrontPanelEnabled !== false;
   let shop = shopFromCustomData(conv);
-  if (!shop && ws.storefront_watch) {
+  if (!shop && swOn) {
     shop = await resolveShopDomain(deps, req.website_id, req.session_id, conv).catch(() => "");
   }
-  const storefrontStatus = shop && ws.storefront_watch
+  const storefrontStatus = shop && swOn
     ? await deps.db.getStorefrontStoreStatus(req.website_id, shop).catch(() => null)
     : null;
   // Độ tươi của sentiment: so dấu vân tay bản lưu với tin khách hiện tại.
@@ -183,7 +188,7 @@ export async function runCheck(
     last_human_operator_at: conv.last_human_operator_at,
     jira,
     modules: enabledModules(jira, ws.jira_project, {
-      storefrontWatchEnabled: ws.storefront_watch,
+      storefrontWatchEnabled: swOn,
       shopDomain: shop || null,
       snapshotWatched: storefrontStatus ? storefrontStatus.watched : null,
     }),

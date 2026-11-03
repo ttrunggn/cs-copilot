@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, isSwMiniFace, mapError, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, isSwMiniFace, mapError, monitorLaunchLabel, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -622,6 +622,12 @@ Deno.test("monitorModalUrl: view=swmonitor cho mặt SW thu nhỏ — PHẢI xo�
   const u = new URL(monitorModalUrl("https://w.example/panel?face=swmini", { websiteId: "ws1", sessionId: "session_abc-123", token: "tok.en", fn: "copilot-test", view: "swmonitor" }));
   assertEquals(u.searchParams.get("open"), "swmonitor");
   assertEquals(u.searchParams.get("face"), null);
+});
+
+Deno.test("monitorLaunchLabel: nhãn nút monitor theo module đang bật", () => {
+  assertEquals(monitorLaunchLabel({ storefront: true, jira: true }), "Theo dõi Storefront + Jira");
+  assertEquals(monitorLaunchLabel({ storefront: false, jira: true }), "Theo dõi Jira");
+  assertEquals(monitorLaunchLabel({ storefront: true, jira: false }), "Theo dõi Storefront");
 });
 
 Deno.test("isSwMiniFace: chỉ đúng với face=swmini", () => {

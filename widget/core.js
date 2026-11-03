@@ -111,6 +111,18 @@ export function isSwMiniFace(search) {
 }
 
 /** URL mở view monitor dạng modal nổi từ panel (qua $crisp.showModal). */
+/** Nhãn nút mở monitor nổi trên panel, theo module đang bật: cả hai thì
+ * "Theo dõi Storefront + Jira", chỉ một thì tên module đó (panel production
+ * tắt Storefront từ 2026-11-03 nên ở đó nút chỉ còn "Theo dõi Jira"). */
+export function monitorLaunchLabel(modules) {
+  const sf = Boolean(modules?.storefront);
+  const jr = Boolean(modules?.jira);
+  if (sf && jr) return "Theo dõi Storefront + Jira";
+  if (jr) return "Theo dõi Jira";
+  if (sf) return "Theo dõi Storefront";
+  return "Theo dõi Storefront + Jira";
+}
+
 export function monitorModalUrl(href, { websiteId, sessionId, token, fn, view = "monitor" }) {
   const url = new URL(href);
   // URL gốc có thể là URL của MẶT (face=swmini): phải xoá param face, nếu

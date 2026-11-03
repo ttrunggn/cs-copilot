@@ -124,9 +124,14 @@ Deno.serve(async (req) => {
   // này — chỉ truyền vào khi request thật sự tới /copilot-test, production
   // giữ đúng một hash trong DB như cũ. Giá trị là HASH sha256 của token
   // website phía plugin survey (không lưu token thô).
-  const extraWidgetTokenHashes = new URL(req.url).pathname.endsWith("/copilot-test")
+  const isTestSurface = new URL(req.url).pathname.endsWith("/copilot-test");
+  const extraWidgetTokenHashes = isTestSurface
     ? (Deno.env.get("COPILOT_EXTRA_WIDGET_TOKEN_HASHES") ?? "").split(",").map((s) => s.trim()).filter(Boolean)
     : [];
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp, extraWidgetTokenHashes });
+  // Module Storefront Watch chỉ hiện trên panel của bề mặt test (nơi tool
+  // SW thu nhỏ sống) — panel production của team không còn thẻ SW (Ethan
+  // chốt 2026-11-03). Xem Deps.storefrontPanelEnabled ở handler.ts.
+  const storefrontPanelEnabled = isTestSurface;
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp, extraWidgetTokenHashes, storefrontPanelEnabled });
   return json(r.status, r.body);
 });

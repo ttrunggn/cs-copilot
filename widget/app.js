@@ -1,4 +1,4 @@
-import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, isSwMiniFace, mapError, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, openModalName, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, parseOpenParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, isSwMiniFace, mapError, monitorLaunchLabel, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, openModalName, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, parseOpenParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -851,7 +851,7 @@ function render() {
     // session (forwardEvent) mới tới được modal — xem khối Monitor.
     (enabledModules(state.check).storefront || enabledModules(state.check).jira)
       ? el("div", { className: "monitor-launch" }, [
-          el("button", { className: "button-secondary monitor-launch-button", textContent: "Theo dõi Storefront + Jira", onclick: () => openMonitorModal() }),
+          el("button", { className: "button-secondary monitor-launch-button", textContent: monitorLaunchLabel(enabledModules(state.check)), onclick: () => openMonitorModal() }),
         ])
       : null,
     extensionHint(handlers),
