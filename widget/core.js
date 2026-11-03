@@ -97,10 +97,23 @@ export function sessionFromRelayPayload(data) {
   return typeof relay.session_id === "string" && SESSION_ID.test(relay.session_id) ? relay.session_id : "";
 }
 
+/**
+ * Mặt iframe RIÊNG của tool Storefront Watch thu nhỏ (plugin survey sau
+ * khi chuyển từ Generic sang iFrame, Ethan chốt 02/11): plugin Generic
+ * không có JS thường trú nên modal mở từ nó không nhận được relay —
+ * test live 02/11 kết luận forwardEvent KHÔNG chạy xuyên plugin. Cho
+ * plugin một mặt iframe mỏng (?face=swmini) thì mặt và modal cùng một
+ * plugin, relay chạy như đã chứng minh. Mặt này chỉ render tóm tắt
+ * Storefront + nút mở modal swmonitor.
+ */
+export function isSwMiniFace(search) {
+  return new URLSearchParams(search).get("face") === "swmini";
+}
+
 /** URL mở view monitor dạng modal nổi từ panel (qua $crisp.showModal). */
-export function monitorModalUrl(href, { websiteId, sessionId, token, fn }) {
+export function monitorModalUrl(href, { websiteId, sessionId, token, fn, view = "monitor" }) {
   const url = new URL(href);
-  url.searchParams.set("open", "monitor");
+  url.searchParams.set("open", view);
   if (websiteId) url.searchParams.set("website_id", websiteId);
   if (sessionId) url.searchParams.set("session_id", sessionId);
   if (token) url.searchParams.set("token", token);

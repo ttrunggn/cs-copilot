@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, isSwMiniFace, mapError, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -613,6 +613,19 @@ Deno.test("monitorModalUrl: gắn open=monitor + ngữ cảnh, giữ param sẵn
   assertEquals(u.searchParams.get("token"), "tok.en");
   assertEquals(u.searchParams.get("fn"), "copilot-test");
   assertEquals(u.searchParams.get("keep"), "1");
+});
+
+Deno.test("monitorModalUrl: view=swmonitor cho mặt SW thu nhỏ", () => {
+  const u = new URL(monitorModalUrl("https://w.example/panel?face=swmini", { websiteId: "ws1", sessionId: "session_abc-123", token: "tok.en", fn: "copilot-test", view: "swmonitor" }));
+  assertEquals(u.searchParams.get("open"), "swmonitor");
+  assertEquals(u.searchParams.get("face"), "swmini");
+});
+
+Deno.test("isSwMiniFace: chỉ đúng với face=swmini", () => {
+  assertEquals(isSwMiniFace("?face=swmini"), true);
+  assertEquals(isSwMiniFace("?fn=copilot-test&face=swmini"), true);
+  assertEquals(isSwMiniFace("?open=monitor"), false);
+  assertEquals(isSwMiniFace(""), false);
 });
 
 Deno.test("standaloneViewFor: view modal → thân modal; storefront/jira → chính chúng; lạ → null", () => {
