@@ -149,12 +149,17 @@ function showLoading(text) {
 
 // ---------- API ----------
 
-// Các action KHÔNG có nút Huỷ riêng (check, survey, jira_sync, jira_unlink,
-// storefront, storefront_finding) bị giới hạn bởi timeout này: fetch treo
-// (mạng rớt lặng, gateway không trả lời) không được phép để spinner quay mãi.
+// Các action KHÔNG có nút Huỷ riêng (check, survey, jira_sync, jira_unlink)
+// bị giới hạn bởi timeout này: fetch treo (mạng rớt lặng, gateway không trả
+// lời) không được phép để spinner quay mãi.
 // 4 action AI có AbortController riêng (nút Huỷ trên thẻ tiến trình) thì giữ
 // nguyên signal của caller — soạn AI chạy lâu là bình thường, CS tự huỷ.
+// Riêng các action Storefront dùng trần dài hơn: phía server phải chờ SW trả
+// lời (SW chậm theo cơn, một lượt tải modal đo live tới 30–45 giây) — cắt ở
+// 20 giây là modal bỏ cuộc trước khi dữ kiện về.
 const CALL_TIMEOUT_MS = 20000;
+const STOREFRONT_CALL_TIMEOUT_MS = 60000;
+const LONG_CALL_ACTIONS = new Set(["storefront", "storefront_finding", "storefront_act"]);
 
 async function call(action, extra = {}, signal) {
   const ctx = readContext(location.search);
@@ -168,7 +173,7 @@ async function call(action, extra = {}, signal) {
   if (!signal) {
     const ctrl = new AbortController();
     signal = ctrl.signal;
-    timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, CALL_TIMEOUT_MS);
+    timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, LONG_CALL_ACTIONS.has(action) ? STOREFRONT_CALL_TIMEOUT_MS : CALL_TIMEOUT_MS);
   }
   try {
     const res = await fetch(API, {
