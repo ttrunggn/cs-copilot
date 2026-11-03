@@ -195,6 +195,21 @@ Deno.test("check modules: Transcy (cờ storefront_watch bật) + chat có shopi
   assertEquals(sfStatusOf(r), null);
 });
 
+Deno.test("check modules: cổng bề mặt production (storefrontPanelEnabled=false) → Storefront TẮT dù workspace bật cờ + có domain; Jira không đổi, storefront_status = null", async () => {
+  // Ethan chốt 2026-11-03: panel chính của team không còn thẻ SW; SW chỉ
+  // hiện trên bề mặt test (tool thu nhỏ). Cùng fixture với test trên, chỉ
+  // khác cổng bề mặt — đây là điểm tách hai bề mặt dùng chung một DB.
+  const r = await handle(REQ, TOKEN, {
+    ...deps({
+      getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
+      getConversation: () => Promise.resolve(CONV_WITH_SHOP),
+    }),
+    storefrontPanelEnabled: false,
+  });
+  assertEquals(modulesOf(r), { jira: true, storefront: false });
+  assertEquals(sfStatusOf(r), null);
+});
+
 Deno.test("check modules: bản chụp nói SW đang theo dõi + có lỗi mở → Storefront bật và storefront_status đi kèm để widget hiện badge", async () => {
   const r = await handle(REQ, TOKEN, deps({
     getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
