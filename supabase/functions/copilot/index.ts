@@ -105,6 +105,10 @@ Deno.serve(async (req) => {
       : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp });
+  // Module Storefront Watch chỉ hiện trên panel của bề mặt test (nơi tool
+  // SW thu nhỏ sống) — panel production của team không còn thẻ SW (Ethan
+  // chốt 2026-11-03). Xem Deps.storefrontPanelEnabled ở handler.ts.
+  const storefrontPanelEnabled = new URL(req.url).pathname.endsWith("/copilot-test");
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp, storefrontPanelEnabled });
   return json(r.status, r.body);
 });
