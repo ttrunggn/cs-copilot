@@ -113,6 +113,11 @@ export function isSwMiniFace(search) {
 /** URL mở view monitor dạng modal nổi từ panel (qua $crisp.showModal). */
 export function monitorModalUrl(href, { websiteId, sessionId, token, fn, view = "monitor" }) {
   const url = new URL(href);
+  // URL gốc có thể là URL của MẶT (face=swmini): phải xoá param face, nếu
+  // không trang modal mang cả hai param và render nhầm mặt nút bấm thay vì
+  // view standalone (bắt live 2026-11-03: bấm nút đỏ thì modal hiện lại
+  // đúng cái nút đỏ).
+  url.searchParams.delete("face");
   url.searchParams.set("open", view);
   if (websiteId) url.searchParams.set("website_id", websiteId);
   if (sessionId) url.searchParams.set("session_id", sessionId);

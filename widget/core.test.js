@@ -615,10 +615,13 @@ Deno.test("monitorModalUrl: gắn open=monitor + ngữ cảnh, giữ param sẵn
   assertEquals(u.searchParams.get("keep"), "1");
 });
 
-Deno.test("monitorModalUrl: view=swmonitor cho mặt SW thu nhỏ", () => {
+Deno.test("monitorModalUrl: view=swmonitor cho mặt SW thu nhỏ — PHẢI xoá param face khỏi URL modal", () => {
+  // Giữ face=swmini trong URL modal là lỗi đã bắt live 2026-11-03: trang
+  // modal mang cả open lẫn face nên render nhầm mặt nút bấm thay vì view
+  // Storefront (bấm nút đỏ → modal hiện lại đúng cái nút đỏ).
   const u = new URL(monitorModalUrl("https://w.example/panel?face=swmini", { websiteId: "ws1", sessionId: "session_abc-123", token: "tok.en", fn: "copilot-test", view: "swmonitor" }));
   assertEquals(u.searchParams.get("open"), "swmonitor");
-  assertEquals(u.searchParams.get("face"), "swmini");
+  assertEquals(u.searchParams.get("face"), null);
 });
 
 Deno.test("isSwMiniFace: chỉ đúng với face=swmini", () => {

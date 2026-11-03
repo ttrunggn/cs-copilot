@@ -802,10 +802,8 @@ function render() {
   // view — thân modal cho draft/note/ask/csat, card cho storefront/jira
   // (modal "explain" của Storefront vẫn mở chồng lên card) — kèm thẻ
   // thông báo. Không header, không hàng lệnh, không giữ vị trí cuộn.
-  if (swMiniFace) {
-    show(swMiniFaceNode());
-    return;
-  }
+  // Standalone (có ?open=) phải thắng mặt thu nhỏ: một URL modal lỡ mang
+  // cả param face thì vẫn render đúng view của modal, không render mặt.
   if (standaloneView) {
     const cardView = standaloneView === "storefront" || standaloneView === "jira" || standaloneView === "monitor" || standaloneView === "swmonitor";
     show(
@@ -815,6 +813,10 @@ function render() {
       noticeNode(),
       cardView ? modalView(handlers) : null,
     );
+    return;
+  }
+  if (swMiniFace) {
+    show(swMiniFaceNode());
     return;
   }
   const modalOpen = Boolean(state.modal);
