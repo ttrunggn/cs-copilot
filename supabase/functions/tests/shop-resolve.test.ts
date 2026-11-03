@@ -28,7 +28,7 @@ function fakeDb(merges: { patch: Record<string, unknown> }[]) {
 Deno.test("resolve shop: DB đã có domain -> dùng luôn, không hỏi Crisp", async () => {
   let crispCalls = 0;
   const shop = await resolveShopDomain(
-    { db: fakeDb([]), crisp: { getConversationCustomData: () => { crispCalls++; return Promise.resolve(null); }, getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
+    { db: fakeDb([]), crisp: { getConversationCustomData: () => { crispCalls++; return Promise.resolve(null); }, getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), setConversationCustomData: () => Promise.resolve() } },
     "ws1", "s_db", conv("s_db", { shopify_domain: "co-san.myshopify.com" }),
   );
   assertEquals(shop, "co-san.myshopify.com");
@@ -39,7 +39,7 @@ Deno.test("resolve shop: DB trống -> lấy từ Crisp, lưu lại vào DB và 
   const merges: { patch: Record<string, unknown> }[] = [];
   const c = conv("s_crisp");
   const shop = await resolveShopDomain(
-    { db: fakeDb(merges), crisp: { getConversationCustomData: () => Promise.resolve({ shopify_domain: "iaewrj-tr.myshopify.com", other: 1 }), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
+    { db: fakeDb(merges), crisp: { getConversationCustomData: () => Promise.resolve({ shopify_domain: "iaewrj-tr.myshopify.com", other: 1 }), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), setConversationCustomData: () => Promise.resolve() } },
     "ws1", "s_crisp", c,
   );
   assertEquals(shop, "iaewrj-tr.myshopify.com");
@@ -52,7 +52,7 @@ Deno.test("resolve shop: Crisp không có domain -> rỗng và không hỏi lạ
   let t = 1_000_000;
   const deps = {
     db: fakeDb([]),
-    crisp: { getConversationCustomData: () => { crispCalls++; return Promise.resolve({}); }, getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() },
+    crisp: { getConversationCustomData: () => { crispCalls++; return Promise.resolve({}); }, getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), setConversationCustomData: () => Promise.resolve() },
     now: () => t,
   };
   assertEquals(await resolveShopDomain(deps, "ws1", "s_none", conv("s_none")), "");
@@ -66,12 +66,12 @@ Deno.test("resolve shop: Crisp không có domain -> rỗng và không hỏi lạ
 
 Deno.test("resolve shop: Crisp lỗi hoặc domain không hợp lệ -> rỗng, không văng lỗi", async () => {
   const boom = await resolveShopDomain(
-    { db: fakeDb([]), crisp: { getConversationCustomData: () => Promise.reject(new Error("HTTP 500")), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
+    { db: fakeDb([]), crisp: { getConversationCustomData: () => Promise.reject(new Error("HTTP 500")), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), setConversationCustomData: () => Promise.resolve() } },
     "ws1", "s_err", conv("s_err"),
   );
   assertEquals(boom, "");
   const bad = await resolveShopDomain(
-    { db: fakeDb([]), crisp: { getConversationCustomData: () => Promise.resolve({ shopify_domain: "có khoảng trắng" }), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
+    { db: fakeDb([]), crisp: { getConversationCustomData: () => Promise.resolve({ shopify_domain: "có khoảng trắng" }), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), setConversationCustomData: () => Promise.resolve() } },
     "ws1", "s_bad", conv("s_bad"),
   );
   assertEquals(bad, "");

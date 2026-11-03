@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Probe SDK — modal bám theo chat?</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; background: #14161a; color: #eceef1; font-size: 14px; line-height: 1.5; }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  .muted { color: #9aa3ad; font-size: 12.5px; }
+  .box { border: 1px solid #333a42; border-radius: 10px; padding: 10px 12px; margin-top: 10px; background: #1b1e24; }
+  .lbl { font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #9aa3ad; text-transform: uppercase; }
+  .val { font-family: ui-monospace, monospace; font-size: 12.5px; overflow-wrap: anywhere; }
+  #status { font-weight: 700; font-size: 15px; }
+  .ok { color: #7bd88a; }
+  .changed { color: #ffb454; }
+  .err { color: #ff8a80; }
+  #log { font-family: ui-monospace, monospace; font-size: 11.5px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
+  #dump { font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; color: #c6ccd4; }
+</style>
+</head>
+<body>
+<h1>Probe SDK — modal có bám theo chat hiện tại không?</h1>
+<p class="muted">Trang thử nghiệm tạm: cứ 3 giây trang hỏi app Crisp "conversation hiện tại là gì" qua Widget JS SDK. Hãy mở probe ở một chat, rồi chuyển sang chat khác (thu nhỏ modal nếu muốn) và nhìn dòng SDK có nhảy theo không.</p>
+
+<div class="box">
+  <div class="lbl">Session trong URL (đóng dấu lúc mở modal)</div>
+  <div class="val" id="urlSession">…</div>
+</div>
+<div class="box">
+  <div class="lbl">Session SDK báo (conversation hiện tại)</div>
+  <div class="val" id="sdkSession">đang chờ SDK…</div>
+  <div class="muted" id="pollInfo"></div>
+</div>
+<div class="box">
+  <div class="lbl">Trạng thái</div>
+  <div id="status">Đang chờ dữ liệu đầu tiên…</div>
+</div>
+<div class="box">
+  <div class="lbl">Nhật ký thay đổi</div>
+  <div id="log">(chưa có thay đổi)</div>
+</div>
+<div class="box">
+  <div class="lbl">Nguyên văn conversation object từ SDK</div>
+  <div id="dump">…</div>
+</div>
+
+<script>
+  var urlSession = new URLSearchParams(location.search).get("session_id") || "(không có)";
+  document.getElementById("urlSession").textContent = urlSession;
+
+  var lastSdkSession = null;
+  var polls = 0;
+  var gotData = false;
+  var logLines = [];
+
+  function now() {
+    var d = new Date();
+    return d.toLocaleTimeString("vi-VN", { hour12: false }) + "." + String(d.getMilliseconds()).padStart(3, "0");
+  }
+  function log(msg) {
+    logLines.push(now() + "  " + msg);
+    document.getElementById("log").textContent = logLines.join("\n");
+  }
+  function setStatus(text, cls) {
+    var s = document.getElementById("status");
+    s.textContent = text;
+    s.className = cls || "";
+  }
+
+  window.CRISP_READY_TRIGGER = function () {
+    try {
+      $crisp.onDataAcquired = function (namespace) {
+        if (namespace !== "conversation") return;
+        gotData = true;
+        var conv = ($crisp.data && $crisp.data.conversation) || {};
+        var sid = conv.session_id || "(không có session_id)";
+        document.getElementById("sdkSession").textContent = sid;
+        document.getElementById("dump").textContent = JSON.stringify(conv, null, 1);
+        if (lastSdkSession !== null && sid !== lastSdkSession) {
+          log("SDK session ĐỔI: " + lastSdkSession + "  ->  " + sid);
+        }
+        lastSdkSession = sid;
+        if (sid === urlSession) {
+          setStatus("KHỚP — SDK đang báo đúng chat lúc mở modal", "ok");
+        } else {
+          setStatus("ĐÃ BÁM SANG CHAT KHÁC — modal tự sync được!", "changed");
+        }
+      };
+      var tick = function () {
+        polls += 1;
+        document.getElementById("pollInfo").textContent = "Đã hỏi " + polls + " lần · lần gần nhất " + now();
+        try { $crisp.acquireData("conversation"); } catch (e) { log("acquireData lỗi: " + e.message); }
+      };
+      tick();
+      setInterval(tick, 3000);
+      setTimeout(function () {
+        if (!gotData) setStatus("SDK KHÔNG trả dữ liệu conversation sau 10 giây", "err");
+      }, 10000);
+    } catch (e) {
+      setStatus("Lỗi khi khởi tạo SDK: " + e.message, "err");
+    }
+  };
+
+  setTimeout(function () {
+    if (typeof window.$crisp === "undefined") {
+      setStatus("Không nạp được Widget JS SDK (window.$crisp không tồn tại)", "err");
+    }
+  }, 10000);
+</script>
+<script src="https://assets.crisp.chat/widget/javascripts/sdk.min.js"></script>
+</body>
+</html>

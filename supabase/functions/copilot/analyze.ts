@@ -1,10 +1,12 @@
 import { sha256Hex } from "../_shared/auth.ts";
 import { humanTranscript } from "../_shared/context.ts";
+import type { CrispClient } from "../_shared/crisp.ts";
 import type { Db } from "../_shared/db.ts";
 import { type Ai } from "../_shared/gemini.ts";
 import { parseSentiment, SENTIMENT_SCHEMA, type Sentiment, sentimentPrompt, vietnamizeSentiment } from "../_shared/sentiment.ts";
 import type { MessageRow } from "../_shared/types.ts";
 import { type LoadDeps, loadConversationFast } from "./load.ts";
+import { syncMoodBand } from "./mood-band.ts";
 
 /** Vì sao chưa có sentiment: chưa có tin khách để đọc, hay AI chưa sẵn sàng
  * (thiếu cấu hình task "sentiment" trên server / hết quota). Panel hiện đúng
@@ -58,7 +60,7 @@ export function sentimentFingerprint(messages: MessageRow[]): Promise<string> {
 export type SentimentSource = "analyze" | "precompute" | "generate" | "unknown";
 
 export async function resolveSentiment(
-  deps: { db: Db; ai: Ai },
+  deps: { db: Db; ai: Ai; crisp?: CrispClient | null; syncBand?: boolean },
   websiteId: string,
   sessionId: string,
   messages: MessageRow[],
@@ -83,6 +85,16 @@ export async function resolveSentiment(
     // Lịch sử đo (migration 032): chỉ ghi khi vừa tính MỚI (cache hit không
     // tới đây). Ghi hỏng thì nuốt — truy vết không được làm gãy luồng đo.
     await deps.db.appendSentimentHistory({ ...sentiment, website_id: websiteId, session_id: sessionId, input_fp: fp, model, source }).catch(() => {});
+    // Dải cảm xúc lên custom data Crisp cho nút Tâm trạng của mặt native
+    // (Ethan duyệt 2026-10-30, xem copilot/mood-band.ts). Chỉ khi vừa tính
+    // MỚI, và CHỈ khi caller bật cờ syncBand: các đường của panel iframe
+    // team đang dùng (check/generate/analyze) KHÔNG truyền cờ này nên
+    // hành vi + độ trễ của chúng không đổi một ly — đường đồng bộ chỉ
+    // chạy ở precompute (job nền qua n8n) và các hook/fetch của mặt
+    // native. Sync tự nuốt lỗi, tự bỏ qua khi dải không đổi.
+    if (deps.crisp && deps.syncBand) {
+      await syncMoodBand({ crisp: deps.crisp }, websiteId, sessionId, sentiment.score).catch(() => null);
+    }
     return { sentiment, cached: false, reason: null };
   } catch (e) {
     console.error("sentiment failed", e);
@@ -93,7 +105,7 @@ export async function resolveSentiment(
 /** Action analyze: CS bấm "Phân tích" trong panel Ý định & Tâm trạng. */
 export async function runAnalyze(
   req: { website_id: string; session_id: string; force: boolean },
-  deps: LoadDeps & { ai: Ai },
+  deps: LoadDeps & { ai: Ai; crisp?: CrispClient | null },
 ): Promise<AnalyzeResult> {
   const { conv, messages } = await loadConversationFast(deps, req.website_id, req.session_id);
   void conv;

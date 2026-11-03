@@ -17,9 +17,14 @@
 import { neutralize } from "./prompts.ts";
 
 export const SW_MCP_URL = "https://sw-api.transcy.io/mcp";
-export const SW_TIMEOUT_MS = 15_000;
+export const SW_TIMEOUT_MS = 25_000;
 
 export class StorefrontError extends Error {}
+
+/** Quá thời gian chờ phía SW (fetch bị AbortController cắt) — tách lớp để
+ * tầng gọi phân biệt với lỗi SW thật: chỉ lỗi này mới được thử lại, và chỉ
+ * cho lệnh đọc (xem callToolText). */
+export class StorefrontTimeoutError extends StorefrontError {}
 
 /** HMAC-SHA256 hex thường của payload — hàm thuần để test bằng known vector. */
 export async function hmacSha256Hex(secret: string, payload: string): Promise<string> {
@@ -719,7 +724,7 @@ export function createStorefrontMcp(opts: {
       const res = await doFetch(url, { method: "POST", headers, body: rawBody, signal: ctrl.signal });
       return { status: res.status, headers: res.headers, text: await res.text() };
     } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") throw new StorefrontError(`Storefront Watch không phản hồi sau ${Math.round(timeoutMs / 1000)} giây`);
+      if (e instanceof Error && e.name === "AbortError") throw new StorefrontTimeoutError(`Storefront Watch không phản hồi sau ${Math.round(timeoutMs / 1000)} giây`);
       throw new StorefrontError(`Không gọi được Storefront Watch: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       clearTimeout(timer);
@@ -779,8 +784,24 @@ export function createStorefrontMcp(opts: {
     return rec(parsed.result);
   }
 
-  /** Gọi tool và lấy phần text thô — các tool của SW trả prose (xem mục parse ở trên). */
-  async function callToolText(websiteId: string, name: string, args: Rec, allowEmpty = false): Promise<string> {
+  /** Gọi tool và lấy phần text thô — các tool của SW trả prose (xem mục parse ở trên).
+   * Lệnh ĐỌC (retryOnTimeout=true) bị timeout thì thử lại đúng 1 lần: SW chậm
+   * theo cơn là chuyện đã gặp live (modal báo "không phản hồi sau 15 giây"
+   * trong khi lần gọi ngay sau đó chạy được), đọc lại không đổi dữ kiện gì.
+   * Lệnh GHI không bao giờ tự thử lại: cú ghi đầu có thể đã tới SW dù phản
+   * hồi không về kịp — ghi trùng có thể áp thay đổi hai lần. */
+  async function callToolText(websiteId: string, name: string, args: Rec, allowEmpty = false, retryOnTimeout = false): Promise<string> {
+    try {
+      return await callToolTextOnce(websiteId, name, args, allowEmpty);
+    } catch (e) {
+      if (retryOnTimeout && e instanceof StorefrontTimeoutError) {
+        return await callToolTextOnce(websiteId, name, args, allowEmpty);
+      }
+      throw e;
+    }
+  }
+
+  async function callToolTextOnce(websiteId: string, name: string, args: Rec, allowEmpty = false): Promise<string> {
     const result = await rpc(websiteId, "tools/call", { name, arguments: args });
     const content = Array.isArray(result.content) ? result.content : [];
     const textPart = content.find((c) => rec(c).type === "text");
@@ -802,14 +823,14 @@ export function createStorefrontMcp(opts: {
 
   return {
     async findStore(websiteId, shop) {
-      return parseStoreText(await callToolText(websiteId, "find_store", { shop }), shop);
+      return parseStoreText(await callToolText(websiteId, "find_store", { shop }, false, true), shop);
     },
     async listFindings(websiteId, shop) {
       // include_all=true: UI tự chia 3 trạng thái nên cần cả medium/low, không để server lọc bớt.
-      return parseFindingsText(await callToolText(websiteId, "list_findings", { shop, include_all: true }));
+      return parseFindingsText(await callToolText(websiteId, "list_findings", { shop, include_all: true }, false, true));
     },
     async getFinding(websiteId, fingerprint) {
-      return parseFindingDetailText(await callToolText(websiteId, "get_finding", { fingerprint }));
+      return parseFindingDetailText(await callToolText(websiteId, "get_finding", { fingerprint }, false, true));
     },
     // operator: tên CS theo account Crisp — schema ghi "leave it out rather
     // than guess" nên chỉ gửi khi caller THẬT SỰ biết tên, rỗng thì bỏ hẳn.

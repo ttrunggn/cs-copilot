@@ -81,6 +81,10 @@ export interface Deps {
   jiraStore?: JiraStore | null;
   /** Client REST Crisp — trong đường widget CHỈ dùng thao tác ĐỌC meta (tự resolve shopify_domain); null/vắng = bỏ đường dự phòng đó. */
   crisp?: CrispClient | null;
+  /** Hash token widget phụ được chấp nhận thêm ở authorizeWidget (mặc định không có; chỉ function test truyền cho plugin survey). */
+  extraWidgetTokenHashes?: string[];
+  /** Module Storefront Watch có được hiện trên PANEL hay không (Ethan chốt 2026-11-03: panel chính của team không cần SW nữa, SW chỉ sống ở tool thu nhỏ trên bề mặt test). index.ts truyền theo bề mặt triển khai: /copilot-test = true, production = false. Vắng mặt = bật như cũ (test đơn vị và các đường gọi trực tiếp không đổi hành vi). Đây là cổng HIỂN THỊ ở check — các action storefront và luồng nền (sweep/digest/segment) không qua cổng này. */
+  storefrontPanelEnabled?: boolean;
   /** Việc nền sau response (refresh cho đường đọc nhanh); vắng mặt thì chạy đồng bộ. */
   background?: (task: Promise<unknown>) => void;
   now?: () => number;
@@ -123,7 +127,7 @@ async function handleInner(body: unknown, token: string, deps: Deps): Promise<{ 
     // Token cá nhân (curl/tooling) hoặc widget trong Crisp (token website + operator từ SDK).
     const { workspace: ws, operatorId } = token
       ? await authorize(deps.db, { website_id: req.website_id, token })
-      : await authorizeWidget(deps.db, req);
+      : await authorizeWidget(deps.db, req, deps.extraWidgetTokenHashes ?? []);
     switch (req.action) {
       case "check":
         return { status: 200, body: await runCheck(req, ws, operatorId, deps) };

@@ -10,6 +10,7 @@ import {
   parseFindingsText,
   parseStoreText,
   StorefrontError,
+  StorefrontTimeoutError,
   type StorefrontFinding,
   type StorefrontFindingDetail,
   type StorefrontMcp,
@@ -466,6 +467,43 @@ Deno.test("MCP client: HTTP 401 ở initialize → StorefrontError nói rõ, kh�
   const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
   const err = await assertRejects(() => mcp.findStore("ws1", "x.myshopify.com"), StorefrontError);
   assertStringIncludes(err.message, "401");
+});
+
+Deno.test("MCP client: lệnh ĐỌC bị timeout thì thử lại đúng 1 lần rồi thành công", async () => {
+  // SW chậm theo cơn (bắt live 2026-11-03: modal báo "không phản hồi sau 15
+  // giây" trong khi lần gọi ngay sau chạy được) — find_store lần đầu treo tới
+  // mức fetch bị cắt (AbortError), lần hai trả bình thường thì kết quả phải
+  // về được, và tools/call phải được gọi đúng 2 lần.
+  let toolAttempts = 0;
+  const { f, calls } = stubFetch((body) => {
+    if (body.method === "initialize") return jsonResponse({ jsonrpc: "2.0", id: body.id, result: { protocolVersion: "2025-03-26" } }, 200, "sess-1");
+    if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+    toolAttempts++;
+    if (toolAttempts === 1) throw Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
+    return jsonResponse({ jsonrpc: "2.0", id: body.id, result: { content: [{ type: "text", text: AMIRO_STORE }] } });
+  });
+  const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
+  const store = await mcp.findStore("ws1", "amirobeauty.com");
+  assertEquals(store.watched, true);
+  assertEquals(toolAttempts, 2);
+  assertEquals(calls.filter((c) => JSON.parse(c.body).method === "tools/call").length, 2);
+});
+
+Deno.test("MCP client: lệnh GHI bị timeout thì KHÔNG thử lại — lỗi timeout nổi lên nguyên vẹn", async () => {
+  // Cú ghi đầu có thể đã tới SW dù phản hồi không về kịp; tự ghi lại có thể
+  // áp thay đổi hai lần. mark_fixed treo → phải dừng ở 1 lần gọi tools/call
+  // và lỗi là StorefrontTimeoutError với câu báo cũ.
+  let toolAttempts = 0;
+  const { f } = stubFetch((body) => {
+    if (body.method === "initialize") return jsonResponse({ jsonrpc: "2.0", id: body.id, result: { protocolVersion: "2025-03-26" } }, 200, "sess-1");
+    if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+    toolAttempts++;
+    throw Object.assign(new Error("The operation was aborted"), { name: "AbortError" });
+  });
+  const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
+  const err = await assertRejects(() => mcp.markFixed("ws1", "fp-1", "Đã sửa", "Ethan"), StorefrontTimeoutError);
+  assertStringIncludes(err.message, "không phản hồi sau 25 giây");
+  assertEquals(toolAttempts, 1);
 });
 
 Deno.test("MCP client: JSON-RPC error và isError đều thành StorefrontError có nội dung", async () => {

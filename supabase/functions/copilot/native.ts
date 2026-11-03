@@ -1,4 +1,5 @@
 import { unansweredCustomerMessages } from "../_shared/context.ts";
+import type { CrispClient } from "../_shared/crisp.ts";
 import type { Db } from "../_shared/db.ts";
 import type { Ai } from "../_shared/gemini.ts";
 import { jiraForConversation } from "../_shared/jira.ts";
@@ -12,9 +13,12 @@ import { shopFromCustomData } from "./storefront-actions.ts";
 import { runSurvey } from "./survey.ts";
 
 /**
- * Mặt native "Support Operation" — Crisp Generic Widget trên CÙNG plugin
- * Copilot CS (Ethan chốt 29/10: cần mặt native vì section Generic Widget
- * mặc định xổ full khi mở conversation, hết cảnh panel iframe bị thu nhỏ).
+ * Mặt native "Support Operation" — Crisp Generic Widget, bản 6 section
+ * theo design Ethan duyệt 30/10 (Chatbot · Khách · Trạng thái · Storefront
+ * · Jira · Lệnh), chạy thử trên PLUGIN SURVEY trước (Ethan chốt: dùng
+ * chính plugin survey làm xe test, không tạo plugin mới). Section
+ * Generic Widget mặc định xổ full khi mở conversation — hết cảnh panel
+ * iframe bị thu nhỏ phải bấm expand.
  *
  * Giao thức (docs.crisp.chat — Generic Widget + Plugin Widgets Reference):
  * Crisp POST sự kiện về action URL của plugin:
@@ -39,8 +43,15 @@ export interface NativeDeps {
   n8n: N8n;
   /** Việc nền sau response (EdgeRuntime.waitUntil ở index.ts); vắng thì dùng waitUntilBg. */
   background?: (task: Promise<unknown>) => void;
-  /** Khoá ký sự kiện widget của plugin (env CRISP_PLUGIN_KEY ở index.ts). Rỗng = chưa cấu hình, không verify được. */
-  pluginKey?: string;
+  /**
+   * Các khoá ký sự kiện widget (env CRISP_PLUGIN_KEY + CRISP_PLUGIN_KEY_SURVEY
+   * ở index.ts): plugin Copilot CS và plugin survey (xe test) ký bằng khoá
+   * của chính plugin đó — sự kiện hợp lệ nếu khớp BẤT KỲ khoá nào. Rỗng hết
+   * = chưa cấu hình, không verify được.
+   */
+  pluginKeys?: string[];
+  /** Client Crisp REST (chỉ cho đường đồng bộ dải cảm xúc đã duyệt + đọc meta). */
+  crisp?: CrispClient | null;
   now?: () => number;
 }
 
@@ -98,8 +109,8 @@ export function parseNativeEvent(body: unknown): CrispWidgetEvent {
 //   mặt native nếu Crisp không ký loại sự kiện này).
 // - Có header → verify thật; sai → 401 (Crisp không retry 401 theo cùng
 //   cách retry 5xx, và request giả phải bị chặn).
-// - Env chưa có CRISP_PLUGIN_KEY → không verify được: chấp nhận + trace
-//   cờ signature_unconfigured để còn biết mà cấu hình.
+// - Chưa cấu hình khoá nào (CRISP_PLUGIN_KEY / CRISP_PLUGIN_KEY_SURVEY)
+//   → không verify được: chấp nhận + trace cờ signature_unconfigured.
 
 const enc = new TextEncoder();
 
@@ -136,6 +147,117 @@ export async function verifyCrispWidgetSignature(
   return false;
 }
 
+// ---------- Chẩn đoán chữ ký (chỉ chạy khi verify fail) ----------
+//
+// Verify theo đúng tài liệu vẫn fail trên request THẬT của Crisp
+// (30/10: plugin survey, key Ethan khẳng định đúng mà mọi fetch đều
+// 401). Hàm này thử một loạt biến thể ghép chuỗi ký / dạng body /
+// đơn vị timestamp / định dạng digest để xác định Crisp thật sự ký
+// theo biến thể nào; nhãn biến thể khớp được ghi vào trace ở nhánh
+// 401. NÓ KHÔNG NỚI LỎNG VERIFY: khớp biến thể lạ vẫn trả 401 như
+// thường — biến thể thắng sẽ được chốt cứng vào verify sau, bằng một
+// thay đổi riêng có kiểm chứng.
+
+async function hmacSha256(secret: string, payload: string): Promise<Uint8Array> {
+  return hmacSha256Bytes(enc.encode(secret), payload);
+}
+
+async function hmacSha256Bytes(keyBytes: Uint8Array, payload: string): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", keyBytes as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", key, enc.encode(payload)));
+}
+
+/** Các dạng "khoá hiệu dụng" suy từ chuỗi khoá đã cấu hình: nguyên văn, giải mã hex (khoá Crisp hiển thị dạng hex 64 ký tự — phía ký có thể dùng bytes đã giải mã), giải mã base64. */
+function keyVariants(secret: string): Array<[string, Uint8Array]> {
+  const out: Array<[string, Uint8Array]> = [["lit", enc.encode(secret)]];
+  const s = secret.trim();
+  if (/^[0-9a-fA-F]+$/.test(s) && s.length % 2 === 0) {
+    const bytes = new Uint8Array(s.length / 2);
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);
+    out.push(["hex", bytes]);
+  }
+  try {
+    const bin = atob(s);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (bytes.length >= 16) out.push(["b64", bytes]);
+  } catch { /* không phải base64 hợp lệ */ }
+  return out;
+}
+
+function hexOf(bytes: Uint8Array): string {
+  return [...bytes].map((x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+function b64Of(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+function sortKeysDeep(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(sortKeysDeep);
+  if (v && typeof v === "object") {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(v as Record<string, unknown>).sort()) out[k] = sortKeysDeep((v as Record<string, unknown>)[k]);
+    return out;
+  }
+  return v;
+}
+
+/** Trả nhãn mọi biến thể khớp chữ ký đã cho (rỗng = không biến thể nào khớp — khi đó nghi vấn quay về phía khoá). */
+export async function diagnoseCrispWidgetSignature(
+  secret: string,
+  timestamp: string,
+  rawBody: string,
+  signature: string,
+): Promise<string[]> {
+  if (!secret || !timestamp || !signature) return [];
+  const got = signature.trim();
+  const gotHex = got.toLowerCase();
+  const bodies: Array<[string, string]> = [["raw", rawBody]];
+  try {
+    const parsed = JSON.parse(rawBody);
+    const norm = JSON.stringify(parsed);
+    if (norm !== rawBody) bodies.push(["json", norm]);
+    const sorted = JSON.stringify(sortKeysDeep(parsed));
+    if (sorted !== rawBody && sorted !== norm) bodies.push(["sorted", sorted]);
+  } catch { /* body không phải JSON: chỉ còn dạng thô */ }
+  const stamps: Array<[string, string]> = [["ms", timestamp]];
+  if (/^\d{13}$/.test(timestamp)) stamps.push(["sec", timestamp.slice(0, 10)]);
+  // Body bớt từng trường top-level một (phòng khi phía Crisp ký trước
+  // khi gắn thêm trường vào body đã gửi).
+  try {
+    const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+    for (const k of Object.keys(parsed)) {
+      const copy = { ...parsed };
+      delete copy[k];
+      bodies.push([`no-${k}`, JSON.stringify(copy)]);
+    }
+  } catch { /* bỏ qua */ }
+  const matches: string[] = [];
+  for (const [kvLabel, kvBytes] of keyVariants(secret)) {
+    for (const [bl, body] of bodies) {
+      for (const [tl, ts] of stamps) {
+        const variants: Array<[string, string]> = [
+          [`[${tl};${bl}]`, `[${ts};${body}]`],
+          [`${tl};${bl}`, `${ts};${body}`],
+          [`${tl}.${bl}`, `${ts}.${body}`],
+          [`${tl}+${bl}`, `${ts}${body}`],
+        ];
+        for (const [label, payload] of variants) {
+          const digest = await hmacSha256Bytes(kvBytes, payload);
+          if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${kvLabel}:${label}:hex`);
+          if (b64Of(digest) === got) matches.push(`${kvLabel}:${label}:b64`);
+        }
+      }
+      const digest = await hmacSha256Bytes(kvBytes, body);
+      if (safeEqualHex(hexOf(digest), gotHex)) matches.push(`${kvLabel}:${bl}-only:hex`);
+    }
+  }
+  return matches;
+}
+
 // ---------- Định dạng giá trị hiển thị (hàm thuần, có test) ----------
 
 /** Nhãn mood rút gọn cho mặt native (chỗ hiển thị hẹp): giữ đúng chữ của bản thiết kế Ethan duyệt — frustrated là "Đang bực", các mood khác trùng MOOD_LABEL ở _shared/sentiment.ts. */
@@ -147,9 +269,9 @@ const MOOD_SHORT: Record<string, string> = {
   happy: "Rất vui",
 };
 
-/** "38/100 · Đang bực · Khẩn: cao" — chỉ gắn mức khẩn khi urgency = high. */
+/** "Tâm trạng: 38/100 · Đang bực · Khẩn: cao" — nhãn nhúng ngay trong value vì Generic Widget không render label của data item thành nhãn dòng (native mỏng, Ethan chốt 30/10); chỉ gắn mức khẩn khi urgency = high. */
 export function formatMoodValue(s: Sentiment): string {
-  const base = `${s.score}/100 · ${MOOD_SHORT[s.mood] ?? s.mood}`;
+  const base = `Tâm trạng: ${s.score}/100 · ${MOOD_SHORT[s.mood] ?? s.mood}`;
   return s.urgency === "high" ? `${base} · Khẩn: cao` : base;
 }
 
@@ -191,7 +313,7 @@ async function kickAnalyzeIfStale(deps: NativeDeps, websiteId: string, sessionId
     if (!hasCustomerText) return;
     const stale = !row || row.input_fp !== await sentimentFingerprint(messages);
     if (!stale) return;
-    const task = resolveSentiment({ db: deps.db, ai: deps.ai }, websiteId, sessionId, messages, false, "analyze")
+    const task = resolveSentiment({ db: deps.db, ai: deps.ai, crisp: deps.crisp, syncBand: true }, websiteId, sessionId, messages, false, "analyze")
       .then(() => undefined, () => undefined);
     if (deps.background) deps.background(task);
     else waitUntilBg(task);
@@ -200,22 +322,44 @@ async function kickAnalyzeIfStale(deps: NativeDeps, websiteId: string, sessionId
   }
 }
 
+/** Trạng thái bot BẢN GIẢ (stub, Ethan chốt 30/10): chatbot chưa gộp về chung service với copilot nên section Chatbot chỉ hiện trạng thái tĩnh + hook ghi trace, chưa có hành động thật. */
+export const BOT_STUB_STATUS = "CS đang xử lý · Chatbot im lặng";
+
+/** "7 giờ" / "25 phút" / "2 ngày" — khoảng cách từ mốc ISO tới hiện tại, cho dòng quét Storefront. Rỗng khi mốc không parse được. */
+export function scanAgeText(iso: string, nowMs: number): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const mins = Math.max(0, Math.round((nowMs - t) / 60000));
+  if (mins < 60) return `${mins} phút`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} giờ`;
+  return `${Math.round(hours / 24)} ngày`;
+}
+
 async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: NativeDeps): Promise<string> {
   const { websiteId, sessionId } = ev;
   switch (itemId) {
+    case "bot_trang_thai": {
+      return `Chatbot: ${BOT_STUB_STATUS}`;
+    }
+    case "khach_diem": {
+      const row = await sentimentRow(deps, websiteId, sessionId);
+      void kickAnalyzeIfStale(deps, websiteId, sessionId);
+      return row ? `${row.score}` : "—";
+    }
     case "khach_tam_trang": {
       const row = await sentimentRow(deps, websiteId, sessionId);
       // Không await: việc kích analyze tự đọc lại messages/fingerprint.
       void kickAnalyzeIfStale(deps, websiteId, sessionId);
-      return row ? formatMoodValue(row) : "Chưa phân tích";
+      return row ? formatMoodValue(row) : "Tâm trạng: Chưa phân tích";
     }
     case "khach_tom_tat": {
       const row = await sentimentRow(deps, websiteId, sessionId);
-      return row?.summary ? row.summary : "—";
+      return row?.summary ? `Tóm tắt: ${row.summary}` : "Tóm tắt: —";
     }
     case "khach_van_de": {
       const row = await sentimentRow(deps, websiteId, sessionId);
-      return row?.issues?.[0]?.summary ? row.issues[0].summary : "—";
+      return row?.issues?.[0]?.summary ? `Vấn đề: ${row.issues[0].summary}` : "Vấn đề: —";
     }
     case "khach_tin_cho": {
       const messages = await deps.db.getMessages(websiteId, sessionId, MESSAGE_LIMIT).catch(() => []);
@@ -223,15 +367,15 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
     }
     case "tt_csat": {
       const send = await deps.db.getCsatSend(websiteId, sessionId).catch(() => null);
-      if (!send) return "Chưa gửi";
+      if (!send) return "CSAT: Chưa gửi";
       const hhmm = hhmmSaigon(send.sent_at);
-      return hhmm ? `Đã gửi ${hhmm}` : "Đã gửi";
+      return hhmm ? `CSAT: Đã gửi ${hhmm}` : "CSAT: Đã gửi";
     }
     case "tt_review": {
       const send = await deps.db.getReviewSend(websiteId, sessionId).catch(() => null);
-      if (!send) return "Chưa xin";
+      if (!send) return "Review: Chưa xin";
       const hhmm = hhmmSaigon(send.sent_at);
-      return hhmm ? `Đã xin ${hhmm}` : "Đã xin";
+      return hhmm ? `Review: Đã xin ${hhmm}` : "Review: Đã xin";
     }
     case "tt_storefront": {
       // Cùng cổng với `check`: ngoài phạm vi Storefront Watch (cờ
@@ -242,13 +386,17 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
       // DB (số finding mới cần list_findings trực tiếp + tập đã thấy,
       // fetch native chỉ đọc DB) nên cố ý bỏ — xem docs/native-panel.md.
       const ws = await deps.db.getWorkspace(websiteId).catch(() => null);
-      if (!ws?.storefront_watch) return "Không áp dụng";
+      if (!ws?.storefront_watch) return "Storefront: Không áp dụng";
       const conv: ConversationRow | null = await deps.db.getConversation(websiteId, sessionId).catch(() => null);
       const shop = shopFromCustomData(conv);
-      if (!shop) return "Không áp dụng";
+      if (!shop) return "Storefront: Không áp dụng";
       const snap = await deps.db.getStorefrontStoreStatus(websiteId, shop).catch(() => null);
-      if (!snap || !snap.watched) return "Không áp dụng";
-      return snap.open_total > 0 ? `${snap.open_total} lỗi` : "Không có lỗi";
+      if (!snap || !snap.watched) return "Storefront: Không áp dụng";
+      if (snap.open_total <= 0) return "Storefront: Không có lỗi";
+      // Bản thiết kế có thêm "· N mới" — số finding MỚI không suy được từ
+      // bản chụp DB (cần list_findings trực tiếp), cố ý bỏ như bản v9.
+      const age = scanAgeText(snap.fetched_at, (deps.now ?? Date.now)());
+      return age ? `Storefront: ${snap.open_total} lỗi · quét ${age} trước` : `Storefront: ${snap.open_total} lỗi`;
     }
     case "tt_jira": {
       const [rows, conv] = await Promise.all([
@@ -256,7 +404,24 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
         deps.db.getConversation(websiteId, sessionId).catch(() => null),
       ]);
       const items = jiraForConversation(rows, conv?.last_human_operator_at ?? null);
-      return items.length ? `${items.length} ticket` : "Không có";
+      return items.length ? `Jira: ${items.length} ticket` : "Jira: Không có";
+    }
+    case "jira_ticket_1":
+    case "jira_ticket_2":
+    case "jira_ticket_3": {
+      // Schema khai sẵn 3 ô ticket (Generic Widget không sinh item động
+      // được): ô thứ N hiện "{KEY} · {Status}" của ticket thứ N, kèm
+      // "(new update)" khi ticket có cập nhật chưa xem. Thiếu ticket →
+      // chuỗi rỗng.
+      const idx = Number(itemId.slice(-1)) - 1;
+      const [rows, conv] = await Promise.all([
+        deps.db.getJiraRows(websiteId, sessionId).catch(() => []),
+        deps.db.getConversation(websiteId, sessionId).catch(() => null),
+      ]);
+      const item = jiraForConversation(rows, conv?.last_human_operator_at ?? null)[idx];
+      if (!item) return "";
+      const base = `${item.issue_key} · ${item.status ?? "?"}`;
+      return item.has_update ? `${base} (new update)` : base;
     }
     default:
       return "";
@@ -312,6 +477,38 @@ async function runCsatHook(ev: CrispWidgetEvent, deps: NativeDeps, tracer: FlowT
   });
 }
 
+// ---------- Hook Tâm trạng (4 nút theo dải) + stub Chatbot ----------
+
+/** Bốn nút Tâm trạng tĩnh theo dải điểm — schema chỉ hiện đúng một nút nhờ condition đọc custom data `copilot_mood_band`; cả bốn bấm đều = phân tích lại. */
+export const MOOD_BUTTON_IDS = new Set(["tam_red", "tam_orange", "tam_black", "tam_green"]);
+
+/** Nút Chatbot bản GIẢ (stub): chưa nối service chatbot thật, hook chỉ ghi trace. */
+export const BOT_BUTTON_IDS = new Set(["bot_tra_loi", "bot_chan"]);
+
+/**
+ * Bấm nút Tâm trạng = đo lại sentiment NGAY (force) — cùng đường
+ * resolveSentiment của panel, gồm cả đồng bộ dải lên custom data để lần
+ * mở chat sau hiện đúng nút màu mới. Chạy đồng bộ trong hook: Crisp cho
+ * hook vài giây, một lượt đo ~2–4s; lỗi đo được ghi trace, vẫn trả 200.
+ */
+async function runMoodRecompute(ev: CrispWidgetEvent, deps: NativeDeps, tracer: FlowTracer): Promise<void> {
+  const t0 = performance.now();
+  const messages = await deps.db.getMessages(ev.websiteId, ev.sessionId, MESSAGE_LIMIT).catch(() => []);
+  const r = await resolveSentiment(
+    { db: deps.db, ai: deps.ai, crisp: deps.crisp, syncBand: true },
+    ev.websiteId,
+    ev.sessionId,
+    messages,
+    true,
+    "analyze",
+  );
+  await tracer.timing("mood_recompute", Math.round(performance.now() - t0), {
+    item_id: ev.itemId,
+    ok: Boolean(r.sentiment),
+    ...(r.sentiment ? { score: r.sentiment.score } : { reason: r.reason ?? "unknown" }),
+  });
+}
+
 // ---------- Handler chính ----------
 
 export async function handleNativeEvent(
@@ -329,15 +526,38 @@ export async function handleNativeEvent(
     flowId: newFlowId(`native-${ev.itemId || "unknown"}`),
   });
 
-  // Chữ ký: chính sách mềm đã ghi ở đầu file.
-  const key = deps.pluginKey ?? "";
+  // Chữ ký: chính sách mềm đã ghi ở đầu file. Hai plugin (Copilot CS +
+  // survey) ký bằng hai khoá khác nhau — hợp lệ khi khớp BẤT KỲ khoá nào
+  // đã cấu hình.
+  const keys = (deps.pluginKeys ?? []).map((k) => k.trim()).filter(Boolean);
   const hasSigHeaders = Boolean(headers.signature || headers.timestamp);
   if (hasSigHeaders) {
-    const ok = key
-      ? await verifyCrispWidgetSignature(key, headers.timestamp ?? "", rawBody, headers.signature ?? "")
-      : false;
+    let ok = false;
+    for (const k of keys) {
+      if (await verifyCrispWidgetSignature(k, headers.timestamp ?? "", rawBody, headers.signature ?? "")) {
+        ok = true;
+        break;
+      }
+    }
     if (!ok) {
-      await tracer.error("signature", "AUTH", "Chữ ký sự kiện widget không hợp lệ", { item_id: ev.itemId });
+      // Chẩn đoán biến thể ký (xem diagnoseCrispWidgetSignature): ghi
+      // nhãn biến thể khớp theo từng khoá (k1, k2, ... theo thứ tự
+      // deps.pluginKeys) vào trace; "none" = không biến thể nào khớp.
+      const diag: string[] = [];
+      for (let i = 0; i < keys.length; i++) {
+        const m = await diagnoseCrispWidgetSignature(keys[i], headers.timestamp ?? "", rawBody, headers.signature ?? "");
+        for (const label of m) diag.push(`k${i + 1}:${label}`);
+      }
+      await tracer.error("signature", "AUTH", "Chữ ký sự kiện widget không hợp lệ", {
+        item_id: ev.itemId,
+        sig_diag: diag.length ? diag : "none",
+        sig_len: (headers.signature ?? "").trim().length,
+        ts_len: (headers.timestamp ?? "").trim().length,
+        // Độ dài từng khoá đã cấu hình (chỉ độ dài, không lộ giá trị):
+        // phân biệt "chưa có khoá" với "khoá sai". Khoá token Crisp
+        // đúng chuẩn dài 64 ký tự hex; identifier là UUID 36 ký tự.
+        key_lens: keys.map((k) => k.length),
+      });
       return { status: 401, body: { error: "invalid signature" } };
     }
   }
@@ -350,7 +570,7 @@ export async function handleNativeEvent(
         item_id: ev.itemId,
         section_id: ev.sectionId,
         ...(!hasSigHeaders ? { unsigned: true } : {}),
-        ...(!key ? { signature_unconfigured: true } : {}),
+        ...(!keys.length ? { signature_unconfigured: true } : {}),
       });
       return { status: 200, body: { data: { value } } };
     }
@@ -359,16 +579,21 @@ export async function handleNativeEvent(
       // trả 200 rỗng thay vì lỗi để Crisp khỏi retry.
       return { status: 200, body: { data: { value: "" } } };
     }
-    // Sự kiện nút: chỉ act_csat (hook) có hành động phía server; các nút
-    // modal/link còn lại điều hướng phía Crisp, không POST nghiệp vụ.
+    // Sự kiện nút: act_csat (gửi survey) và 4 nút Tâm trạng theo dải
+    // (phân tích lại) có hành động phía server; nút Chatbot là STUB (chỉ
+    // ghi trace); các nút modal/link còn lại điều hướng phía Crisp,
+    // không POST nghiệp vụ.
     if (ev.itemId === "act_csat" && ev.websiteId && ev.sessionId) {
       await runCsatHook(ev, deps, tracer);
+    } else if (MOOD_BUTTON_IDS.has(ev.itemId) && ev.websiteId && ev.sessionId) {
+      await runMoodRecompute(ev, deps, tracer);
     } else {
       await tracer.timing("button", Math.round(performance.now() - t0), {
         item_id: ev.itemId,
         section_id: ev.sectionId,
+        ...(BOT_BUTTON_IDS.has(ev.itemId) ? { stub: true } : {}),
         ...(!hasSigHeaders ? { unsigned: true } : {}),
-        ...(!key ? { signature_unconfigured: true } : {}),
+        ...(!keys.length ? { signature_unconfigured: true } : {}),
       });
     }
     return { status: 200, body: {} };

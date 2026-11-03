@@ -114,6 +114,19 @@ Deno.test("widget: missing operator -> 400", async () => {
   assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: CRISP_TOKEN, operator_id: "" })), 400);
 });
 
+Deno.test("widget: extraHashes mặc định rỗng → token của plugin khác vẫn 401", async () => {
+  assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: "survey-token-abcdef", operator_id: "op-lan" })), 401);
+});
+
+Deno.test("widget: token khớp MỘT hash phụ trong extraHashes → qua (modal từ plugin survey trên function test)", async () => {
+  const extra = [await sha256Hex("survey-token-abcdef")];
+  assertEquals(
+    await authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: "survey-token-abcdef", operator_id: "op-lan" }, extra),
+    { workspace: WS, operatorId: "op-lan" },
+  );
+  assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: "token-khac", operator_id: "op-lan" }, extra)), 401);
+});
+
 Deno.test("widget: operator not active in workspace -> 403", async () => {
   assertEquals(await status(authorizeWidget(await fakeDb(false), { website_id: "ws1", crisp_token: CRISP_TOKEN, operator_id: "op-x" })), 403);
 });

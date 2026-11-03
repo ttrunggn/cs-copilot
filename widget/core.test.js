@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, mapError, operatorIdFrom, operatorNameFrom, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
+import { actionButtonState, askAnswerToHint, enabledModules, explanationTemplate, previewNeedsToggle, countPlaceholders, describeShape, handoffStatus, insertResultMessage, isSwMiniFace, mapError, monitorLaunchLabel, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, timeAgo, toAskViewModel, toDraftViewModel, toIssuesViewModel, toJiraViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 
 const NOW = Date.parse("2026-10-16T10:00:00Z");
 
@@ -585,4 +585,67 @@ Deno.test("toStorefrontViewModel: nhận cả key in_progress (snake_case) như 
   assertEquals(vm.groups[2].items.map((i) => i.title), ["Đang xử lý 1"]);
   assertEquals(vm.scannedLabel, null);
   assertEquals(vm.totalCount, 1);
+});
+
+Deno.test("parseFnParam: chỉ nhận copilot/copilot-test, lạ hoặc thiếu → copilot", () => {
+  assertEquals(parseFnParam("?fn=copilot-test"), "copilot-test");
+  assertEquals(parseFnParam("?fn=copilot"), "copilot");
+  assertEquals(parseFnParam("?fn=evil"), "copilot");
+  assertEquals(parseFnParam(""), "copilot");
+  assertEquals(apiUrlFor("copilot-test"), "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot-test");
+  assertEquals(apiUrlFor("copilot"), "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot");
+});
+
+Deno.test("monitor relay: payload vòng tròn qua sessionFromRelayPayload, rác → rỗng", () => {
+  assertEquals(sessionFromRelayPayload(monitorRelayPayload("session_abc-123")), "session_abc-123");
+  assertEquals(sessionFromRelayPayload(null), "");
+  assertEquals(sessionFromRelayPayload({}), "");
+  assertEquals(sessionFromRelayPayload({ copilot_relay: { session_id: "không-phải-session" } }), "");
+  assertEquals(sessionFromRelayPayload({ copilot_relay: { session_id: 42 } }), "");
+  assertEquals(sessionFromRelayPayload(monitorRelayPayload("")), "");
+});
+
+Deno.test("monitorModalUrl: gắn open=monitor + ngữ cảnh, giữ param sẵn có", () => {
+  const u = new URL(monitorModalUrl("https://w.example/panel?keep=1", { websiteId: "ws1", sessionId: "session_abc-123", token: "tok.en", fn: "copilot-test" }));
+  assertEquals(u.searchParams.get("open"), "monitor");
+  assertEquals(u.searchParams.get("session_id"), "session_abc-123");
+  assertEquals(u.searchParams.get("website_id"), "ws1");
+  assertEquals(u.searchParams.get("token"), "tok.en");
+  assertEquals(u.searchParams.get("fn"), "copilot-test");
+  assertEquals(u.searchParams.get("keep"), "1");
+});
+
+Deno.test("monitorModalUrl: view=swmonitor cho mặt SW thu nhỏ — PHẢI xoá param face khỏi URL modal", () => {
+  // Giữ face=swmini trong URL modal là lỗi đã bắt live 2026-11-03: trang
+  // modal mang cả open lẫn face nên render nhầm mặt nút bấm thay vì view
+  // Storefront (bấm nút đỏ → modal hiện lại đúng cái nút đỏ).
+  const u = new URL(monitorModalUrl("https://w.example/panel?face=swmini", { websiteId: "ws1", sessionId: "session_abc-123", token: "tok.en", fn: "copilot-test", view: "swmonitor" }));
+  assertEquals(u.searchParams.get("open"), "swmonitor");
+  assertEquals(u.searchParams.get("face"), null);
+});
+
+Deno.test("monitorLaunchLabel: nhãn nút monitor theo module đang bật", () => {
+  assertEquals(monitorLaunchLabel({ storefront: true, jira: true }), "Theo dõi Storefront + Jira");
+  assertEquals(monitorLaunchLabel({ storefront: false, jira: true }), "Theo dõi Jira");
+  assertEquals(monitorLaunchLabel({ storefront: true, jira: false }), "Theo dõi Storefront");
+});
+
+Deno.test("isSwMiniFace: chỉ đúng với face=swmini", () => {
+  assertEquals(isSwMiniFace("?face=swmini"), true);
+  assertEquals(isSwMiniFace("?fn=copilot-test&face=swmini"), true);
+  assertEquals(isSwMiniFace("?open=monitor"), false);
+  assertEquals(isSwMiniFace(""), false);
+});
+
+Deno.test("standaloneViewFor: view modal → thân modal; storefront/jira → chính chúng; lạ → null", () => {
+  assertEquals(standaloneViewFor("draft"), "draft");
+  assertEquals(standaloneViewFor("note"), "note");
+  assertEquals(standaloneViewFor("ask"), "ask");
+  assertEquals(standaloneViewFor("review"), "csat");
+  assertEquals(standaloneViewFor("storefront"), "storefront");
+  assertEquals(standaloneViewFor("jira"), "jira");
+  assertEquals(standaloneViewFor("monitor"), "monitor");
+  assertEquals(standaloneViewFor("swmonitor"), "swmonitor");
+  assertEquals(standaloneViewFor("lạ"), null);
+  assertEquals(standaloneViewFor(null), null);
 });

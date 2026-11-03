@@ -75,7 +75,21 @@ Deno.serve(async (req) => {
     const r = await handleNativeEvent(body, rawBody, {
       signature: req.headers.get("x-crisp-signature"),
       timestamp: req.headers.get("x-crisp-request-timestamp"),
-    }, { db, ai, n8n, background, pluginKey: Deno.env.get("CRISP_PLUGIN_KEY") ?? "" });
+    }, {
+      db,
+      ai,
+      n8n,
+      background,
+      crisp,
+      // Khoá ký của plugin Copilot CS + plugin survey (xe test mặt native
+      // 6 section, Ethan chốt 2026-10-30): sự kiện từ plugin nào thì verify
+      // bằng khoá của plugin đó. CRISP_PLUGIN_KEY_SURVEY trống = chỉ
+      // plugin chính.
+      pluginKeys: [
+        Deno.env.get("CRISP_PLUGIN_KEY") ?? "",
+        Deno.env.get("CRISP_PLUGIN_KEY_SURVEY") ?? "",
+      ],
+    });
     return json(r.status, r.body);
   }
   // Các route nội bộ (n8n/lập lịch gọi): precompute sentiment ngay sau khi
@@ -93,7 +107,7 @@ Deno.serve(async (req) => {
       return json(401, { error: "Thiếu credential nội bộ" });
     }
     const r = internalAction === "precompute_sentiment"
-      ? await handlePrecompute(body, { db, ai })
+      ? await handlePrecompute(body, { db, ai, crisp })
       : internalAction === "storefront_sweep"
       ? await handleStorefrontSweep(body, { db, storefront })
       : internalAction === "storefront_digest"
@@ -105,6 +119,19 @@ Deno.serve(async (req) => {
       : await handleStorefrontSegments(body, { db, crisp });
     return json(r.status, r.body);
   }
-  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp });
+  // Hash token phụ cho modal mở từ plugin survey (xe test mặt native):
+  // secret là CẤP PROJECT nên deployment production cũng đọc thấy env
+  // này — chỉ truyền vào khi request thật sự tới /copilot-test, production
+  // giữ đúng một hash trong DB như cũ. Giá trị là HASH sha256 của token
+  // website phía plugin survey (không lưu token thô).
+  const isTestSurface = new URL(req.url).pathname.endsWith("/copilot-test");
+  const extraWidgetTokenHashes = isTestSurface
+    ? (Deno.env.get("COPILOT_EXTRA_WIDGET_TOKEN_HASHES") ?? "").split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
+  // Module Storefront Watch chỉ hiện trên panel của bề mặt test (nơi tool
+  // SW thu nhỏ sống) — panel production của team không còn thẻ SW (Ethan
+  // chốt 2026-11-03). Xem Deps.storefrontPanelEnabled ở handler.ts.
+  const storefrontPanelEnabled = isTestSurface;
+  const r = await handle(body, req.headers.get("x-copilot-token") ?? "", { db, n8n, ai, background, storefront, jira, jiraStore, crisp, extraWidgetTokenHashes, storefrontPanelEnabled });
   return json(r.status, r.body);
 });

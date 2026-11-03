@@ -108,6 +108,7 @@ function segHarness(opts: {
       return Promise.resolve();
     },
     getConversationCustomData: () => Promise.resolve(null),
+    setConversationCustomData: () => Promise.resolve(),
   };
   const made = makeDeps({
     db: {
@@ -265,7 +266,7 @@ Deno.test("segments: lỗi DB giữa chừng → handler trả 200 kèm skipped 
       listStorefrontStoreStatus: () => Promise.reject(new Error("db down")),
     },
   });
-  const r = await handleStorefrontSegments({ website_id: "ws1" }, { db: made.deps.db, crisp: { getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), getConversationCustomData: () => Promise.resolve(null) } });
+  const r = await handleStorefrontSegments({ website_id: "ws1" }, { db: made.deps.db, crisp: { getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve(), setConversationCustomData: () => Promise.resolve(), getConversationCustomData: () => Promise.resolve(null) } });
   assertEquals(r.status, 200);
   assertEquals((r.body as { skipped: string | null }).skipped, "error");
 });

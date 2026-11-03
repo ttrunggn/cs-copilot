@@ -20,7 +20,7 @@ export function readContext(search) {
  * ?open=<view> để vào thẳng đúng view (xem widget/native-panel.json). Sáu
  * view hợp lệ; giá trị lạ → null (bỏ qua, panel mở như thường).
  */
-export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira"];
+export const OPEN_VIEWS = ["draft", "note", "ask", "review", "storefront", "jira", "monitor", "swmonitor"];
 
 export function parseOpenParam(search) {
   const open = new URLSearchParams(search).get("open") ?? "";
@@ -37,6 +37,105 @@ export function openModalName(open) {
   if (open === "review") return "csat";
   if (open === "draft" || open === "note" || open === "ask") return open;
   return null;
+}
+
+/**
+ * View deep-link → view STANDALONE của trang mở từ mặt native: trang chỉ
+ * render đúng view đó thay vì cả panel rồi popup chồng lên (Ethan chốt
+ * 30/10: modal gánh design). draft/note/ask/review dùng lại thân modal
+ * tương ứng (review → csat); storefront/jira render card của chính chúng.
+ * monitor = Storefront + Jira trong một modal nổi; swmonitor = biến thể
+ * CHỈ Storefront (Ethan chốt 02/11: plugin survey đổi thành Storefront
+ * Watch monitor only — mặt native của nó chỉ còn section Storefront và
+ * một nút mở view này). View lạ → null (trang panel thường).
+ */
+export function standaloneViewFor(open) {
+  const m = openModalName(open);
+  if (m) return m;
+  if (open === "storefront" || open === "jira" || open === "monitor" || open === "swmonitor") return open;
+  return null;
+}
+
+/**
+ * Function API đích của widget: mặc định production `copilot`. Modal mở
+ * từ mặt native bản test mang `fn=copilot-test` để mọi lời gọi đi vào
+ * function test (kèm cổng token phụ phía server). Chỉ nhận đúng tên
+ * trong danh sách — giá trị lạ rơi về production, không trỏ bừa được.
+ */
+export const API_FUNCTIONS = ["copilot", "copilot-test"];
+
+export function parseFnParam(search) {
+  const fn = new URLSearchParams(search).get("fn") ?? "";
+  return API_FUNCTIONS.includes(fn) ? fn : "copilot";
+}
+
+export function apiUrlFor(fn) {
+  return `https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/${fn}`;
+}
+
+/**
+ * Relay session panel → modal monitor (cơ chế iframe + Widget JS SDK,
+ * Ethan chốt thử 02/11 sau khi SDK trong modal bị chứng minh đóng băng
+ * theo conversation lúc mở — live 30/10): panel iframe luôn biết
+ * conversation hiện tại (Crisp nạp lại panel theo từng chat) nên mỗi
+ * lần boot, panel đẩy session của mình sang modal bằng
+ * $crisp.forwardEvent("modal", payload này); modal nghe
+ * $crisp.onEventForwarded, trích session bằng sessionFromRelayPayload
+ * rồi tự nạp lại. Relay chỉ chạy TRONG CÙNG một plugin (widget đẩy thì
+ * modal của chính plugin đó mới nhận) — đã chứng minh live 02/11 bằng
+ * plugin probe riêng: modal mở từ chat A nhận đúng session của các
+ * chat mở sau, kể cả sau khi widget đã nạp lại sang chat khác.
+ */
+export function monitorRelayPayload(sessionId) {
+  return { copilot_relay: { session_id: typeof sessionId === "string" ? sessionId : "" } };
+}
+
+export function sessionFromRelayPayload(data) {
+  if (!data || typeof data !== "object") return "";
+  const relay = data.copilot_relay;
+  if (!relay || typeof relay !== "object") return "";
+  return typeof relay.session_id === "string" && SESSION_ID.test(relay.session_id) ? relay.session_id : "";
+}
+
+/**
+ * Mặt iframe RIÊNG của tool Storefront Watch thu nhỏ (plugin survey sau
+ * khi chuyển từ Generic sang iFrame, Ethan chốt 02/11): plugin Generic
+ * không có JS thường trú nên modal mở từ nó không nhận được relay —
+ * test live 02/11 kết luận forwardEvent KHÔNG chạy xuyên plugin. Cho
+ * plugin một mặt iframe mỏng (?face=swmini) thì mặt và modal cùng một
+ * plugin, relay chạy như đã chứng minh. Mặt này chỉ render tóm tắt
+ * Storefront + nút mở modal swmonitor.
+ */
+export function isSwMiniFace(search) {
+  return new URLSearchParams(search).get("face") === "swmini";
+}
+
+/** URL mở view monitor dạng modal nổi từ panel (qua $crisp.showModal). */
+/** Nhãn nút mở monitor nổi trên panel, theo module đang bật: cả hai thì
+ * "Theo dõi Storefront + Jira", chỉ một thì tên module đó (panel production
+ * tắt Storefront từ 2026-11-03 nên ở đó nút chỉ còn "Theo dõi Jira"). */
+export function monitorLaunchLabel(modules) {
+  const sf = Boolean(modules?.storefront);
+  const jr = Boolean(modules?.jira);
+  if (sf && jr) return "Theo dõi Storefront + Jira";
+  if (jr) return "Theo dõi Jira";
+  if (sf) return "Theo dõi Storefront";
+  return "Theo dõi Storefront + Jira";
+}
+
+export function monitorModalUrl(href, { websiteId, sessionId, token, fn, view = "monitor" }) {
+  const url = new URL(href);
+  // URL gốc có thể là URL của MẶT (face=swmini): phải xoá param face, nếu
+  // không trang modal mang cả hai param và render nhầm mặt nút bấm thay vì
+  // view standalone (bắt live 2026-11-03: bấm nút đỏ thì modal hiện lại
+  // đúng cái nút đỏ).
+  url.searchParams.delete("face");
+  url.searchParams.set("open", view);
+  if (websiteId) url.searchParams.set("website_id", websiteId);
+  if (sessionId) url.searchParams.set("session_id", sessionId);
+  if (token) url.searchParams.set("token", token);
+  if (fn) url.searchParams.set("fn", fn);
+  return url.toString();
 }
 
 export function mapError(status, body) {

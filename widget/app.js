@@ -1,4 +1,4 @@
-import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, mapError, openModalName, operatorIdFrom, operatorNameFrom, parseOpenParam, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toViewModel } from "./core.js";
+import { askAnswerToHint, countPlaceholders, describeShape, enabledModules, explanationTemplate, isSwMiniFace, mapError, monitorLaunchLabel, monitorModalUrl, monitorRelayPayload, sessionFromRelayPayload, openModalName, operatorIdFrom, operatorNameFrom, apiUrlFor, parseFnParam, parseOpenParam, standaloneViewFor, PROGRESS_STEPS, progressStepIndex, readContext, REVIEW_TEMPLATE, toAskViewModel, toDraftViewModel, toStorefrontViewModel, toViewModel } from "./core.js";
 import { el, show } from "./dom.js";
 import { resetSessionScopedState, state } from "./state.js";
 import { createExtensionClient } from "./extension-client.js";
@@ -7,7 +7,18 @@ import { commandsRow, extensionHint, insightPanel, issuesPanel, jiraPanel, modal
 // Điều phối của widget: gọi API copilot, giữ luồng render/load và khởi động.
 // Trạng thái nằm ở state.js, giao tiếp extension ở extension-client.js,
 // các panel hiển thị ở panels.js, helper DOM ở dom.js.
-const API = "https://rbodkthyuiyfotewgxku.supabase.co/functions/v1/copilot";
+// Function đích: production `copilot`; modal mở từ mặt native bản test
+// mang fn=copilot-test thì mọi lời gọi đi vào function test (parseFnParam
+// ở core.js — giá trị lạ rơi về production).
+const API = apiUrlFor(parseFnParam(location.search));
+// Chế độ standalone: trang mở từ nút modal của mặt native (?open=) — chỉ
+// render đúng view được yêu cầu thay vì cả panel (xem render()).
+const standaloneView = standaloneViewFor(parseOpenParam(location.search));
+if (standaloneView) document.body?.classList.add("standalone");
+// Mặt iframe mỏng của tool Storefront Watch thu nhỏ (?face=swmini):
+// không phải standalone (không có ?open=), render chỉ khối Storefront
+// tóm tắt + nút mở modal swmonitor CÙNG plugin để relay chạy được.
+const swMiniFace = isSwMiniFace(location.search);
 const requestedTheme = new URLSearchParams(location.search).get("theme");
 if (requestedTheme === "light" || requestedTheme === "dark") document.documentElement.dataset.theme = requestedTheme;
 
@@ -25,6 +36,9 @@ function openModal(name) {
 }
 
 function closeModal() {
+  // Standalone: view gốc chính là cả trang — đóng nó chỉ còn trang trắng
+  // (đóng hẳn modal Crisp đã có nút riêng của Crisp ở dưới modal).
+  if (standaloneView && state.modal === standaloneView) return;
   state.modal = null;
   render();
 }
@@ -135,12 +149,17 @@ function showLoading(text) {
 
 // ---------- API ----------
 
-// Các action KHÔNG có nút Huỷ riêng (check, survey, jira_sync, jira_unlink,
-// storefront, storefront_finding) bị giới hạn bởi timeout này: fetch treo
-// (mạng rớt lặng, gateway không trả lời) không được phép để spinner quay mãi.
+// Các action KHÔNG có nút Huỷ riêng (check, survey, jira_sync, jira_unlink)
+// bị giới hạn bởi timeout này: fetch treo (mạng rớt lặng, gateway không trả
+// lời) không được phép để spinner quay mãi.
 // 4 action AI có AbortController riêng (nút Huỷ trên thẻ tiến trình) thì giữ
 // nguyên signal của caller — soạn AI chạy lâu là bình thường, CS tự huỷ.
+// Riêng các action Storefront dùng trần dài hơn: phía server phải chờ SW trả
+// lời (SW chậm theo cơn, một lượt tải modal đo live tới 30–45 giây) — cắt ở
+// 20 giây là modal bỏ cuộc trước khi dữ kiện về.
 const CALL_TIMEOUT_MS = 20000;
+const STOREFRONT_CALL_TIMEOUT_MS = 60000;
+const LONG_CALL_ACTIONS = new Set(["storefront", "storefront_finding", "storefront_act"]);
 
 async function call(action, extra = {}, signal) {
   const ctx = readContext(location.search);
@@ -154,7 +173,7 @@ async function call(action, extra = {}, signal) {
   if (!signal) {
     const ctrl = new AbortController();
     signal = ctrl.signal;
-    timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, CALL_TIMEOUT_MS);
+    timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, LONG_CALL_ACTIONS.has(action) ? STOREFRONT_CALL_TIMEOUT_MS : CALL_TIMEOUT_MS);
   }
   try {
     const res = await fetch(API, {
@@ -761,6 +780,14 @@ async function onStorefrontAct(fingerprint, act) {
  * nằm thường trực trên panel; chúng sống trong popup (panels.js modalView).
  * Tiến trình/hỏi-cách-điền hiện trong popup khi có popup, ngược lại trên panel.
  */
+/** Thẻ thông báo kết quả hành động — dùng cho cả panel và standalone. */
+function noticeNode() {
+  return state.notice ? el("div", { className: `notice-card ${state.noticeKind === "success" ? "success-notice" : ""} ${state.noticeKind === "error" ? "error-notice" : ""}` }, [
+    el("span", { textContent: state.notice }),
+    el("button", { className: "notice-close", textContent: "×", title: "Đóng thông báo", onclick: () => (clearNotice(), render()) }),
+  ]) : null;
+}
+
 let lastRenderSession = null;
 function render() {
   if (!state.check) return;
@@ -771,6 +798,27 @@ function render() {
   const prevScrollY = sameSession && typeof window !== "undefined" ? window.scrollY : 0;
   lastRenderSession = state.shownSession;
   const vm = toViewModel(state.check, Date.now());
+  // Standalone (trang mở từ nút modal của mặt native): chỉ render đúng
+  // view — thân modal cho draft/note/ask/csat, card cho storefront/jira
+  // (modal "explain" của Storefront vẫn mở chồng lên card) — kèm thẻ
+  // thông báo. Không header, không hàng lệnh, không giữ vị trí cuộn.
+  // Standalone (có ?open=) phải thắng mặt thu nhỏ: một URL modal lỡ mang
+  // cả param face thì vẫn render đúng view của modal, không render mặt.
+  if (standaloneView) {
+    const cardView = standaloneView === "storefront" || standaloneView === "jira" || standaloneView === "monitor" || standaloneView === "swmonitor";
+    show(
+      standaloneView === "storefront" || standaloneView === "monitor" || standaloneView === "swmonitor" ? storefrontPanel(handlers) : null,
+      standaloneView === "jira" || standaloneView === "monitor" ? jiraPanel(handlers) : null,
+      cardView ? null : modalView(handlers),
+      noticeNode(),
+      cardView ? modalView(handlers) : null,
+    );
+    return;
+  }
+  if (swMiniFace) {
+    show(swMiniFaceNode());
+    return;
+  }
   const modalOpen = Boolean(state.modal);
   show(
     el("header", { className: "inbox-header" }, [
@@ -799,15 +847,19 @@ function render() {
     issuesPanel(vm),
     storefrontPanel(handlers),
     jiraPanel(handlers),
+    // Nút mở monitor nổi: phải mở bằng showModal TỪ panel thì relay
+    // session (forwardEvent) mới tới được modal — xem khối Monitor.
+    (enabledModules(state.check).storefront || enabledModules(state.check).jira)
+      ? el("div", { className: "monitor-launch" }, [
+          el("button", { className: "button-secondary monitor-launch-button", textContent: monitorLaunchLabel(enabledModules(state.check)), onclick: () => openMonitorModal() }),
+        ])
+      : null,
     extensionHint(handlers),
     state.progress && !modalOpen ? progressCard() : !modalOpen && state.busy ? el("div", { className: "loading-card" }, [
       el("p", { className: "muted", textContent: state.busy }),
       el("div", { className: "skeleton" }, [el("i"), el("i"), el("i")]),
     ]) : null,
-    state.notice ? el("div", { className: `notice-card ${state.noticeKind === "success" ? "success-notice" : ""} ${state.noticeKind === "error" ? "error-notice" : ""}` }, [
-      el("span", { textContent: state.notice }),
-      el("button", { className: "notice-close", textContent: "×", title: "Đóng thông báo", onclick: () => (clearNotice(), render()) }),
-    ]) : null,
+    noticeNode(),
     !modalOpen ? insertChoiceNode() : null,
     commandsRow(handlers),
     modalView(handlers),
@@ -853,6 +905,153 @@ function applyOpenDeepLink(sessionId) {
   document.querySelector(sel)?.scrollIntoView({ block: "start" });
 }
 
+/**
+ * Standalone: mở view gốc đúng MỘT lần sau check đầu tiên (openModal tự
+ * render lại). Các load() sau (refresh, nạp lại Jira…) không mở lại —
+ * view gốc không đóng được nên state.modal luôn còn nguyên.
+ */
+// ---------- Monitor (Storefront + Jira trong MỘT modal nổi) ----------
+// Ethan chốt ý tưởng 30/10: modal thu nhỏ/di chuyển sống xuyên
+// conversation, mở MỘT lần rồi tự bám theo chat đang mở. Đường SDK
+// trong modal đã chết (đo live 30/10: dữ liệu conversation của SDK bị
+// đóng băng theo chat lúc mở modal). Cơ chế chạy được là RELAY
+// iframe + SDK (chứng minh live 02/11 bằng plugin probe riêng): panel
+// iframe luôn biết conversation hiện tại (Crisp nạp lại panel theo
+// từng chat), mỗi lần boot panel đẩy session sang modal bằng
+// $crisp.forwardEvent; modal nghe $crisp.onEventForwarded rồi tự nạp
+// lại theo session mới (giữ nguyên token và các param Crisp gắn).
+// Relay chỉ chạy trong CÙNG một plugin — monitor phải do panel mở
+// bằng $crisp.showModal (nút "Theo dõi Storefront + Jira" trên panel)
+// mới nhận được; bản mở từ mặt native của plugin khác thì đứng yên
+// như modal thường. Đang thao tác Storefront (gửi hành động / mở
+// form) thì HOÃN nạp lại, thử lại sau 3 giây — không giật giữa chừng.
+
+/** Panel: đẩy session của conversation hiện tại sang modal monitor. */
+function relayForwardSession() {
+  if (standaloneView) return;
+  if (!("sessionId" in ctx)) return;
+  try { window.$crisp?.forwardEvent?.("modal", monitorRelayPayload(ctx.sessionId)); } catch { /* SDK chưa sẵn sàng thì thôi */ }
+}
+
+/** Panel: mở modal monitor nổi bằng SDK (cùng plugin thì relay mới tới). */
+function openMonitorModal() {
+  if (!("sessionId" in ctx)) return;
+  const url = monitorModalUrl(location.href, {
+    websiteId: ctx.websiteId,
+    sessionId: ctx.sessionId,
+    token: ctx.crispToken,
+    fn: parseFnParam(location.search),
+  });
+  try { window.$crisp?.showModal?.(url); } catch { /* ngoài Crisp thì bỏ qua */ }
+}
+
+/** Mặt SW thu nhỏ: mở modal Storefront-only (view swmonitor) bằng SDK. */
+function openSwMonitorModal() {
+  if (!("sessionId" in ctx)) return;
+  const url = monitorModalUrl(location.href, {
+    websiteId: ctx.websiteId,
+    sessionId: ctx.sessionId,
+    token: ctx.crispToken,
+    fn: parseFnParam(location.search),
+    view: "swmonitor",
+  });
+  try { window.$crisp?.showModal?.(url); } catch { /* ngoài Crisp thì bỏ qua */ }
+}
+
+/**
+ * Mặt iframe của tool Storefront Watch thu nhỏ (Ethan chốt 2026-11-03):
+ * CHỈ đúng 1 nút đỏ "Mở Storefront Watch" — bấm là lên modal swmonitor,
+ * ngoài ra không hiển thị gì thêm (không tiêu đề, không tên store, không
+ * trạng thái). Mặt này tồn tại dưới dạng iframe cùng plugin với modal để
+ * relayForwardSession đẩy session sang modal được (mặt Generic không
+ * làm được việc này — đã test chết live 2026-11-02). Mọi dữ kiện và
+ * thao tác nằm trong modal; mặt không nạp dữ liệu Storefront.
+ */
+function swMiniFaceNode() {
+  return el("section", { className: "sw-mini-face" }, [
+    el("button", {
+      className: "sw-open-button",
+      textContent: "Mở Storefront Watch",
+      onclick: () => openSwMonitorModal(),
+    }),
+  ]);
+}
+
+let pendingRelaySession = "";
+let relayRetryTimer = null;
+function applyRelaySession(sid) {
+  const url = new URL(location.href);
+  url.searchParams.set("session_id", sid);
+  location.replace(url.toString());
+}
+function monitorOnRelayEvent(data) {
+  if (standaloneView !== "monitor" && standaloneView !== "swmonitor") return;
+  const sid = sessionFromRelayPayload(data);
+  if (!sid) return;
+  const current = readContext(location.search).sessionId ?? "";
+  if (sid === current) return;
+  if (state.sfActBusy || state.sfForm || state.busyAction) {
+    pendingRelaySession = sid;
+    if (!relayRetryTimer) {
+      relayRetryTimer = setInterval(() => {
+        if (!pendingRelaySession) { clearInterval(relayRetryTimer); relayRetryTimer = null; return; }
+        if (state.sfActBusy || state.sfForm || state.busyAction) return;
+        const target = pendingRelaySession;
+        pendingRelaySession = "";
+        applyRelaySession(target);
+      }, 3000);
+    }
+    return;
+  }
+  applyRelaySession(sid);
+}
+
+let monitorRelayStarted = false;
+function startMonitorRelay() {
+  if ((standaloneView !== "monitor" && standaloneView !== "swmonitor") || monitorRelayStarted) return;
+  monitorRelayStarted = true;
+  if (monitorSuperseded) { try { $crisp.closeModal(); } catch { /* SDK chưa sẵn sàng thì thôi */ } }
+  try { $crisp.onEventForwarded = (data) => monitorOnRelayEvent(data); } catch { /* SDK chưa sẵn sàng thì thôi */ }
+}
+
+// Crisp mở một modal MỚI mỗi lần bấm nút (bắt live 30/10 17:47: bấm ở
+// chat khác là chồng thêm một thẻ nổi, bản cũ không tự đóng). Các
+// iframe modal cùng origin widget nghe nhau qua BroadcastChannel:
+// instance monitor mới mở thì instance cũ tự đóng mình. Áp cho cả
+// view monitor (Storefront + Jira, mở từ panel) và swmonitor (chỉ
+// Storefront, mở từ mặt native của plugin survey — Ethan chốt 02/11
+// biến plugin survey thành Storefront Watch monitor only): hai view
+// dùng CHUNG kênh để toàn inbox chỉ có một thẻ monitor nổi mỗi lúc.
+// swmonitor cũng NGHE relay như monitor: panel Copilot (plugin khác)
+// forward session mỗi lần boot — Crisp có chuyển sự kiện forwardEvent
+// XUYÊN plugin tới modal đang mở hay không là điểm quyết định bởi test
+// live 02/11; nếu sự kiện tới, swmonitor tự nạp lại theo chat mới y hệt
+// monitor, nếu không tới thì nó đứng yên như modal native thường.
+const MONITOR_BORN_AT = Date.now();
+const MONITOR_INSTANCE_ID = `${MONITOR_BORN_AT}-${Math.random().toString(36).slice(2, 8)}`;
+let monitorSuperseded = false;
+function startMonitorSupersede() {
+  if (standaloneView !== "monitor" && standaloneView !== "swmonitor") return;
+  try {
+    const ch = new BroadcastChannel("copilot-monitor");
+    ch.onmessage = (e) => {
+      const m = e?.data ?? {};
+      if (m.type !== "hello" || m.id === MONITOR_INSTANCE_ID || !(m.ts > MONITOR_BORN_AT)) return;
+      monitorSuperseded = true;
+      try { window.$crisp?.closeModal?.(); } catch { /* SDK chưa sẵn sàng: startMonitorRelay đóng lại khi ready */ }
+    };
+    ch.postMessage({ type: "hello", id: MONITOR_INSTANCE_ID, ts: MONITOR_BORN_AT });
+  } catch { /* Không có BroadcastChannel thì bỏ qua cơ chế thay thế */ }
+}
+
+let standaloneOpened = false;
+function openStandaloneView() {
+  if (standaloneOpened) return;
+  standaloneOpened = true;
+  const name = openModalName(parseOpenParam(location.search));
+  if (name) openModal(name);
+}
+
 let loadInFlight = false;
 
 async function load() {
@@ -888,7 +1087,8 @@ async function load() {
     checkCache.set(sessionId, state.check);
     applyCheck(sessionId);
     render();
-    applyOpenDeepLink(sessionId);
+    if (standaloneView) openStandaloneView();
+    else applyOpenDeepLink(sessionId);
     maybeAutoRefreshSentiment(sessionId);
     // Mirror Jira cũ lúc mở panel: server đã cho sync chạy nền (check
     // không còn chờ Jira nữa) — nạp lại ĐÚNG một lần sau 3 giây để card
@@ -902,7 +1102,7 @@ async function load() {
     // Module Storefront được server bật mà chat này chưa có dữ liệu: tự nạp
     // luôn — server tự resolve shop từ custom data của phiên; phiên không có
     // sẵn shopify_domain thì server trả need_shop và module hiện ô nhập tay.
-    if (enabledModules(state.check).storefront && !state.storefront) onStorefrontLoad();
+    if (!swMiniFace && enabledModules(state.check).storefront && !state.storefront) onStorefrontLoad();
   } finally {
     loadInFlight = false;
   }
@@ -919,14 +1119,17 @@ window.CRISP_READY_TRIGGER = () => {
       return showMessage(`Không đọc được CS đang đăng nhập. Crisp trả về: ${describeShape($crisp.data.operator)}`);
     }
     load();
+    relayForwardSession();
   };
   $crisp.acquireData("operator");
+  startMonitorRelay();
 };
 
 const ctx = readContext(location.search);
 if ("error" in ctx) showMessage(ctx.error);
 else showLoading("Đang xác định CS đang đăng nhập…");
 extension.detectExtension();
+startMonitorSupersede();
 // Esc đóng popup đang mở (bấm ra ngoài hộp cũng đóng — xem modalView ở panels.js).
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && state.modal) closeModal();

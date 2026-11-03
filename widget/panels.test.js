@@ -344,7 +344,7 @@ Deno.test("panels: storefrontPanel results → list đủ từng bug: pill trạ
   assertEquals(hrefs.includes("https://sw.transcy.io"), true);
 });
 
-Deno.test("panels: storefront finding → hàng 3 link thẳng hàng 'Default page' / 'Issue page' / 'Console' đúng thứ tự (Ethan 2026-10-29)", () => {
+Deno.test("panels: storefront finding → hàng 3 link thẳng hàng 'Default' / 'Target' / 'Console' đúng thứ tự (Ethan 2026-10-29)", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = {
@@ -355,15 +355,15 @@ Deno.test("panels: storefront finding → hàng 3 link thẳng hàng 'Default pa
   const p = storefrontPanel(makeHandlers([]));
   const links = walk(p).filter((n) => n.tagName === "A");
   const byHref = (h) => links.find((a) => (a.attrs.href ?? a.href) === h);
-  assertEquals(byHref("https://shop.myshopify.com/products/a")?.textContent ?? "", "Default page");
-  assertEquals(byHref("https://shop.myshopify.com/de/products/a")?.textContent ?? "", "Issue page");
+  assertEquals(byHref("https://shop.myshopify.com/products/a")?.textContent ?? "", "Default");
+  assertEquals(byHref("https://shop.myshopify.com/de/products/a")?.textContent ?? "", "Target");
   assertEquals(byHref("https://sw.transcy.io/#/f/x")?.textContent ?? "", "Console");
-  // Thứ tự trong DOM: Default page → Issue page → Console.
-  const order = links.map((a) => a.textContent).filter((t) => ["Default page", "Issue page", "Console"].includes(t ?? ""));
-  assertEquals(order, ["Default page", "Issue page", "Console"]);
+  // Thứ tự trong DOM: Default → Target → Console.
+  const order = links.map((a) => a.textContent).filter((t) => ["Default", "Target", "Console"].includes(t ?? ""));
+  assertEquals(order, ["Default", "Target", "Console"]);
 });
 
-Deno.test("panels: issuePageLink trùng pageLink → ẩn link Issue page, chỉ còn Default page + Console", () => {
+Deno.test("panels: issuePageLink trùng pageLink → ẩn link Target, chỉ còn Default + Console", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = {
@@ -373,8 +373,8 @@ Deno.test("panels: issuePageLink trùng pageLink → ẩn link Issue page, chỉ
   };
   const p = storefrontPanel(makeHandlers([]));
   const texts = walk(p).filter((n) => n.tagName === "A").map((a) => a.textContent);
-  assertEquals(texts.includes("Issue page"), false);
-  assertEquals(texts.includes("Default page") && texts.includes("Console"), true);
+  assertEquals(texts.includes("Target"), false);
+  assertEquals(texts.includes("Default") && texts.includes("Console"), true);
 });
 
 const SF_ONE = (over = {}) => ({
