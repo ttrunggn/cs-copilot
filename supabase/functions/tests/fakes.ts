@@ -5,7 +5,7 @@ import type { Ai, AiTask } from "../_shared/gemini.ts";
 import type { N8n } from "../_shared/n8n.ts";
 import type { ConversationRow, MessageRow, NewOutput, OutputRow, Workspace } from "../_shared/types.ts";
 
-export const TOKEN = "tok-lan";
+export const TOKEN = "tok-jamie";
 export const TOKEN_HASH = await sha256Hex(TOKEN);
 
 export const WS: Workspace = {
@@ -45,7 +45,7 @@ export function msg(from: "user" | "operator", content: string, minute: number, 
     is_bot: false,
     content,
     created_at: `2026-10-15T03:${String(minute).padStart(2, "0")}:00+00:00`,
-    operator_name: from === "operator" ? "Lan" : null,
+    operator_name: from === "operator" ? "Jamie" : null,
     ...extra,
   };
 }
@@ -89,14 +89,14 @@ export function makeDeps(opts: {
     },
     getWorkspace: () => Promise.resolve(WS),
     getWidgetTokenHash: () => Promise.resolve(null),
-    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-jamie" : null),
     isOperatorMember: () => Promise.resolve(true),
     getConversation: () => Promise.resolve(CONV),
     getMessages: () => Promise.resolve(opts.messages ?? [msg("user", "a", 1), msg("operator", "b", 2), msg("user", "c", 3)]),
     saveTranslations: () => Promise.resolve(),
     getProfiles: () => Promise.resolve([]),
     getWorkspaceAllProfiles: () => Promise.resolve([]),
-    getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
+    getOperator: () => Promise.resolve({ display_name: "Jamie Lee" }),
     findCachedOutput: () => Promise.resolve(opts.cached ?? null),
     insertOutput: (row) => {
       inserted.push(row);

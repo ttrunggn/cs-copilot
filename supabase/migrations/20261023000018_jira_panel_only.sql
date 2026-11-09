@@ -1,6 +1,6 @@
--- Jira = PANEL-ONLY MIRROR tuyệt đối (Ethan chốt cứng 2026-10-23): Jira thay đổi gì thì chỉ
+-- Jira = PANEL-ONLY MIRROR tuyệt đối : Jira thay đổi gì thì chỉ
 -- panel thay đổi theo (status, content, comment mới) — sync KHÔNG tạo bất cứ thứ gì trong Crisp.
--- Code jira-sync từ nay không còn đường đăng note và không đọc cờ jira_auto_note nữa; hai lệnh
+-- Code jira-sync không có đường đăng note và không đọc cờ jira_auto_note; hai lệnh
 -- dưới đây là lớp phòng thủ phụ: tắt cờ cho mọi workspace hiện hữu và đổi mặc định cho
 -- workspace mới, để dữ liệu trong DB cũng phản ánh đúng quy tắc.
 update public.workspaces set jira_auto_note = false;

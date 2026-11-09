@@ -51,7 +51,7 @@ Deno.test("isYellowishColor nhận nền vàng Note mode, loại trắng/xám/t�
   assertEquals(isYellowishColor("rgb(255, 249, 196)"), true); // vàng nhạt kiểu Crisp note
   assertEquals(isYellowishColor("rgba(250, 230, 140, 1)"), true);
   assertEquals(isYellowishColor("rgb(146, 124, 32)"), true); // vàng sẫm (dark mode)
-  assertEquals(isYellowishColor("rgb(58, 53, 32)"), true); // vàng olive sẫm trên giao diện tối — phiên dò 2026-10-26 (bản cũ đòi r>=120 nên trượt ca này)
+  assertEquals(isYellowishColor("rgb(58, 53, 32)"), true); // vàng olive sẫm trên giao diện tối (đòi r>=120 thì trượt ca này)
   assertEquals(isYellowishColor("rgb(255, 255, 255)"), false);
   assertEquals(isYellowishColor("rgb(24, 24, 27)"), false);
   assertEquals(isYellowishColor("rgb(20, 24, 36)"), false); // nền tối ngả xanh của ô Reply (giao diện tối) — lạnh, không ấm
@@ -78,15 +78,15 @@ Deno.test("verifyWritten: ô phải chứa dòng đầu của nội dung vừa g
 });
 
 Deno.test("textsMatch: so TOÀN VĂN sau khi điền — bắt được lỗi dán chồng làm nội dung lặp, dung sai khác biệt render vô hại", () => {
-  const draft = "Hi,\n\nThis is Ethan from Transcy.\n\nHow can I help you today?";
+  const draft = "Hi,\n\nThis is Sam from Transcy.\n\nHow can I help you today?";
   assertEquals(textsMatch(draft, draft), true);
-  // Lỗi live 2026-10-26: bản cũ còn nguyên + bản mới dán thêm → verifyWritten
-  // cũ cho qua (dòng đầu tồn tại), textsMatch phải bắt được.
+  // Bản cũ còn nguyên + bản mới dán thêm → verifyWritten
+  // cho qua (dòng đầu tồn tại), textsMatch phải bắt được.
   assertEquals(textsMatch(`Nội dung cũ của CS\n\n${draft}`, draft), false);
   assertEquals(textsMatch(`${draft}\n\n${draft}`, draft), false);
   assertEquals(textsMatch(draft.replace("today?", "today?Hi,"), draft), false); // dán dính vào giữa câu
   // Dung sai: khoảng trắng cuối dòng, zero-width, 3+ dòng trống gộp, xuống dòng thừa ở cuối.
-  assertEquals(textsMatch("Hi,  \n\n\nThis is Ethan from Transcy.\n\nHow can I help you today?\n", draft), true);
+  assertEquals(textsMatch("Hi,  \n\n\nThis is Sam from Transcy.\n\nHow can I help you today?\n", draft), true);
   assertEquals(textsMatch(draft.replace("Hi,", "Hi,\u200B"), draft), true);
   assertEquals(textsMatch("", draft), false);
   assertEquals(textsMatch(draft, ""), false);
@@ -122,7 +122,7 @@ Deno.test("fillVerified: gập khoảng trắng — innerText nối đoạn bằ
   const expected = "Hi there,\n\nThank you so much!\n\nBelow is the link:";
   assertEquals(fillVerified("Hi there,\nThank you so much!\nBelow is the link:", expected), true);
   assertEquals(fillVerified(expected, expected), true);
-  assertEquals(fillVerified(`${expected}\n${expected}`, expected), false); // gấp đôi — ca live 2026-10-26
+  assertEquals(fillVerified(`${expected}\n${expected}`, expected), false); // gấp đôi
   assertEquals(fillVerified("", expected), false);
   assertEquals(fillVerified("Hi there, Thank you!", ""), false);
 });
@@ -134,7 +134,7 @@ Deno.test("signalTrace: định dạng gọn 5 tín hiệu Note mode", () => {
 });
 
 Deno.test("decideInsert: ô còn nguyên bản copilot tự điền trước đó → thay luôn, không hỏi; người đã sửa thì vẫn hỏi", () => {
-  const prev = "Hi,\n\nThis is Ethan from the Transcy Customer Support team.";
+  const prev = "Hi,\n\nThis is Sam from the Transcy Customer Support team.";
   // Ô chứa đúng bản copilot đã điền (chưa ai đụng vào) → inserted thẳng.
   assertEquals(
     decideInsert({ ...base, composerText: prev, lastFilledText: prev, cmd: cmd({ text: "Bản mới" }) }),
@@ -149,13 +149,13 @@ Deno.test("decideInsert: ô còn nguyên bản copilot tự điền trước đ�
   assertEquals(decideInsert({ ...base, composerText: prev, cmd: cmd() }), { status: "not_empty" });
 });
 
-Deno.test("fillVerified: dòng đánh số bị editor biến thành marker danh sách (innerText mất '1. ') vẫn khớp — ca live 2026-10-26", () => {
-  const expected = "Handoff — Ethan Nguyen\nKhách hàng yêu cầu gặp nhân viên hỗ trợ trực tiếp.\n1. Yêu cầu kết nối với nhân viên hỗ trợ — Đang xử lý: Bot đã ghi nhận yêu cầu.\n\nTiếp theo (chờ CS): Tiếp nhận hội thoại ngay.";
+Deno.test("fillVerified: dòng đánh số bị editor biến thành marker danh sách (innerText mất '1. ') vẫn khớp", () => {
+  const expected = "Handoff — Test Agent\nKhách hàng yêu cầu gặp nhân viên hỗ trợ trực tiếp.\n1. Yêu cầu kết nối với nhân viên hỗ trợ — Đang xử lý: Bot đã ghi nhận yêu cầu.\n\nTiếp theo (chờ CS): Tiếp nhận hội thoại ngay.";
   const readBackNoMarker = expected.replace("\n1. Yêu cầu", "\nYêu cầu");
   assertEquals(fillVerified(readBackNoMarker, expected), true);
   assertEquals(fillVerified(expected, expected), true);
   // Thiếu hẳn đoạn cuối → vẫn bắt được, dung sai không nuốt lỗi thật.
-  const missingTail = "Handoff — Ethan Nguyen\nKhách hàng yêu cầu gặp nhân viên hỗ trợ trực tiếp.\nYêu cầu kết nối với nhân viên hỗ trợ — Đang xử lý: Bot đã ghi nhận yêu cầu.";
+  const missingTail = "Handoff — Test Agent\nKhách hàng yêu cầu gặp nhân viên hỗ trợ trực tiếp.\nYêu cầu kết nối với nhân viên hỗ trợ — Đang xử lý: Bot đã ghi nhận yêu cầu.";
   assertEquals(fillVerified(missingTail, expected), false);
   // Nội dung khác hẳn → false.
   assertEquals(fillVerified("Một nội dung hoàn toàn khác không liên quan gì tới bản kỳ vọng cả.", expected), false);

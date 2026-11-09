@@ -1,4 +1,4 @@
--- Gợi ý tối ưu template/draft (Ethan chốt 2026-10-26 qua preview v8):
+-- Gợi ý tối ưu template/draft:
 -- customize NHƯNG TỐI ƯU theo cơ chế GỢI Ý — mẫu gốc của CS giữ nguyên,
 -- panel hiện thẻ gợi ý kèm lý do dễ hiểu; CS tự quyết dùng hay không.
 --
@@ -13,9 +13,7 @@
 --    mẫu mới" trong popup Draft) — draft không phải template cố định nên
 --    không ghi vào review_template; các mẫu này là đầu vào ưu tiên cho vòng
 --    học profile về sau (học từ chính lựa chọn của CS, minh bạch).
--- 3) Seed gợi ý cho Anna + Raymond (Transcy) từ phân tích template thật
---    26/10 — xem files/review-templates-mined-2026-10-26.md. Chỉ gắn khi
---    dòng profile đã có review_template (migration 026).
+-- 3) Seed gợi ý cho các profile đã có review_template (migration 026).
 
 alter table public.agent_profiles
   add column if not exists review_template_suggestion jsonb;

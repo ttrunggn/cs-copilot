@@ -25,8 +25,7 @@ export interface JiraUnlinkResult {
  * Mirror Jira coi là còn tươi trong khoảng này: mở panel mà bản lưu mới hơn
  * thì khỏi gọi Jira lại (mở/refresh liên tục không nện API). Quá mốc này —
  * hoặc ticket chưa từng có dữ liệu — mở panel là tự sync ngay trong request
- * check (Ethan chốt 2026-10-26: tự sync khi bấm vào, CS không click thủ
- * công, không chờ lịch quét của n8n).
+ * check (CS không click thủ công, không chờ lịch quét của n8n).
  */
 export const JIRA_FRESH_MS = 90_000;
 
@@ -42,8 +41,8 @@ export interface JiraSyncDeps {
 /**
  * Đồng bộ mirror Jira cho ĐÚNG các ticket đang liên kết với conversation
  * này: lấy issue thô từ Jira REST rồi áp qua applyJiraIssues (cùng pipeline
- * chuẩn hoá/lưu/diff như đường n8n cũ — CHỈ MỘT nguồn sync active tại một
- * thời điểm, luật Ethan 2026-10-23). force = bỏ qua cửa sổ tươi (nút Sync
+ * chuẩn hoá/lưu/diff như đường n8n — CHỈ MỘT nguồn sync active tại một
+ * thời điểm). force = bỏ qua cửa sổ tươi (nút Sync
  * ngay). Lỗi gọi Jira văng ra cho caller quyết (check nuốt lỗi giữ dữ liệu
  * cũ; sync_now báo lỗi trung thực).
  */

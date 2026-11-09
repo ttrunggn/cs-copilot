@@ -27,10 +27,10 @@ Deno.test("handoff returns the formatted Vietnamese note and stores the output �
   assertEquals(body.cached, false);
   assertEquals(body.output_id, 42);
   assertEquals("posted" in body, false); // quy tắc ghi Crisp: handler chỉ trả text, không có khái niệm đã đăng
-  assertEquals((body.note as string).startsWith("Handoff — Lan Nguyen\nKhách cần sửa switcher"), true);
+  assertEquals((body.note as string).startsWith("Handoff — Jamie Lee\nKhách cần sửa switcher"), true);
   assertEquals(inserted[0].kind, "handoff");
   assertEquals(inserted[0].content, body.note);
-  assertEquals(inserted[0].operator_id, "op-lan");
+  assertEquals(inserted[0].operator_id, "op-jamie");
   assertEquals(inserted[0].posted, null);
 });
 
@@ -153,7 +153,7 @@ Deno.test("unreadable handoff says AI_BAD_OUTPUT, not quota", async () => {
 });
 
 const NOTE_FMT_ROW: ProfileRow = {
-  crisp_user_id: "op-lan",
+  crisp_user_id: "op-jamie",
   website_id: "ws1",
   topic: "_all",
   conversations_used: 12,
@@ -180,14 +180,14 @@ Deno.test("handoff renders in the CS's learned note format and records profile_u
   const r = await handle(REQ, TOKEN, deps);
   const body = r.body as { note: string };
   assertEquals(body.note, [
-    "Handoff — Lan Nguyen",
+    "Handoff — Jamie Lee",
     "Issues raised:",
     "- Switcher không hiện trên mobile — Chờ tech: đã gửi ticket",
     "- Đổi sang gói annual — Xong: đã đổi",
     "- Dịch theme mới — Chưa xử lý: chưa trả lời",
     "Why: Khách cần sửa switcher và đổi gói",
     "Next: (waiting on tech) Báo khách khi tech fix",
-    "— Lan Nguyen",
+    "— Jamie Lee",
   ].join("\n"));
   assertEquals(inserted[0].profile_used, "all");
   assertEquals(inserted[0].content, body.note);
@@ -198,7 +198,7 @@ Deno.test("handoff without a learned note format keeps the fixed template and re
   const { deps, inserted } = makeDeps({ ai });
   await handle(REQ, TOKEN, deps);
   assertEquals(inserted[0].profile_used, "default");
-  assertEquals((inserted[0].content as string).startsWith("Handoff — Lan Nguyen\n"), true);
+  assertEquals((inserted[0].content as string).startsWith("Handoff — Jamie Lee\n"), true);
 });
 
 Deno.test("handoff ignores a note format learned from too few notes", async () => {
@@ -207,7 +207,7 @@ Deno.test("handoff ignores a note format learned from too few notes", async () =
   const { deps, inserted } = makeDeps({ ai, db: { getProfiles: () => Promise.resolve([thin]) } });
   await handle(REQ, TOKEN, deps);
   assertEquals(inserted[0].profile_used, "default");
-  assertEquals((inserted[0].content as string).startsWith("Handoff — Lan Nguyen\n"), true);
+  assertEquals((inserted[0].content as string).startsWith("Handoff — Jamie Lee\n"), true);
 });
 
 Deno.test("handoff prompt includes the linked Jira tickets", async () => {

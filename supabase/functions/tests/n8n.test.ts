@@ -66,16 +66,16 @@ Deno.test("refresh 200 with empty body (n8n workflow errored) -> stale true", as
   assertEquals(await n8n.refreshConversation("ws1", "session_1"), { stale: true });
 });
 
-Deno.test("default refresh timeout is 5s (n8n refresh takes ~3s in production)", () => {
+Deno.test("default refresh timeout is 5s (n8n refresh typically takes a few seconds)", () => {
   assertEquals(DEFAULT_REFRESH_TIMEOUT_MS, 5000);
 });
 
 Deno.test("sendSurvey ok khi workflow trả status ok, gửi kèm agent_name", async () => {
   const { calls, f } = recorder(() => Promise.resolve(new Response('{"status":"ok"}', { status: 200 })));
   const n8n = createN8n({ baseUrl: "https://n8n.test/webhook", secret: "k", fetch: f });
-  assertEquals(await n8n.sendSurvey("ws1", "session_1", "Lan Nguyen"), true);
+  assertEquals(await n8n.sendSurvey("ws1", "session_1", "Jamie Lee"), true);
   assertEquals(calls[0].url, "https://n8n.test/webhook/send-survey");
-  assertEquals(JSON.parse(calls[0].init.body as string), { website_id: "ws1", session_id: "session_1", agent_name: "Lan Nguyen" });
+  assertEquals(JSON.parse(calls[0].init.body as string), { website_id: "ws1", session_id: "session_1", agent_name: "Jamie Lee" });
 });
 
 Deno.test("sendSurvey false khi workflow trả lỗi", async () => {

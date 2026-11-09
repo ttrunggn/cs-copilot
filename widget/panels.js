@@ -3,7 +3,7 @@ import { EXPECTED_EXTENSION_VERSION, extensionOutdated } from "./bridge-core.js"
 import { buttonContent, el } from "./dom.js";
 import { state } from "./state.js";
 
-// Các panel hiển thị của widget — bố cục panel gọn (preview v4 Ethan duyệt):
+// Các panel hiển thị của widget — bố cục panel gọn:
 // mặc định chỉ xổ 3 module (Tâm trạng khách · Vấn đề của khách · Issue logs
 // Storefront/Jira), mỗi module một màu nhận diện; mọi thao tác nằm ở hàng lệnh
 // dưới panel và mở popup khi bấm. Panel chỉ đọc `state` và gọi handler được
@@ -34,8 +34,8 @@ export function extensionHint({ detectExtension }) {
     ]);
   }
   // Bridge sẵn sàng nhưng SỐ VERSION cũ hơn bản đi kèm widget: vẫn phải
-  // cảnh báo (trước đây panel báo "sẵn sàng" vô điều kiện theo protocol,
-  // mà protocol không đổi giữa các bản 1.2.x — CS tưởng đã cập nhật trong
+  // cảnh báo (protocol không đổi giữa các bản 1.2.x, chỉ dựa vào protocol
+  // thì CS tưởng đã cập nhật trong
   // khi Chrome vẫn chạy bản cũ, lãnh đủ lỗi điền của bản cũ).
   if ((state.bridge === "ready" || state.bridge === "checking") && !extensionOutdated(state.bridgeVersion)) return null;
   if (state.bridge === "ready" || state.bridge === "checking") {
@@ -68,17 +68,16 @@ export function extensionHint({ detectExtension }) {
  * Thẻ draft gọn: nội dung + nguồn + cảnh báo, và MỘT hành động duy nhất.
  * Draft đi thẳng vào ô Reply của Crisp qua extension — không còn nút Copy,
  * không sửa trong panel: cần sửa thì sửa ngay tại ô Reply (chỗ CS sẽ bấm
- * Send). Nút "Sửa trong Crisp" cũ đã bỏ (Ethan chê khó hiểu, 2026-10-26) —
- * sau khi điền, nút đổi thành "Điền lại vào Reply". Ý + giọng văn chọn ở
+ * Send). Sau khi điền, nút đổi thành "Điền lại vào Reply". Ý + giọng văn chọn ở
  * form soạn trong popup Draft, trước khi bấm soạn.
  */
 /**
- * Thẻ gợi ý tối ưu (Ethan chốt 2026-10-26, preview v8): bản gốc giữ nguyên,
- * thẻ chỉ hiện khi server có gợi ý. Luồng nút đã duyệt: MỘT nút "Thử bản
+ * Thẻ gợi ý tối ưu: bản gốc giữ nguyên,
+ * thẻ chỉ hiện khi server có gợi ý. Luồng nút: MỘT nút "Thử bản
  * gợi ý" → HAI nút "Dùng bản gợi ý" / "Dùng bản gốc" → nút "Lưu làm mẫu
  * mới" CHỈ xuất hiện sau khi đã chọn dùng bản gợi ý.
- * Từ 2026-10-27 thẻ này CHỈ còn dùng cho template xin review — gợi ý cho
- * draft đã bỏ theo lệnh Ethan (kèm bước polish phía server).
+ * Thẻ này CHỈ dùng cho template xin review — draft không có gợi ý tối ưu
+ * (và không có bước polish phía server).
  */
 export function suggestionCard(kind, handlers) {
   const isDraft = kind === "draft";
@@ -158,7 +157,7 @@ export function draftPanel(handlers) {
       ))
       : null,
     // Thanh chọn Thay thế/Huỷ đang mở cho draft thì ẩn nút điền: hai lớp
-    // nút chồng nhau gây khó hiểu (Ethan bắt live 2026-10-26 ở cả popup
+    // nút chồng nhau gây khó hiểu (cả popup
     // Draft lẫn Xin review).
     state.bridge === "ready" && !(state.choice && state.choiceFor === "draft")
       ? el("div", { className: "row draft-actions single" }, [
@@ -171,12 +170,12 @@ export function draftPanel(handlers) {
 }
 
 /**
- * Private note: thẻ vàng hổ phách pha loãng (Ethan chốt lại 2026-10-23 — vàng
- * là màu nhận diện private note như trong Crisp; biểu tượng khoá vẫn bỏ).
+ * Private note: thẻ vàng hổ phách pha loãng — vàng
+ * là màu nhận diện private note như trong Crisp; không có biểu tượng khoá.
  * Copilot KHÔNG tự đăng note: note được ĐIỀN VÀO Ô NOTE của Crisp qua
  * extension (extension tự bấm tab Note và chỉ điền khi đã xác nhận Note
- * mode), CS sửa ngay trong ô Note rồi tự đăng. Không còn nút Copy — panel
- * chỉ còn đường insert vào ô soạn (Ethan chốt UX 2026-10-23).
+ * mode), CS sửa ngay trong ô Note rồi tự đăng. Không có nút Copy — panel
+ * chỉ có đường insert vào ô soạn.
  */
 export function handoffPanel({ onHandoff, onInsertNote }) {
   if (!state.handoff) return null;
@@ -201,15 +200,14 @@ export function handoffPanel({ onHandoff, onInsertNote }) {
 
 /**
  * Module Jira (màu xanh dương): chỉ hiện khi server bật module Jira trong
- * check.modules (chat có ticket liên kết đang active). UI theo mẫu Ethan
- * chốt 2026-10-26: mỗi ticket một card — tiêu đề "Jira - {tên ticket}",
+ * check.modules (chat có ticket liên kết đang active). UI:
+ * mỗi ticket một card — tiêu đề "Jira - {tên ticket}",
  * pill Status bên phải, dòng "{KEY} · Cập nhật …", comment mới nhất của
  * team Tech. Badge "Cập nhật mới" khi có thay đổi sau lần CS trả lời gần
  * nhất; ticket Done chưa báo khách ở lại với nhãn "Chờ báo khách" (Done
  * trên Jira không có nghĩa khách đã được báo). Hai thao tác: "↻ Sync ngay"
  * (server đồng bộ ngay rồi panel nạp lại) và "✕ Gỡ" từng ticket (xác nhận 2
- * bước tại chỗ). Màu nút theo ngữ cảnh (bản Support Operation v9,
- * 2026-10-29): Sync = ghost xanh dương, Gỡ = ghost đỏ.
+ * bước tại chỗ). Màu nút theo ngữ cảnh: Sync = ghost xanh dương, Gỡ = ghost đỏ.
  */
 export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
   if (!enabledModules(state.check).jira) return null;
@@ -262,8 +260,8 @@ export function jiraPanel({ onJiraSync, onJiraUnlink, rerender }) {
 }
 
 
-// Nhãn tâm trạng: chỉ chữ, không emoji mặt cảm xúc (Ethan chốt: bỏ icon
-// trang trí khỏi nội dung hiển thị — cần phân biệt thì đã có màu module).
+// Nhãn tâm trạng: chỉ chữ, không emoji mặt cảm xúc (không icon
+// trang trí trong nội dung hiển thị — cần phân biệt thì đã có màu module).
 const MOOD_LABELS = {
   frustrated: "Đang bực / chưa hài lòng",
   confused: "Đang bối rối",
@@ -277,12 +275,11 @@ export function moodText(s) {
   return `${label} — ${s.score}/100`;
 }
 
-/* Hàng chip dưới header đã bỏ hẳn (Ethan 2026-10-23: chip "Ý định" trông kỳ).
-   Chip Ngôn ngữ trong preview v4 chỉ là chữ tĩnh của bản mock — widget thật
-   không có dữ liệu ngôn ngữ khách trong check nên không dựng chip giả. */
+/* Không có hàng chip dưới header: check không có dữ liệu ngôn ngữ khách nên
+   không dựng chip giả. */
 
 /**
- * Dải màu theo ĐIỂM (Ethan chốt ở bản Support Operation v9, 2026-10-29):
+ * Dải màu theo ĐIỂM:
  * điểm quyết định màu, chữ mood đi cùng mang đúng màu của điểm — ≤25 đỏ,
  * 26–42 cam, 43–57 màu chữ mặc định, 58–74 xanh dương, 75 trở lên xanh lá.
  */
@@ -296,8 +293,8 @@ export function scoreBandClass(score) {
 
 /**
  * Module Tâm trạng khách (màu tím) — dữ liệu thật từ check/analyze/generate,
- * kèm dòng tóm tắt (sentiment.summary). KHÔNG còn nút "Phân tích lại"
- * (Ethan bỏ ở bản Support Operation v9, 2026-10-29): sentiment tự cập nhật
+ * kèm dòng tóm tắt (sentiment.summary). KHÔNG có nút "Phân tích lại":
+ * sentiment tự cập nhật
  * qua đường analyze nền trong app.js (precompute + compute-on-view); chưa
  * có dữ liệu thì thẻ chỉ hiện đúng một dòng trạng thái.
  */
@@ -324,7 +321,7 @@ export function insightPanel() {
 }
 
 /**
- * Module Vấn đề của khách (màu cam đào — Ethan chốt lại cấu trúc 2026-10-23):
+ * Module Vấn đề của khách (màu cam đào):
  * một dòng tiêu đề nhỏ "VẤN ĐỀ CỦA KHÁCH — N issues", dưới đó MỖI issue là
  * một card riêng mang nhãn "ISSUE 1", "ISSUE 2", … (nhãn + chấm cùng tông
  * cam đào, card có vệt accent .mod-issues như các module khác). Nguyên văn
@@ -338,7 +335,7 @@ export function issuesPanel(vm) {
   const { issues } = toIssuesViewModel(state.check, state.sentiment);
   // Badge lỗi storefront đang mở của store thuộc chat này — để CS thấy ngay
   // ở khối Issue logs mà không cần mở module Storefront hay tự đi search
-  // (điểm mù Ethan chỉ ra: SW quét theo domain, không search là không biết).
+  // (SW quét theo domain, không search là không biết).
   // Nguồn ưu tiên: tổng finding thật từ module đã nạp (trước gom nhóm);
   // chưa nạp thì dùng bản chụp nền trong check.storefront_status. Badge vẫn
   // tôn trọng cổng module: cổng Storefront tắt thì không rò số liệu SW.
@@ -371,10 +368,9 @@ export function issuesPanel(vm) {
 /**
  * Panel Hỏi tài liệu (trong popup Knowledge Base Asking): CS gõ câu hỏi →
  * action ask trả lời CHỈ từ helpdesk, kèm nguồn. Không tìm thấy thì không
- * hiện thêm khối nào (Ethan chốt 2026-10-27: bỏ thẻ "không tìm thấy" cùng hai
- * nút Thử từ khoá khác / Ghi private note hỏi quản lý). "Soạn thành tin trả
+ * hiện thêm khối nào ngoài một dòng trạng thái. "Soạn thành tin trả
  * lời khách" đưa đáp án thành ý của CS (state.hint) rồi chạy generate như
- * thường. Không còn nút Copy (Ethan chốt UX 2026-10-23): muốn dùng đáp án
+ * thường. Không có nút Copy: muốn dùng đáp án
  * thì đi đường "Soạn thành tin trả lời khách".
  */
 export function knowledgePanel({ onAsk, onAskCompose }) {
@@ -402,9 +398,8 @@ export function knowledgePanel({ onAsk, onAskCompose }) {
     input,
     el("button", { className: "act-teal", disabled: askBtn.disabled, onclick: () => onAsk() }, buttonContent(askBtn.running, "Đang tìm…", "Tìm trong tài liệu")),
     r ? el("div", { className: "ask-question", textContent: r.question }) : null,
-    // Không tìm thấy: đúng MỘT dòng trạng thái (Ethan bắt live 2026-10-27:
-    // im lặng hoàn toàn khiến CS tưởng hệ thống hỏng). Không hồi sinh khối
-    // to + 2 nút đã bị bỏ ở batch 5 — chỉ cho biết đã tìm và không có.
+    // Không tìm thấy: đúng MỘT dòng trạng thái (im lặng hoàn toàn khiến CS
+    // tưởng hệ thống hỏng) — chỉ cho biết đã tìm và không có.
     r && !r.found ? el("p", { className: "muted ask-notfound", textContent: "Không tìm thấy nội dung phù hợp trong tài liệu." }) : null,
     r && r.found ? el("div", { className: "ask-answer-block" }, [
       el("div", { className: "ask-answer", textContent: r.answer }),
@@ -460,7 +455,7 @@ export function csatPanel({ onSurvey }) {
 /** Class màu pill theo trạng thái Storefront. */
 const SF_STATUS_CLASS = { new: "sf-new", acknowledged: "sf-ack", in_progress: "sf-prog" };
 
-/** Form Dismiss trong menu thao tác: CHỈ chọn lý do (đúng 2 giá trị schema SW nhận) — không còn ô ghi chú, Fix bấm là xong không qua form (Ethan chốt lại 2026-10-29: comment thừa). */
+/** Form Dismiss trong menu thao tác: CHỈ chọn lý do (đúng 2 giá trị schema SW nhận) — không có ô ghi chú, Fix bấm là xong không qua form. */
 function sfActForm(row, kind, handlers) {
   const fp = row.fingerprint;
   const busy = state.sfActBusy === fp;
@@ -491,18 +486,18 @@ function sfActForm(row, kind, handlers) {
 }
 
 /**
- * Một dòng bug (Ethan chốt lại 2026-10-26 23:24): pill trạng thái (Mới / Đã
+ * Một dòng bug: pill trạng thái (Mới / Đã
  * xác nhận / Đang xử lý — Đang xử lý = team đã báo khách, server tự phân
  * loại) + nhãn bug ngắn + meta dữ kiện + link ↗ unit sang Console.
- * Từ 2026-10-29 (Ethan): hàng link của finding gồm 3 link xếp DỌC thành
+ * Hàng link của finding gồm 3 link xếp DỌC thành
  * một cột, tên cố định — "Default page" (pageLink: trang ở ngôn ngữ mặc định của store),
  * "Issue page" (issuePageLink: đúng locale tool quét thấy lỗi; ẩn khi trùng
  * Default page), "Console" (consoleLink sang SW). Server cấu cả ba từ
  * domain + locale + page của finding.
  * Không hiện nội dung/message của SW trong panel.
- * Từ 2026-10-27 (SW mở scope write, Ethan duyệt bản giả lập): bấm vào dòng
+ * Bấm vào dòng
  * mở MENU THAO TÁC ngay dưới dòng — Take case (trái nhất, một chạm) ·
- * Fix · Dismiss (ghi chú không bắt buộc từ 2026-10-29; Dismiss bắt buộc lý do); finding
+ * Fix · Dismiss (ghi chú không bắt buộc; Dismiss bắt buộc lý do); finding
  * vừa đóng trong phiên panel hiện ghi chú kèm quyết định + nút Mở lại.
  */
 function sfRow(row, handlers = {}) {
@@ -616,7 +611,7 @@ export function storefrontPanel(handlers = {}) {
       el("p", { textContent: "Chưa nhận ra store của khách này (thiếu shopify domain). Chưa kiểm tra được." }),
     ]);
   }
-  // Card Storefront rút còn đúng bản TỔNG HỢP (Ethan chốt 2026-10-26 20:16):
+  // Card Storefront rút còn đúng bản TỔNG HỢP:
   // domain này có lỗi hay không + tổng số lỗi, và MỘT nút sang thẳng
   // Storefront Watch. Không liệt kê từng bug, không hiện nội dung/message
   // của SW — CS bấm sang Console chủ yếu để xem 2 ảnh chụp của tool.
@@ -624,8 +619,7 @@ export function storefrontPanel(handlers = {}) {
   // (dữ liệu server chưa nạp lại) — con số trên đầu thẻ phải khớp mắt nhìn.
   const closedHere = new Set((vm.rows ?? []).map((r) => r.fingerprint).filter((fp) => fp && state.sfClosed[fp]));
   const openNow = Math.max(0, (vm.totalCount ?? 0) - closedHere.size);
-  // Hai tab ở đầu thân thẻ (Ethan chốt ở bản Support Operation v9,
-  // 2026-10-29): "Đang mở" chứa finding chưa đóng; "Đã đóng" chứa finding
+  // Hai tab ở đầu thân thẻ: "Đang mở" chứa finding chưa đóng; "Đã đóng" chứa finding
   // đã đóng — payload server hiện chỉ trả finding đang mở, nên finding đã
   // đóng trên server chỉ còn xuất hiện ở đây khi chính phiên panel này đóng
   // chúng (state.sfClosed) và dữ liệu chưa nạp lại. CS đã bấm chọn tab thì
@@ -674,7 +668,7 @@ export function storefrontPanel(handlers = {}) {
   ]);
 }
 
-// ---------- hàng lệnh + popup (panel gọn v4) ----------
+// ---------- hàng lệnh + popup (panel gọn) ----------
 
 /** Hàng lệnh dưới panel: mỗi nút một sắc nhạt riêng; bấm mở popup tương ứng. */
 export function commandsRow({ onOpenModal }) {
@@ -687,8 +681,7 @@ export function commandsRow({ onOpenModal }) {
 }
 
 const TONE_OPTIONS = [
-  // "Mặc định" phải nói rõ là theo profile đã học của chính CS (Ethan chốt
-  // ở preview v6) — tránh hiểu nhầm là một giọng chung của hệ thống.
+  // "Mặc định" phải nói rõ là theo profile đã học của chính CS — tránh hiểu nhầm là một giọng chung của hệ thống.
   ["default", "Mặc định (theo profile CS)"],
   ["friendly", "Thân thiện"],
   ["formal", "Trang trọng"],
@@ -727,7 +720,7 @@ export function draftCompose({ onGenerate }) {
 function draftModal(handlers) {
   // Cho soạn khi: có tin khách chờ (trả lời thường), đã có draft, HOẶC hội
   // thoại đã từng có tin khách — server tự đóng khung follow-up cho các case
-  // không có tin chờ (Ethan chốt 2026-10-27: draft không được chặn chỉ vì
+  // không có tin chờ (draft không được chặn chỉ vì
   // khách chưa nhắn thêm; ca điển hình là email khách đã nhận auto-reply).
   // Chỉ chặn khi hội thoại CHƯA TỪNG có tin khách nào.
   const followUpKeys = (state.check?.jira ?? []).filter((j) => j.has_update).map((j) => j.issue_key);

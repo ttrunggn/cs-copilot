@@ -16,7 +16,7 @@ function fakeCsatDb() {
       getCsatSend: () => Promise.resolve(row),
       recordCsatSend: () => {
         if (row) return Promise.resolve(null);
-        row = { sent_by: "op-lan", sent_at: new Date().toISOString() };
+        row = { sent_by: "op-jamie", sent_at: new Date().toISOString() };
         return Promise.resolve({ sent_at: row.sent_at });
       },
       releaseCsatSend: () => (row = null, Promise.resolve()),
@@ -39,9 +39,9 @@ Deno.test("survey: gửi qua n8n gate, ghi trạng thái, bấm lại NGAY thì 
   assertEquals(surveyCalls, 1); // chống gửi trùng trong cửa sổ guard
 });
 
-Deno.test("survey: đã gửi từ lâu (ngoài cửa sổ chống trùng) thì bấm là GỬI LẠI thật — nút không bị khoá vĩnh viễn (Ethan, 2026-10-26)", async () => {
+Deno.test("survey: đã gửi từ lâu (ngoài cửa sổ chống trùng) thì bấm là GỬI LẠI thật — nút không bị khoá vĩnh viễn", async () => {
   const csat = fakeCsatDb();
-  csat.setRow({ sent_by: "op-lan", sent_at: new Date(Date.now() - 10 * 60_000).toISOString() });
+  csat.setRow({ sent_by: "op-jamie", sent_at: new Date(Date.now() - 10 * 60_000).toISOString() });
   let surveyCalls = 0;
   const { deps } = makeDeps({ db: csat.db });
   deps.n8n.sendSurvey = () => (surveyCalls++, Promise.resolve(true));
@@ -90,9 +90,9 @@ Deno.test("survey: tên gửi đi là tên ACCOUNT Crisp (operator_name), thắn
   const { deps } = makeDeps({ db: csat.db });
   let agentName = "";
   deps.n8n.sendSurvey = (_w, _s, name) => (agentName = name, Promise.resolve(true));
-  // makeDeps mặc định getOperator trả "Lan Nguyen" (bản sao DB); request mang
+  // makeDeps mặc định getOperator trả "Jamie Lee" (bản sao DB); request mang
   // operator_name của account đang đăng nhập thì tên đó phải thắng.
-  const r = await handle({ website_id: "ws1", session_id: "session_1", action: "survey", operator_name: "Lan N. (account)" }, TOKEN, deps);
+  const r = await handle({ website_id: "ws1", session_id: "session_1", action: "survey", operator_name: "Jamie L. (account)" }, TOKEN, deps);
   assertEquals(r.status, 200);
-  assertEquals(agentName, "Lan N. (account)");
+  assertEquals(agentName, "Jamie L. (account)");
 });

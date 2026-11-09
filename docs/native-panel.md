@@ -1,7 +1,7 @@
 # Mặt native "Support Operation" — Crisp Generic Widget trên plugin Copilot CS
 
-Tài liệu vận hành cho mặt native: nó là gì, Ethan cần cấu hình gì trên
-Crisp, và những điểm nào CHƯA được kiểm chứng trên Crisp thật.
+Tài liệu vận hành cho mặt native: nó là gì, cần cấu hình gì trên
+Crisp, và những giả định cần kiểm khi cấu hình.
 
 ## Vì sao có mặt này
 
@@ -12,9 +12,7 @@ mặt iframe ở vị trí sidebar, còn mọi UI nặng (soạn draft, note, h�
 Storefront, Jira) vẫn là widget iframe hiện tại, mở dạng **modal** từ
 các nút của mặt native qua deep-link `?open=<view>`.
 
-Mặt native gồm 3 section (bản thiết kế Ethan duyệt 29/10; section
-Chatbot KHÔNG có trong đợt này — thuộc đợt mapping sang panel chatbot
-sau):
+Mặt native gồm 3 section:
 
 - **Khách**: Tâm trạng · Tóm tắt · Vấn đề · Tin đang chờ (data items,
   fetch khi mở conversation).
@@ -25,7 +23,7 @@ sau):
   survey** (nút hook — bấm là gửi ngay phía server, đúng hành vi nút
   survey trên panel hiện tại).
 
-## Việc Ethan cần làm trên Crisp (một lần)
+## Cấu hình trên Crisp (một lần)
 
 1. Vào **Crisp Marketplace → plugin Copilot CS → Settings** (nơi cấu
    hình plugin), thêm một **Generic Widget** vào plugin.
@@ -78,24 +76,19 @@ Data item không mang màu trong schema này (chỉ nút mới có `color`).
 - Lỗi nghiệp vụ luôn trả **200** (kèm trace) để Crisp không retry nhân
   đôi hành động; ngoại lệ duy nhất là chữ ký sai → **401**.
 
-## Các điểm CHƯA kiểm chứng (đọc trước khi tin là xong)
+## Giả định và giới hạn
 
-1. **Cách Crisp ghép chuỗi ký HMAC cho sự kiện widget — ĐÃ XÁC ĐỊNH
-   TỪ DOC + SỰ CỐ LIVE 29/10.** Web Hooks Reference của Crisp
-   (docs.crisp.chat/references/web-hooks/v1, mục Delivery) mô tả
-   byte-exact: chuỗi ký là `[<timestamp>;<body_as_string>]` (có ngoặc
+1. **Cách Crisp ghép chuỗi ký HMAC cho sự kiện widget.** Web Hooks
+   Reference của Crisp (docs.crisp.chat/references/web-hooks/v1, mục
+   Delivery): chuỗi ký là `[<timestamp>;<body_as_string>]` (có ngoặc
    vuông và chấm phẩy), HMAC-SHA256 bằng secret của Production Token
    (env `CRISP_PLUGIN_KEY`); Generic Widget guide dẫn về cùng thuật
-   toán này. Bản đầu ký kiểm theo `"<timestamp>.<rawBody>"` (suy từ
-   crisp-api) — SAI: mọi fetch thật của Crisp bị 401, data item kẹt ở
-   placeholder "--" trên panel live ngày 29/10 (đã rollback về iframe).
-   Đã sửa: verify thử cả body thô lẫn dạng `JSON.stringify` chuẩn hoá;
-   test khoá cứng bằng chữ ký tính ĐỘC LẬP theo công thức doc (không
-   qua helper). Chính sách mềm giữ nguyên: header VẮNG → chấp nhận +
-   trace cờ `unsigned: true`; env thiếu key → cờ
-   `signature_unconfigured: true`; có mà sai → 401.
-3. **Data item KHÔNG có hậu tố "· N mới" cho Storefront.** Bản thiết kế
-   ghi "3 lỗi · 2 mới", nhưng số finding MỚI chỉ tính được từ
+   toán này. Verify thử cả body thô lẫn dạng `JSON.stringify` chuẩn
+   hoá; test khoá bằng chữ ký tính ĐỘC LẬP theo công thức doc (không
+   qua helper). Chính sách mềm: header VẮNG → chấp nhận + trace cờ
+   `unsigned: true`; env thiếu key → cờ `signature_unconfigured: true`;
+   có mà sai → 401.
+3. **Data item KHÔNG có hậu tố "· N mới" cho Storefront.** Số finding MỚI chỉ tính được từ
    list_findings trực tiếp + tập fingerprint đã thấy; fetch native chủ
    đích chỉ đọc DB nên item hiện `{tổng} lỗi` / `Không có lỗi` /
    `Không áp dụng` từ bản chụp sweep (cùng nguồn badge của panel).
@@ -104,8 +97,7 @@ Data item không mang màu trong schema này (chỉ nút mới có `color`).
    tự gửi), nên item sẽ hiện "Chưa xin" cho tới khi có writer ghi nhận.
    Reader đã sẵn (`Db.getReviewSend`); thiếu writer là việc riêng.
 5. **Nhãn mood rút gọn**: "Đang bực" thay cho nhãn đầy đủ "Đang bực /
-   chưa hài lòng" của panel — theo đúng chữ bản thiết kế mặt native
-   Ethan duyệt (chỗ hiển thị native hẹp).
+   chưa hài lòng" của panel vì chỗ hiển thị native hẹp.
 6. Modal của Generic Widget nhận `website_id`/`token`/`session_id` qua
    query params do Crisp gắn (theo tài liệu) — widget hiện tại đọc ngữ
    cảnh từ đúng các param này (`readContext`), nhưng hành vi thật của

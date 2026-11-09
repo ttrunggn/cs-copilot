@@ -1,23 +1,15 @@
-// A/B test: bundle extension 1.2.1 (master) vs 1.2.2 (local) trên DOM giả lập
-// theo các triệu chứng LIVE 2026-10-26. Mô hình editor kiểu Lexical:
+// Test mô phỏng editor kiểu Lexical cho đường contenteditable của composer.
+// Mô hình (không phải bản sao Crisp — dùng để khoá cơ chế điền):
 // - state riêng (đoạn văn); innerText nối đoạn bằng "\n" đơn.
 // - paste chỉ được xử lý khi rơi đúng vào contenteditable (listener trên editor).
 // - Xoá ở tầng DOM (execCommand delete / range.deleteContents) KHÔNG đụng vào
 //   state: DOM trống giả trong ~30ms rồi editor tự render lại từ state.
 // - Chỉ pipeline sự kiện của chính editor (beforeinput/keydown với vùng chọn
 //   nằm trong editor) mới xoá được state.
-// Đây là MÔ HÌNH suy từ triệu chứng live (tab Note chuyển mà ô trống; ô Reply
-// gấp đôi sau một lần bấm), không phải bản sao Crisp — dùng để A/B cơ chế điền.
-
-// Test mô phỏng editor kiểu Lexical cho đường contenteditable của composer:
-// dựng lại CẢ BA triệu chứng live 2026-10-26 (điền Note: tab chuyển mà ô
-// trống; điền Reply qua wrapper: không gì vào; điền Reply trực tiếp: nội
-// dung GẤP ĐÔI sau một lần bấm — bản 1.2.1 tái hiện đủ cả ba trên cùng mô
-// hình này ở bản A/B ngoài repo) và khoá hành vi của bản hiện tại: inserted
-// + đúng một bản trong mọi biến thể. Mô hình editor: state là danh sách
-// đoạn văn, innerText nối đoạn bằng "\n" đơn, paste chỉ xử lý khi rơi đúng
-// contenteditable, xoá tầng DOM không đụng state (DOM trống giả ~30ms rồi
-// render lại từ state), chỉ pipeline sự kiện của editor mới xoá state.
+// Ba triệu chứng mô hình này dựng lại được nếu đường điền sai: điền Note thì
+// tab chuyển mà ô trống; điền Reply qua wrapper thì không gì vào; điền Reply
+// trực tiếp thì nội dung GẤP ĐÔI sau một lần bấm. Test khoá hành vi hiện tại:
+// inserted + đúng một bản trong mọi biến thể.
 
 class Ev {
   constructor(type, opts = {}) {
@@ -216,7 +208,7 @@ async function loadBundle(page) {
 }
 
 
-const NOTE_TEXT = "Handoff — Ethan Nguyen\nKhách muốn gặp người thật.\n1. Yêu cầu gặp nhân viên — Đang xử lý: bot đã chuyển.\nTiếp theo (chờ CS): tiếp nhận hội thoại.";
+const NOTE_TEXT = "Handoff — Test Agent\nKhách muốn gặp người thật.\n1. Yêu cầu gặp nhân viên — Đang xử lý: bot đã chuyển.\nTiếp theo (chờ CS): tiếp nhận hội thoại.";
 const DRAFT_TEXT = "Hi there,\n\nThank you for reaching out to us.\n\nBelow is the direct link:\nhttps://apps.shopify.com/transcy\n\nThank you so much!";
 const canon = (t) => t.split(/\n\n+/).join("\n");
 

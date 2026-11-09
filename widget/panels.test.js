@@ -82,7 +82,7 @@ function makeHandlers(calls = []) {
   };
 }
 const CHECK = {
-  stale: false, topic: "billing", topic_label: "Billing", profile_source: "topic", profile_name: "Lan",
+  stale: false, topic: "billing", topic_label: "Billing", profile_source: "topic", profile_name: "Agent",
   needs_reply: true, unanswered: ["tin 1"], last_customer_at: null, last_human_operator_at: null, jira: [],
 };
 
@@ -181,7 +181,7 @@ Deno.test("panels: popup Private note chưa có note → nút Viết private not
 });
 
 // ---------- sentiment / issues ----------
-Deno.test("panels: insightPanel chưa có sentiment → chỉ hiện dòng trạng thái, KHÔNG còn nút Phân tích/Phân tích lại (Ethan bỏ 2026-10-29 — sentiment tự cập nhật qua đường nền)", () => {
+Deno.test("panels: insightPanel chưa có sentiment → chỉ hiện dòng trạng thái, KHÔNG có nút Phân tích/Phân tích lại (sentiment tự cập nhật qua đường nền)", () => {
   reset();
   const p = insightPanel(makeHandlers());
   assertEquals(allText(p).includes("Chưa có dữ liệu phân tích"), true);
@@ -206,7 +206,7 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   const t = allText(p);
   assertEquals(t.includes("Đang bực / chưa hài lòng"), true);
   assertEquals(t.includes("Mức khẩn cấp cao"), true);
-  assertEquals(t.includes("tin của khách"), false); // hết dòng giải thích nguồn số liệu (Ethan bỏ 2026-10-26)
+  assertEquals(t.includes("tin của khách"), false); // không có dòng giải thích nguồn số liệu
   assertEquals(t.includes("Chờ 3 ngày"), true);
   assertEquals(buttonByText(p, "Phân tích lại"), undefined); // nút phân tích thủ công đã bỏ (v9)
   // Điểm 18 nằm ở dải đỏ: nhãn mood + số điểm mang class band-red, hộp khẩn cũng đỏ.
@@ -214,7 +214,7 @@ Deno.test("panels: insightPanel có sentiment frustrated + urgency high → nhã
   assertEquals(walk(p).some((n) => (n.className ?? "").includes("urgent")), true);
 });
 
-Deno.test("panels: insightPanel màu theo DẢI ĐIỂM — 18 đỏ, 38 cam, 50 mặc định, 68 xanh dương, 88 xanh lá (v9)", () => {
+Deno.test("panels: insightPanel màu theo DẢI ĐIỂM — 18 đỏ, 38 cam, 50 mặc định, 68 xanh dương, 88 xanh lá", () => {
   reset();
   const cases = [[18, "band-red"], [38, "band-orange"], [50, "band-default"], [68, "band-blue"], [88, "band-green"]];
   for (const [score, cls] of cases) {
@@ -227,7 +227,7 @@ Deno.test("panels: insightPanel màu theo DẢI ĐIỂM — 18 đỏ, 38 cam, 50
   }
 });
 
-Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); không còn khối tin khách nguyên văn trên panel (Ethan bỏ 2026-10-26 — đọc ngay trong chat, chừa chỗ cho Jira/Storefront); không issue thì ẩn module", () => {
+Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ sentiment.issues (kèm dòng bằng chứng); không có khối tin khách nguyên văn trên panel (đọc ngay trong chat, chừa chỗ cho Jira/Storefront); không issue thì ẩn module", () => {
   reset();
   state.check = CHECK;
   state.sentiment = { issues: [{ summary: "Khách bị trừ phí 2 lần", evidence: "charged twice" }, { summary: "Khách chưa được hoàn tiền", evidence: "" }] };
@@ -248,7 +248,7 @@ Deno.test("panels: issuesPanel render mỗi issue một thẻ ISSUE n từ senti
 const JIRA_ITEM = {
   issue_key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", summary: "Menu lỗi", status: "Done",
   has_update: true, status_changed: false, prev_status: null, awaiting_report: true, new_comments: [],
-  recent_comments: [{ author: "Đình Lương", role: "tech", body: "Đã fix, chờ deploy.", created_at: "2026-10-20T09:00:00Z" }],
+  recent_comments: [{ author: "Dev A", role: "tech", body: "Đã fix, chờ deploy.", created_at: "2026-10-20T09:00:00Z" }],
 };
 Deno.test("panels: jiraPanel ẩn khi module tắt; module bật mà chưa có ticket → card trống ghi rõ 'Không có ticket'", () => {
   reset();
@@ -271,7 +271,7 @@ Deno.test("panels: jiraPanel hiện badge Cập nhật mới + Chờ báo khách
   assertEquals(t.includes("Jira - Menu lỗi"), true); // tiêu đề mới, bỏ "Issue log"
   assertEquals(t.includes("Issue log"), false);
   assertEquals(t.includes("Done"), true); // pill Status
-  assertEquals(t.includes("Tech · Đình Lương") && t.includes("Đã fix, chờ deploy."), true); // comment Tech mới nhất
+  assertEquals(t.includes("Tech · Dev A") && t.includes("Đã fix, chờ deploy."), true); // comment Tech mới nhất
   buttonByText(p, "Sync ngay").onclick();
   assertEquals(calls, [["jiraSync"]]);
   buttonByText(p, "✕ Gỡ").onclick();
@@ -344,7 +344,7 @@ Deno.test("panels: storefrontPanel results → list đủ từng bug: pill trạ
   assertEquals(hrefs.includes("https://sw.transcy.io"), true);
 });
 
-Deno.test("panels: storefront finding → hàng 3 link thẳng hàng 'Default page' / 'Issue page' / 'Console' đúng thứ tự (Ethan 2026-10-29)", () => {
+Deno.test("panels: storefront finding → hàng 3 link thẳng hàng 'Default page' / 'Issue page' / 'Console' đúng thứ tự", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = {
@@ -384,7 +384,7 @@ const SF_ONE = (over = {}) => ({
   ...over,
 });
 
-Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ tự nút Take case · Fix · Dismiss (Ethan chốt live 2026-10-27)", () => {
+Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ tự nút Take case · Fix · Dismiss", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
@@ -399,7 +399,7 @@ Deno.test("panels: storefront menu thao tác — bấm dòng mở menu; thứ t�
   const line = walk(p).find((n) => (n.className ?? "").includes("sf-line"));
   line.onclick({ target: { closest: () => null } });
   assertEquals(calls, [["sfMenu", fp]]);
-  // Menu mở: đúng 3 nút theo thứ tự đã duyệt; Take case và Fix đều gọi thẳng act (Fix bấm là xong từ 2026-10-29), Dismiss mở form lý do.
+  // Menu mở: đúng 3 nút theo thứ tự; Take case và Fix đều gọi thẳng act (Fix bấm là xong), Dismiss mở form lý do.
   state.sfMenu = fp;
   calls.length = 0;
   p = storefrontPanel(h);
@@ -424,7 +424,7 @@ Deno.test("panels: storefront menu — finding Đang xử lý thì không hiện
   assertEquals(Boolean(buttonByText(p, "Fix")), true);
 });
 
-Deno.test("panels: storefront menu — Fix bấm là xong: gọi act fixed ngay, KHÔNG mở form (Ethan 2026-10-29)", () => {
+Deno.test("panels: storefront menu — Fix bấm là xong: gọi act fixed ngay, KHÔNG mở form", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
@@ -438,7 +438,7 @@ Deno.test("panels: storefront menu — Fix bấm là xong: gọi act fixed ngay,
   assertEquals(calls, [["sfAct", fp, "fixed"]]);
 });
 
-Deno.test("panels: storefront form Dismiss — chỉ cần lý do, ghi chú không bắt buộc; chip chọn lý do ghi vào state (Ethan 2026-10-29)", () => {
+Deno.test("panels: storefront form Dismiss — chỉ cần lý do, ghi chú không bắt buộc; chip chọn lý do ghi vào state", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
   state.storefront = SF_ONE();
@@ -457,7 +457,7 @@ Deno.test("panels: storefront form Dismiss — chỉ cần lý do, ghi chú khô
 Deno.test("panels: storefront finding vừa đóng — nằm ở tab Đã đóng: pill Đã đóng + ghi chú kèm tên CS + nút Mở lại; đầu thẻ trừ số đã đóng", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
-  state.operatorName = "Ethan Nguyen";
+  state.operatorName = "Test Agent";
   state.storefront = SF_ONE({
     acknowledged: [{ title: "Region missing", kind: "Region missing", meta: "critical · ja · /", fingerprint: "b".repeat(40), locale: "ja", page: "/", consoleLink: null }],
   });
@@ -474,7 +474,7 @@ Deno.test("panels: storefront finding vừa đóng — nằm ở tab Đã đóng
   assertEquals(state.sfTab, "closed");
   p = storefrontPanel(h);
   t = allText(p);
-  assertEquals(t.includes("Đã đóng") && t.includes("Fix · Ethan Nguyen: “Đã sửa trong theme”"), true);
+  assertEquals(t.includes("Đã đóng") && t.includes("Fix · Test Agent: “Đã sửa trong theme”"), true);
   buttonByText(p, "Mở lại").onclick();
   assertEquals(calls.filter((c) => c[0] === "sfAct"), [["sfAct", fp, "undo"]]);
 });
@@ -497,14 +497,14 @@ Deno.test("panels: storefront tab — mặc định Đang mở; bấm tab Đã �
 Deno.test("panels: storefront tab — đóng hết lỗi đang mở thì mặc định mở sẵn tab Đã đóng", () => {
   reset();
   state.check = { modules: { jira: false, storefront: true } };
-  state.operatorName = "Ethan Nguyen";
+  state.operatorName = "Test Agent";
   state.storefront = SF_ONE();
   const fp = "a".repeat(40);
   state.sfClosed = { [fp]: { via: "dismiss", note: "Trang vẫn ổn" } };
   const p = storefrontPanel(makeHandlers([]));
   const t = allText(p);
   assertEquals(t.includes("Đang mở · 0") && t.includes("Đã đóng · 1"), true);
-  assertEquals(t.includes("Dismiss · Ethan Nguyen: “Trang vẫn ổn”"), true); // hiện ngay, không cần bấm tab
+  assertEquals(t.includes("Dismiss · Test Agent: “Trang vẫn ổn”"), true); // hiện ngay, không cần bấm tab
   assertEquals(Boolean(buttonByText(p, "Mở lại")), true);
 });
 
@@ -514,11 +514,11 @@ Deno.test("panels: storefrontPanel list — finding gom trùng căn nguyên vẫ
   const F = (fp, locale) => ({
     title: "Region missing", meta: `critical · ${locale} · /`, fingerprint: fp, kind: "Region missing",
     locale, page: "/", severity: "critical", text: null,
-    consoleLink: `https://sw.transcy.io/#/f/amirobeauty.com%7C${locale}%7C%2F%7C1440`,
+    consoleLink: `https://sw.transcy.io/#/f/demo-store.com%7C${locale}%7C%2F%7C1440`,
   });
   const [fa, fb, fc] = ["a".repeat(40), "b".repeat(40), "c".repeat(40)];
   state.storefront = {
-    status: "ok", store: "amirobeauty.com", scannedAt: null,
+    status: "ok", store: "demo-store.com", scannedAt: null,
     new: [F(fa, "ja"), F(fb, "zh"), F(fc, "es")], acknowledged: [], inProgress: [],
   };
   const p = storefrontPanel(makeHandlers([]));
@@ -527,7 +527,7 @@ Deno.test("panels: storefrontPanel list — finding gom trùng căn nguyên vẫ
   assertEquals(t.split("Thiếu vùng nội dung").length - 1, 3);
   const hrefs = walk(p).filter((n) => n.tagName === "A").map((a) => a.attrs.href ?? a.href);
   for (const loc of ["ja", "zh", "es"]) {
-    assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/amirobeauty.com%7C${loc}%7C%2F%7C1440`), true, loc);
+    assertEquals(hrefs.includes(`https://sw.transcy.io/#/f/demo-store.com%7C${loc}%7C%2F%7C1440`), true, loc);
   }
 });
 
@@ -581,7 +581,7 @@ Deno.test("panels: csatPanel — khách frustrated + chat chưa đóng thì cả
   assertEquals(allText(p).includes("điểm thấp"), false);
 });
 
-Deno.test("panels: csatPanel — đã gửi thì nút đổi thành 'Gửi lại CSAT Survey' và VẪN bấm được (Ethan 2026-10-26: không khoá nút, team tự quyết khi nào xin lại); gửi lỗi thì hiện hộp lỗi + nút Thử lại gọi onSurvey", () => {
+Deno.test("panels: csatPanel — đã gửi thì nút đổi thành 'Gửi lại CSAT Survey' và VẪN bấm được (không khoá nút, team tự quyết khi nào xin lại); gửi lỗi thì hiện hộp lỗi + nút Thử lại gọi onSurvey", () => {
   reset();
   state.csat = { sent: true, sent_at: "2026-10-23T08:00:00Z" };
   let p = csatPanel(makeHandlers());
@@ -706,7 +706,7 @@ Deno.test("panels: knowledgePanel — Enter trong ô hỏi gọi onAsk; có đá
   assertEquals(calls[calls.length - 1], ["askCompose", "Bật Auto Currency"]);
 });
 
-Deno.test("panels: knowledgePanel — không tìm thấy thì KHÔNG hiện khối nào thêm (Ethan chốt 2026-10-27: bỏ thẻ không tìm thấy + 2 nút kèm)", () => {
+Deno.test("panels: knowledgePanel — không tìm thấy thì KHÔNG hiện khối nào thêm ngoài một dòng trạng thái", () => {
   reset();
   state.askResult = { question: "xyz", found: false, answer: "", sources: [] };
   const p = knowledgePanel(makeHandlers([]));
@@ -726,7 +726,7 @@ Deno.test("panels: draft — không tin chờ, không ticket, nhưng hội tho�
   assertEquals(Boolean(buttonByText(overlay, "Soạn tin trả lời")), true);
 });
 
-Deno.test("panels: thanh chọn Thay thế/Huỷ đang mở thì nút điền gốc ẨN (hết hai lớp nút chồng nhau — ca live 2026-10-26)", () => {
+Deno.test("panels: thanh chọn Thay thế/Huỷ đang mở thì nút điền gốc ẨN (không để hai lớp nút chồng nhau)", () => {
   reset();
   state.modal = "csat";
   state.csatChoice = "review";

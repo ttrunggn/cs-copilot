@@ -92,7 +92,7 @@ export function toViewModel(check, now) {
       ? `Khách nhắn ${timeAgo(check.last_customer_at, now)}${check.bot_replied_count ? ` · Bot đã phản hồi ${check.bot_replied_count} tin, CS chưa trả lời` : " · Chưa có CS trả lời"}`
       : `Khách nhắn ${timeAgo(check.last_customer_at, now)} · CS trả lời ${timeAgo(check.last_human_operator_at, now)}`,
     stale: check.stale,
-    // Đầu panel (Ethan chốt 2026-10-26): tên khách + shopify domain của họ.
+    // Đầu panel: tên khách + shopify domain của họ.
     customerName: check.customer_name ?? check.customer_email ?? null,
     shopDomain: check.shopify_domain ?? null,
     needsReply: check.needs_reply,
@@ -242,8 +242,8 @@ export function askAnswerToHint(answer) {
 }
 
 /**
- * Trạng thái note handoff: copilot KHÔNG tự đăng note (quy tắc ghi Crisp —
- * Ethan chốt 2026-10-23). Note được điền vào ô Note của Crisp qua extension;
+ * Trạng thái note handoff: copilot KHÔNG tự đăng note (quy tắc ghi Crisp).
+ * Note được điền vào ô Note của Crisp qua extension;
  * CS tự sửa ngay trong ô Note rồi tự đăng. Không còn trạng thái "đã đăng".
  */
 export function handoffStatus(h) {
@@ -257,7 +257,7 @@ const INSERT_MESSAGES = {
   duplicate: "Draft này đã được điền rồi",
   composer_not_found: "Không tìm thấy ô soạn trong Crisp — tải lại trang Crisp rồi thử lại",
   note_unconfirmed: "Chưa xác nhận được ô Note trong Crisp — chưa điền gì cả. Mở sẵn tab Note trong Crisp rồi thử lại",
-  // Extension đã ghi nhưng đọc lại không thấy chữ khớp (Lỗi 1+2, 2026-10-26):
+  // Extension đã ghi nhưng đọc lại không thấy chữ khớp :
   // không được báo "đã điền" như inserted — nói rõ để CS tự nhìn lại ô soạn.
   insert_unverified: "Đã thử điền nhưng chưa xác nhận được chữ có vào ô Reply — nhìn lại ô Reply trong Crisp, nếu trống thì thử điền lại",
 };
@@ -277,8 +277,8 @@ export function insertResultMessage(status, target = "reply") {
 }
 
 /**
- * Template xin review mặc định (fallback toàn cục cuối cùng): bê đúng khuôn
- * mẫu trong preview v4 Ethan duyệt. Đường chính từ 2026-10-26: server phân
+ * Template xin review mặc định (fallback toàn cục cuối cùng): đường chính là
+ * server phân
  * giải template theo profile của CS qua check.review_template (link thay
  * theo workspace) và widget nạp sẵn vào state.reviewText — giá trị này chỉ
  * còn dùng khi check chưa về hoặc workspace chưa cấu hình gì cả.
@@ -287,10 +287,10 @@ export const REVIEW_TEMPLATE = "Hi, thank you for reaching out to us. I hope you
 
 /**
  * "Vấn đề của khách" cho panel gọn. Nguồn đúng là `issues` do lớp phân tích
- * sinh riêng (từ 2026-10-26): mỗi issue là một CÂU PHÁT BIỂU VẤN ĐỀ do AI
+ * sinh riêng: mỗi issue là một CÂU PHÁT BIỂU VẤN ĐỀ do AI
  * tổng hợp từ toàn cảnh hội thoại, kèm trích ngắn nguyên văn làm bằng chứng
- * (detail). signals KHÔNG còn được dùng làm issue nữa — chúng là trích nguyên
- * văn (kể cả tin cập nhật tiến độ cũng từng biến thành thẻ ISSUE — Lỗi 4);
+ * (detail). signals KHÔNG được dùng làm issue — chúng là trích nguyên
+ * văn (tin cập nhật tiến độ cũng sẽ thành thẻ ISSUE);
  * signals chỉ hiển thị trong thẻ tâm trạng. Sentiment chưa có issues (dòng cũ
  * hoặc AI chưa sinh) thì lùi về topic; không có gì thì rỗng, không bịa.
  */
@@ -304,13 +304,13 @@ export function toIssuesViewModel(check, sentiment) {
       detail: typeof i.evidence === "string" && i.evidence.trim() ? `Khách nhắn: "${i.evidence.trim()}"` : null,
     }));
   if (issues.length) return { issues };
-  // Không còn thẻ dự phòng theo chủ đề (Ethan bắt live 2026-10-26: thẻ
+  // Không có thẻ dự phòng theo chủ đề (thẻ
   // "Khác / Chủ đề của hội thoại" vô nghĩa với CS). Chưa có issue thật thì
   // để trống — khối Vấn đề tự hiện câu chưa-ghi-nhận, phân tích xong nạp lại.
   return { issues: [] };
 }
 
-/** Nhãn bug ngắn hardcode theo kind của SW (Ethan chốt 2026-10-26: panel chỉ cần nói ngắn gọn là bug gì). Kind lạ → dùng nguyên tên kind. */
+/** Nhãn bug ngắn hardcode theo kind của SW (panel chỉ cần nói ngắn gọn là bug gì). Kind lạ → dùng nguyên tên kind. */
 const SF_SHORT_LABELS = {
   "Graphic lost": "Mất hình ảnh",
   "Region missing": "Thiếu vùng nội dung",
@@ -322,7 +322,7 @@ const SF_SHORT_LABELS = {
   "Structure changed": "Thay đổi cấu trúc",
 };
 
-/** 3 trạng thái issue Storefront Ethan chốt (2026-10-23) — thay taxonomy mức độ/tín hiệu cũ. */
+/** 3 trạng thái issue Storefront. */
 export const SF_GROUPS = [
   { status: "new", label: "Mới" }, // issue mới được update
   { status: "acknowledged", label: "Đã xác nhận" }, // đã tiếp nhận, sync từ đợt trước
@@ -342,7 +342,7 @@ export const SF_GROUPS = [
  * được gom thành một mục có entries[] giữ từng finding riêng (groupSameRootCause).
  * null → kind "empty". Dữ liệu thô kiểu cũ (confirmed: [{level,…}]) vẫn đọc
  * được: level "new" → nhóm Mới, còn lại → nhóm Đã xác nhận; mảng unverified
- * cũ bị bỏ (ngoài 3 trạng thái đã chốt).
+ * cũ bị bỏ (ngoài 3 trạng thái).
  */
 /**
  * Gom các finding TRÙNG CĂN NGUYÊN trong cùng một nhóm trạng thái: cùng
@@ -414,7 +414,7 @@ export function toStorefrontViewModel(sf, now = Date.now()) {
     const raw = buckets[g.status];
     return { ...g, items: groupSameRootCause(raw), count: raw.length };
   });
-  // Danh sách PHẲNG theo TỪNG finding (Ethan chốt lại 2026-10-26 23:24):
+  // Danh sách PHẲNG theo TỪNG finding:
   // hiện đủ mọi bug SW trả về, mỗi bug một dòng + pill trạng thái + 1 link
   // unit sang Console. Thứ tự: theo nhóm trạng thái SF_GROUPS, trong nhóm
   // giữ thứ tự server (nặng nhất trước).

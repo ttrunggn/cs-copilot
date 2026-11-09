@@ -11,7 +11,7 @@ const m = (from: "user" | "operator", content: string, minute: number, extra: Pa
   is_bot: false,
   content,
   created_at: `2026-10-15T03:${String(minute).padStart(2, "0")}:00+00:00`,
-  operator_name: from === "operator" ? "Lan" : null,
+  operator_name: from === "operator" ? "Jamie" : null,
   ...extra,
 });
 
@@ -23,7 +23,7 @@ Deno.test("humanTranscript drops bot messages and events, labels notes", () => {
     m("operator", "", 4, { type: "event" }),
     m("operator", "Chào bạn", 5),
   ]);
-  assertEquals(out, "Customer: Hi\nAgent (Lan): [Internal note] check log\nAgent (Lan): Chào bạn");
+  assertEquals(out, "Customer: Hi\nAgent (Jamie): [Internal note] check log\nAgent (Jamie): Chào bạn");
 });
 
 Deno.test("humanTranscript can retain customer-facing bot replies for a takeover", () => {
@@ -64,7 +64,7 @@ Deno.test("unanswered: empty when a human CS replied last", () => {
 
 Deno.test("humanTranscript uses content_en and English labels", () => {
   const out = humanTranscript([m("user", "Je veux un remboursement", 1, { content_en: "I want a refund" }), m("operator", "Sure", 2)]);
-  assertEquals(out, "Customer: I want a refund\nAgent (Lan): Sure");
+  assertEquals(out, "Customer: I want a refund\nAgent (Jamie): Sure");
 });
 
 Deno.test("latestCustomerQuery prefers unanswered English text", () => {

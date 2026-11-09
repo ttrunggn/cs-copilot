@@ -39,7 +39,7 @@ export function withStorefrontSegment(current: string[], want: boolean): string[
  * storefront_sweep; bộ lập lịch ngoài, vd n8n timer, gọi NGAY SAU
  * storefront_sweep để bản chụp là mới nhất. Hai handler độc lập nhau.)
  *
- * Ngoại lệ ghi Crisp DUY NHẤT Ethan đã duyệt tường minh (2026-10-23): hệ
+ * Ngoại lệ ghi Crisp DUY NHẤT được cho phép tường minh: hệ
  * thống tự gắn segment `storefront-watch` lên các conversation thuộc store
  * đang có lỗi mở trong Storefront Watch — để chat tự nổi lên trong inbox
  * thay vì bắt CS vào SW search — và tự gỡ khi store hết lỗi. Đây là ghi
@@ -56,8 +56,7 @@ export function withStorefrontSegment(current: string[], want: boolean): string[
  * Phạm vi khoá cứng ở workspace có cờ workspaces.storefront_watch = true
  * (định danh duy nhất của phạm vi SW, migration 023): workspace khác → bỏ
  * qua, KHÔNG một lời gọi Crisp nào — kể cả khi chat của họ có
- * shopify_domain (đính chính của Ethan: domain không chứng minh được
- * store thuộc Transcy).
+ * shopify_domain (domain không chứng minh được store thuộc Transcy).
  *
  * Idempotent + tiết kiệm quota: trạng thái hiện tại tính từ segments
  * mirror trong DB (ingest bắt session:set_segments) — không có diff thì

@@ -52,7 +52,7 @@ Deno.test("generate returns draft, warnings and stores output", async () => {
   assertEquals(inserted[0].input_fp.length, 64);
 });
 
-Deno.test("generate: KHÔNG còn bước polish — draft_suggestion luôn null và không gọi task polish (Ethan bỏ gợi ý draft 2026-10-27)", async () => {
+Deno.test("generate: KHÔNG còn bước polish — draft_suggestion luôn null và không gọi task polish", async () => {
   const f = fakeAi({ draft: "Currency is automatic.", verify: WARN, polish: JSON.stringify({ reason: "r", text: "t" }) });
   const { deps, calls } = setup({ ai: f });
   const r = await handle(REQ, TOKEN, deps);
@@ -63,11 +63,11 @@ Deno.test("generate: KHÔNG còn bước polish — draft_suggestion luôn null 
 
 Deno.test("generate: tên trong draft prompt theo account CS gửi kèm, thắng display_name trong DB", async () => {
   const { deps, calls } = setup();
-  // DB (fake) có display_name "Lan Nguyen" — account đang đăng nhập là Ethan thì draft phải theo Ethan.
-  const r = await handle({ ...REQ, operator_name: "Ethan Nguyen" }, TOKEN, deps);
+  // DB (fake) có display_name "Jamie Lee" — account đang đăng nhập là người khác thì draft phải theo account đang đăng nhập.
+  const r = await handle({ ...REQ, operator_name: "Quinn Harper" }, TOKEN, deps);
   assertEquals(r.status, 200);
   const p = calls.find((c) => c.task === "draft")!.prompt;
-  assertEquals(p.includes("The agent writing this reply is Ethan Nguyen"), true);
+  assertEquals(p.includes("The agent writing this reply is Quinn Harper"), true);
 });
 
 Deno.test("generate: không có tên account thì dùng display_name trong DB", async () => {
@@ -75,7 +75,7 @@ Deno.test("generate: không có tên account thì dùng display_name trong DB", 
   const r = await handle(REQ, TOKEN, deps);
   assertEquals(r.status, 200);
   const p = calls.find((c) => c.task === "draft")!.prompt;
-  assertEquals(p.includes("The agent writing this reply is Lan Nguyen"), true);
+  assertEquals(p.includes("The agent writing this reply is Jamie Lee"), true);
 });
 
 Deno.test("generate đưa ý của CS và giọng văn đã chọn vào draft prompt", async () => {
@@ -103,7 +103,7 @@ Deno.test("draft prompt carries the agent's last messages so the reply continues
   const { deps, calls } = setup();
   await handle(REQ, TOKEN, deps);
   const p = calls.find((c) => c.task === "draft")!.prompt;
-  assertEquals(p.includes("Agent (Lan): b"), true);
+  assertEquals(p.includes("Agent (Jamie): b"), true);
   assertEquals(p.includes("Do not greet again"), true);
 });
 
@@ -242,7 +242,7 @@ const JIRA_ROWS = [{
   issue: {
     issue_key: "TNT-9184", summary: "Switcher missing", status: "Pending Dev", status_category: "indeterminate", assignee: null,
     updated_at: null, status_changed_at: null,
-    comments: [{ id: "2", author: "Dev Minh", role: "tech" as const, body_text: "Fixed, deploying tomorrow", created_at: "2026-10-15T03:10:00.000Z" }],
+    comments: [{ id: "2", author: "Dev Two", role: "tech" as const, body_text: "Fixed, deploying tomorrow", created_at: "2026-10-15T03:10:00.000Z" }],
   },
 }];
 
@@ -258,7 +258,7 @@ Deno.test("draft prompt carries Jira context so the reply can relay tech updates
   await handle(REQ, TOKEN, m.deps);
   const p = f.calls.find((c) => c.task === "draft")!.prompt;
   assertEquals(p.includes("TNT-9184 (Pending Dev): Switcher missing"), true);
-  assertEquals(p.includes("[tech] Dev Minh: Fixed, deploying tomorrow"), true);
+  assertEquals(p.includes("[tech] Dev Two: Fixed, deploying tomorrow"), true);
   assertEquals(p.includes("never paste ticket links"), true);
 });
 
@@ -268,7 +268,7 @@ Deno.test("check: comment Jira dài hiện NGUYÊN VĂN trên panel, không cắ
     ...JIRA_ROWS[0],
     issue: {
       ...JIRA_ROWS[0].issue,
-      comments: [{ id: "9", author: "Dev Minh", role: "tech" as const, body_text: longBody, created_at: "2026-10-15T03:10:00.000Z" }],
+      comments: [{ id: "9", author: "Dev Two", role: "tech" as const, body_text: longBody, created_at: "2026-10-15T03:10:00.000Z" }],
     },
   }];
   const m = makeDeps({ db: { getJiraRows: () => Promise.resolve(rows) } });

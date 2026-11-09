@@ -166,8 +166,8 @@ async function handleInner(body: unknown, token: string, deps: Deps): Promise<{ 
 }
 
 /**
- * handle() công khai = handleInner bọc truy vết (migration 028, Ethan chốt
- * 2026-10-26 "làm gì cũng cần truy vết"): mỗi request ghi 1 dòng timing
+ * handle() công khai = handleInner bọc truy vết (migration 028, mọi việc đều
+ * cần truy vết được): mỗi request ghi 1 dòng timing
  * (action + tổng thời gian thực thi); response lỗi (status >= 400) ghi thêm
  * 1 dòng error kèm message. writeTrace tự nuốt lỗi nên tracing hỏng cũng
  * không làm gãy request.

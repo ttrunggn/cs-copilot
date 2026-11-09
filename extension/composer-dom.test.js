@@ -167,7 +167,7 @@ Deno.test("composer DOM (b): draft (không target) → điền thẳng ô Reply;
   assertEquals((await send({ ...draft, request_id: "r2" })).status, "duplicate");
   assertEquals(page.replyEditor.value, "Draft trả khách");
   // Ô còn nguyên bản copilot vừa điền (chưa ai sửa) → điền bản mới luôn,
-  // không hỏi thay thế (quy tắc mới 2026-10-27, ca live Ethan bắt).
+  // không hỏi thay thế.
   assertEquals((await send({ ...draft, request_id: "r3", output_id: 43, text: "Draft mới" })).status, "inserted");
   assertEquals(page.replyEditor.value, "Draft mới");
   // Người đã gõ nội dung riêng vào ô → vẫn hỏi (not_empty) như cũ.
@@ -197,7 +197,7 @@ Deno.test("composer DOM (c2): không có tab Note trong vùng ô soạn → note
 });
 
 /**
- * Mô phỏng Crisp THẬT theo phiên dò 2026-10-26 (khác hẳn buildPage kiểu cũ):
+ * Mô phỏng DOM Crisp (khác hẳn buildPage đơn giản):
  * class của tab là chuỗi băm (không token active, không aria-selected), editor
  * KHÔNG có data-placeholder; placeholder là CHỮ RENDER cạnh editor và Note
  * mode có thêm nhãn "Note" trong vùng soạn; nền Note trên giao diện tối là
@@ -288,12 +288,11 @@ Deno.test("composer DOM (d): khoá lệch protocol nằm phía widget — pong p
 });
 
 /**
- * Mô phỏng cấu trúc composer mà phiên dò 2026-10-26 gợi ý trên Crisp thật:
+ * Mô phỏng cấu trúc composer trên Crisp:
  * phần "trang trí" Note mode nằm ở CONTAINER phía trên .c-conversation-box-field
  * (nền vàng phủ cả hàng tab; pill + placeholder là con của container, anh em
- * của box-field). Bản cũ gom tín hiệu chỉ trong box-field → không bao giờ đủ
- * tín hiệu → note_unconfirmed dù tab đã chuyển (ca live 2026-10-26 16:35:
- * tab tự sang Note, ô trống nguyên).
+ * của box-field). Gom tín hiệu chỉ trong box-field → không bao giờ đủ
+ * tín hiệu → note_unconfirmed dù tab đã chuyển.
  */
 function buildWidePage() {
   const doc = { focused: null, current: null };
@@ -341,7 +340,7 @@ function buildWidePage() {
   return { doc, documentFake, root: container, replyTab, noteTab, replyEditor, noteEditor };
 }
 
-Deno.test("composer DOM (g): trang trí Note mode nằm TRÊN box-field (container) → vẫn đủ tín hiệu và điền được (hồi quy ca live 16:35)", async () => {
+Deno.test("composer DOM (g): trang trí Note mode nằm TRÊN box-field (container) → vẫn đủ tín hiệu và điền được (hồi quy)", async () => {
   const page = buildWidePage();
   const send = await loadComposer(page);
   const res = await send({ ...NOTE_MSG, output_id: "note-7" });
@@ -353,11 +352,11 @@ Deno.test("composer DOM (g): trang trí Note mode nằm TRÊN box-field (contain
 });
 
 /**
- * Mô phỏng ca live 2026-10-27: Note mode ĐÃ bật sẵn trên editor Lexical
+ * Mô phỏng: Note mode ĐÃ bật sẵn trên editor Lexical
  * (contenteditable) — nền vàng nằm ngay TRÊN contenteditable, phần tử khớp
  * selector đầu là WRAPPER bọc ngoài; editor còn chứa draft reply cũ (nên
  * không có placeholder), class tab là chuỗi băm, pill "Note" ở mép ô soạn.
- * Bản cũ leo tín hiệu từ wrapper đi lên → không chạm được nền vàng →
+ * Leo tín hiệu từ wrapper đi lên → không chạm được nền vàng →
  * trace yel0, chỉ còn pil1 → note_unconfirmed oan dù mode đúng.
  * Khác các page giả khác: editor là contenteditable nên loader phải cấp
  * thêm các constructor sự kiện (KeyboardEvent/InputEvent/ClipboardEvent/
@@ -414,7 +413,7 @@ async function loadComposerRich(page) {
   return (msg) => new Promise((resolve) => listener(msg, {}, resolve));
 }
 
-Deno.test("composer DOM (h): nền vàng nằm trên contenteditable (trong wrapper) + pill → xác nhận được Note mode và thay toàn bộ draft cũ (hồi quy ca live 2026-10-27)", async () => {
+Deno.test("composer DOM (h): nền vàng nằm trên contenteditable (trong wrapper) + pill → xác nhận được Note mode và thay toàn bộ draft cũ (hồi quy)", async () => {
   const page = buildEditorYellowPage();
   const send = await loadComposerRich(page);
   const res = await send({ ...NOTE_MSG, output_id: "note-8", mode: "replace" });

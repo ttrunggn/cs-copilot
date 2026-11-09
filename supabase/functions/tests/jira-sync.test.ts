@@ -28,7 +28,7 @@ function fakes(links: JiraLink[], opts: { stored?: { status_changed_at: string |
   const saved: JiraIssue[] = [];
   const updates: { session_id: string; patch: Record<string, unknown> }[] = [];
   const store: JiraStore = {
-    csNames: () => Promise.resolve(["Anna Tran"]),
+    csNames: () => Promise.resolve(["Casey Kim"]),
     saveIssue: (i) => (saved.push(i), Promise.resolve(opts.stored ?? { status_changed_at: null, prev_status: null })),
     linksFor: () => Promise.resolve(links),
     updateLink: (l, patch) => (updates.push({ session_id: l.session_id, patch }), Promise.resolve()),
@@ -37,8 +37,8 @@ function fakes(links: JiraLink[], opts: { stored?: { status_changed_at: string |
   return { store, saved, updates };
 }
 
-const C1 = { id: "1", who: "Dev Minh", text: "Investigating", at: "2026-10-19T01:00:00.000+0700" };
-const C2 = { id: "2", who: "Dev Minh", text: "Fixed", at: "2026-10-19T02:00:00.000+0700" };
+const C1 = { id: "1", who: "Dev Two", text: "Investigating", at: "2026-10-19T01:00:00.000+0700" };
+const C2 = { id: "2", who: "Dev Two", text: "Fixed", at: "2026-10-19T02:00:00.000+0700" };
 
 Deno.test("jira-sync rejects a wrong secret", async () => {
   const f = fakes([]);

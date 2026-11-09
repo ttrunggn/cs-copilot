@@ -13,7 +13,7 @@ import { runSurvey } from "./survey.ts";
 
 /**
  * Mặt native "Support Operation" — Crisp Generic Widget trên CÙNG plugin
- * Copilot CS (Ethan chốt 29/10: cần mặt native vì section Generic Widget
+ * Copilot CS (cần mặt native vì section Generic Widget
  * mặc định xổ full khi mở conversation, hết cảnh panel iframe bị thu nhỏ).
  *
  * Giao thức (docs.crisp.chat — Generic Widget + Plugin Widgets Reference):
@@ -138,7 +138,7 @@ export async function verifyCrispWidgetSignature(
 
 // ---------- Định dạng giá trị hiển thị (hàm thuần, có test) ----------
 
-/** Nhãn mood rút gọn cho mặt native (chỗ hiển thị hẹp): giữ đúng chữ của bản thiết kế Ethan duyệt — frustrated là "Đang bực", các mood khác trùng MOOD_LABEL ở _shared/sentiment.ts. */
+/** Nhãn mood rút gọn cho mặt native (chỗ hiển thị hẹp): giữ đúng chữ của bản thiết kế — frustrated là "Đang bực", các mood khác trùng MOOD_LABEL ở _shared/sentiment.ts. */
 const MOOD_SHORT: Record<string, string> = {
   frustrated: "Đang bực",
   confused: "Đang bối rối",
@@ -269,7 +269,7 @@ async function fetchItemValue(itemId: string, ev: CrispWidgetEvent, deps: Native
  * Gửi CSAT survey ngay khi CS bấm trên mặt native — dùng lại NGUYÊN đường
  * runSurvey của panel iframe: cùng claim nguyên tử trên csat_survey_sends,
  * cùng cửa sổ chống bấm đúp 30 giây, nút không bao giờ bị khoá quá cửa sổ
- * đó (Ethan chốt 2026-10-26). Operator resolve theo email Crisp gắn qua
+ * đó. Operator resolve theo email Crisp gắn qua
  * data binding của item (payload.data.operator_email → operators.email →
  * crisp_user_id) và phải thuộc workspace; không resolve được thì vẫn gửi
  * với operator rỗng (runSurvey tự fallback tên hiển thị) nhưng ghi trace

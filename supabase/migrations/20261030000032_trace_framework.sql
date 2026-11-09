@@ -1,6 +1,5 @@
--- 032: Khung truy vết toàn diện cho panel gộp (Ethan chốt 2026-10-29:
--- "bất kỳ cái gì cũng phải keep track được" + vá hai lỗ hổng truy vết
--- sentiment phát hiện cùng ngày).
+-- 032: Khung truy vết toàn diện cho panel gộp (mọi lượt vận hành đều
+-- truy lại được, kể cả các lần đo sentiment).
 --
 -- 1) trace_log thêm flow_id: mỗi lượt vận hành (một request, một hook, một
 --    lượt mở modal) có một mã luồng duy nhất; mọi dòng timing/error của các

@@ -13,19 +13,19 @@ export interface JiraStore {
 
 /**
  * n8n gửi kết quả Jira search (fields summary,status,assignee,updated,comment) cho các ticket đang theo dõi.
- * Jira là PANEL-ONLY MIRROR tuyệt đối (Ethan chốt cứng 2026-10-23): handler này CHỈ lưu issue/comment
+ * Jira là PANEL-ONLY MIRROR tuyệt đối: handler này CHỈ lưu issue/comment
  * vào DB để panel hiển thị và cập nhật mốc đã thấy của từng link — KHÔNG tạo bất cứ thứ gì trong Crisp
- * (không note theo dõi, không note cập nhật, không note Done). Vì vậy handler không còn dep n8n và
- * không còn đọc cờ jira_auto_note: không tồn tại đường nào từ sync tới Crisp.
- * Ticket Done: KHÔNG tắt link ngay — Done trên Jira ≠ CS đã báo cho khách (Ethan, 2026-10-23),
+ * (không note theo dõi, không note cập nhật, không note Done). Vì vậy handler không có dep n8n và
+ * không đọc cờ jira_auto_note: không tồn tại đường nào từ sync tới Crisp.
+ * Ticket Done: KHÔNG tắt link ngay — Done trên Jira ≠ CS đã báo cho khách,
  * panel cần giữ card kèm nhãn "Chờ báo khách". Link chỉ bị tắt ở đây khi ticket Done VÀ CS đã
  * nhắn cho khách sau mốc chuyển Done (doneReportedToCustomer); phía đọc cũng tự ẩn card trong
  * trường hợp đó nên việc tắt link chỉ là dọn dẹp để ngừng quét.
  */
 /**
  * Lõi áp kết quả Jira search vào mirror DB — dùng CHUNG cho hai nguồn lấy
- * dữ liệu: workflow n8n POST vào handleJiraSync (đường cũ) và copilot tự
- * gọi Jira REST khi panel mở (đường mới, Ethan chốt 2026-10-26). Chỉ MỘT
+ * dữ liệu: workflow n8n POST vào handleJiraSync và copilot tự gọi
+ * Jira REST khi panel mở. Chỉ MỘT
  * nguồn được phép active tại một thời điểm (luật một nguồn sync): khi
  * đường copilot bật, workflow Jira Sync bên n8n phải tắt hẳn. Trả số issue
  * đã áp. Mọi quy tắc panel-only mirror trong handleJiraSync áp dụng y hệt.

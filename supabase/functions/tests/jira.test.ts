@@ -19,12 +19,12 @@ const RAW = {
   fields: {
     summary: "Switcher missing on mobile",
     status: { name: "Pending Dev", statusCategory: { key: "indeterminate" } },
-    assignee: { displayName: "Dev Minh" },
+    assignee: { displayName: "Dev Two" },
     updated: "2026-10-19T03:00:00.000+0700",
     comment: {
       comments: [
-        { id: "1", author: { displayName: "Anna Tran" }, body: adf("Customer waiting"), created: "2026-10-18T10:00:00.000+0700" },
-        { id: "2", author: { displayName: "Dev Minh" }, body: adf("Fixed on staging, deploying tomorrow"), created: "2026-10-19T02:00:00.000+0700" },
+        { id: "1", author: { displayName: "Casey Kim" }, body: adf("Customer waiting"), created: "2026-10-18T10:00:00.000+0700" },
+        { id: "2", author: { displayName: "Dev Two" }, body: adf("Fixed on staging, deploying tomorrow"), created: "2026-10-19T02:00:00.000+0700" },
         { id: "3", author: { displayName: "Automation for Jira" }, body: adf("Auto transition"), created: "2026-10-19T02:30:00.000+0700" },
       ],
     },
@@ -35,31 +35,31 @@ Deno.test("adfToText flattens paragraphs, lists, mentions and media", () => {
   const doc = {
     type: "doc",
     content: [
-      { type: "paragraph", content: [{ type: "text", text: "Hi " }, { type: "mention", attrs: { text: "@Anna" } }] },
+      { type: "paragraph", content: [{ type: "text", text: "Hi " }, { type: "mention", attrs: { text: "@Casey" } }] },
       { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [{ type: "text", text: "step 1" }] }] }] },
       { type: "mediaSingle", content: [{ type: "media", attrs: { alt: "shot.png" } }] },
     ],
   };
-  assertEquals(adfToText(doc).trim(), "Hi @Anna\n• step 1\n[Ảnh: shot.png]");
+  assertEquals(adfToText(doc).trim(), "Hi @Casey\n• step 1\n[Ảnh: shot.png]");
   assertEquals(adfToText("plain"), "plain");
 });
 
 Deno.test("commentRole: CS by name, automation is bot, everyone else is tech", () => {
-  const cs = ["Anna Tran", "Raymond Ha"];
-  assertEquals(commentRole("anna tran", cs), "cs");
+  const cs = ["Casey Kim", "Rowan Ash"];
+  assertEquals(commentRole("casey kim", cs), "cs");
   assertEquals(commentRole("Automation for Jira", cs), "bot");
-  assertEquals(commentRole("Dev Minh", cs), "tech");
+  assertEquals(commentRole("Dev Two", cs), "tech");
 });
 
 Deno.test("normalizeIssue maps Jira fields and comments", () => {
-  const i = normalizeIssue(RAW, ["Anna Tran"]);
-  assertEquals([i.issue_key, i.summary, i.status, i.status_category, i.assignee], ["TNT-9184", "Switcher missing on mobile", "Pending Dev", "indeterminate", "Dev Minh"]);
+  const i = normalizeIssue(RAW, ["Casey Kim"]);
+  assertEquals([i.issue_key, i.summary, i.status, i.status_category, i.assignee], ["TNT-9184", "Switcher missing on mobile", "Pending Dev", "indeterminate", "Dev Two"]);
   assertEquals(i.comments.map((c) => [c.id, c.role]), [["1", "cs"], ["2", "tech"], ["3", "bot"]]);
   assertEquals(i.comments[1].body_text, "Fixed on staging, deploying tomorrow");
   assertEquals(i.comments[1].created_at, "2026-10-18T19:00:00.000Z");
 });
 
-const ISSUE: JiraIssue = normalizeIssue(RAW, ["Anna Tran"]);
+const ISSUE: JiraIssue = normalizeIssue(RAW, ["Casey Kim"]);
 const LINK: JiraLink = {
   website_id: "ws1", session_id: "session_1", issue_key: "TNT-9184", url: "https://firegroup.atlassian.net/browse/TNT-9184",
   silent_baseline: false, last_seen_status: null, last_seen_comment_at: null,
@@ -87,7 +87,7 @@ Deno.test("diffLink: nothing new → none; done ticket is flagged", () => {
   assertEquals([d.kind, d.done, d.statusChanged], ["update", true, true]);
 });
 
-Deno.test("diffLink: mốc từ DB (+00:00) và comment Jira (.000Z) cùng thời điểm → không tính là mới (ca spam note 2026-10-23)", () => {
+Deno.test("diffLink: mốc từ DB (+00:00) và comment Jira (.000Z) cùng thời điểm → không tính là mới (tránh note trùng)", () => {
   // Mốc last_seen_comment_at đọc qua PostgREST: "2026-10-18T19:30:00+00:00".
   // Comment mới nhất của ISSUE có created_at "2026-10-18T19:30:00.000Z" — CÙNG
   // một thời điểm, chỉ khác định dạng chuỗi. So chuỗi thô sẽ thấy ".000Z" >
@@ -118,7 +118,7 @@ Deno.test("jiraForConversation: mốc DB (+00:00) cùng thời điểm với com
   const out2 = jiraForConversation(rows, "2026-10-18T18:59:59+00:00");
   assertEquals(out2[0].has_update, true);
   assertEquals(out2[0].status_changed, true);
-  assertEquals(out2[0].new_comments.map((c) => c.author), ["Dev Minh"]);
+  assertEquals(out2[0].new_comments.map((c) => c.author), ["Dev Two"]);
 });
 
 Deno.test("jiraForConversation marks tickets with news since the agent's last reply", () => {
@@ -126,7 +126,7 @@ Deno.test("jiraForConversation marks tickets with news since the agent's last re
   const out = jiraForConversation(rows, "2026-10-18T02:00:00.000Z");
   assertEquals(out[0].has_update, true);
   assertEquals(out[0].status_changed, true);
-  assertEquals(out[0].new_comments.map((c) => c.author), ["Anna Tran", "Dev Minh"]);
+  assertEquals(out[0].new_comments.map((c) => c.author), ["Casey Kim", "Dev Two"]);
   assertEquals(jiraForConversation(rows, "2026-10-19T00:00:00.000Z")[0].has_update, false);
   assertEquals(jiraForConversation([{ link: LINK, issue: null }], null)[0], {
     issue_key: "TNT-9184", url: LINK.url, summary: null, status: null, has_update: false, status_changed: false,
@@ -138,13 +138,13 @@ Deno.test("jiraForConversation: comment mới của CS cũng bật badge (một 
   const csOnly: JiraIssue = {
     ...ISSUE, status_changed_at: null,
     comments: [
-      { id: "9", author: "Anna Tran", role: "cs", body_text: "Đã nhắn hỏi thêm khách", created_at: "2026-10-18T10:00:00.000Z" },
+      { id: "9", author: "Casey Kim", role: "cs", body_text: "Đã nhắn hỏi thêm khách", created_at: "2026-10-18T10:00:00.000Z" },
       { id: "10", author: "Automation for Jira", role: "bot", body_text: "Auto transition", created_at: "2026-10-18T11:00:00.000Z" },
     ],
   };
   const out = jiraForConversation([{ link: LINK, issue: csOnly }], "2026-10-18T09:00:00.000Z");
   assertEquals(out[0].has_update, true);
-  assertEquals(out[0].new_comments.map((c) => c.author), ["Anna Tran"]); // bot không vào new_comments
+  assertEquals(out[0].new_comments.map((c) => c.author), ["Casey Kim"]); // bot không vào new_comments
   const botOnly: JiraIssue = { ...csOnly, comments: [csOnly.comments[1]] };
   assertEquals(jiraForConversation([{ link: LINK, issue: botOnly }], "2026-10-18T09:00:00.000Z")[0].has_update, false);
 });
@@ -203,7 +203,7 @@ const convItem = (key: string): ConversationJira => ({
   has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, updated_at: null, new_comments: [], recent_comments: [],
 });
 
-Deno.test("enabledModules: workspace có Jira project → module Jira luôn hiện kể cả chưa có ticket (Ethan 2026-10-26); Storefront vẫn cần đường mở riêng", () => {
+Deno.test("enabledModules: workspace có Jira project → module Jira luôn hiện kể cả chưa có ticket; Storefront vẫn cần đường mở riêng", () => {
   assertEquals(enabledModules([], "TNT"), { jira: true, storefront: false });
 });
 
@@ -232,17 +232,15 @@ Deno.test("enabledModules: đường domain — cờ storefront_watch BẬT + sh
   assertEquals(enabledModules([convItem("ABC-12")], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: true });
 });
 
-Deno.test("enabledModules: đường domain — bản chụp nói SW KHÔNG theo dõi vẫn BẬT (bản chụp không còn quyền phủ quyết, Ethan chốt 2026-10-26)", () => {
-  // Hồi quy cho ca live 2026-10-26: store có bug thật ở SW nhưng panel không
-  // hiện module vì bản chụp sweep nói watched=false. Nay có domain + cờ bật
-  // là hiện; SW có theo dõi thật hay không do action nạp trực tiếp quyết.
+Deno.test("enabledModules: đường domain — bản chụp nói SW KHÔNG theo dõi vẫn BẬT (bản chụp không còn quyền phủ quyết)", () => {
+  // Bản chụp sweep có thể cũ (watched=false) nên không được ẩn module: có
+  // domain + cờ bật là hiện; SW có theo dõi thật hay không do action nạp trực tiếp quyết.
   assertEquals(enabledModules([], "TNT", { storefrontWatchEnabled: true, shopDomain: "shop-a.myshopify.com", snapshotWatched: false }), { jira: true, storefront: true });
 });
 
 Deno.test("enabledModules: đường domain bị khoá khi cờ storefront_watch TẮT — jira_project của workspace KHÔNG tự mở được cổng (ca OE/OES)", () => {
-  // Khoá hồi quy cho lỗi định danh cũ: trước đây "jira_project đã set" được
-  // coi là "workspace Transcy" — workspace OE có jira_project = OES nên cổng
-  // domain mở nhầm cho OE. Nay chỉ cờ storefront_watch mới quyết phạm vi SW.
+  // "jira_project đã set" không được coi là thuộc phạm vi SW — workspace
+  // khác cũng có jira_project riêng. Chỉ cờ storefront_watch quyết phạm vi SW.
   // OE: jira_project OES + domain + bản chụp watched, cờ tắt/thiếu → đóng.
   assertEquals(enabledModules([], "OES", { shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: false });
   assertEquals(enabledModules([], "OES", { storefrontWatchEnabled: false, shopDomain: "shop-a.myshopify.com", snapshotWatched: true }), { jira: true, storefront: false });
@@ -271,7 +269,7 @@ Deno.test("enabledModules: ticket Done chưa báo khách vẫn tính là ticket 
 Deno.test("jiraPromptBlock lists tickets with recent human comments as data", () => {
   const block = jiraPromptBlock(jiraForConversation([{ link: LINK, issue: ISSUE }], null));
   assertEquals(block.includes("TNT-9184 (Pending Dev): Switcher missing on mobile"), true);
-  assertEquals(block.includes("[tech] Dev Minh: Fixed on staging, deploying tomorrow"), true);
+  assertEquals(block.includes("[tech] Dev Two: Fixed on staging, deploying tomorrow"), true);
   assertEquals(jiraPromptBlock([]), "");
 });
 

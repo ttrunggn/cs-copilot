@@ -1,7 +1,7 @@
 import { AiUnavailable, type Ai, type AiStore, type AiTask } from "./gemini.ts";
 
 /**
- * Client OpenAI đứng sau cùng interface Ai như Gemini (Ethan chốt chuyển nhà 2026-10-27).
+ * Client OpenAI đứng sau cùng interface Ai như Gemini.
  * - Sinh text qua Chat Completions, model lấy từ ai_config (gpt-6-luna).
  * - reasoning_effort GHIM "none": Luna mặc định "medium" mà bản reasoning có
  *   thời gian tới token đầu 15-26 giây (đo bên thứ ba) — đúng bệnh chậm phải tránh;

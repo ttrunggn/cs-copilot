@@ -1,13 +1,13 @@
-// Phân tích tâm trạng khách — thay bản keyword trong workflow survey cũ.
+// Phân tích tâm trạng khách.
 //
-// Bài học từ bản cũ (n8n analyze-mood): keyword bắt chuỗi con không hiểu phủ
-// định ("not resolved" vẫn +điểm resolved), nhãn suy từ điểm nên "urgent"
-// không bao giờ hiện, công thức trộn điểm là số tay không hiệu chuẩn.
-// Bản này: AI là nguồn chính với rubric + ví dụ mẫu; mood và urgency là HAI
+// Không dùng keyword: bắt chuỗi con không hiểu phủ định ("not resolved" vẫn
+// +điểm resolved), nhãn suy từ điểm thì "urgent" không bao giờ hiện, công
+// thức trộn điểm là số tay không hiệu chuẩn.
+// Thay vào đó: AI là nguồn chính với rubric + ví dụ mẫu; mood và urgency là HAI
 // trục độc lập; có confidence để nơi dùng tự quyết có tin hay không.
-// Pipeline từ 2026-10-27 (PR #40): model phân tích bằng ngôn ngữ tự nhiên
-// của khách, vietnamizeSentiment dịch kết quả sang tiếng Việt sau — không
-// ép ngôn ngữ đầu ra ngay trong prompt phân tích nữa.
+// Pipeline: model phân tích bằng ngôn ngữ tự nhiên của khách,
+// vietnamizeSentiment dịch kết quả sang tiếng Việt sau — không ép ngôn ngữ
+// đầu ra ngay trong prompt phân tích.
 import type { Ai } from "./gemini.ts";
 import { DATA_ONLY, neutralize, parseJson, TRANSLATE_VI_SCHEMA, translateViPrompt } from "./prompts.ts";
 
@@ -26,9 +26,9 @@ export interface Sentiment {
   confidence: number; // 0-1
   summary: string; // tối đa ~15 từ; bản lưu/hiện là tiếng Việt (dịch sau phân tích — xem vietnamizeSentiment)
   signals: string[];
-  // Vấn đề của khách, tách riêng khỏi signals (Lỗi 4, Ethan 2026-10-26:
-  // panel từng map signals — trích nguyên văn — thành thẻ issue, và cả tin
-  // cập nhật tiến độ cũng thành "issue"). Issue phải là câu tóm tắt vấn đề;
+  // Vấn đề của khách, tách riêng khỏi signals (signals là trích nguyên văn,
+  // không dùng làm thẻ issue; tin cập nhật tiến độ cũng không phải "issue").
+  // Issue phải là câu tóm tắt vấn đề;
   // tin không nêu vấn đề thì không sinh issue.
   issues: SentimentIssue[];
 }
@@ -166,7 +166,7 @@ export function looksVietnamese(text: string): boolean {
 }
 
 /**
- * Bước dịch sau phân tích (Ethan chốt 2026-10-27): model phân tích bằng ngôn
+ * Bước dịch sau phân tích: model phân tích bằng ngôn
  * ngữ tự nhiên của khách, hàm này dịch summary/signals/issues sang tiếng
  * Việt trong MỘT lượt gọi gộp. Đã là tiếng Việt thì bỏ qua (không tốn lượt
  * gọi). Dịch lỗi/thiếu mục thì giữ nguyên câu gốc — thà hiện ngôn ngữ khách

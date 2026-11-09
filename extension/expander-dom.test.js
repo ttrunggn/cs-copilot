@@ -4,7 +4,7 @@ import { assertEquals } from "jsr:@std/assert@1";
 // THẬT: nạp bundle composer-core + composer như build-extension.mjs, chạy
 // bằng new Function với document/MutationObserver/setInterval giả — test
 // điều khiển từng nhịp tick tay để khẳng định đúng chuỗi bấm/không bấm.
-// Cây DOM theo cấu trúc đã kiểm chứng trên Crisp thật 2026-10-28: hộp
+// Cây DOM theo cấu trúc của Crisp: hộp
 // widget = iframe + div body chứa span.c-conversation-profile-widget__
 // expand (trong có svg icon). "Đã mở rộng" được giả lập bằng cách gỡ span
 // khỏi cây — tương đương tín hiệu thật (span còn trong DOM nhưng bị
@@ -38,7 +38,7 @@ class FakeEl {
   dispatchEvent(evt) { if (evt?.type === "click") this.click(); return true; }
 }
 
-/** Trang Crisp giả theo DOM thật 2026-10-28: hộp Copilot = iframe + div body chứa span Expand > svg icon. */
+/** Trang Crisp giả theo DOM của Crisp: hộp Copilot = iframe + div body chứa span Expand > svg icon. */
 function buildPage(session = "session_1") {
   const frame = new FakeEl("iframe", { attrs: { src: `__WIDGET_ORIGIN__/index.html?session_id=${session}&website_id=ws1` } });
   const expandIcon = new FakeEl("svg", { attrs: { class: "c-base-icon c-conversation-profile-widget__expand-icon" } });

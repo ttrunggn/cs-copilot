@@ -1,9 +1,8 @@
 -- Custom data của phiên Crisp: panel "Custom data" của mỗi conversation chứa
 -- shopify_domain (và nhiều key tc_*/shopify_* khác) do integration phía store
--- của Transcy set vào session data — bằng chứng ảnh Ethan gửi 2026-10-23.
--- Trước migration này hệ thống LÀM RƠI dữ liệu đó: Filter Events của webhook
--- không cho session:set_data qua, và ingest_event không trích custom data.
--- Nay: thêm cột conversations.custom_data; bản ingest_event mới (giữ nguyên
+-- của Transcy set vào session data.
+-- Filter Events của webhook phải cho session:set_data qua, và ingest_event
+-- phải trích custom data. Migration này: thêm cột conversations.custom_data; bản ingest_event mới (giữ nguyên
 -- mọi hành vi cũ) merge thêm cặp key-value scalar từ các event session vào
 -- custom_data. Action storefront đọc custom_data->>'shopify_domain' để tự
 -- resolve store thay vì bắt CS nhập domain.

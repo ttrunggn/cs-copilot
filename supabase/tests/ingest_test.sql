@@ -45,20 +45,20 @@ do $$ begin perform public.ingest_event(pg_temp.msg(4, 'operator', 1760500004000
 select ok((select is_bot from public.messages where fingerprint = '4'), 'learned bot id stays a bot after rename');
 
 -- 9-11: CS người thật
-do $$ begin perform public.ingest_event(pg_temp.msg(5, 'operator', 1760500005000, '"Chào bạn"', 'op-lan', 'Lan')); end $$;
-select ok(not (select is_bot from public.messages where fingerprint = '5'), 'Lan is human');
+do $$ begin perform public.ingest_event(pg_temp.msg(5, 'operator', 1760500005000, '"Chào bạn"', 'op-jamie', 'Jamie')); end $$;
+select ok(not (select is_bot from public.messages where fingerprint = '5'), 'Jamie is human');
 select is((pg_temp.conv()).last_human_operator_at, to_timestamp(1760500005), 'sets last_human_operator_at');
-select ok(exists (select 1 from public.operator_workspaces where crisp_user_id = 'op-lan' and website_id = 'ws1'), 'registers Lan in workspace');
+select ok(exists (select 1 from public.operator_workspaces where crisp_user_id = 'op-jamie' and website_id = 'ws1'), 'registers Jamie in workspace');
 
 -- 12-13: note của copilot (🤖) là bot và không đổi mốc
-do $$ begin perform public.ingest_event(pg_temp.msg(6, 'operator', 1760500006000, '"🤖 Draft: ..."', 'op-lan', 'Lan', 'note')); end $$;
+do $$ begin perform public.ingest_event(pg_temp.msg(6, 'operator', 1760500006000, '"🤖 Draft: ..."', 'op-jamie', 'Jamie', 'note')); end $$;
 select ok((select is_bot from public.messages where fingerprint = '6'), 'copilot note flagged as bot');
 select is((pg_temp.conv()).last_human_operator_at, to_timestamp(1760500005), 'note does not move last_human_operator_at');
 
 -- 14-15: tin cũ đến muộn không làm lùi mốc
 do $$ begin perform public.ingest_event(pg_temp.msg(7, 'operator', 1760499999000, '"old"', 'op-minh', 'Minh')); end $$;
 select is((pg_temp.conv()).last_human_operator_at, to_timestamp(1760500005), 'older message does not move timestamp back');
-select is((pg_temp.conv()).assigned_operator, 'op-lan', 'older message does not change assigned_operator');
+select is((pg_temp.conv()).assigned_operator, 'op-jamie', 'older message does not change assigned_operator');
 
 -- 16-17: tin operator không có user object
 select lives_ok($$ select public.ingest_event(pg_temp.msg(8, 'operator', 1760500008000, '"from mobile"')) $$, 'operator message without user object');
@@ -85,20 +85,20 @@ do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"session:se
 select ok((pg_temp.conv()).resolved_at is null, 'reopen clears resolved_at');
 
 -- 25: danh sách operator
-do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[{"type":"operator","details":{"user_id":"op-hoa","email":"hoa@x.io","first_name":"Hoa","last_name":"Tran"}}]}}'); end $$;
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[{"type":"operator","details":{"user_id":"op-robin","email":"robin@x.io","first_name":"Robin","last_name":"Vale"}}]}}'); end $$;
 select ok(exists (select 1 from public.operators o join public.operator_workspaces w using (crisp_user_id)
-                  where o.crisp_user_id = 'op-hoa' and o.email = 'hoa@x.io' and w.website_id = 'ws1'), 'operators:list upserts operator + membership');
+                  where o.crisp_user_id = 'op-robin' and o.email = 'robin@x.io' and w.website_id = 'ws1'), 'operators:list upserts operator + membership');
 
 -- 25b-25e: membership theo danh sách operator của Crisp
-select ok(not (select active from public.operator_workspaces where crisp_user_id = 'op-lan' and website_id = 'ws1'),
+select ok(not (select active from public.operator_workspaces where crisp_user_id = 'op-jamie' and website_id = 'ws1'),
           'member seen only in messages stays inactive until operators:list confirms');
-select ok((select active from public.operator_workspaces where crisp_user_id = 'op-hoa' and website_id = 'ws1'),
+select ok((select active from public.operator_workspaces where crisp_user_id = 'op-robin' and website_id = 'ws1'),
           'operators:list activates listed operators');
-do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[{"details":{"user_id":"op-lan","email":"lan@x.io"}}]}}'); end $$;
-select ok(not (select active from public.operator_workspaces where crisp_user_id = 'op-hoa' and website_id = 'ws1'),
+do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[{"details":{"user_id":"op-jamie","email":"jamie@x.io"}}]}}'); end $$;
+select ok(not (select active from public.operator_workspaces where crisp_user_id = 'op-robin' and website_id = 'ws1'),
           'operator removed from Crisp is deactivated');
 do $$ begin perform public.ingest_event('{"website_id":"ws1","event":"operators:list","data":{"operators":[]}}'); end $$;
-select ok((select active from public.operator_workspaces where crisp_user_id = 'op-lan' and website_id = 'ws1'),
+select ok((select active from public.operator_workspaces where crisp_user_id = 'op-jamie' and website_id = 'ws1'),
           'empty operators list (API hiccup) does not deactivate everyone');
 
 -- 26: workspace lạ

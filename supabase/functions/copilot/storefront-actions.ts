@@ -34,9 +34,9 @@ export interface StorefrontItem {
   text: string | null;
   /** Link console của CHÍNH finding này (từ dữ kiện MCP) — CS bấm sang đúng trang bug để Mark fixed/Dismiss ở SW. */
   consoleLink: string | null;
-  /** URL trang thật trên store ở ngôn ngữ mặc định — link "Default page" cạnh finding trên panel (Ethan, 2026-10-29). */
+  /** URL trang thật trên store ở ngôn ngữ mặc định — link "Default page" cạnh finding trên panel. */
   pageLink: string | null;
-  /** URL trang ở đúng locale SW quét thấy lỗi — link "Issue page" cạnh finding trên panel (Ethan, 2026-10-29). */
+  /** URL trang ở đúng locale SW quét thấy lỗi — link "Issue page" cạnh finding trên panel. */
   issuePageLink: string | null;
 }
 
@@ -117,7 +117,7 @@ function toItem(f: StorefrontFinding, domain?: string | null): StorefrontItem {
     severity: f.severity ?? null,
     text: f.text ?? null,
     // Link panel dùng là URL unit cấu từ domain|locale|page|width (Console
-    // mở được — kiểm chứng live 2026-10-26), KHÔNG dùng link fingerprint SW
+    // mở được dạng này), KHÔNG dùng link fingerprint SW
     // in sẵn (Console báo "no audited unit").
     consoleLink: consoleUnitUrl(domain, f),
     pageLink: storefrontPageUrl(domain, f),
@@ -136,7 +136,7 @@ const SHOP_OK = (s: string) => s.length >= 3 && s.length <= 300 && !/[\s<>"']/.t
  * — ingest merge từ session data, key `shopify_domain` do integration phía
  * store set) là nguồn SỰ THẬT của chat này và LUÔN THẮNG. Shop widget truyền
  * lên chỉ là fallback khi custom data không có/không hợp lệ (CS nhập tay một
- * lần cho chat thiếu dữ kiện) — trước đây shop tay thắng tuyệt đối khiến một
+ * lần cho chat thiếu dữ kiện) — nếu shop tay thắng tuyệt đối thì một
  * chat xem được findings của store bất kỳ, lẫn dữ liệu giữa các store.
  * Dữ liệu phía khách ghi được nên vẫn qua cùng lớp kiểm hợp lệ SHOP_OK;
  * không hợp lệ thì coi như chưa có (không 400 — CS không gõ nó).
@@ -158,8 +158,8 @@ const NON_STORE_HOSTS = new Set([
 ]);
 
 /**
- * Domain store ứng viên trích từ LINK KHÁCH GỬI trong chat (Ethan 2026-10-26:
- * khách thường dán link store của họ — vd lauravita.com — trong khi custom
+ * Domain store ứng viên trích từ LINK KHÁCH GỬI trong chat (khách
+ * thường dán link store của họ — vd store-a.example — trong khi custom
  * data của phiên trống; panel phải bắt được đúng store từ đó). Chỉ lấy host
  * từ tin của khách: *.myshopify.com ưu tiên trước, sau đó theo tần suất xuất
  * hiện; host của mạng xã hội/help/lưu trữ ảnh bị loại. Ứng viên CHƯA phải
@@ -195,9 +195,8 @@ export const CRISP_LOOKUP_TTL_MS = 5 * 60_000;
 /**
  * Resolve shopify_domain cho một conversation theo thứ tự: (1) custom_data
  * trong DB (ingest mang về — nguồn chính), (2) đọc thẳng meta.data từ Crisp
- * khi DB chưa có (Ethan chốt 2026-10-26: tự lấy, CS không nhập tay — ca
- * live: domain có sẵn trong Custom data của Crisp mà panel vẫn bắt nhập vì
- * ingest chưa/chậm mang về), (3) link khách gửi trong chat — chỉ nhận khi
+ * khi DB chưa có (tự lấy, CS không nhập tay — domain có thể đã có trong
+ * Custom data của Crisp trong khi ingest chưa/chậm mang về), (3) link khách gửi trong chat — chỉ nhận khi
  * Storefront Watch đang theo dõi domain đó. Domain lấy được từ (2)/(3) đều
  * được LƯU LẠI vào custom_data (merge, không đè key khác) và gắn vào chính
  * conv đang cầm để caller dùng tiếp trong cùng request. Lỗi đọc nguồn →
@@ -245,7 +244,7 @@ export async function resolveShopDomain(
 /**
  * Nạp dữ liệu Storefront cho panel: find_store (store có được theo dõi, lần
  * check cuối) + list_findings (mọi lỗi đang mở), rồi chia đúng 3 trạng thái
- * Ethan chốt: Đang xử lý (nội dung finding xuất hiện trong tin CS đã gửi trong
+ * Đang xử lý (nội dung finding xuất hiện trong tin CS đã gửi trong
  * chính conversation này) > Mới (fingerprint chưa từng hiện) > Đã xác nhận.
  * Mốc storefront_seen đọc TRƯỚC, ghi SAU khi đã gom nhóm xong.
  */
@@ -278,7 +277,7 @@ export async function runStorefront(
       deps.db.getMessages(req.website_id, req.session_id, 200),
     ]);
     // Tin CS đã gửi cho khách (không bot, không private note) là bằng chứng
-    // "đã contact khách" để suy nhóm Đang xử lý theo mô hình của Ethan.
+    // "đã contact khách" để suy nhóm Đang xử lý.
     const operatorTexts = messages
       .filter((m) => m.from === "operator" && !m.is_bot && m.type === "text")
       .map((m) => m.content);
@@ -341,8 +340,7 @@ export async function runStorefrontFinding(
 const normDomain = (s: string) => s.trim().toLowerCase().replace(/^www\./, "").replace(/\/.*$/, "");
 
 /**
- * Thao tác GHI của CS lên một finding ngay trong panel (menu Ethan duyệt
- * 2026-10-27 sau khi SW mở scope write): acknowledge / fixed / dismiss /
+ * Thao tác GHI của CS lên một finding ngay trong panel: acknowledge / fixed / dismiss /
  * undo. Đây là đường ghi Storefront Watch DUY NHẤT của copilot và chỉ chạy
  * khi CS bấm nút — không có ghi tự động. Cùng hàng rào với đường đọc:
  * - cổng module giống hệt check (assertStorefrontEnabled);
@@ -350,7 +348,7 @@ const normDomain = (s: string) => s.trim().toLowerCase().replace(/^www\./, "").r
  *   dismiss chỉ trên finding ĐANG MỞ của store đó (đối chiếu listFindings);
  *   undo (finding đã đóng, không còn trong list) đối chiếu qua getFinding —
  *   domain trong "Where:" phải khớp store của conversation;
- * - ghi chú KHÔNG bắt buộc cho fixed/dismiss (Ethan chốt lại 2026-10-29);
+ * - ghi chú KHÔNG bắt buộc cho fixed/dismiss;
  *   dismiss bắt buộc lý do thuộc đúng 2 giá trị schema SW nhận;
  * - tên người thực hiện = operator_name theo account Crisp đang đăng nhập
  *   (handler đã parse; rỗng thì KHÔNG gửi — schema SW: thà bỏ trống còn hơn đoán).
@@ -366,9 +364,8 @@ export async function runStorefrontAct(
   if (!SF_ACTS.includes(act)) throw new HttpError(400, `sf_act không hợp lệ: ${req.sf_act}`);
   if (!FINGERPRINT.test(req.fingerprint ?? "")) throw new HttpError(400, `fingerprint không hợp lệ: ${req.fingerprint}`);
   const note = (req.note ?? "").trim();
-  // Ghi chú KHÔNG bắt buộc cho cả fixed lẫn dismiss (Ethan chốt lại
-  // 2026-10-29: "không cần comment, thừa" — bên SW dismiss chỉ cần lý do,
-  // fix cũng vậy). Có ghi thì Console hiện kèm quyết định như cũ.
+  // Ghi chú KHÔNG bắt buộc cho cả fixed lẫn dismiss (bên SW dismiss chỉ
+  // cần lý do, fix cũng vậy). Có ghi thì Console hiện kèm quyết định.
   if (note.length > SF_NOTE_MAX) throw new HttpError(400, `Ghi chú quá dài (tối đa ${SF_NOTE_MAX} ký tự).`);
   const reason = (req.reason ?? "").trim() as SwDismissReason;
   if (act === "dismiss" && !(SW_DISMISS_REASONS as readonly string[]).includes(reason)) {
@@ -405,7 +402,7 @@ export async function runStorefrontAct(
       else await deps.storefront.dismissFinding(req.website_id, req.fingerprint, reason, note, operator);
       logSource = finding;
     }
-    // Nhật ký report Google Sheet (migration 033, Ethan 2026-10-30): ghi
+    // Nhật ký report Google Sheet (migration 033): ghi
     // SAU khi SW đã nhận thao tác. Lỗi ghi log KHÔNG được phá kết quả trả
     // cho CS (thao tác thật đã xong) — nuốt lỗi, chỉ để lại trace.
     const logRow: NewStorefrontActionLog = {
@@ -430,11 +427,10 @@ export async function runStorefrontAct(
     } catch (logErr) {
       await writeTrace(deps.db, { website_id: req.website_id, session_id: req.session_id, action: "storefront_act", kind: "error", stage: "storefront_act_log", detail: { act, error: errText(logErr) } }).catch(() => null);
     }
-    // Đẩy REAL-TIME lên Sheet qua webhook n8n (Ethan chốt 2026-10-30:
-    // team cần track liên tục, không chờ gom 15 phút). Đẩy hỏng thì dòng
-    // vẫn chưa reported — workflow pull lấp lại, không mất dòng. Kết quả
-    // cú đẩy (kèm status/lỗi) PHẢI vào trace: bản đầu nuốt im lặng nên
-    // lỗi production không truy được (2026-10-30).
+    // Đẩy REAL-TIME lên Sheet qua webhook n8n (team cần track liên tục,
+    // không chờ lượt gom định kỳ). Đẩy hỏng thì dòng vẫn chưa reported —
+    // workflow pull lấp lại, không mất dòng. Kết quả cú đẩy (kèm
+    // status/lỗi) PHẢI vào trace, nuốt im lặng thì lỗi không truy được.
     let pushOutcome: Record<string, unknown> = { skipped: loggedId === null ? "no_id" : "no_n8n" };
     if (loggedId !== null && deps.n8n) {
       const sheetRow = toSheetRow({ ...logRow, id: loggedId, created_at: new Date().toISOString() });

@@ -1,7 +1,7 @@
 -- Mốc theo dõi riêng của email digest Storefront Watch (action nội bộ
 -- storefront_digest ghi): sau mỗi đợt quét của SW, store nào có bug MỚI
 -- thì cả team nhận đúng 1 email (tiêu đề "Storefront Watch Weekly Scan",
--- mỗi store một dòng domain + link Crisp — Ethan chốt 2026-10-27).
+-- mỗi store một dòng domain + link Crisp).
 --
 -- Tách hẳn khỏi hai bảng sẵn có, không dùng chung:
 -- - storefront_seen là mốc Mới/Đã xác nhận CỦA PANEL: CS mở panel là

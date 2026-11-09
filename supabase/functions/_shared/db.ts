@@ -376,11 +376,10 @@ export function createDb(sb: SupabaseClient): Db {
       if (error) throw error;
     },
     async insertStorefrontActionLog(row) {
-      // TÁCH insert và lấy id thành 2 thao tác (bản insert().select().single()
-      // chạy xanh với fake trong test nhưng trên production 2026-10-30 khiến
-      // id không về được — thao tác vẫn báo ok mà cú đẩy real-time không bao
-      // giờ chạy). Cả insert trơn lẫn select trên bảng này đều đã kiểm chứng
-      // sống riêng rẽ (dòng 11:59 ghi được, pull đọc được).
+      // TÁCH insert và lấy id thành 2 thao tác: insert().select().single()
+      // có thể không trả id về (fake trong test không bắt được), khi đó thao
+      // tác vẫn báo ok mà cú đẩy real-time không bao giờ chạy. Insert trơn rồi
+      // select riêng thì lấy được id chắc chắn.
       const { error } = await sb.from("storefront_action_log").insert(row);
       if (error) throw error;
       const { data } = await sb.from("storefront_action_log")

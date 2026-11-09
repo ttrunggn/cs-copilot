@@ -1,6 +1,4 @@
--- Template xin review theo profile + link đích theo workspace (Lỗi 3,
--- Ethan duyệt ở preview v6 2026-10-26; số liệu khai thác thật 26/10, báo cáo
--- files/review-templates-mined-2026-10-26.md).
+-- Template xin review theo profile + link đích theo workspace.
 --
 -- Mô hình: GIỌNG theo profile (agent_profiles.review_template của chính CS,
 -- chứa biến {{review_link}}), LINK theo workspace (workspaces.review_link) —
@@ -8,20 +6,18 @@
 -- CS chưa học được template → panel dùng template mặc định CÓ GHI NGUỒN là
 -- mặc định, không im lặng thay thế.
 --
--- Seed đợt đầu cho workspace Transcy (f5733b35-0234-49e3-aca0-ed27b30b8ee1):
+-- Seed cho workspace Transcy:
 -- - review_link: trang Transcy trên Shopify App Store, biến thể WriteReviewModal
 --   (mở thẳng form viết review). Đổi biến thể = sửa đúng một dòng này.
--- - Raymond (7a3af4dc-...): mẫu trội nhất của anh trong dữ liệu thật (dạng
---   follow-up + xin review, link đã thay bằng biến {{review_link}}).
--- - Anna (6f9339c4-...): mẫu giọng riêng của cô ("Here's Anna again..."),
---   giữ nguyên văn kể cả "^^", "<3" và emoji — đó là giọng của cô ấy.
--- Teresa/Ethan chưa đủ dữ liệu học → review_template giữ null, panel hiện
+-- - review_template cho từng profile CS: giữ giọng riêng của CS đó, link
+--   thay bằng biến {{review_link}}.
+-- CS chưa đủ dữ liệu học → review_template giữ null, panel hiện
 -- mặc định có ghi nhãn. Các workspace khác: review_link null → template
 -- mặc định tự bỏ dòng link.
 --
 -- Chỉ thêm cột + seed dữ liệu: không đổi RLS/policy; cột mới trên hai bảng
--- đã có grant service_role (bảng agent_profiles/workspaces có từ trước đợt
--- grants audit 014–024) nên không phát sinh grant mới.
+-- đã có grant service_role (bảng agent_profiles/workspaces có từ trước
+-- backfill grant ở 024) nên không phát sinh grant mới.
 
 alter table public.workspaces
   add column if not exists review_link text;

@@ -60,8 +60,8 @@ export async function loadConversationFast(
   const now = (deps.now ?? Date.now)();
   const parsedAge = conv.updated_at ? now - Date.parse(conv.updated_at) : Number.POSITIVE_INFINITY;
   // updated_at không parse được (NaN) → coi như cũ hẳn để refresh, khớp hướng
-  // xử lý của loadConversation — trước đây NaN làm cả hai phép so đều false,
-  // dữ liệu bị kẹt ở trạng thái "tươi giả" không bao giờ refresh.
+  // xử lý của loadConversation — NaN làm cả hai phép so đều false, nếu
+  // không chặn thì dữ liệu bị kẹt ở trạng thái "tươi giả" không bao giờ refresh.
   const age = Number.isNaN(parsedAge) ? Number.POSITIVE_INFINITY : parsedAge;
   let stale = false;
   if (age > FRESH_MS) {

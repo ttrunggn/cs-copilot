@@ -14,7 +14,7 @@ function ev(session, fp, from, uid) {
     event: from === "user" ? "message:send" : "message:received",
     data: {
       session_id: session, fingerprint: fp, from, type: "text", content: "x", timestamp: 1760500000000 + fp,
-      ...(uid ? { user: { user_id: uid, nickname: "Lan" } } : {}),
+      ...(uid ? { user: { user_id: uid, nickname: "Jamie" } } : {}),
     },
   });
 }

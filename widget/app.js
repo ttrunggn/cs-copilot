@@ -13,7 +13,7 @@ if (requestedTheme === "light" || requestedTheme === "dark") document.documentEl
 
 const extension = createExtensionClient(render, setNotice);
 
-/** Mở popup của một lệnh (draft | note | ask | csat) — panel gọn v4. */
+/** Mở popup của một lệnh (draft | note | ask | csat) — panel gọn. */
 function openModal(name) {
   state.modal = name;
   if (name === "draft") state.composeOpen = !state.draft;
@@ -276,7 +276,7 @@ async function onGenerate(force) {
   }
 }
 
-/* Thẻ gợi ý tối ưu (preview v8 Ethan duyệt): Thử → Dùng bản gợi ý / Dùng
+/* Thẻ gợi ý tối ưu: Thử → Dùng bản gợi ý / Dùng
  * bản gốc → Lưu làm mẫu mới (chỉ sau khi đã dùng bản gợi ý). Áp cho cả
  * Draft (gợi ý runtime từ generate) và Review (gợi ý lưu trong profile). */
 function onSuggTry(kind) {
@@ -374,7 +374,7 @@ async function onAnalyze(force) {
 }
 
 /**
- * Compute-on-view (Lỗi 5): check báo sentiment đã lưu không còn khớp tin khách
+ * Compute-on-view: check báo sentiment đã lưu không còn khớp tin khách
  * hiện tại → tự gọi analyze NGẦM (không khoá panel bằng busy) để panel luôn
  * hiện phân tích mới nhất, không phụ thuộc precompute qua n8n. Chìa khoá
  * chống lặp: session + mốc tin khách cuối — cùng một trạng thái hội thoại
@@ -403,7 +403,7 @@ async function maybeAutoRefreshSentiment(sessionId) {
   } catch {
     // Lỗi thì giữ bản phân tích cũ đang hiện — im lặng, không báo lỗi chen
     // ngang; sentiment tự tính lại ở lần mở chat kế tiếp (compute-on-view),
-    // panel không còn nút phân tích thủ công (Ethan bỏ 2026-10-29).
+    // panel không có nút phân tích thủ công.
   }
   state.sentimentRefreshing = false;
   render();
@@ -580,8 +580,8 @@ async function onStorefrontLoad() {
   const typed = (state.storefrontShopInput || state.storefrontShop || "").trim();
   state.busyAction = "storefront";
   // Đặt cả nhãn busy: các handler khác chặn song song bằng `if (state.busy)`
-  // và actionButtonState đã khoá mọi nút theo busyAction — trước đây SF chỉ
-  // đặt busyAction nên Enter trong ô hỏi/gõ phím vẫn lọt qua gọi API song song.
+  // và actionButtonState đã khoá mọi nút theo busyAction — chỉ đặt
+  // busyAction thì Enter trong ô hỏi/gõ phím vẫn lọt qua gọi API song song.
   state.busy = "Đang kiểm tra storefront…";
   state.storefront = { status: "loading" };
   state.storefrontDetail = null;
@@ -659,7 +659,7 @@ async function onStorefrontFinding(fingerprint) {
   render();
 }
 
-/** Bấm một dòng finding: mở/đóng menu thao tác ngay dưới dòng đó (bản giả lập Ethan duyệt 2026-10-27). */
+/** Bấm một dòng finding: mở/đóng menu thao tác ngay dưới dòng đó. */
 function onStorefrontMenu(fingerprint) {
   if (!fingerprint || state.sfActBusy) return;
   state.sfMenu = state.sfMenu === fingerprint ? "" : fingerprint;
@@ -755,7 +755,7 @@ async function onStorefrontAct(fingerprint, act) {
 // ---------- render ----------
 
 /**
- * Panel gọn (preview v4 Ethan duyệt): mặc định chỉ xổ 3 module — Tâm trạng
+ * Panel gọn: mặc định chỉ xổ 3 module — Tâm trạng
  * khách, Vấn đề của khách, Issue logs (Storefront + Jira khi có) — rồi thông
  * báo, hàng lệnh, và popup của lệnh đang mở. Draft/note/ask/CSAT không còn
  * nằm thường trực trên panel; chúng sống trong popup (panels.js modalView).
@@ -765,7 +765,7 @@ let lastRenderSession = null;
 function render() {
   if (!state.check) return;
   // Giữ nguyên vị trí cuộn của panel qua mỗi lần render (render dựng lại
-  // toàn bộ DOM nên mặc định nhảy về đầu — Ethan bắt live 2026-10-27 khi
+  // toàn bộ DOM nên mặc định nhảy về đầu, ví dụ khi
   // bấm finding ở cuối danh sách). Đổi conversation thì không giữ.
   const sameSession = lastRenderSession === state.shownSession;
   const prevScrollY = sameSession && typeof window !== "undefined" ? window.scrollY : 0;
@@ -777,8 +777,8 @@ function render() {
       el("div", {}, [
         el("h1", { textContent: vm.header }),
         el("p", { className: "subtitle", textContent: vm.subtitle }),
-        // Tên khách + shopify domain của họ ngay đầu panel (Ethan chốt
-        // 2026-10-26). Domain ưu tiên bản check đã resolve; panel Storefront
+        // Tên khách + shopify domain của họ ngay đầu panel.
+        // Domain ưu tiên bản check đã resolve; panel Storefront
         // nạp xong thì lấy store thật của nó.
         (vm.customerName || vm.shopDomain || state.storefront?.store)
           ? el("p", { className: "customer-line" }, [
@@ -788,9 +788,8 @@ function render() {
               : null,
           ])
           : null,
-        // Dòng báo dữ liệu chậm nằm TRONG card đầu panel (Ethan, 2026-10-28):
-        // trước đây nó nằm trơ dưới header trên nền tối nhất, lap của CS nhìn
-        // tối và rời rạc — cả cụm đầu đã thành một card như các khối khác.
+        // Dòng báo dữ liệu chậm nằm TRONG card đầu panel: cả cụm đầu là một
+        // card như các khối khác, không nằm trơ dưới header.
         vm.stale ? el("p", { className: "stale-line", textContent: "Dữ liệu có thể chậm vài phút" }) : null,
       ]),
       el("button", { className: "refresh-button", textContent: "↻", title: "Làm mới", onclick: load }),
