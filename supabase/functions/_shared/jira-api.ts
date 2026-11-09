@@ -1,10 +1,10 @@
 // Client Jira REST TỐI THIỂU, CHỈ ĐỌC — phục vụ đồng bộ mirror Jira vào
-// panel ngay trong Edge Function (Ethan chốt 2026-10-26: mở panel là tự
-// sync, CS không phải bấm Sync ngay và không phụ thuộc lịch quét của n8n).
+// panel ngay trong Edge Function (mở panel là tự sync, CS không phải
+// bấm Sync ngay và không phụ thuộc lịch quét của n8n).
 //
-// READ-ONLY TUYỆT ĐỐI (luật cứng Ethan 2026-10-23): client này chỉ có đúng
+// READ-ONLY TUYỆT ĐỐI (luật cứng): client này chỉ có đúng
 // một thao tác POST /rest/api/3/search/jql — một lời gọi TÌM KIẾM không
-// thay đổi gì trên Jira (cùng endpoint workflow n8n dùng trước đây). Không
+// thay đổi gì trên Jira (cùng endpoint workflow n8n dùng). Không
 // thêm bất kỳ method tạo/sửa/chuyển trạng thái/comment nào vào đây.
 //
 // Kết quả thô (issues với fields summary,status,assignee,updated,comment)

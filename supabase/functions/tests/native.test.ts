@@ -130,7 +130,7 @@ Deno.test("native fetch: CSAT chưa gửi / đã gửi kèm giờ Asia/Saigon", 
   const r1 = await fetchValue("tt_csat");
   assertEquals(r1.body, { data: { value: "Chưa gửi" } });
   const r2 = await fetchValue("tt_csat", {
-    db: { getCsatSend: () => Promise.resolve({ sent_by: "op-lan", sent_at: "2026-10-15T03:05:00+00:00" }) },
+    db: { getCsatSend: () => Promise.resolve({ sent_by: "op-jamie", sent_at: "2026-10-15T03:05:00+00:00" }) },
   });
   assertEquals(r2.body, { data: { value: "Đã gửi 10:05" } }); // 03:05 UTC = 10:05 +07
   assertEquals(hhmmSaigon("2026-10-15T03:05:00+00:00"), "10:05");
@@ -221,8 +221,8 @@ Deno.test("native: chữ ký theo công thức DOC Crisp [timestamp;body] (tính
   // Công thức lấy nguyên văn từ Web Hooks Reference của Crisp: ghép chuỗi
   // `[timestamp;body_as_string]` rồi HMAC-SHA256 bằng secret. Test này tính
   // chữ ký THẲNG bằng crypto.subtle, không dùng computeCrispWidgetSignature,
-  // để helper có lệch công thức là test đỏ ngay (bản cũ `${ts}.${body}` từng
-  // xanh giả vì test ký bằng chính helper).
+  // để helper có lệch công thức là test đỏ ngay (test ký bằng chính helper
+  // sẽ xanh giả).
   const body = fetchEvent("khach_tin_cho");
   const raw = JSON.stringify(body);
   const ts = "1761732000";
@@ -252,7 +252,7 @@ function fakeCsatDb() {
       getCsatSend: () => Promise.resolve(row),
       recordCsatSend: () => {
         if (row) return Promise.resolve(null);
-        row = { sent_by: "op-lan", sent_at: new Date().toISOString() };
+        row = { sent_by: "op-jamie", sent_at: new Date().toISOString() };
         return Promise.resolve({ sent_at: row.sent_at });
       },
       releaseCsatSend: () => (row = null, Promise.resolve()),
@@ -264,11 +264,11 @@ Deno.test("native hook CSAT: gửi ngay qua runSurvey; bấm lại trong cửa s
   const csat = fakeCsatDb();
   let sends = 0;
   const { deps } = makeDeps({
-    db: { ...csat.db, getOperatorIdByEmail: () => Promise.resolve("op-lan") },
+    db: { ...csat.db, getOperatorIdByEmail: () => Promise.resolve("op-jamie") },
   });
   deps.n8n.sendSurvey = () => (sends++, Promise.resolve(true));
   const nd: NativeDeps = { db: deps.db, ai: deps.ai, n8n: deps.n8n, pluginKey: "" };
-  const ev = hookEvent("act_csat", { operator_email: "lan@firegroup.io" });
+  const ev = hookEvent("act_csat", { operator_email: "agent@example.com" });
   const r1 = await handleNativeEvent(ev, JSON.stringify(ev), NO_SIG, nd);
   assertEquals(r1.status, 200);
   assertEquals(r1.body, {});

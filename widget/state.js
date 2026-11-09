@@ -16,13 +16,13 @@ export const state = {
   choice: false, // đang hỏi Thay thế / Chèn cuối / Huỷ
   choiceFor: "draft", // lệnh điền đang chờ chọn cách điền thuộc về: draft | review | note | explain
   draftPlacement: "", // "" | inserted
-  modal: null, // popup đang mở: null | draft | note | ask | csat | explain (panel gọn v4: thao tác nằm trong popup)
+  modal: null, // popup đang mở: null | draft | note | ask | csat | explain (panel gọn: thao tác nằm trong popup)
   composeOpen: true, // trong popup Draft: đang hiện form ý + giọng văn hay chỉ hiện draft
   csatChoice: "", // trong popup CSAT: "" | survey | review — CS đã chọn nhánh nào
   reviewText: "", // nội dung tin xin review CS đang sửa trong popup (mặc định REVIEW_TEMPLATE)
   reviewInsertId: "", // output_id tổng hợp cho lệnh điền tin review — reset khi CS sửa chữ để khỏi bị chặn "duplicate"
   draftSugg: null, // gợi ý tối ưu cho draft vừa soạn (generate.draft_suggestion {reason, text}); null = không có
-  draftSuggPhase: "", // thẻ gợi ý Draft: "" | trying | adopted | saved (luồng nút Ethan duyệt ở preview v8)
+  draftSuggPhase: "", // thẻ gợi ý Draft: "" | trying | adopted | saved
   draftSuggOrig: "", // text draft gốc khi đang thử bản gợi ý — để "Dùng bản gốc" khôi phục
   reviewSuggPhase: "", // thẻ gợi ý Review: "" | trying | adopted | saved
   reviewSuggOrig: "", // text template gốc khi đang thử bản gợi ý Review

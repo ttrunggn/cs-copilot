@@ -1,7 +1,7 @@
--- Hybrid search cho helpdesk (Ethan chốt 2026-10-27, thay tầng ILIKE của
+-- Hybrid search cho helpdesk (thay tầng ILIKE của
 -- ask): vector (pgvector) + full-text search (tsvector 'english' — có
 -- stemming, xếp hạng) gộp hạng bằng Reciprocal Rank Fusion (k=60).
--- ILIKE cũ không stemming/không hạng/chỉ chạy khi vector trượt hẳn nên câu
+-- ILIKE không stemming/không hạng/chỉ chạy khi vector trượt hẳn nên câu
 -- hỏi đời thường (từ đồng nghĩa, khác dạng từ) trượt cả hai đường.
 
 -- Cột fts là GENERATED: chunk ghi mới qua replace_helpdesk_chunks tự có

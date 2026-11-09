@@ -1,7 +1,6 @@
--- Thêm cột issues cho conversation_sentiment (Lỗi 4, Ethan bắt khi test live
--- 2026-10-26): panel từng lấy signals (trích nguyên văn lời khách) làm thẻ
--- "Vấn đề của khách", kể cả tin cập nhật tiến độ cũng thành issue. Từ nay lớp
--- phân tích sinh issues riêng: mỗi issue là một câu phát biểu vấn đề (tiếng
+-- Thêm cột issues cho conversation_sentiment : signals (trích nguyên văn lời khách)
+-- không hợp làm thẻ "Vấn đề của khách" (tin cập nhật tiến độ cũng sẽ thành
+-- issue), nên lớp phân tích sinh issues riêng: mỗi issue là một câu phát biểu vấn đề (tiếng
 -- Việt, AI tổng hợp) kèm trích ngắn làm bằng chứng, lưu dạng jsonb
 -- [{summary, evidence}]. signals giữ nguyên vai trò tín hiệu trong thẻ tâm
 -- trạng, không còn bị dùng làm issue.

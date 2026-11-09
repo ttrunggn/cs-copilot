@@ -29,9 +29,9 @@ Deno.test("resolve shop: DB đã có domain -> dùng luôn, không hỏi Crisp",
   let crispCalls = 0;
   const shop = await resolveShopDomain(
     { db: fakeDb([]), crisp: { getConversationCustomData: () => { crispCalls++; return Promise.resolve(null); }, getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
-    "ws1", "s_db", conv("s_db", { shopify_domain: "co-san.myshopify.com" }),
+    "ws1", "s_db", conv("s_db", { shopify_domain: "shop-db.myshopify.com" }),
   );
-  assertEquals(shop, "co-san.myshopify.com");
+  assertEquals(shop, "shop-db.myshopify.com");
   assertEquals(crispCalls, 0);
 });
 
@@ -39,12 +39,12 @@ Deno.test("resolve shop: DB trống -> lấy từ Crisp, lưu lại vào DB và 
   const merges: { patch: Record<string, unknown> }[] = [];
   const c = conv("s_crisp");
   const shop = await resolveShopDomain(
-    { db: fakeDb(merges), crisp: { getConversationCustomData: () => Promise.resolve({ shopify_domain: "iaewrj-tr.myshopify.com", other: 1 }), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
+    { db: fakeDb(merges), crisp: { getConversationCustomData: () => Promise.resolve({ shopify_domain: "shop-g.myshopify.com", other: 1 }), getConversationSegments: () => Promise.resolve([]), setConversationSegments: () => Promise.resolve() } },
     "ws1", "s_crisp", c,
   );
-  assertEquals(shop, "iaewrj-tr.myshopify.com");
-  assertEquals(merges, [{ patch: { shopify_domain: "iaewrj-tr.myshopify.com" } }]);
-  assertEquals(c.custom_data?.shopify_domain, "iaewrj-tr.myshopify.com");
+  assertEquals(shop, "shop-g.myshopify.com");
+  assertEquals(merges, [{ patch: { shopify_domain: "shop-g.myshopify.com" } }]);
+  assertEquals(c.custom_data?.shopify_domain, "shop-g.myshopify.com");
 });
 
 Deno.test("resolve shop: Crisp không có domain -> rỗng và không hỏi lại trong cửa sổ TTL", async () => {
@@ -81,12 +81,12 @@ import { shopCandidatesFromMessages } from "../copilot/storefront-actions.ts";
 
 Deno.test("shop candidates: trích host từ link khách gửi — myshopify trước, host lạ/mạng xã hội bị loại, chỉ tin khách", () => {
   const cands = shopCandidatesFromMessages([
-    { from: "user", content: "my store https://lauravita.com/collections/boots/products/anita and fb https://facebook.com/x" },
-    { from: "user", content: "also https://lauravita.com/products/other plus app link https://apps.shopify.com/transcy" },
+    { from: "user", content: "my store https://store-f.example/collections/boots/products/item and fb https://facebook.com/x" },
+    { from: "user", content: "also https://store-f.example/products/other plus app link https://apps.shopify.com/transcy" },
     { from: "operator", content: "check https://operator-link.com/please" },
-    { from: "user", content: "backup domain lauravita-123.myshopify.com here" },
+    { from: "user", content: "backup domain store-f-123.myshopify.com here" },
   ]);
-  assertEquals(cands, ["lauravita-123.myshopify.com", "lauravita.com"]);
+  assertEquals(cands, ["store-f-123.myshopify.com", "store-f.example"]);
 });
 
 Deno.test("resolve shop: DB + Crisp đều trống → lấy domain từ link khách gửi khi SW đang theo dõi, lưu lại", async () => {
@@ -94,16 +94,16 @@ Deno.test("resolve shop: DB + Crisp đều trống → lấy domain từ link kh
   const db = {
     mergeConversationCustomData: (_w: string, _s: string, patch: Record<string, unknown>) => { merges.push({ patch }); return Promise.resolve(true); },
     getMessages: () => Promise.resolve([
-      { from: "user", content: "here is my product https://lauravita.com/products/anita10" },
+      { from: "user", content: "here is my product https://store-f.example/products/item10" },
       { from: "operator", content: "thanks, checking" },
     ]),
-    getStorefrontStoreStatus: (_w: string, shop: string) => Promise.resolve(shop === "lauravita.com" ? { watched: true } : null),
+    getStorefrontStoreStatus: (_w: string, shop: string) => Promise.resolve(shop === "store-f.example" ? { watched: true } : null),
   } as unknown as Db;
   const c = conv("s_msg");
   const shop = await resolveShopDomain({ db, crisp: null }, "ws1", "s_msg", c);
-  assertEquals(shop, "lauravita.com");
-  assertEquals(merges, [{ patch: { shopify_domain: "lauravita.com" } }]);
-  assertEquals(c.custom_data?.shopify_domain, "lauravita.com");
+  assertEquals(shop, "store-f.example");
+  assertEquals(merges, [{ patch: { shopify_domain: "store-f.example" } }]);
+  assertEquals(c.custom_data?.shopify_domain, "store-f.example");
 });
 
 Deno.test("resolve shop: link khách gửi nhưng SW KHÔNG theo dõi → không bắt bừa, trả rỗng", async () => {

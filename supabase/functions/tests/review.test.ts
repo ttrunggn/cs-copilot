@@ -34,28 +34,28 @@ Deno.test("resolveReviewTemplate: không truyền pool dự phòng → profile r
   assertStringIncludes(r.text, "Thank you for reaching out to us");
 });
 
-Deno.test("resolveReviewTemplate: CS chưa có mẫu → mượn mẫu profile tốt nhất của team, nguồn vẫn ghi default (Ethan chốt 2026-10-27)", () => {
+Deno.test("resolveReviewTemplate: CS chưa có mẫu → mượn mẫu profile tốt nhất của team, nguồn vẫn ghi default", () => {
   const pool = [
-    row({ crisp_user_id: "op-anna", conversations_used: 40, review_template: "Mẫu Anna.\\n{{review_link}}" }),
-    row({ crisp_user_id: "op-ray", conversations_used: 120, review_template: "Mẫu Raymond.\\n{{review_link}}" }),
+    row({ crisp_user_id: "op-casey", conversations_used: 40, review_template: "Mẫu Casey.\\n{{review_link}}" }),
+    row({ crisp_user_id: "op-rowan", conversations_used: 120, review_template: "Mẫu Rowan.\\n{{review_link}}" }),
   ];
   const r = resolveReviewTemplate([row({ review_template: null })], "billing", LINK, pool);
   assertEquals(r.source, "default");
-  assertEquals(r.text, `Mẫu Raymond.\\n${LINK}`);
+  assertEquals(r.text, `Mẫu Rowan.\\n${LINK}`);
   assertEquals(r.suggestion, null);
 });
 
 Deno.test("resolveReviewTemplate: dự phòng ưu tiên mẫu khớp topic của conversation hơn mẫu học nhiều nhưng khác topic", () => {
   const pool = [
-    row({ crisp_user_id: "op-ray", topic: "_all", conversations_used: 120, review_template: "Mẫu chung.\\n{{review_link}}" }),
-    row({ crisp_user_id: "op-anna", topic: "billing", conversations_used: 40, review_template: "Mẫu billing.\\n{{review_link}}" }),
+    row({ crisp_user_id: "op-rowan", topic: "_all", conversations_used: 120, review_template: "Mẫu chung.\\n{{review_link}}" }),
+    row({ crisp_user_id: "op-casey", topic: "billing", conversations_used: 40, review_template: "Mẫu billing.\\n{{review_link}}" }),
   ];
   const r = resolveReviewTemplate([], "billing", LINK, pool);
   assertEquals(r.text, `Mẫu billing.\\n${LINK}`);
 });
 
 Deno.test("resolveReviewTemplate: có mẫu của chính CS thì KHÔNG mượn của team", () => {
-  const pool = [row({ crisp_user_id: "op-ray", conversations_used: 120, review_template: "Mẫu Raymond.\\n{{review_link}}" })];
+  const pool = [row({ crisp_user_id: "op-rowan", conversations_used: 120, review_template: "Mẫu Rowan.\\n{{review_link}}" })];
   const r = resolveReviewTemplate([row({ review_template: "Mẫu của tôi.\\n{{review_link}}" })], "billing", LINK, pool);
   assertEquals(r.source, "profile");
   assertEquals(r.text, `Mẫu của tôi.\\n${LINK}`);

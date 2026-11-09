@@ -10,8 +10,8 @@ export const PING_TIMEOUT_MS = 1000;
  * 1.2.0 và 1.2.1 nên bridgeState không phân biệt được hai bản — mà hành vi
  * điền khác hẳn nhau (1.2.0 chèn nối, 1.2.1 thay toàn bộ có kiểm chứng).
  * Panel phải so SỐ VERSION extension tự khai trong pong và cảnh báo rõ khi
- * đang ở bản cũ, thay vì báo "sẵn sàng" rồi CS lãnh đủ lỗi cũ (Ethan test
- * live 2026-10-26: tưởng đã cài 1.2.1 nhưng Chrome vẫn chạy bản cũ).
+ * đang ở bản cũ, thay vì báo "sẵn sàng" rồi CS lãnh đủ lỗi cũ (Chrome có thể
+ * vẫn chạy bản cũ sau khi cài bản mới).
  */
 export const EXPECTED_EXTENSION_VERSION = "1.2.6";
 
@@ -60,8 +60,7 @@ export function bridgeState(pong) {
  * trong Chrome inject bridge riêng vào iframe widget và trả pong kèm mã
  * định danh của nó (trường ext) — HAI mã khác nhau nghĩa là hai bản đang
  * chạy song song (bản cũ chưa gỡ hẳn): mọi lệnh điền bị thực thi hai lần,
- * ô Reply gấp đôi nội dung, ô Note thì hai bản giành nhau (ca live
- * 2026-10-26). Panel phải cảnh báo thay vì báo "sẵn sàng" mù.
+ * ô Reply gấp đôi nội dung, ô Note thì hai bản giành nhau. Panel phải cảnh báo thay vì báo "sẵn sàng" mù.
  */
 export function respondersSummary(pongs) {
   const list = (pongs ?? []).filter(Boolean);

@@ -94,7 +94,7 @@ Deno.test("ask: answered true nhưng đáp án rỗng → found false", async ()
   assertEquals(r.body, { action: "ask", found: false, answer: null, sources: [] });
 });
 
-Deno.test("ask: câu hỏi tiếng Việt (ca Ethan thử: 'khách muốn chặn bản dịch') → hybrid chạy cả bản dịch tiếng Anh; FTS khớp trên bản dịch → found true", async () => {
+Deno.test("ask: câu hỏi tiếng Việt ('khách muốn chặn bản dịch') → hybrid chạy cả bản dịch tiếng Anh; FTS khớp trên bản dịch → found true", async () => {
   const { deps, calls, captured } = setup({
     hybridImpl: (_ws, q) => Promise.resolve(
       q === "How to block translation for a page" ? [{ ...HD, similarity: 0, score: 0.016, ftsRank: 1 }] : [],

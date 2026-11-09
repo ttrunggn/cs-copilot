@@ -35,7 +35,7 @@ Deno.test("sentimentPrompt: rubric có neo điểm, trục urgency riêng và v�
   assertStringIncludes(p, "still not resolved");
 });
 
-Deno.test("sentimentPrompt: model viết bằng ngôn ngữ tự nhiên của khách, KHÔNG ép tiếng Việt trong prompt phân tích (pipeline mới 2026-10-27)", () => {
+Deno.test("sentimentPrompt: model viết bằng ngôn ngữ tự nhiên của khách, KHÔNG ép tiếng Việt trong prompt phân tích", () => {
   const p = sentimentPrompt("User: still not resolved");
   assertStringIncludes(p, "SAME language the customer uses");
   assertStringIncludes(p, "do NOT translate anything yourself");

@@ -27,7 +27,7 @@ export interface SweepResult {
  * gọi find_store từng domain và UPSERT bản chụp vào storefront_store_status.
  * Nhờ bản chụp này, panel biết ngay store của một chat có lỗi mở hay không
  * (badge ở Issue logs + cổng Storefront) mà không phải chờ CS mở module hay
- * tự đi search — đúng điểm mù Ethan chỉ ra: SW chỉ quét theo domain, CS
+ * tự đi search — SW chỉ quét theo domain, CS
  * không search thì không bao giờ biết khách nào đang có bug.
  *
  * Idempotent tuyệt đối: bản chụp ghi theo PK (website_id, shop) bằng upsert
@@ -48,8 +48,7 @@ export async function runStorefrontSweep(
   // Chỉ workspace trong phạm vi SW (cờ storefront_watch bật — hiện chỉ bật
   // cho workspace của chính Transcy khi deploy) mới có ý niệm "store của
   // khách mình" ở đây: workspace khác cũng có jira_project riêng (OES) và
-  // cũng có shopify_domain trong visitor data của họ (đính chính của
-  // Ethan) — quét domain của workspace khác là lẫn dữ liệu. KHÔNG suy phạm
+  // cũng có shopify_domain trong visitor data của họ — quét domain của workspace khác là lẫn dữ liệu. KHÔNG suy phạm
   // vi từ jira_project.
   if (!ws.storefront_watch) return { ...base, skipped: "not_transcy_workspace" };
   if (!deps.storefront) return { ...base, skipped: "unconfigured" };

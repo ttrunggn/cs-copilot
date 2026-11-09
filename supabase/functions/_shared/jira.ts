@@ -1,11 +1,11 @@
 // Logic thuần cho Jira: đọc dữ liệu Jira API, phân vai comment, so thay đổi với mốc đã thấy trước,
-// và dựng ngữ cảnh Jira cho widget/handoff/draft. Jira là mirror chỉ-đọc vào panel (quy tắc Ethan
-// chốt 2026-10-23): module này KHÔNG soạn bất cứ nội dung nào để đăng vào Crisp.
+// và dựng ngữ cảnh Jira cho widget/handoff/draft. Jira là mirror chỉ-đọc vào panel:
+// module này KHÔNG soạn bất cứ nội dung nào để đăng vào Crisp.
 //
-// Done trên Jira ≠ CS đã báo cho khách (Ethan, 2026-10-23): ticket chuyển Done mà CS chưa nhắn
+// Done trên Jira ≠ CS đã báo cho khách: ticket chuyển Done mà CS chưa nhắn
 // cho khách sau mốc đó thì card VẪN ở lại panel với nhãn "Chờ báo khách" — card chỉ rời panel
 // khi CS đã nhắn khách sau mốc Done (doneReportedToCustomer) hoặc CS tự gỡ liên kết. Vì vậy
-// jira-sync KHÔNG tắt link ngay khi ticket Done như trước.
+// jira-sync KHÔNG tắt link ngay khi ticket Done.
 import { neutralize } from "./prompts.ts";
 
 export type CommentRole = "tech" | "cs" | "bot";
@@ -111,7 +111,7 @@ export interface LinkDiff {
  * Jira được chuẩn hoá bằng toISOString() (đuôi ".000Z") trong khi mốc đọc từ
  * Postgres qua PostgREST có đuôi "+00:00" — so chuỗi thì ".000Z" luôn "lớn
  * hơn" "+00:00" ở cùng một thời điểm, khiến comment mới nhất bị tính là mới
- * mãi mãi (đây là gốc rễ vụ note Jira spam mỗi 5 phút, 2026-10-23). Chuỗi
+ * mãi mãi (mỗi lượt sync lại báo "có cập nhật"). Chuỗi
  * rỗng/không parse được → null; mốc null nghĩa là "chưa thấy gì" (mọi comment
  * đều mới), comment không parse được thì không tính là mới.
  */
@@ -173,9 +173,8 @@ export interface ConversationJira {
 }
 
 // Panel là MIRROR của Jira: comment phải nguyên văn (chỉ gộp khoảng trắng
-// cho dễ đọc), KHÔNG cắt cụt — trần 300 ký tự cũ làm mất đúng phần kết luận
-// của Dev trong các comment dài (Ethan bắt lỗi live 2026-10-26 trên
-// TNT-9210). Bản cắt 300 chỉ còn dùng cho khối ngữ cảnh đưa vào prompt AI
+// cho dễ đọc), KHÔNG cắt cụt — cắt ở 300 ký tự sẽ mất đúng phần kết luận
+// của Dev trong các comment dài. Bản cắt 300 chỉ còn dùng cho khối ngữ cảnh đưa vào prompt AI
 // (jiraPromptBlock), nơi ngân sách token là thật.
 const view = (c: JiraComment) => ({ author: c.author, role: c.role, body: c.body_text.replace(/\s+/g, " ").trim(), created_at: c.created_at });
 
@@ -231,7 +230,7 @@ export function jiraForConversation(rows: { link: JiraLink; issue: JiraIssue | n
   return out;
 }
 
-/** Module panel bật theo ngữ cảnh (internal connections — Ethan chốt 2026-10-23), server tính trong check. */
+/** Module panel bật theo ngữ cảnh (internal connections), server tính trong check. */
 export interface EnabledModules {
   jira: boolean;
   storefront: boolean;
@@ -244,10 +243,10 @@ export interface EnabledModules {
  *   đọc ở DB; thiếu/false = workspace nằm ngoài phạm vi SW, đường domain
  *   đóng bất kể các trường còn lại.
  * - shopDomain: shopify_domain trong custom_data của chính conversation này.
- * - snapshotWatched: bản chụp storefront_store_status — TỪ 2026-10-26 KHÔNG
- *   còn tham gia cổng (Ethan chốt: cứ có shopify_domain + cờ workspace là
- *   hiện module, store có bug ở SW là phải hiện; bản chụp sweep từng phủ
- *   quyết nhầm store đang được theo dõi thật). Chỉ còn là dữ kiện phụ cho
+ * - snapshotWatched: bản chụp storefront_store_status — KHÔNG tham gia
+ *   cổng (cứ có shopify_domain + cờ workspace là hiện module, store có bug
+ *   ở SW là phải hiện; bản chụp sweep có thể cũ và phủ quyết nhầm store
+ *   đang được theo dõi thật). Chỉ còn là dữ kiện phụ cho
  *   badge storefront_status; action nạp SW trực tiếp mới là nơi quyết định
  *   store có được theo dõi hay không (trả not_watched).
  */
@@ -265,7 +264,7 @@ export interface StorefrontGateContext {
  * không hardcode mã của bất kỳ workspace nào. Đường này cũng là dự phòng cho
  * workspace trong phạm vi SW khi domain không có/không được theo dõi.
  *
- * (b) Đường domain (Ethan duyệt 2026-10-23, nới 2026-10-26 — CHỈ trong
+ * (b) Đường domain (CHỈ trong
  * phạm vi Storefront Watch): chat có shopify_domain trong custom_data là
  * module hiện, KHÔNG cần ticket Jira liên kết và KHÔNG cần bản chụp sweep
  * xác nhận — store có bug ở SW là phải hiện; action nạp trực tiếp trả
@@ -273,7 +272,7 @@ export interface StorefrontGateContext {
  * Phạm vi SW được định danh TƯỜNG MINH bằng cờ workspaces.storefront_watch
  * (migration 023, gate.storefrontWatchEnabled) — đây là định danh DUY NHẤT.
  * TUYỆT ĐỐI không suy phạm vi từ jira_project: workspace khác (OE) cũng có
- * jira_project riêng (OES). Đính chính của Ethan: domain Shopify tự nó cũng
+ * jira_project riêng. Domain Shopify tự nó cũng
  * KHÔNG chứng minh được là store của Transcy — workspace khác cũng có
  * domain trong visitor data. Chỉ khi cờ bật (hiện chỉ bật cho workspace
  * của chính Transcy khi deploy) thì shopify_domain mới mở được đường (b).
@@ -296,7 +295,7 @@ export function enabledModules(
   const viaTicket = project !== "" && items.some((j) => j.issue_key.split("-")[0].trim().toUpperCase() === project);
   const domain = (gate?.shopDomain ?? "").trim();
   const viaDomain = gate?.storefrontWatchEnabled === true && domain !== "";
-  // Ethan chốt 2026-10-26: workspace ĐÃ cấu hình tích hợp (có Jira project,
+  // Workspace ĐÃ cấu hình tích hợp (có Jira project,
   // hoặc bật cờ Storefront Watch — tức workspace Transcy) thì hai module
   // LUÔN hiện trên panel, kể cả khi chat chưa có gì (card hiện trạng thái
   // trống) — panel đủ rộng, CS khỏi đoán là thiếu dữ liệu hay module tắt.

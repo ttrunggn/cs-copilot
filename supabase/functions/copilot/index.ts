@@ -36,15 +36,15 @@ const n8n = createN8n({ baseUrl: Deno.env.get("N8N_WEBHOOK_BASE")!, secret: Deno
 // SW_API_TOKEN/SW_MCP_SIGNING_SECRET trong env → null, action trả unconfigured.
 const storefront = storefrontFromEnv((k) => Deno.env.get(k));
 // Client REST Crisp — CHỈ cho job đồng bộ segment `storefront-watch`
-// (ngoại lệ ghi duy nhất Ethan đã duyệt, xem _shared/crisp.ts). Thiếu
+// (ngoại lệ ghi duy nhất được phép, xem _shared/crisp.ts). Thiếu
 // CRISP_PLUGIN_IDENTIFIER/CRISP_PLUGIN_KEY → null, job trả unconfigured.
 const crisp = crispFromEnv((k) => Deno.env.get(k));
-// Mailer gửi email digest Storefront Watch tới operator (Ethan duyệt
-// 2026-10-27, xem _shared/crisp-operators.ts): dùng chung plugin token
+// Mailer gửi email digest Storefront Watch tới operator (xem
+// _shared/crisp-operators.ts): dùng chung plugin token
 // với client segment; thiếu credential → null, job digest trả
 // mail_unconfigured.
 const mailer = operatorMailerFromEnv((k) => Deno.env.get(k));
-// Jira REST chỉ-đọc cho đường tự sync khi mở panel (Ethan chốt 2026-10-26):
+// Jira REST chỉ-đọc cho đường tự sync khi mở panel:
 // thiếu JIRA_EMAIL/JIRA_API_TOKEN → null, check giữ mirror cũ và nút Sync
 // ngay báo unconfigured trung thực. Kho mirror dùng chung với function
 // jira-sync (cùng pipeline applyJiraIssues — chỉ MỘT nguồn sync active).

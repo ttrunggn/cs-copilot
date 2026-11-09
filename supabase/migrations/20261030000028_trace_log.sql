@@ -1,6 +1,5 @@
--- Bảng truy vết (tracing) cho copilot — Ethan chốt 2026-10-26: "làm gì
--- cũng cần truy vết để tracing". Trước giờ lỗi production chỉ xem được qua
--- log Supabase (chỉ chủ tài khoản mở được) hoặc ảnh chụp panel; từ nay mỗi
+-- Bảng truy vết (tracing) cho copilot: không có bảng này thì lỗi chỉ xem được
+-- qua log Supabase (chỉ chủ tài khoản mở được) hoặc ảnh chụp panel. Mỗi
 -- request qua handler ghi 1 dòng timing (action + tổng thời gian), lỗi ghi
 -- thêm 1 dòng error (nguyên văn message), các chặng đắt (sync Jira nền,
 -- gọi Storefront Watch) ghi timing riêng theo stage. Nhờ đó tra được cả

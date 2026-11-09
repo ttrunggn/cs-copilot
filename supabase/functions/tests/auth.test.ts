@@ -4,17 +4,17 @@ import type { Db } from "../_shared/db.ts";
 import type { Workspace } from "../_shared/types.ts";
 
 const WS: Workspace = { website_id: "ws1", name: "App A", topics: [], default_profile: {}, jira_project: null, storefront_watch: false, review_link: null };
-const TOKEN = "tok-lan";
+const TOKEN = "tok-jamie";
 const CRISP_TOKEN = "11111111-2222-3333-4444-555555555555";
 
 async function fakeDb(member = true): Promise<Db> {
-  const lanHash = await sha256Hex(TOKEN);
+  const jamieHash = await sha256Hex(TOKEN);
   const widgetHash = await sha256Hex(CRISP_TOKEN);
   return {
     logTrace: () => Promise.resolve(),
     getWidgetTokenHash: (id) => Promise.resolve(id === "ws1" ? widgetHash : null),
     getWorkspace: (id) => Promise.resolve(id === "ws1" ? WS : null),
-    getOperatorIdByTokenHash: (h) => Promise.resolve(h === lanHash ? "op-lan" : null),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === jamieHash ? "op-jamie" : null),
     isOperatorMember: () => Promise.resolve(member),
     getConversation: () => Promise.resolve(null),
     getMessages: () => Promise.resolve([]),
@@ -92,22 +92,22 @@ Deno.test("operator not in workspace -> 403", async () => {
 });
 
 Deno.test("valid token returns workspace and operator", async () => {
-  assertEquals(await authorize(await fakeDb(), { website_id: "ws1", token: TOKEN }), { workspace: WS, operatorId: "op-lan" });
+  assertEquals(await authorize(await fakeDb(), { website_id: "ws1", token: TOKEN }), { workspace: WS, operatorId: "op-jamie" });
 });
 
 Deno.test("widget: valid Crisp website token + active operator", async () => {
   assertEquals(
-    await authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: CRISP_TOKEN, operator_id: "op-lan" }),
-    { workspace: WS, operatorId: "op-lan" },
+    await authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: CRISP_TOKEN, operator_id: "op-jamie" }),
+    { workspace: WS, operatorId: "op-jamie" },
   );
 });
 
 Deno.test("widget: wrong Crisp token -> 401", async () => {
-  assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: "forged", operator_id: "op-lan" })), 401);
+  assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws1", crisp_token: "forged", operator_id: "op-jamie" })), 401);
 });
 
 Deno.test("widget: token of another workspace -> 401", async () => {
-  assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws2", crisp_token: CRISP_TOKEN, operator_id: "op-lan" })), 401);
+  assertEquals(await status(authorizeWidget(await fakeDb(), { website_id: "ws2", crisp_token: CRISP_TOKEN, operator_id: "op-jamie" })), 401);
 });
 
 Deno.test("widget: missing operator -> 400", async () => {

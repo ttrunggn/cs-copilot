@@ -1,5 +1,5 @@
 -- Nhật ký thao tác ghi Storefront Watch từ panel (Take case / Fix /
--- Dismiss / Mở lại) — Ethan chốt 2026-10-30: thay vì trông vào email
+-- Dismiss / Mở lại) : thay vì trông vào email
 -- digest (chỉ gửi khi có bug mới), mọi cú click trong panel được ghi
 -- thành một dòng ở đây ngay khi thao tác thành công, rồi workflow n8n
 -- "Storefront Report" kéo các dòng chưa báo (reported_at is null) lên

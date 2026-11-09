@@ -1,5 +1,4 @@
 // Kiểu dữ liệu dùng chung cho các Edge Function của copilot.
-// (Bản này đồng thời kích hoạt lại deploy sau khi extension.zip tốt đã lên master — 2026-10-23.)
 export interface MessageRow {
   id: number;
   content_en: string | null;
@@ -41,12 +40,12 @@ export interface Workspace {
    * storefront_sweep và badge storefront_status trong check đều đọc cờ này.
    * Chỉ bật cho workspace của chính Transcy khi deploy — workspace khác cũng
    * có jira_project riêng (OES) và shopify_domain trong visitor data, nên
-   * không được suy phạm vi SW từ hai tín hiệu đó (quyết định của Ethan).
+   * không được suy phạm vi SW từ hai tín hiệu đó.
    */
   storefront_watch: boolean;
   /**
    * Link đích xin review CỦA WORKSPACE (vd trang app trên Shopify App Store
-   * của Transcy) — product knowledge theo workspace (Ethan chốt 2026-10-26):
+   * của Transcy) — product knowledge theo workspace:
    * template xin review theo profile chỉ chứa biến {{review_link}}, server
    * thay bằng link của workspace đang làm việc khi trả về panel. null = chưa
    * cấu hình → template mặc định bỏ dòng link.
@@ -163,7 +162,7 @@ export interface OutputRow {
   helpdesk_matches: number | null;
   topic: string | null;
   prompt_version: string | null;
-  posted: boolean | null; // legacy của thời handoff tự đăng note lên Crisp; từ 2026-10-23 copilot không tự đăng nữa nên luôn null
+  posted: boolean | null; // cột legacy; copilot không tự đăng note lên Crisp nên luôn null
   created_at: string;
 }
 

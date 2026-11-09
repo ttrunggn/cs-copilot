@@ -82,19 +82,17 @@ Deno.test("classifyFindings: tin của khách/bot/note không tính là CS đã 
   assertEquals(g.in_progress.length, 1);
 });
 
-// ---------- parse prose thật của tool ----------
-// Fixture chép ĐÚNG văn bản đã gọi live 2026-10-23 từ hai store đang được SW
-// theo dõi (amirobeauty.com, iglow.me) — định dạng prose cố định của SW.
+// ---------- parse prose của tool ----------
+// Fixture theo đúng định dạng prose cố định của SW (store và dữ liệu là giả).
 
-const AMIRO_STORE = `Store: amirobeauty.com
+const STORE_A = `Store: store-a.example
 In the weekly sweep: yes
 Languages: es, ja, zh · pages: 31
 Last good check: 2026-10-22
 Open problems: 3 critical, 6 high, 0 medium, 0 low`;
 
-// Mẫu thật 2026-10-28 (Sarina gọi find_store trực tiếp): store được theo dõi
-// nhưng chưa trang nào quét thành công.
-const BOUWMAAT_STORE = `Store: dev.bouwmaat.nl (asked as bouwmaat-dev.myshopify.com)
+// Store được theo dõi nhưng chưa trang nào quét thành công.
+const STORE_UNCHECKED = `Store: dev.store-c.example (asked as store-c-dev.myshopify.com)
 In the weekly sweep: yes
 Languages: de, en, pl, tr · pages: 4
 Last good check: none yet
@@ -105,12 +103,12 @@ Not checked, so unknown (not clean): 4 page(s)
 - tr /: the language could not be confirmed (inconclusive)
 - en /: the language could not be confirmed (inconclusive)`;
 
-// Mẫu thật 2026-10-28: domain SW không với tới được, không giữ dữ liệu gì.
-const UNREACHABLE_STORE = `Store: 5f5291-40.myshopify.com
-Storefront Watch could not reach 5f5291-40.myshopify.com to find its main domain (HTTP 404), and holds nothing under that name.
+// Domain SW không với tới được, không giữ dữ liệu gì.
+const UNREACHABLE_STORE = `Store: unknown-shop.myshopify.com
+Storefront Watch could not reach unknown-shop.myshopify.com to find its main domain (HTTP 404), and holds nothing under that name.
 That means nothing is known about it, not that it has no problems.`;
 
-const AMIRO_LIST = `9 open problem(s) on amirobeauty.com, worst first:
+const LIST_A = `9 open problem(s) on store-a.example, worst first:
 1. CRITICAL · Region missing · ja / (1440px)
    Seen 2 time(s), first 2026-10-14, last 2026-10-22
    Fingerprint: aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
@@ -123,53 +121,53 @@ const AMIRO_LIST = `9 open problem(s) on amirobeauty.com, worst first:
    Seen 2 time(s), first 2026-10-14, last 2026-10-22
    Fingerprint: f38202faad7e0a03f6ebf8c1fd5df56501690aed
    Console: https://sw.transcy.io/#/f/f38202faad7e0a03f6ebf8c1fd5df56501690aed
-4. HIGH · Option unidentifiable · zh /products/amiro-oath-makeup-lighted-mirror (1440px)
+4. HIGH · Option unidentifiable · zh /products/sample-mirror (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Text: "Color"
    Fingerprint: 036a70d3e7321a4d179fe1db24d756d6b713e7ac
    Console: https://sw.transcy.io/#/f/036a70d3e7321a4d179fe1db24d756d6b713e7ac
-5. HIGH · Graphic lost · es /products/amiro-mate-led-makeup-mirror (1440px)
+5. HIGH · Graphic lost · es /products/led-mirror (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Text: "Rosa", "Blanco"
    Fingerprint: 42bf44a1456a4a6e4e970daa7a714ce1b80accf9
    Console: https://sw.transcy.io/#/f/42bf44a1456a4a6e4e970daa7a714ce1b80accf9
-6. HIGH · Graphic lost · zh /products/tatis-exclusive-amiro-spectra-led-face-mask (1440px)
+6. HIGH · Graphic lost · zh /products/face-mask (1440px)
    Seen 1 time(s), first 2026-10-15, last 2026-10-15
    Text: "真實", "假的"
    Fingerprint: db6348cc25e10335a4ce3c178deda8737734c16d
    Console: https://sw.transcy.io/#/f/db6348cc25e10335a4ce3c178deda8737734c16d
-7. HIGH · Layout degraded · es /products/dmauamiro-o2-led-vanity-mirror (1440px)
+7. HIGH · Layout degraded · es /products/vanity-mirror (1440px)
    Seen 1 time(s), first 2026-10-15, last 2026-10-15
    Text: "negro", "Blanco"
    Fingerprint: 3628224935126736319ae0cfdd077026a7d5bfd3
    Console: https://sw.transcy.io/#/f/3628224935126736319ae0cfdd077026a7d5bfd3
-8. HIGH · Option unidentifiable · zh /products/amiro-mate-led-makeup-mirror (1440px)
+8. HIGH · Option unidentifiable · zh /products/led-mirror (1440px)
    Seen 1 time(s), first 2026-10-15, last 2026-10-15
    Text: "Color"
    Fingerprint: ee16a4e2600f278dc455132edc42746dd35bcdab
    Console: https://sw.transcy.io/#/f/ee16a4e2600f278dc455132edc42746dd35bcdab
-9. HIGH · Block collapsed · zh /products/amiro-mate-led-makeup-mirror (1440px)
+9. HIGH · Block collapsed · zh /products/led-mirror (1440px)
    Seen 1 time(s), first 2026-10-15, last 2026-10-15
    Text: "粉紅色的"
    Fingerprint: b037194bbe99fddc03116b836b6fd5e8dca46833
    Console: https://sw.transcy.io/#/f/b037194bbe99fddc03116b836b6fd5e8dca46833`;
 
-const IGLOW_STORE = `Store: iglow.me
+const STORE_B = `Store: store-b.example
 In the weekly sweep: yes
 Languages: fi, sv · pages: 6
 Last good check: 2026-10-22
 Open problems: 3 critical, 0 high, 2 medium, 0 low`;
 
-const IGLOW_LIST = `5 open problem(s) on iglow.me, worst first:
-1. CRITICAL · Region missing · fi /products/iglow-boosting-mascara (1440px)
+const LIST_B = `5 open problem(s) on store-b.example, worst first:
+1. CRITICAL · Region missing · fi /products/mascara-one (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Fingerprint: bb9606abc4dbf9350bb6e5367a76f861ca877429
    Console: https://sw.transcy.io/#/f/bb9606abc4dbf9350bb6e5367a76f861ca877429
-2. CRITICAL · Region missing · fi /products/3x-iglow-high-volume-mascara (1440px)
+2. CRITICAL · Region missing · fi /products/mascara-pack-3 (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Fingerprint: 00e85dbb06191c2e6fc5252918489ec899cae327
    Console: https://sw.transcy.io/#/f/00e85dbb06191c2e6fc5252918489ec899cae327
-3. CRITICAL · Region missing · fi /products/2x-iglow-high-volume-mascara (1440px)
+3. CRITICAL · Region missing · fi /products/mascara-pack-2 (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Fingerprint: 273c5f260e4e97bf005ed2dd34c51016bc43ce82
    Console: https://sw.transcy.io/#/f/273c5f260e4e97bf005ed2dd34c51016bc43ce82
@@ -186,7 +184,7 @@ const IGLOW_LIST = `5 open problem(s) on iglow.me, worst first:
 
 const DETAIL_LONG_JUDGE = `Finding 036a70d3e7321a4d179fe1db24d756d6b713e7ac
 HIGH · Option unidentifiable (also Graphic lost)
-Where: amirobeauty.com · zh · /products/amiro-oath-makeup-lighted-mirror · 1440px wide
+Where: store-a.example · zh · /products/sample-mirror · 1440px wide
 State: open
 Seen 1 time(s), first 2026-10-22, last 2026-10-22
 Judge: confirmed, "In image 1, the variant picker shows two color swatches: one filled black circle (selected) and one white circle. In image 2, both circles appear as empty outlines with no color fill, making the two values visually indistinguishable."
@@ -195,16 +193,16 @@ Console: https://sw.transcy.io/#/f/036a70d3e7321a4d179fe1db24d756d6b713e7ac`;
 
 const DETAIL_SHORT_JUDGE = `Finding aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
 CRITICAL · Region missing
-Where: amirobeauty.com · ja · / · 1440px wide
+Where: store-a.example · ja · / · 1440px wide
 State: open
 Seen 2 time(s), first 2026-10-14, last 2026-10-22
 Judge: no_crops
 Console: https://sw.transcy.io/#/f/aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7`;
 
-Deno.test("parseStoreText: store có theo dõi — counts, languages, last check khớp mẫu thật", () => {
-  const s = parseStoreText(AMIRO_STORE, "amirobeauty.com");
+Deno.test("parseStoreText: store có theo dõi — counts, languages, last check khớp mẫu", () => {
+  const s = parseStoreText(STORE_A, "store-a.example");
   assertEquals(s.watched, true);
-  assertEquals(s.shop, "amirobeauty.com");
+  assertEquals(s.shop, "store-a.example");
   assertEquals(s.lastCheckedAt, "2026-10-22");
   assertEquals(s.openBySeverity, { critical: 3, high: 6, medium: 0, low: 0 });
   assertEquals(s.languages, ["es", "ja", "zh"]);
@@ -212,14 +210,13 @@ Deno.test("parseStoreText: store có theo dõi — counts, languages, last check
 });
 
 Deno.test("parseStoreText: dòng Store dính chú thích '(asked as …)' → shop là domain sạch, không kèm domain Shopify", () => {
-  // Mẫu thật ca tantaly (Ethan bắt live 2026-10-27): hỏi bằng domain Shopify,
-  // SW trả tên store chuẩn kèm chú thích — chú thích lọt vào shop từng làm
-  // URL Console thành link chết.
+  // Hỏi bằng domain Shopify, SW trả tên store chuẩn kèm chú thích — chú
+  // thích lọt vào shop sẽ làm URL Console thành link chết.
   const s = parseStoreText(
-    AMIRO_STORE.replace("Store: amirobeauty.com", "Store: www.tantaly.de (asked as tantaly-de.myshopify.com)"),
-    "tantaly-de.myshopify.com",
+    STORE_A.replace("Store: store-a.example", "Store: www.store-d.example (asked as store-d.myshopify.com)"),
+    "store-d.myshopify.com",
   );
-  assertEquals(s.shop, "www.tantaly.de");
+  assertEquals(s.shop, "www.store-d.example");
 });
 
 Deno.test("parseStoreText: store không theo dõi → watched=false, không bịa số liệu", () => {
@@ -232,10 +229,10 @@ Deno.test("parseStoreText: store không theo dõi → watched=false, không bị
   assertEquals(s.lastCheckedAt, null);
 });
 
-Deno.test("parseStoreText: có theo dõi nhưng chưa quét thành công trang nào (mẫu thật 2026-10-28) → watched=true, lastCheckedAt null, uncheckedPages đầy đủ", () => {
-  const s = parseStoreText(BOUWMAAT_STORE, "bouwmaat-dev.myshopify.com");
+Deno.test("parseStoreText: có theo dõi nhưng chưa quét thành công trang nào → watched=true, lastCheckedAt null, uncheckedPages đầy đủ", () => {
+  const s = parseStoreText(STORE_UNCHECKED, "store-c-dev.myshopify.com");
   assertEquals(s.watched, true);
-  assertEquals(s.shop, "dev.bouwmaat.nl");
+  assertEquals(s.shop, "dev.store-c.example");
   assertEquals(s.lastCheckedAt, null);
   assertEquals(s.openBySeverity, {});
   assertEquals(s.languages, ["de", "en", "pl", "tr"]);
@@ -243,25 +240,25 @@ Deno.test("parseStoreText: có theo dõi nhưng chưa quét thành công trang n
   assertEquals(s.uncheckedPages.length, 4);
   assertStringIncludes(s.uncheckedPages[0], "de /");
   // Snapshot sweep phải nhận null cho cột ngày, không phải chuỗi "none yet".
-  assertEquals(storeStatusFromStore("ws1", "bouwmaat-dev.myshopify.com", s, "2026-10-28T00:00:00Z").last_good_check, null);
+  assertEquals(storeStatusFromStore("ws1", "store-c-dev.myshopify.com", s, "2026-10-28T00:00:00Z").last_good_check, null);
 });
 
-Deno.test("parseStoreText: domain SW không tới được / không giữ gì (mẫu thật 2026-10-28) → watched=false", () => {
-  const s = parseStoreText(UNREACHABLE_STORE, "5f5291-40.myshopify.com");
+Deno.test("parseStoreText: domain SW không tới được / không giữ gì → watched=false", () => {
+  const s = parseStoreText(UNREACHABLE_STORE, "unknown-shop.myshopify.com");
   assertEquals(s.watched, false);
   assertEquals(s.lastCheckedAt, null);
   assertEquals(s.openBySeverity, {});
 });
 
-Deno.test("parseFindingsText: store chưa quét thành công (mẫu thật 2026-10-28) → [] thay vì văng lỗi định dạng", () => {
+Deno.test("parseFindingsText: store chưa quét thành công → [] thay vì văng lỗi định dạng", () => {
   assertEquals(
-    parseFindingsText("Problems on dev.bouwmaat.nl are unknown: no page has been checked successfully yet.\n4 page(s) could not be checked, so this list may be incomplete."),
+    parseFindingsText("Problems on dev.store-c.example are unknown: no page has been checked successfully yet.\n4 page(s) could not be checked, so this list may be incomplete."),
     [],
   );
 });
 
-Deno.test("parseFindingsText: amirobeauty — đủ 9 findings, field trích đúng từng loại dòng", () => {
-  const out = parseFindingsText(AMIRO_LIST);
+Deno.test("parseFindingsText: store A — đủ 9 findings, field trích đúng từng loại dòng", () => {
+  const out = parseFindingsText(LIST_A);
   assertEquals(out.length, 9);
   const f1 = out[0];
   assertEquals(f1.fingerprint, "aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7");
@@ -278,17 +275,17 @@ Deno.test("parseFindingsText: amirobeauty — đủ 9 findings, field trích đ�
   assertEquals(f1.consoleLink, "https://sw.transcy.io/#/f/aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7");
   const f4 = out[3];
   assertEquals(f4.kind, "Option unidentifiable");
-  assertEquals(f4.page, "/products/amiro-oath-makeup-lighted-mirror");
+  assertEquals(f4.page, "/products/sample-mirror");
   assertEquals(f4.texts, ["Color"]);
   assertEquals(f4.text, "Color");
-  assertEquals(f4.meta, "high · zh · /products/amiro-oath-makeup-lighted-mirror");
+  assertEquals(f4.meta, "high · zh · /products/sample-mirror");
   const f5 = out[4];
   assertEquals(f5.texts, ["Rosa", "Blanco"]); // nhiều đoạn text trong một dòng Text:
   assertEquals(f5.text, "Rosa, Blanco");
 });
 
-Deno.test("parse: tổng counts của find_store khớp số findings của list_findings ở cả 2 store thật", () => {
-  for (const [storeText, listText] of [[AMIRO_STORE, AMIRO_LIST], [IGLOW_STORE, IGLOW_LIST]] as const) {
+Deno.test("parse: tổng counts của find_store khớp số findings của list_findings ở cả 2 store mẫu", () => {
+  for (const [storeText, listText] of [[STORE_A, LIST_A], [STORE_B, LIST_B]] as const) {
     const s = parseStoreText(storeText, "x");
     const total = Object.values(s.openBySeverity).reduce((a, b) => a + b, 0);
     assertEquals(total, parseFindingsText(listText).length);
@@ -302,7 +299,7 @@ Deno.test("parseFindingDetailText: Judge dài + also-kind + Text — trích đ�
   assertEquals(d.kind, "Option unidentifiable");
   assertEquals(d.alsoKinds, ["Graphic lost"]);
   assertEquals(d.locale, "zh");
-  assertEquals(d.page, "/products/amiro-oath-makeup-lighted-mirror");
+  assertEquals(d.page, "/products/sample-mirror");
   assertEquals(d.widthPx, 1440);
   assertEquals(d.state, "open");
   assertEquals(d.dismissed, false);
@@ -320,9 +317,8 @@ Deno.test("parseFindingDetailText: Judge mã ngắn, không có dòng Text → t
   assertEquals(d.seenCount, 2);
 });
 
-Deno.test("parseFindingDetailText: State khác open → giữ state thô + cờ dismissed/fixed (SUY DIỄN — chưa có mẫu state đóng thật)", () => {
-  // Chưa từng gọi được get_finding của một finding đã đóng — fixture này suy
-  // từ cùng mẫu State: của ca open, chỉ thay giá trị. Parser phải giữ state
+Deno.test("parseFindingDetailText: State khác open → giữ state thô + cờ dismissed/fixed (state đóng suy từ mẫu open)", () => {
+  // Fixture suy từ cùng mẫu State: của finding open, chỉ thay giá trị. Parser phải giữ state
   // để UI không hiển thị finding đã đóng như đang mở.
   const dismissed = parseFindingDetailText(DETAIL_SHORT_JUDGE.replace("State: open", "State: dismissed"));
   assertEquals(dismissed.state, "dismissed");
@@ -337,7 +333,7 @@ Deno.test("parse: định dạng lạ / số đếm không khớp → Storefront
   assertRejectsSync(() => parseStoreText("hoàn toàn lạ", "x"), StorefrontError);
   assertRejectsSync(() => parseFindingsText("hoàn toàn lạ"), StorefrontError);
   assertRejectsSync(() => parseFindingDetailText("hoàn toàn lạ"), StorefrontError);
-  const mismatch = AMIRO_LIST.replace("9 open problem(s)", "8 open problem(s)");
+  const mismatch = LIST_A.replace("9 open problem(s)", "8 open problem(s)");
   assertRejectsSync(() => parseFindingsText(mismatch), StorefrontError);
 });
 
@@ -351,9 +347,9 @@ function assertRejectsSync(fn: () => unknown, cls: typeof StorefrontError) {
   assert(threw, "kỳ vọng StorefrontError");
 }
 
-Deno.test("classifyFindings trên dữ liệu thật amirobeauty: CS nhắc path product → đúng 3 findings của path đó Đang xử lý", () => {
-  const findings = parseFindingsText(AMIRO_LIST);
-  const g = classifyFindings(findings, new Set(), ["Dạ em đã báo khách về lỗi hiển thị ở /products/amiro-mate-led-makeup-mirror rồi ạ"]);
+Deno.test("classifyFindings trên dữ liệu store A: CS nhắc path product → đúng 3 findings của path đó Đang xử lý", () => {
+  const findings = parseFindingsText(LIST_A);
+  const g = classifyFindings(findings, new Set(), ["Dạ em đã báo khách về lỗi hiển thị ở /products/led-mirror rồi ạ"]);
   assertEquals(g.in_progress.map((f) => f.fingerprint), [
     "42bf44a1456a4a6e4e970daa7a714ce1b80accf9",
     "ee16a4e2600f278dc455132edc42746dd35bcdab",
@@ -363,13 +359,13 @@ Deno.test("classifyFindings trên dữ liệu thật amirobeauty: CS nhắc path
   assertEquals(g.acknowledged.length, 0);
 });
 
-Deno.test("findingNeedles: kim text dài từ dữ liệu thật (iglow Height jump)", () => {
-  const iglow = parseFindingsText(IGLOW_LIST);
-  const needles = findingNeedles(iglow[3]);
+Deno.test("findingNeedles: kim text dài (store B, Height jump)", () => {
+  const storeB = parseFindingsText(LIST_B);
+  const needles = findingNeedles(storeB[3]);
   assert(needles.some((n) => n.includes("tuotepaketit ja tarjoukset")));
   assert(!needles.includes("/")); // page "/" quá ngắn → không thành kim
-  const amiro = parseFindingsText(AMIRO_LIST);
-  assertEquals(findingNeedles(amiro[3]).includes("color"), false); // "Color" 5 ký tự < 8
+  const storeA = parseFindingsText(LIST_A);
+  assertEquals(findingNeedles(storeA[3]).includes("color"), false); // "Color" 5 ký tự < 8
 });
 
 // ---------- MCP client (fetch giả) ----------
@@ -401,11 +397,11 @@ function okResponder(toolText: string): (body: Record<string, unknown>) => Respo
 }
 
 Deno.test("MCP client: initialize 1 lần, mọi request đều ký đúng trên đúng body gửi đi", async () => {
-  const { f, calls } = stubFetch(okResponder(AMIRO_STORE));
+  const { f, calls } = stubFetch(okResponder(STORE_A));
   const mcp = createStorefrontMcp({ token: "tok-sw", signingSecret: "sec-sw", fetch: f, now: () => 1_700_000_000_000 });
-  const store = await mcp.findStore("ws1", "amirobeauty.com");
+  const store = await mcp.findStore("ws1", "store-a.example");
   assertEquals(store.watched, true);
-  assertEquals(store.shop, "amirobeauty.com");
+  assertEquals(store.shop, "store-a.example");
   assertEquals(store.lastCheckedAt, "2026-10-22");
   assertEquals(store.openBySeverity, { critical: 3, high: 6, medium: 0, low: 0 });
   assertEquals(calls.length, 3); // initialize + notifications/initialized + tools/call
@@ -418,14 +414,14 @@ Deno.test("MCP client: initialize 1 lần, mọi request đều ký đúng trên
   assertEquals(JSON.parse(calls[2].body).params.name, "find_store");
   // Gọi tiếp: session được dùng lại, không initialize lần 2. (Stub trả cùng
   // một text cho mọi tool — ở đây chỉ kiểm wiring/session, parse đã phủ riêng.)
-  await mcp.listFindings("ws1", "amirobeauty.com").catch(() => null);
+  await mcp.listFindings("ws1", "store-a.example").catch(() => null);
   assertEquals(calls.length, 4);
   assertEquals(calls[3].headers["Mcp-Session-Id"], "sess-1");
 });
 
 Deno.test("MCP client: session khoá theo website — website khác phải initialize riêng, không dùng chung session", async () => {
   // initialize được ký bằng website đầu tiên; dùng chung session cho website
-  // khác là rò ngữ cảnh giữa các workspace (rà soát 2026-10-23).
+  // khác là rò ngữ cảnh giữa các workspace.
   let inits = 0;
   const { f, calls } = stubFetch((body) => {
     if (body.method === "initialize") {
@@ -433,12 +429,12 @@ Deno.test("MCP client: session khoá theo website — website khác phải initi
       return jsonResponse({ jsonrpc: "2.0", id: body.id, result: { protocolVersion: "2025-03-26" } }, 200, `sess-init-${inits}`);
     }
     if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
-    return jsonResponse({ jsonrpc: "2.0", id: body.id, result: { content: [{ type: "text", text: AMIRO_STORE }] } });
+    return jsonResponse({ jsonrpc: "2.0", id: body.id, result: { content: [{ type: "text", text: STORE_A }] } });
   });
   const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
-  await mcp.findStore("ws1", "amirobeauty.com");
-  await mcp.findStore("ws2", "amirobeauty.com");
-  await mcp.findStore("ws1", "amirobeauty.com");
+  await mcp.findStore("ws1", "store-a.example");
+  await mcp.findStore("ws2", "store-a.example");
+  await mcp.findStore("ws1", "store-a.example");
   assertEquals(inits, 2); // mỗi website đúng 1 initialize; lần 3 (ws1) dùng lại session của ws1
   const toolCalls = calls.filter((c) => JSON.parse(c.body).method === "tools/call");
   assertEquals(toolCalls.length, 3);
@@ -450,11 +446,11 @@ Deno.test("MCP client: session khoá theo website — website khác phải initi
 });
 
 Deno.test("MCP client: list_findings luôn gửi include_all=true và parse prose thật", async () => {
-  const { f, calls } = stubFetch(okResponder(IGLOW_LIST));
+  const { f, calls } = stubFetch(okResponder(LIST_B));
   const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
-  const out = await mcp.listFindings("ws1", "iglow.me");
+  const out = await mcp.listFindings("ws1", "store-b.example");
   const toolCall = calls.map((c) => JSON.parse(c.body)).find((b) => b.method === "tools/call");
-  assertEquals(toolCall.params.arguments, { shop: "iglow.me", include_all: true });
+  assertEquals(toolCall.params.arguments, { shop: "store-b.example", include_all: true });
   assertEquals(out.length, 5);
   assertEquals(out[0].severity, "critical");
   assertEquals(out[3].severity, "medium");
@@ -632,10 +628,9 @@ Deno.test("action storefront: không truyền shop → tự resolve shopify_doma
 });
 
 Deno.test("action storefront: shopify_domain trong custom data THẮNG shop truyền lên (store của chính chat là nguồn sự thật)", async () => {
-  // Đảo ngược so với hành vi cũ (rà soát 2026-10-23): shop tay thắng tuyệt đối
-  // khiến một chat xem được findings của store bất kỳ — lẫn dữ liệu giữa các
-  // store. Nay custom data của chính conversation thắng; shop truyền lên chỉ
-  // còn là fallback khi custom data trống (phủ ở test need_shop/fallback dưới).
+  // Nếu shop truyền tay thắng thì một chat xem được findings của store bất kỳ
+  // — lẫn dữ liệu giữa các store. Custom data của chính conversation thắng;
+  // shop truyền lên chỉ là fallback khi custom data trống (phủ ở test need_shop/fallback dưới).
   let seenShop = "";
   const { deps } = sfDeps(fakeMcp({
     findStore: (_w: string, shop: string) => {
@@ -652,10 +647,9 @@ Deno.test("action storefront: shopify_domain trong custom data THẮNG shop truy
 
 Deno.test("action storefront: cổng action khớp cổng check — workspace cờ TẮT, ticket Done ĐÃ báo khách thì action cũng 403", async () => {
   // check loại ticket Done-đã-báo khỏi danh sách → modules.storefront = false.
-  // Action từng tính cổng bằng jiraForConversation(rows, null) nên vẫn cho qua
-  // đúng ca này; nay action dùng cùng mốc CS nhắn khách như check. Ca này xét
-  // ở workspace cờ storefront_watch TẮT (đường ticket là đường duy nhất) —
-  // workspace Transcy cờ bật thì module luôn mở theo chốt 2026-10-26.
+  // Action phải dùng cùng mốc CS nhắn khách như check. Ca này xét ở workspace
+  // cờ storefront_watch TẮT (đường ticket là đường duy nhất) — workspace cờ
+  // bật thì module luôn mở.
   const doneRow = {
     link: { ...TNT_LINK.link },
     issue: {
@@ -790,7 +784,7 @@ Deno.test("action storefront_finding: fingerprint sai định dạng → 400; th
 Deno.test("action storefront_finding: fingerprint của STORE KHÁC → từ chối, không gọi get_finding", async () => {
   // get_finding của SW tra toàn cục theo fingerprint — không đối chiếu với
   // store của conversation thì chat nào có cổng cũng xem được finding của
-  // store khác (lẫn dữ liệu giữa các store, rà soát 2026-10-23).
+  // store khác (lẫn dữ liệu giữa các store).
   let getCalls = 0;
   const { deps } = sfDeps(fakeMcp({
     listFindings: () => Promise.resolve([finding(FP_B)]), // store của chat chỉ có FP_B
@@ -818,7 +812,7 @@ Deno.test("action storefront_finding: conversation không có shopify_domain →
   assertEquals(called, false);
 });
 
-// ---------- cổng domain (workspace Transcy, Ethan duyệt 2026-10-23) ----------
+// ---------- cổng domain (workspace bật cờ storefront_watch) ----------
 
 Deno.test("action storefront: KHÔNG có ticket TNT nhưng chat có shopify_domain (workspace Transcy) → qua cổng theo domain, 200", async () => {
   const { deps } = sfDeps(fakeMcp(), {
@@ -831,8 +825,7 @@ Deno.test("action storefront: KHÔNG có ticket TNT nhưng chat có shopify_doma
 });
 
 Deno.test("action storefront: bản chụp nói SW không theo dõi domain + không ticket → cổng VẪN mở, SW trực tiếp quyết (fake SW nói đang theo dõi → ok)", async () => {
-  // Hồi quy ca live 2026-10-26: bản chụp sweep cũ/phủ quyết nhầm khiến store
-  // có bug thật không hiện trên panel. Ethan chốt: có shopify_domain + cờ
+  // Bản chụp sweep có thể cũ nên không được phủ quyết: có shopify_domain + cờ
   // workspace là qua cổng; watched hay không do lần gọi SW trực tiếp quyết.
   const { deps } = sfDeps(fakeMcp(), {
     getJiraRows: () => Promise.resolve([]),
@@ -879,26 +872,26 @@ Deno.test("action storefront: item mang kind/locale/page + consoleLink là URL u
 
 Deno.test("consoleUnitUrl: đủ mảnh mới cấu link; thiếu bề rộng/locale/trang thì null (không gắn link chết)", async () => {
   const { consoleUnitUrl } = await import("../_shared/storefront.ts");
-  assertEquals(consoleUnitUrl("www.tantaly.de", { locale: "nl", page: "/products/x", widthPx: 1440 }),
-    "https://sw.transcy.io/#/f/www.tantaly.de%7Cnl%7C%2Fproducts%2Fx%7C1440");
-  assertEquals(consoleUnitUrl("www.tantaly.de", { locale: "nl", page: "/products/x", widthPx: null }), null);
-  assertEquals(consoleUnitUrl("www.tantaly.de", { locale: null, page: "/products/x", widthPx: 1440 }), null);
+  assertEquals(consoleUnitUrl("www.store-d.example", { locale: "nl", page: "/products/x", widthPx: 1440 }),
+    "https://sw.transcy.io/#/f/www.store-d.example%7Cnl%7C%2Fproducts%2Fx%7C1440");
+  assertEquals(consoleUnitUrl("www.store-d.example", { locale: "nl", page: "/products/x", widthPx: null }), null);
+  assertEquals(consoleUnitUrl("www.store-d.example", { locale: null, page: "/products/x", widthPx: 1440 }), null);
   assertEquals(consoleUnitUrl(null, { locale: "nl", page: "/", widthPx: 1440 }), null);
   // Domain dính chú thích "(asked as …)" → lột sạch trước khi cấu URL;
   // domain còn khoảng trắng/ngoặc (không thể là domain thật) → null.
-  assertEquals(consoleUnitUrl("www.tantaly.de (asked as tantaly-de.myshopify.com)", { locale: "nl", page: "/products/x", widthPx: 1440 }),
-    "https://sw.transcy.io/#/f/www.tantaly.de%7Cnl%7C%2Fproducts%2Fx%7C1440");
-  assertEquals(consoleUnitUrl("www.tantaly.de (ghi chú lạ)", { locale: "nl", page: "/products/x", widthPx: 1440 }), null);
+  assertEquals(consoleUnitUrl("www.store-d.example (asked as store-d.myshopify.com)", { locale: "nl", page: "/products/x", widthPx: 1440 }),
+    "https://sw.transcy.io/#/f/www.store-d.example%7Cnl%7C%2Fproducts%2Fx%7C1440");
+  assertEquals(consoleUnitUrl("www.store-d.example (ghi chú lạ)", { locale: "nl", page: "/products/x", widthPx: 1440 }), null);
 });
 
 Deno.test("storefrontPageUrl: cấu URL trang thật từ domain + page; page lạ/domain bẩn thì null (không gắn link chết)", async () => {
   const { storefrontPageUrl } = await import("../_shared/storefront.ts");
-  assertEquals(storefrontPageUrl("amirobeauty.com", { page: "/products/amiro-oath-makeup-lighted-mirror" }),
-    "https://amirobeauty.com/products/amiro-oath-makeup-lighted-mirror");
-  assertEquals(storefrontPageUrl("amirobeauty.com", { page: "/" }), "https://amirobeauty.com/");
+  assertEquals(storefrontPageUrl("store-a.example", { page: "/products/sample-mirror" }),
+    "https://store-a.example/products/sample-mirror");
+  assertEquals(storefrontPageUrl("store-a.example", { page: "/" }), "https://store-a.example/");
   // Domain dính chú thích "(asked as …)" → lột sạch như consoleUnitUrl.
-  assertEquals(storefrontPageUrl("www.tantaly.de (asked as tantaly-de.myshopify.com)", { page: "/products/x" }),
-    "https://www.tantaly.de/products/x");
+  assertEquals(storefrontPageUrl("www.store-d.example (asked as store-d.myshopify.com)", { page: "/products/x" }),
+    "https://www.store-d.example/products/x");
   assertEquals(storefrontPageUrl(null, { page: "/products/x" }), null);
   assertEquals(storefrontPageUrl("shop.com", { page: null }), null);
   assertEquals(storefrontPageUrl("shop.com", { page: "products/x" }), null); // thiếu "/" đầu — không phải path SW ghi
@@ -908,9 +901,9 @@ Deno.test("storefrontPageUrl: cấu URL trang thật từ domain + page; page l�
 
 Deno.test("storefrontIssuePageUrl: chắp tiền tố locale vào URL trang (Issue page); locale lạ/page đã có tiền tố thì xử lý đúng", async () => {
   const { storefrontIssuePageUrl } = await import("../_shared/storefront.ts");
-  // Mẫu như ảnh Ethan gửi 29/10: locale en, page /products/… → /en/products/…
-  assertEquals(storefrontIssuePageUrl("elfbar.de", { locale: "en", page: "/products/elfbar-800" }),
-    "https://elfbar.de/en/products/elfbar-800");
+  // locale en, page /products/… → /en/products/…
+  assertEquals(storefrontIssuePageUrl("store-e.example", { locale: "en", page: "/products/product-800" }),
+    "https://store-e.example/en/products/product-800");
   assertEquals(storefrontIssuePageUrl("shop.com", { locale: "pt-BR", page: "/" }), "https://shop.com/pt-BR/");
   // Page đã chứa sẵn tiền tố locale → trả URL mặc định (panel ẩn link trùng).
   assertEquals(storefrontIssuePageUrl("shop.com", { locale: "de", page: "/de/products/x" }),
@@ -1009,8 +1002,8 @@ Deno.test("sweep: chạy lại 2 lần → bản chụp y hệt (idempotent, kh�
 });
 
 Deno.test("sweep: workspace OE (jira_project = OES, cờ storefront_watch TẮT) → bỏ qua, không gọi SW, không quét domain của workspace đó", async () => {
-  // Khoá hồi quy lỗi định danh cũ: OE cũng có jira_project (OES) — trước đây
-  // sweep quét cả domain của OE. Nay chỉ cờ storefront_watch quyết phạm vi.
+  // Có jira_project không có nghĩa là thuộc phạm vi SW — chỉ cờ
+  // storefront_watch quyết phạm vi sweep.
   const h = sweepHarness(["a.myshopify.com"], { "a.myshopify.com": STORE_OK }, { jira_project: "OES", storefront_watch: false });
   const r = await runStorefrontSweep(h.deps, "ws1");
   assertEquals(r.skipped, "not_transcy_workspace");
@@ -1043,8 +1036,8 @@ Deno.test("sweep: một domain lỗi MCP → tính failed, các domain còn lạ
 });
 
 Deno.test("parseFindingsText: store sạch (0 lỗi) trả [] thay vì văng lỗi định dạng; header biến thể không '(s)' vẫn đọc", () => {
-  assertEquals(parseFindingsText("No open problems on tantaly-de.myshopify.com."), []);
-  const one = `1 open problems on amirobeauty.com, worst first:
+  assertEquals(parseFindingsText("No open problems on store-d.myshopify.com."), []);
+  const one = `1 open problems on store-a.example, worst first:
 1. CRITICAL · Region missing · ja / (1440px)
    Seen 2 time(s), first 2026-10-14, last 2026-10-22
    Fingerprint: aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
@@ -1052,9 +1045,9 @@ Deno.test("parseFindingsText: store sạch (0 lỗi) trả [] thay vì văng l�
   assertEquals(parseFindingsText(one).length, 1);
 });
 
-Deno.test("parseFindingsText: header 'The first N open problem(s)' (SW cắt trang khi quá 25 lỗi — ca live tantaly 2026-10-26) vẫn đọc", () => {
-  const one = `The first 1 open problem(s) on www.tantaly.de, worst first:
-1. HIGH · Graphic lost · nl /products/nesty-taschenmuschi (1440px)
+Deno.test("parseFindingsText: header 'The first N open problem(s)' (SW cắt trang khi quá 25 lỗi) vẫn đọc", () => {
+  const one = `The first 1 open problem(s) on www.store-d.example, worst first:
+1. HIGH · Graphic lost · nl /products/sample-product (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Fingerprint: aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
    Console: https://sw.transcy.io/#/f/aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7`;
@@ -1063,21 +1056,21 @@ Deno.test("parseFindingsText: header 'The first N open problem(s)' (SW cắt tra
   assertEquals(out[0].kind, "Graphic lost");
 });
 
-Deno.test("parseFindingsText: dòng chốt 'The console lists the rest.' sau danh sách cắt trang được bỏ qua (ca live tantaly 2026-10-26)", () => {
+Deno.test("parseFindingsText: dòng chốt 'The console lists the rest.' sau danh sách cắt trang được bỏ qua", () => {
   const block = (n: number) => `${n}. MEDIUM · Layout degraded · de / (1920px)
    Seen 2 time(s), first 2026-10-20, last 2026-10-22
    Fingerprint: ${String(n).padStart(40, "b")}
    Console: https://sw.transcy.io/#/f/${String(n).padStart(40, "b")}`;
-  const text = `The first 2 open problem(s) on www.tantaly.de, worst first:
+  const text = `The first 2 open problem(s) on www.store-d.example, worst first:
 ${block(1)}
 ${block(2)}
 The console lists the rest.`;
   assertEquals(parseFindingsText(text).length, 2);
 });
 
-Deno.test("parseFindingsText: câu chốt 'N page(s) could not be checked…' sau danh sách được bỏ qua (ca live tantaly 2026-10-26)", () => {
-  const text = `1 open problem(s) on www.tantaly.de, worst first:
-1. HIGH · Graphic lost · nl /products/nesty-taschenmuschi (1440px)
+Deno.test("parseFindingsText: câu chốt 'N page(s) could not be checked…' sau danh sách được bỏ qua", () => {
+  const text = `1 open problem(s) on www.store-d.example, worst first:
+1. HIGH · Graphic lost · nl /products/sample-product (1440px)
    Seen 1 time(s), first 2026-10-22, last 2026-10-22
    Fingerprint: aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
    Console: https://sw.transcy.io/#/f/aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7
@@ -1087,34 +1080,33 @@ Deno.test("parseFindingsText: câu chốt 'N page(s) could not be checked…' sa
 
 Deno.test("parseFindingsText: định dạng lạ → lỗi kèm đầu nội dung thật để truy được SW trả gì", () => {
   let msg = "";
-  try { parseFindingsText("Invalid shop identifier: tantaly_de@myshopify.com"); } catch (e) { msg = (e as Error).message; }
+  try { parseFindingsText("Invalid shop identifier: store_d@myshopify.com"); } catch (e) { msg = (e as Error).message; }
   assertEquals(msg.includes("Invalid shop identifier"), true);
 });
 
-// ---------- tool ghi (SW mở scope write 2026-10-27) ----------
+// ---------- tool ghi ----------
 
 Deno.test("MCP client: 4 tool ghi gọi đúng tên + tham số; operator rỗng thì bỏ hẳn khỏi arguments", async () => {
   const { f, calls } = stubFetch(okResponder("Đã ghi nhận."));
   const mcp = createStorefrontMcp({ token: "t", signingSecret: "s", fetch: f });
-  await mcp.acknowledgeFinding("ws1", FP_A, "Ethan Nguyen");
+  await mcp.acknowledgeFinding("ws1", FP_A, "Quinn Harper");
   await mcp.acknowledgeFinding("ws1", FP_A);
-  await mcp.markFixed("ws1", FP_A, "Đã sửa trong theme", "Ethan Nguyen");
+  await mcp.markFixed("ws1", FP_A, "Đã sửa trong theme", "Quinn Harper");
   await mcp.dismissFinding("ws1", FP_A, "false_signal", "Trang vẫn ổn", undefined);
   await mcp.undoFinding("ws1", FP_A);
   // Note rỗng được thay bằng câu mặc định — schema SW bắt buộc field note
-  // là string ≥ 1 ký tự; bỏ field hoặc gửi "" đều → MCP error -32602
-  // (bắt live 2026-10-29).
-  await mcp.markFixed("ws1", FP_A, "", "Ethan Nguyen");
-  await mcp.dismissFinding("ws1", FP_A, "not_important", "", "Ethan Nguyen");
+  // là string ≥ 1 ký tự; bỏ field hoặc gửi "" đều → MCP error -32602.
+  await mcp.markFixed("ws1", FP_A, "", "Quinn Harper");
+  await mcp.dismissFinding("ws1", FP_A, "not_important", "", "Quinn Harper");
   const toolCalls = calls.map((c) => JSON.parse(c.body)).filter((b) => b.method === "tools/call").map((b) => b.params);
   assertEquals(toolCalls.map((p) => p.name), ["acknowledge_finding", "acknowledge_finding", "mark_fixed", "dismiss_finding", "undo", "mark_fixed", "dismiss_finding"]);
-  assertEquals(toolCalls[0].arguments, { fingerprint: FP_A, operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[0].arguments, { fingerprint: FP_A, operator: "Quinn Harper" });
   assertEquals(toolCalls[1].arguments, { fingerprint: FP_A });
-  assertEquals(toolCalls[2].arguments, { fingerprint: FP_A, note: "Đã sửa trong theme", operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[2].arguments, { fingerprint: FP_A, note: "Đã sửa trong theme", operator: "Quinn Harper" });
   assertEquals(toolCalls[3].arguments, { fingerprint: FP_A, reason: "false_signal", note: "Trang vẫn ổn" });
   assertEquals(toolCalls[4].arguments, { fingerprint: FP_A });
-  assertEquals(toolCalls[5].arguments, { fingerprint: FP_A, note: "Đã sửa", operator: "Ethan Nguyen" });
-  assertEquals(toolCalls[6].arguments, { fingerprint: FP_A, reason: "not_important", note: "Lỗi thật, không đáng sửa", operator: "Ethan Nguyen" });
+  assertEquals(toolCalls[5].arguments, { fingerprint: FP_A, note: "Đã sửa", operator: "Quinn Harper" });
+  assertEquals(toolCalls[6].arguments, { fingerprint: FP_A, reason: "not_important", note: "Lỗi thật, không đáng sửa", operator: "Quinn Harper" });
 });
 
 Deno.test("parse list: dòng trạng thái SW trong finding được giữ lại (không văng lỗi) và classify xếp vào Đang xử lý", () => {
@@ -1134,7 +1126,7 @@ Deno.test("parse list: dòng trạng thái SW trong finding được giữ lại
   assertEquals(groups.acknowledged.length, 0);
 });
 
-const ACT_REQ = { website_id: "ws1", session_id: "session_1", action: "storefront_act", fingerprint: FP_A, operator_name: "Ethan Nguyen" };
+const ACT_REQ = { website_id: "ws1", session_id: "session_1", action: "storefront_act", fingerprint: FP_A, operator_name: "Quinn Harper" };
 
 function actDeps(mcp: StorefrontMcp | null, dbOver = {}) {
   return sfDeps(mcp, {
@@ -1162,10 +1154,10 @@ Deno.test("action storefront_act acknowledge: ghi đúng fingerprint + operator 
   const r = await handle({ ...ACT_REQ, sf_act: "acknowledge" }, TOKEN, deps);
   assertEquals(r.status, 200);
   assertEquals((r.body as { status: string }).status, "ok");
-  assertEquals(seen, [["ws1", FP_A, "Ethan Nguyen"]]);
+  assertEquals(seen, [["ws1", FP_A, "Quinn Harper"]]);
 });
 
-Deno.test("action storefront_act fixed: ghi chú KHÔNG bắt buộc — không ghi chú vẫn ghi được (200); có ghi chú thì truyền kèm (Ethan 2026-10-29)", async () => {
+Deno.test("action storefront_act fixed: ghi chú KHÔNG bắt buộc — không ghi chú vẫn ghi được (200); có ghi chú thì truyền kèm", async () => {
   const seen: unknown[][] = [];
   const mcp = fakeMcp({
     listFindings: () => Promise.resolve([finding(FP_A)]),
@@ -1177,7 +1169,7 @@ Deno.test("action storefront_act fixed: ghi chú KHÔNG bắt buộc — không 
   assertEquals((r1.body as { status: string }).status, "ok");
   const r2 = await handle({ ...ACT_REQ, sf_act: "fixed", note: "Đã sửa trong theme" }, TOKEN, deps);
   assertEquals(r2.status, 200);
-  assertEquals(seen, [[FP_A, "", "Ethan Nguyen"], [FP_A, "Đã sửa trong theme", "Ethan Nguyen"]]);
+  assertEquals(seen, [[FP_A, "", "Quinn Harper"], [FP_A, "Đã sửa trong theme", "Quinn Harper"]]);
 });
 
 Deno.test("action storefront_act dismiss: lý do ngoài 2 giá trị của SW → 400; đúng lý do thì ghi kèm note + operator", async () => {
@@ -1193,10 +1185,10 @@ Deno.test("action storefront_act dismiss: lý do ngoài 2 giá trị của SW �
   const ok = await handle({ ...ACT_REQ, sf_act: "dismiss", note: "Trang vẫn ổn", reason: "false_signal" }, TOKEN, deps);
   assertEquals(ok.status, 200);
   assertEquals((ok.body as { status: string }).status, "ok");
-  // Không ghi chú vẫn dismiss được (Ethan 2026-10-29) — note truyền xuống là "".
+  // Không ghi chú vẫn dismiss được — note truyền xuống là "".
   const okNoNote = await handle({ ...ACT_REQ, sf_act: "dismiss", reason: "not_important" }, TOKEN, deps);
   assertEquals(okNoNote.status, 200);
-  assertEquals(seen, [[FP_A, "false_signal", "Trang vẫn ổn", "Ethan Nguyen"], [FP_A, "not_important", "", "Ethan Nguyen"]]);
+  assertEquals(seen, [[FP_A, "false_signal", "Trang vẫn ổn", "Quinn Harper"], [FP_A, "not_important", "", "Quinn Harper"]]);
 });
 
 Deno.test("action storefront_act dismiss: ghi 1 dòng nhật ký report đầy đủ (migration 033) sau khi SW nhận thao tác", async () => {
@@ -1224,12 +1216,12 @@ Deno.test("action storefront_act dismiss: ghi 1 dòng nhật ký report đầy �
   assertEquals(rowLog.page, "/products/abc");
   assertEquals(rowLog.reason, "false_signal");
   assertEquals(rowLog.note, null);
-  assertEquals(rowLog.operator_name, "Ethan Nguyen");
+  assertEquals(rowLog.operator_name, "Quinn Harper");
   assertEquals(rowLog.crisp_url, "https://app.crisp.chat/website/ws1/inbox/session_1");
   assertEquals(typeof rowLog.console_url, "string");
 });
 
-Deno.test("action storefront_act dismiss: đẩy REAL-TIME dòng đã định dạng cho Sheet qua n8n ngay sau khi ghi log (Ethan 2026-10-30)", async () => {
+Deno.test("action storefront_act dismiss: đẩy REAL-TIME dòng đã định dạng cho Sheet qua n8n ngay sau khi ghi log", async () => {
   const pushed: Record<string, unknown>[] = [];
   const mcp = fakeMcp({
     listFindings: () => Promise.resolve([finding(FP_A, { title: "Transient text", severity: "high", locale: "es", page: "/products/abc", widthPx: 1440 })]),
@@ -1251,7 +1243,7 @@ Deno.test("action storefront_act dismiss: đẩy REAL-TIME dòng đã định d�
   assertEquals(pushed[0].id, 1);
   assertEquals(pushed[0].thao_tac, "Dismiss");
   assertEquals(pushed[0].ly_do, "Lỗi thật, không đáng sửa");
-  assertEquals(pushed[0].cs, "Ethan Nguyen");
+  assertEquals(pushed[0].cs, "Quinn Harper");
   assertEquals(pushed[0].link_crisp, "https://app.crisp.chat/website/ws1/inbox/session_1");
 });
 

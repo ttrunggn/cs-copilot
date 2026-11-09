@@ -8,7 +8,7 @@ import {
 } from "../_shared/storefront.ts";
 import { SWEEP_RECENT_DAYS } from "./storefront-sweep.ts";
 
-/** Tiêu đề email — Ethan chốt nguyên văn 2026-10-27. */
+/** Tiêu đề email cố định. */
 export const DIGEST_SUBJECT = "Storefront Watch Weekly Scan";
 
 export interface DigestResult {
@@ -65,7 +65,7 @@ export function consoleUrlForStore(shop: string, fresh: StorefrontFinding[]): st
 }
 
 /**
- * Body email — format Ethan chốt 2026-10-27: mỗi store một khối gồm đúng
+ * Body email: mỗi store một khối gồm đúng
  * domain, số lỗi mới, link Crisp, link Console. Không lời dẫn, không chi
  * tiết finding, không ngữ cảnh nào thêm. Store chưa từng có session nào
  * thì bỏ dòng Crisp (không có link để gắn — không bịa link chết).
@@ -109,8 +109,8 @@ interface PendingStore {
  *
  * Sau khi gom: gửi ĐÚNG 1 email tới toàn bộ operator (subject cố định
  * DIGEST_SUBJECT, body mỗi store một khối domain + số lỗi mới + link Crisp
- * của session gần nhất có shopify_domain đó + link Console — format Ethan
- * chốt 2026-10-27, ngoài 4 dữ kiện này không thêm ngữ cảnh nào). Mốc + fingerprint của các store được
+ * của session gần nhất có shopify_domain đó + link Console — ngoài 4 dữ
+ * kiện này không thêm ngữ cảnh nào). Mốc + fingerprint của các store được
  * báo chỉ nâng SAU KHI Crisp nhận email thành công — gửi lỗi thì lần chạy
  * sau tính lại đúng đợt đó (email_error trả trong kết quả, không nuốt).
  *
@@ -118,7 +118,7 @@ interface PendingStore {
  * luôn có mốc quét tươi dù sweep chưa được lập lịch riêng.
  *
  * Read-only với SW (find_store/list_findings); ghi Crisp DUY NHẤT là email
- * nội bộ cho operator qua _shared/crisp-operators.ts (Ethan duyệt 2026-10-27).
+ * nội bộ cho operator qua _shared/crisp-operators.ts.
  */
 export async function runStorefrontDigest(
   deps: { db: Db; storefront?: StorefrontMcp | null; mailer?: OperatorMailer | null; now?: () => number },

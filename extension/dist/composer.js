@@ -19,9 +19,8 @@ function decideInsert({ urlSession, cmd, composerText, insertedIds, lastFilledTe
   if (current.trim()) {
     // Ô còn NGUYÊN VĂN bản copilot tự điền lần trước (người chưa gõ/sửa
     // gì): thay bằng bản mới luôn, không hỏi "Thay thế toàn bộ" — câu hỏi
-    // đó chỉ để bảo vệ chữ NGƯỜI tự gõ. Ethan bắt live 2026-10-26: điền
-    // draft xong, soạn bản mới bấm Điền lại bị bắt xác nhận thay thế
-    // chính bản copilot vừa điền, thừa và khó hiểu.
+    // đó chỉ để bảo vệ chữ NGƯỜI tự gõ; hỏi xác nhận thay thế chính bản
+    // copilot vừa điền là thừa và khó hiểu.
     if (lastFilledText && textsMatch(current, lastFilledText)) return { status: "inserted", text: cmd.text };
     return { status: "not_empty" };
   }
@@ -35,9 +34,8 @@ function isCopilotMessage(ev, win) {
 
 /**
  * Màu nền editor có phải tông VÀNG của Note mode không (Crisp chuyển ô soạn
- * sang nền vàng khi ở chế độ private note — bằng chứng từ Crisp thật
- * 2026-10-23; phiên dò DOM 2026-10-26 xác nhận trên giao diện tối đó là tông
- * vàng olive SẪM, không phải vàng sáng). Nhận chuỗi computed style
+ * sang nền vàng khi ở chế độ private note ; trên giao diện tối
+ * đó là tông vàng olive SẪM, không phải vàng sáng). Nhận chuỗi computed style
  * "rgb(r, g, b)"/"rgba(...)"; màu trắng/xám/tối-trung-tính/lạnh của Reply
  * mode phải trả false. Tiêu chí là độ ẤM (đỏ và xanh lá đều vượt xanh dương
  * một khoảng rõ), áp cho cả vàng sáng (theme sáng) lẫn olive sẫm (theme tối).
@@ -50,10 +48,9 @@ function isYellowishColor(css) {
 }
 
 /**
- * Nhận diện placeholder của ô soạn theo VĂN BẢN hiển thị thật (phiên dò
- * 2026-10-26 trên Crisp thật: placeholder là chữ render trong vùng soạn chứ
- * không nằm ở thuộc tính của editor — bản cũ đọc data-placeholder/aria-label
- * nên luôn trượt). "Send a private note…" = Note mode; "Send your message
+ * Nhận diện placeholder của ô soạn theo VĂN BẢN hiển thị (trên Crisp
+ * placeholder là chữ render trong vùng soạn chứ không nằm ở thuộc tính của
+ * editor — đọc data-placeholder/aria-label sẽ luôn trượt). "Send a private note…" = Note mode; "Send your message
  * to…" = Reply mode. Không khớp thì null.
  */
 function placeholderKind(text) {
@@ -72,10 +69,9 @@ function tabLooksActive({ className = "", ariaSelected = null, dataState = "" } 
 /**
  * Cổng xác nhận Note mode trước khi điền private note — an toàn là trên hết,
  * thà huỷ không điền còn hơn điền nội dung nội bộ vào ô Reply cho khách thấy.
- * Bằng chứng phiên dò 2026-10-26: class của tab trên Crisp thật là chuỗi băm
- * (không mang token active/selected) nên tabActive KHÔNG còn là điều kiện bắt
- * buộc như bản cũ — đó chính là gốc Lỗi 1 (điền Note không chạy trên máy
- * thật). Xác nhận đạt khi:
+ * Class của tab trên Crisp là chuỗi băm (không mang token active/selected)
+ * nên tabActive KHÔNG phải điều kiện bắt buộc (bắt buộc thì điền Note không
+ * bao giờ chạy). Xác nhận đạt khi:
  * - tab Note báo active VÀ có ít nhất 1 tín hiệu phía editor; HOẶC
  * - có ít nhất 2 tín hiệu phía editor độc lập (nền vàng ấm / class note /
  *   placeholder "Send a private note…" / nhãn Note trong vùng soạn) — các tín
@@ -90,7 +86,7 @@ function confirmNoteMode({ tabActive = false, yellowBg = false, noteClass = fals
  * Kiểm chứng sau khi ghi: ô soạn phải chứa dòng đầu tiên (không rỗng) của nội
  * dung vừa ghi. Editor rich-text (Lexical) có thể nuốt sự kiện paste tổng hợp
  * mà không báo lỗi — không kiểm chứng thì extension báo "đã điền" trong khi ô
- * trống hoặc chữ rơi chỗ khác (gốc Lỗi 2: dán dính/không tách đoạn mà panel
+ * trống hoặc chữ rơi chỗ khác (dán dính/không tách đoạn mà panel
  * không hề biết). Không khớp → caller báo insert_unverified thay vì inserted.
  */
 function verifyWritten(readBack, text) {
@@ -105,9 +101,8 @@ function verifyWritten(readBack, text) {
  * thành một (Lexical render đoạn cách nhau bằng 1 hay 2 dấu xuống dòng tuỳ
  * ngữ cảnh — khác biệt đó không phải lỗi điền). KHÔNG nới tới mức nuốt được
  * nội dung trùng lặp: bản cũ còn nguyên + bản mới dán thêm vào (lỗi điền
- * "thay thế mà thành chèn thêm" Ethan gặp 2026-10-26) cho chuỗi dài gấp đôi,
- * so khớp toàn văn bắt được ngay, trong khi verifyWritten cũ chỉ thấy dòng
- * đầu tồn tại là cho qua.
+ * "thay thế mà thành chèn thêm") cho chuỗi dài gấp đôi, so khớp toàn văn
+ * bắt được ngay, trong khi verifyWritten chỉ thấy dòng đầu tồn tại là cho qua.
  */
 function normalizeComposerText(text) {
   return String(text ?? "")
@@ -132,16 +127,15 @@ function textsMatch(readBack, expected) {
  * xuống dòng) gập thành một dấu cách trước khi so. Lý do cần thêm lớp này
  * bên cạnh textsMatch: innerText của editor Lexical nối các đoạn bằng \n
  * hay \n\n và có thể chèn ngắt dòng theo chiều rộng ô — khác biệt trình bày
- * đó từng làm textsMatch trượt, fillEditor điền LẠI lần hai chồng lên lần
- * một (nội dung gấp đôi trên bản live 2026-10-26). Gập khoảng trắng vẫn bắt
+ * đó làm textsMatch trượt, fillEditor sẽ điền LẠI lần hai chồng lên lần
+ * một (nội dung gấp đôi). Gập khoảng trắng vẫn bắt
  * được gấp đôi thật: bản gấp đôi dài gấp hai và khác hẳn sau khi gập.
  */
 function fillVerified(readBack, expected) {
   // Editor kiểu Lexical có thể biến dòng "1. ..." thành mục danh sách thật:
   // số thứ tự thành marker hiển thị, KHÔNG còn nằm trong innerText — bản
-  // đọc lại thiếu đúng "1. " dù nội dung đã vào đủ (ca live 2026-10-26:
-  // note handoff có dòng đánh số, chữ vào ô Note rồi mà xác nhận cứ
-  // mismatch). Gọt marker đầu dòng ở CẢ hai phía trước khi so.
+  // đọc lại thiếu đúng "1. " dù nội dung đã vào đủ (vd note handoff có
+  // dòng đánh số). Gọt marker đầu dòng ở CẢ hai phía trước khi so.
   const stripMarkers = (s) => String(s ?? "").split("\n").map((l) => l.replace(/^\s*(?:\d{1,3}[.)]|[-•*])\s+/, "")).join("\n");
   const squash = (s) => normalizeComposerText(stripMarkers(s)).replace(/\s+/g, " ").trim();
   const a = squash(readBack);
@@ -159,8 +153,8 @@ function fillVerified(readBack, expected) {
 }
 
 /**
- * Vết chẩn đoán gọn của một lần điền (panel hiện kèm thông báo lỗi để lần
- * test live nào lỗi là thấy ngay khâu nào, khỏi đoán): tín hiệu Note mode
+ * Vết chẩn đoán gọn của một lần điền (panel hiện kèm thông báo lỗi để
+ * thấy ngay khâu nào lỗi, khỏi đoán): tín hiệu Note mode
  * dạng tab/yel/cls/ph/pil kèm 0/1.
  */
 function signalTrace(signals = {}) {
@@ -192,12 +186,10 @@ function widgetSessionFromSrc(src) {
 }
 
 /**
- * Class của nút Expand trên DOM Crisp THẬT (dò đi dò lại trên trang Crisp
- * đang chạy, 2026-10-28): nút KHÔNG phải <button> và không mang nhãn chữ
+ * Class của nút Expand trên DOM Crisp: nút KHÔNG phải <button> và không mang nhãn chữ
  * nào — nó là span.c-conversation-profile-widget__expand (trong có svg
  * .c-conversation-profile-widget__expand-icon), nằm ở chân hộp widget.
- * Bản 1.2.5 tìm <button> tên "expand" nên không bao giờ thấy nó — đó là
- * lý do auto-expand chết live dù test giả lập xanh. Giữ nhánh <button>
+ * Chỉ tìm <button> tên "expand" thì không bao giờ thấy nó. Giữ nhánh <button>
  * tên "expand" làm đường dự phòng nếu Crisp đổi lại markup.
  */
 const EXPAND_CONTROL_CLASS = "c-conversation-profile-widget__expand";
@@ -240,8 +232,8 @@ function findExpandButton(iframe, maxLevels = 8) {
 }
 
 /**
- * Nút Expand có THẬT SỰ bấm được lúc này không. Đo live cả hai trạng thái
- * (2026-10-28): khi hộp mở rộng, span và icon KHÔNG đổi class, KHÔNG đổi
+ * Nút Expand có THẬT SỰ bấm được lúc này không. Đo trên Crisp cả hai trạng thái:
+ * khi hộp mở rộng, span và icon KHÔNG đổi class, KHÔNG đổi
  * vị trí — khác biệt duy nhất là iframe của widget phủ lên đúng tâm icon,
  * nên elementFromPoint tại tâm nút trả iframe thay vì svg. Còn bấm được =
  * rect có kích thước và phần tử trên cùng tại tâm nút là chính nút hoặc
@@ -261,8 +253,7 @@ function isExpandActionable(el) {
 
 /**
  * Bấm nút Expand: phát chuỗi mousedown/mouseup/click nổi bọt từ phần tử
- * sâu nhất (svg icon trong span) — đúng cách lần bấm qua console đã mở
- * được hộp trên Crisp thật 2026-10-28. Môi trường không có MouseEvent
+ * sâu nhất (svg icon trong span) — cách bấm mở được hộp trên Crisp. Môi trường không có MouseEvent
  * hoặc không dispatchEvent được thì rơi xuống .click().
  */
 function activateControl(el) {
@@ -288,7 +279,7 @@ function activateControl(el) {
 
 /**
  * Máy trạng thái tự mở rộng, theo từng phiên chat. "Thấy nút" ở đây là
- * nút còn BẤM ĐƯỢC (isExpandActionable): trên Crisp thật nút không biến
+ * nút còn BẤM ĐƯỢC (isExpandActionable): trên Crisp nút không biến
  * mất khi hộp mở mà bị iframe phủ lên, nên tín hiệu mở/đóng là tính bấm
  * được chứ không phải sự tồn tại trong DOM.
  * - Thấy nút bấm được ở phiên chưa từng bấm → bấm (observe trả true).
@@ -352,11 +343,10 @@ function createExpandTracker() {
 // Note là nội dung nội bộ: chỉ điền khi ĐÃ XÁC NHẬN đang ở Note mode (xem
 // confirmNoteMode ở composer-core), không xác nhận được thì huỷ, không điền gì cả.
 // Mọi lần điền đều để lại "trace" — vết chẩn đoán gọn trả kèm kết quả để panel
-// hiện trong thông báo lỗi: lần test live nào lỗi là thấy ngay khâu nào
-// (tín hiệu Note, xoá, ghi, khớp) thay vì đoán (Ethan test live 2026-10-26:
-// điền Note + gấp đôi nội dung ở bản 1.2.1 mà không có dữ kiện nào để truy).
+// hiện trong thông báo lỗi: lỗi ở khâu nào là thấy ngay
+// (tín hiệu Note, xoá, ghi, khớp) thay vì đoán.
 const COMPOSER_SELECTORS = [
-  // Dò trên app.crisp.chat thật 2026-10-19: ô Reply là editor Lexical (contenteditable). Thứ tự = ưu tiên.
+  // Trên app.crisp.chat: ô Reply là editor Lexical (contenteditable). Thứ tự = ưu tiên.
   ".c-conversation-box-field__field-composer-field",
   ".c-conversation-box-field [contenteditable='true']",
   "[data-placeholder] [contenteditable='true']",
@@ -435,15 +425,15 @@ function selectAll(el) {
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Xoá SẠCH ô soạn và kiểm chứng rỗng thật. Bản cũ chỉ bắn MỘT beforeinput
- * deleteContentBackward tổng hợp — Lexical nuốt sự kiện đó mà không xoá, nên
- * bước paste sau đó dán bản mới LÊN TRÊN bản cũ: "thay thế" thành chèn thêm,
- * nội dung lặp 2-3 lần (Ethan test live 2026-10-26). Nay thử lần lượt:
+ * Xoá SẠCH ô soạn và kiểm chứng rỗng thật. Chỉ bắn MỘT beforeinput
+ * deleteContentBackward tổng hợp là không đủ — Lexical nuốt sự kiện đó mà
+ * không xoá, nên bước paste sau đó dán bản mới LÊN TRÊN bản cũ: "thay thế"
+ * thành chèn thêm, nội dung lặp 2-3 lần. Vì vậy thử lần lượt:
  * execCommand("delete") trên vùng chọn toàn bộ → phím Backspace → beforeinput
  * → xoá node qua Selection API; cách nào làm ô rỗng thật mới tính là xong.
  * Bước xoá DOM thẳng phải CHỜ rồi đọc lại: Lexical có thể dựng lại nội dung
  * cũ từ state của nó ngay sau khi DOM bị đụng vào — đọc ngay thấy rỗng giả,
- * dán tiếp là gấp đôi (đúng ca gấp đôi ở ô Reply trên bản 1.2.1).
+ * dán tiếp là gấp đôi.
  */
 async function clearEditor(el, trace) {
   if (!readText(el).trim()) { trace?.push("clr:empty"); return true; }
@@ -451,7 +441,7 @@ async function clearEditor(el, trace) {
   // Mỗi cách xoá phải được xác nhận SAU một nhịp chờ mới tin: editor có thể
   // "dựng lại" nội dung cũ từ state riêng của nó ngay sau khi DOM bị xoá
   // thẳng — đọc ngay lập tức thấy rỗng giả, tưởng đã sạch mà dán tiếp là
-  // gấp đôi (đúng ca gấp đôi ở ô Reply trên bản live 2026-10-26).
+  // gấp đôi.
   const confirmGone = async (how) => {
     if (!gone()) return false;
     await delay(55);
@@ -521,7 +511,7 @@ async function fillEditor(el, text, trace, refind) {
 
 // ---------- chuyển sang Note mode ----------
 // Thanh công cụ ô soạn Crisp có các tab Reply | Edit | Note | Reminder |
-// Shortcuts | Knowledge Base (bằng chứng: ảnh Crisp thật 2026-10-23) — Note là
+// Shortcuts | Knowledge Base — Note là
 // một tab bấm được ngay cạnh Reply. Tab được tìm TRONG vùng ô soạn (leo từ
 // editor lên), không tìm toàn trang để khỏi khớp nhầm chữ "Note" trong nội
 // dung tin nhắn; phần tử nằm trong chính editor cũng bị loại (CS có thể đang
@@ -562,13 +552,11 @@ function findModeTab(editor, label) {
 
 /**
  * Phạm vi gom tín hiệu Note mode: leo từ editor lên (tối đa 8 tầng) tới
- * container chứa CẢ thanh tab (có lá "Reply" và lá "Note"). Bản cũ dừng ở
- * .c-conversation-box-field — nhưng trên Crisp thật, phần "trang trí" của
- * Note mode (nền vàng phủ cả hàng tab, pill "Note", placeholder) nằm ở
- * container composer PHÍA TRÊN box-field (phiên dò 2026-10-26: nền vàng phủ
- * cả hàng tab lẫn hàng soạn), nên tín hiệu không bao giờ lọt vào phạm vi cũ
- * và cổng xác nhận không qua nổi dù CS đã mở sẵn tab Note (ca live
- * 2026-10-26: tab tự chuyển sang Note mà ô vẫn trống).
+ * container chứa CẢ thanh tab (có lá "Reply" và lá "Note"). Không dừng ở
+ * .c-conversation-box-field: trên Crisp, phần "trang trí" của Note mode (nền
+ * vàng phủ cả hàng tab, pill "Note", placeholder) nằm ở container composer
+ * PHÍA TRÊN box-field, dừng sớm thì tín hiệu không bao giờ lọt vào phạm vi
+ * và cổng xác nhận không qua nổi dù CS đã mở sẵn tab Note.
  */
 function signalScope(editor) {
   let root = editor;
@@ -594,9 +582,8 @@ function collectNoteSignals(editor) {
   // Leo từ EDITOR THẬT (contenteditable), không phải từ phần tử selector
   // khớp: selector đầu có thể trúng WRAPPER bọc ngoài editor, mà nền vàng
   // của Note mode nằm ngay trên chính contenteditable / lớp bọc trong của
-  // nó — leo từ wrapper đi lên thì không bao giờ chạm được lớp đó (ca live
-  // 2026-10-27: tab Note mở sẵn, editor nền vàng rõ ràng mà trace vẫn
-  // yel0, cổng chỉ còn pil1 nên không qua nổi).
+  // nó — leo từ wrapper đi lên thì không bao giờ chạm được lớp đó (trace
+  // sẽ ra yel0 dù editor nền vàng rõ ràng).
   const start = editableOf(editor) ?? editor;
   let yellowBg = false;
   let noteClass = false;
@@ -606,7 +593,7 @@ function collectNoteSignals(editor) {
     if (node === root) break;
   }
   // Nền vàng có thể phủ ở container NGOÀI phạm vi tín hiệu đúng một tầng
-  // (phiên dò 2026-10-26: phủ cả hàng tab) — kiểm thêm đúng một tầng đó.
+  // (phủ cả hàng tab) — kiểm thêm đúng một tầng đó.
   if (!yellowBg && root.parentElement) {
     yellowBg = isYellowishColor(getComputedStyle(root.parentElement).backgroundColor);
     if (!noteClass) noteClass = /(^|[\s_-])note(?=$|[\s_-])/i.test(classOf(root.parentElement));
@@ -616,9 +603,8 @@ function collectNoteSignals(editor) {
     ?? start.getAttribute?.("aria-label")
     ?? editor.getAttribute("data-placeholder")
     ?? "";
-  // Placeholder trên Crisp thật là CHỮ RENDER quanh editor ("Send a private
-  // note to your team…" / "Send your message to … in chat…", phiên dò
-  // 2026-10-26), không nằm ở thuộc tính — đọc cả hai đường, thuộc tính chỉ là
+  // Placeholder trên Crisp là CHỮ RENDER quanh editor ("Send a private
+  // note to your team…" / "Send your message to … in chat…"), không nằm ở thuộc tính — đọc cả hai đường, thuộc tính chỉ là
   // dự phòng. Quét MỌI lá trong phạm vi tín hiệu: thấy placeholder Note ở
   // bất cứ đâu là tính Note (placeholder Reply cũ còn sót trong DOM không
   // được phủ quyết). Nhãn "Note" dạng pill ở đầu dòng soạn cũng là tín hiệu
@@ -655,9 +641,8 @@ function collectNoteSignals(editor) {
 /**
  * Chọn ứng viên editor cho đích Note: Crisp có thể giữ NHIỀU editor trong
  * DOM cùng lúc (cả hai mode) và selector đầu tiên không phân biệt mode —
- * bản cũ chỉ chấm tín hiệu trên ứng viên đầu tiên tìm thấy, ứng viên đó là
- * editor của mode kia thì mọi tín hiệu đọc về 0 dù Note mode đang bật đúng
- * (ca live 2026-10-27, trace chỉ pil1). Nay chấm TỪNG ứng viên: lấy ứng
+ * chỉ chấm ứng viên đầu tiên thì nếu đó là editor của mode kia, mọi tín hiệu
+ * đọc về 0 dù Note mode đang bật đúng. Vì vậy chấm TỪNG ứng viên: lấy ứng
  * viên đầu tiên qua cổng xác nhận; không ai qua thì lấy ứng viên nhiều tín
  * hiệu editor nhất (phục vụ trace + bấm tab chuyển mode).
  */
@@ -738,9 +723,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 // phiên chat, và tôn trọng lần đóng tay của CS (xem createExpandTracker
 // ở composer-core). Chỉ là thao tác giao diện của chính trang Crisp —
 // không gọi mạng, không lưu dữ liệu.
-// DOM thật (dò lại 2026-10-28, bản 1.2.6): nút là span.c-conversation-
-// profile-widget__expand chứ không phải <button> "Expand" như bản 1.2.5
-// tưởng; "thấy nút" với tracker là nút còn BẤM ĐƯỢC (isExpandActionable)
+// DOM Crisp: nút là span.c-conversation-
+// profile-widget__expand chứ không phải <button> "Expand"; "thấy nút" với tracker là nút còn BẤM ĐƯỢC (isExpandActionable)
 // vì khi hộp đã mở, span vẫn nằm trong DOM nhưng bị iframe phủ lên.
 const WIDGET_ORIGIN = "https://copilot-oe.netlify.app";
 const expandTracker = createExpandTracker();

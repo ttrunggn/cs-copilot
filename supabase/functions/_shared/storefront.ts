@@ -1,10 +1,10 @@
 // Client MCP tối thiểu cho Storefront Watch (https://sw-api.transcy.io/mcp),
 // gọi TRỰC TIẾP từ Edge Function của copilot — không qua MCP server của Crisp,
-// không qua Hugo (Ethan chốt cứng 2026-10-23). SW gác cổng /mcp bằng Bearer
+// không qua Hugo. SW gác cổng /mcp bằng Bearer
 // token + chữ ký HMAC theo spec Crisp công bố cho client MCP (Hugo → MCP API,
 // docs.crisp.chat/guides/hugo/mcp-api/request-signing): SW theo spec đó vì
-// Hugo là client đầu tiên của họ. Đã kiểm chứng gọi thật (2026-10-23):
-// initialize + tools/list đều 200 khi ký đúng; thiếu chữ ký → 401.
+// Hugo là client đầu tiên của họ: initialize + tools/list trả 200 khi ký
+// đúng; thiếu chữ ký → 401.
 //
 // Chữ ký: HMAC-SHA256(secret, "{timestamp}.{website_id}.{raw_body}"), hex
 // thường, header X-Crisp-Signature: "sha256=<hex>", kèm X-Crisp-Website-Id và
@@ -90,11 +90,10 @@ export interface StorefrontMcp {
   listFindings(websiteId: string, shop: string): Promise<StorefrontFinding[]>;
   getFinding(websiteId: string, fingerprint: string): Promise<StorefrontFindingDetail>;
   /**
-   * 4 tool GHI phía SW mở scope ngày 2026-10-27 (kiểm chứng live bằng
-   * tools/list: acknowledge_finding / mark_fixed / dismiss_finding / undo —
-   * cả 4 readOnlyHint: false). Đây là ngoại lệ CÓ KIỂM SOÁT của nguyên tắc
-   * "panel chỉ đọc, đổi trạng thái trong Console" (Ethan chốt lại 2026-10-27
-   * khi duyệt menu thao tác): ghi CHỈ xảy ra khi CS bấm nút trong panel qua
+   * 4 tool GHI phía SW (theo tools/list: acknowledge_finding / mark_fixed /
+   * dismiss_finding / undo — cả 4 readOnlyHint: false). Đây là ngoại lệ CÓ
+   * KIỂM SOÁT của nguyên tắc "panel chỉ đọc, đổi trạng thái trong Console":
+   * ghi CHỈ xảy ra khi CS bấm nút trong panel qua
    * action storefront_act, không có đường ghi tự động nào. Mỗi hàm trả text
    * xác nhận của tool (có thể rỗng); lỗi tool → StorefrontError như đường đọc.
    */
@@ -104,7 +103,7 @@ export interface StorefrontMcp {
   undoFinding(websiteId: string, fingerprint: string): Promise<string>;
 }
 
-/** Lý do dismiss phía SW nhận (inputSchema của dismiss_finding, kiểm chứng live 2026-10-27). */
+/** Lý do dismiss phía SW nhận (inputSchema của dismiss_finding). */
 export const SW_DISMISS_REASONS = ["false_signal", "not_important"] as const;
 export type SwDismissReason = typeof SW_DISMISS_REASONS[number];
 
@@ -170,13 +169,11 @@ export function isPlausibleShop(v: unknown): v is string {
 }
 
 // ---------- parse output của tool (prose có cấu trúc cố định) ----------
-// Cả 3 tool trả TEXT PROSE theo mẫu cố định — đã bắt mẫu thật 2026-10-23 từ
-// hai store đang được theo dõi (amirobeauty.com: find_store + 9 findings,
-// iglow.me: 5 findings, cộng get_finding của 2 fingerprint). KHÔNG có JSON:
-// lớp đoán field kiểu cũ đọc không được gì. Mẫu đã kiểm chứng:
+// Cả 3 tool trả TEXT PROSE theo mẫu cố định, KHÔNG có JSON — đoán field
+// kiểu JSON đọc không được gì. Các mẫu (domain/ngày chỉ minh hoạ):
 //
 //   find_store (có theo dõi):
-//     Store: amirobeauty.com
+//     Store: store-a.example
 //     In the weekly sweep: yes
 //     Languages: es, ja, zh · pages: 31
 //     Last good check: 2026-10-22
@@ -185,26 +182,24 @@ export function isPlausibleShop(v: unknown): v is string {
 //     Store: X
 //     Storefront Watch does not watch this store and has never scanned it.
 //     That means nothing is known about it, not that it has no problems.
-//   find_store (có theo dõi, chưa quét thành công trang nào — mẫu thật
-//   2026-10-28, dev.bouwmaat.nl):
-//     Store: dev.bouwmaat.nl (asked as bouwmaat-dev.myshopify.com)
+//   find_store (có theo dõi, chưa quét thành công trang nào):
+//     Store: store-b.example (asked as shop-b.myshopify.com)
 //     In the weekly sweep: yes
 //     Languages: de, en, pl, tr · pages: 4
 //     Last good check: none yet
 //     Open problems: unknown, no page has been checked successfully yet
 //     Not checked, so unknown (not clean): 4 page(s)
 //     - de /: the language could not be confirmed (inconclusive)
-//   find_store (domain không tới được, SW không giữ gì — mẫu thật
-//   2026-10-28, 5f5291-40.myshopify.com):
-//     Store: 5f5291-40.myshopify.com
-//     Storefront Watch could not reach 5f5291-40.myshopify.com to find its
+//   find_store (domain không tới được, SW không giữ gì):
+//     Store: shop-x.myshopify.com
+//     Storefront Watch could not reach shop-x.myshopify.com to find its
 //     main domain (HTTP 404), and holds nothing under that name.
-//   list_findings (chưa quét thành công — mẫu thật 2026-10-28):
-//     Problems on dev.bouwmaat.nl are unknown: no page has been checked
+//   list_findings (chưa quét thành công):
+//     Problems on store-b.example are unknown: no page has been checked
 //     successfully yet.
 //     4 page(s) could not be checked, so this list may be incomplete.
 //   list_findings:
-//     9 open problem(s) on amirobeauty.com, worst first:
+//     9 open problem(s) on store-a.example, worst first:
 //     1. CRITICAL · Region missing · ja / (1440px)
 //        Seen 2 time(s), first 2026-10-14, last 2026-10-22
 //        Fingerprint: <40 hex>
@@ -217,7 +212,7 @@ export function isPlausibleShop(v: unknown): v is string {
 //   get_finding:
 //     Finding <40 hex>
 //     HIGH · Option unidentifiable (also Graphic lost)
-//     Where: amirobeauty.com · zh · /products/… · 1440px wide
+//     Where: store-a.example · zh · /products/… · 1440px wide
 //     State: open
 //     Seen 1 time(s), first 2026-10-22, last 2026-10-22
 //     Judge: confirmed, "<mô tả dài>"   (hoặc mã ngắn, vd "no_crops"; tuỳ chọn)
@@ -233,10 +228,10 @@ function rec(v: unknown): Rec {
 }
 
 const NOT_WATCHED_MARK = "does not watch this store";
-// Mẫu thật 2026-10-28: domain SW không với tới được / không giữ dữ liệu gì —
+// Domain SW không với tới được / không giữ dữ liệu gì —
 // cùng nghĩa "không biết gì" với NOT_WATCHED_MARK nhưng khác câu chữ.
 const UNREACHABLE_MARK = "holds nothing under that name";
-// Mẫu thật 2026-10-28: store ĐƯỢC theo dõi nhưng chưa trang nào quét thành
+// Store ĐƯỢC theo dõi nhưng chưa trang nào quét thành
 // công — xuất hiện ở cả find_store ("Open problems: unknown, …") lẫn
 // list_findings ("Problems on X are unknown: …").
 const UNKNOWN_PROBLEMS_MARK = "no page has been checked successfully yet";
@@ -289,8 +284,7 @@ export function parseStoreText(text: string, shopArg: string): StorefrontStore {
   // SW chú thích "(asked as <domain khác>)" sau tên store khi domain được hỏi
   // khác domain chuẩn của store — đó là ghi chú hiển thị, KHÔNG thuộc định
   // danh store. Không lột thì chú thích (kèm domain Shopify) lọt vào mọi nơi
-  // dùng shop làm khoá, tệ nhất là URL Console thành link chết (Ethan bắt
-  // live 2026-10-27 trên ca tantaly).
+  // dùng shop làm khoá, tệ nhất là URL Console thành link chết.
   const shop = storeLine.slice("Store: ".length).trim()
     .replace(/\s*\(asked as [^)]*\)$/, "").trim() || shopArg;
   if (text.includes(NOT_WATCHED_MARK) || text.includes(UNREACHABLE_MARK)) {
@@ -298,8 +292,7 @@ export function parseStoreText(text: string, shopArg: string): StorefrontStore {
   }
   const openLine = lines.find((l) => l.startsWith("Open problems: "));
   if (!openLine) throw new StorefrontError("find_store trả định dạng lạ (thiếu dòng 'Open problems:'), không đọc được");
-  // Store được theo dõi nhưng CHƯA trang nào quét thành công (mẫu thật
-  // 2026-10-28, dev.bouwmaat.nl + united-arrows-global.com): dòng Open
+  // Store được theo dõi nhưng CHƯA trang nào quét thành công: dòng Open
   // problems ghi "unknown, no page has been checked successfully yet" —
   // không có số đếm nào để đọc, và đó là SỰ THẬT (chưa biết), không phải
   // định dạng lạ. Trả counts rỗng; tính "chưa biết" được phân biệt với store
@@ -327,7 +320,7 @@ export function parseStoreText(text: string, shopArg: string): StorefrontStore {
   // "none yet" = chưa từng có lần quét thành công → null như chưa có mốc
   // (giữ nguyên văn sẽ làm hỏng cột ngày ở storeStatusFromStore).
   const lastCheckedAt = checkRaw && checkRaw !== "none yet" ? checkRaw : null;
-  // Khối trang chưa quét được — mẫu thật 2026-10-28: dòng "Not checked, so
+  // Khối trang chưa quét được: dòng "Not checked, so
   // unknown (not clean): N page(s)" rồi mỗi trang một dòng "- <nội dung>".
   const uncheckedPages: string[] = [];
   const ncIdx = lines.findIndex((l) => l.startsWith("Not checked, so unknown"));
@@ -366,8 +359,8 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
     else if (line.startsWith("Text: ")) texts = quotedStrings(line.slice("Text: ".length));
     else if (line.startsWith("Fingerprint: ")) fingerprint = line.slice("Fingerprint: ".length).trim();
     else if (line.startsWith("Console: ")) consoleLink = line.slice("Console: ".length).trim();
-    // Dòng trạng thái của finding ĐÃ được ghi nhận xử lý (từ khi SW mở tool
-    // acknowledge_finding 2026-10-27): SW có thể ghi vào danh sách — nhận
+    // Dòng trạng thái của finding ĐÃ được ghi nhận xử lý (qua tool
+    // acknowledge_finding): SW có thể ghi vào danh sách — nhận
     // biết và giữ lại thay vì văng lỗi làm hỏng cả panel của store đó. Mọi
     // dòng lạ KHÁC vẫn văng lỗi như cũ (hàng rào toàn vẹn là đối chiếu số
     // finding với header ở parseFindingsText).
@@ -380,8 +373,8 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
     throw new StorefrontError("list_findings trả finding thiếu fingerprint hợp lệ, không đọc được");
   }
   // Link "Console:" SW in sẵn dùng mã fingerprint — Console thật KHÔNG mở
-  // được dạng đó (báo "no audited unit", kiểm chứng live 2026-10-26). Panel
-  // không dùng link in sẵn nữa; link đúng cấu từ khóa unit (hàm
+  // được dạng đó (báo "no audited unit"). Panel
+  // không dùng link in sẵn; link đúng cấu từ khóa unit (hàm
   // consoleUnitUrl dưới đây). Giữ lại giá trị thô cho chi tiết/tương thích.
   const f = baseFinding({ fingerprint, severity: severityRaw.toLowerCase(), kind, locale, page, texts });
   f.widthPx = Number(width);
@@ -392,14 +385,13 @@ function parseListBlock(blockLines: string[]): StorefrontFinding {
 }
 
 /**
- * URL finding ĐÚNG của Console (kiểm chứng live 2026-10-26 bằng cách đăng
- * nhập lướt Console): #/f/<domain>|<locale>|<page>|<width> với | và / được
+ * URL finding ĐÚNG của Console: #/f/<domain>|<locale>|<page>|<width> với | và / được
  * mã hoá %7C/%2F — đúng khoá "audited unit" của Console. Thiếu một mảnh
  * (domain/locale/page/bề rộng) thì trả null: thà không có link còn hơn gắn
  * link chết cho CS bấm.
  */
 /**
- * URL TRANG THẬT trên store mà SW quét thấy finding này (Ethan, 2026-10-29):
+ * URL TRANG THẬT trên store mà SW quét thấy finding này:
  * panel đặt nút "Xem trang lỗi" ngay cạnh từng finding để CS mở tab mới nhìn
  * tận mắt lỗi trên trang khách đang thấy, tách bạch với link Console (trang
  * quản trị SW). Cấu từ domain + page (path SW ghi trong finding, vd
@@ -418,7 +410,7 @@ export function storefrontPageUrl(domain: string | null | undefined, f: { page?:
 }
 
 /**
- * URL trang ở ĐÚNG locale mà SW đã quét thấy finding này (Ethan, 2026-10-29):
+ * URL trang ở ĐÚNG locale mà SW đã quét thấy finding này:
  * panel hiện 3 link thẳng hàng — "Default page" (storefrontPageUrl: trang ở
  * ngôn ngữ mặc định của store), "Issue page" (hàm này: chắp tiền tố locale
  * theo quy ước subfolder của Shopify, vd /en/products/… — đúng biến thể tool
@@ -449,7 +441,7 @@ export function consoleUnitUrl(domain: string | null | undefined, f: { locale?: 
 
 export function parseFindingsText(text: string): StorefrontFinding[] {
   if (text.includes(NOT_WATCHED_MARK)) return [];
-  // Store chưa từng quét thành công trang nào (mẫu thật 2026-10-28): SW trả
+  // Store chưa từng quét thành công trang nào: SW trả
   // "Problems on X are unknown: no page has been checked successfully yet." —
   // chưa BIẾT lỗi nào, khác "không có lỗi", nhưng với nơi dùng danh sách
   // finding thì cả hai đều là danh sách rỗng; tính "chưa biết" nằm ở
@@ -458,7 +450,7 @@ export function parseFindingsText(text: string): StorefrontFinding[] {
   const lines = textLines(text);
   // Store đang theo dõi nhưng không còn lỗi mở: SW trả một dòng báo trống
   // thay cho khối danh sách — đó là kết quả HỢP LỆ (0 lỗi), không phải lỗi
-  // định dạng (ca live 2026-10-26: parser cũ văng lỗi oan ở đúng ca này).
+  // định dạng.
   if (lines.some((l) => /no open problems?\b/i.test(l))) return [];
   const headerIdx = lines.findIndex((l) => /^(?:the first\s+)?\d+ open problems?\b.*$/i.test(l));
   if (headerIdx < 0) {
@@ -473,7 +465,7 @@ export function parseFindingsText(text: string): StorefrontFinding[] {
     else if (/^\s/.test(line) && blocks.length) blocks[blocks.length - 1].push(line);
     // SW hay thêm câu chốt THÔNG TIN sau danh sách ("The console lists the
     // rest." khi cắt ở 25 lỗi đầu; "4 page(s) could not be checked, so this
-    // list may be incomplete." — cả hai đều gặp live ở tantaly 2026-10-26).
+    // list may be incomplete.").
     // Finding luôn đánh số nên câu văn xuôi sau khi đã có finding không thể
     // là finding: bỏ qua. Hàng rào toàn vẹn là đối chiếu số block với số
     // khai báo ở header ngay dưới đây — thiếu finding thật vẫn văng lỗi.
@@ -575,7 +567,7 @@ export function parseFindingDetailText(text: string): StorefrontFindingDetail {
   };
 }
 
-// ---------- chia 3 trạng thái (mô hình Ethan chốt 2026-10-23) ----------
+// ---------- chia 3 trạng thái ----------
 
 export type FindingGroup = "in_progress" | "new" | "acknowledged";
 
@@ -706,7 +698,7 @@ export function createStorefrontMcp(opts: {
       "accept": "application/json, text/event-stream",
       "authorization": `Bearer ${opts.token}`,
       // SW chặn request không User-Agent ở tầng Cloudflare (403/Error 1010) —
-      // gửi UA trình duyệt như lần kiểm chứng thành công.
+      // gửi UA trình duyệt.
       "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
       "X-Crisp-Website-Id": websiteId,
       "X-Crisp-Timestamp": ts,
@@ -786,7 +778,7 @@ export function createStorefrontMcp(opts: {
     const textPart = content.find((c) => rec(c).type === "text");
     const text = typeof rec(textPart).text === "string" ? rec(textPart).text as string : "";
     if (result.isError === true) {
-      // get_finding với fingerprint không tồn tại trả isError + câu này (đã kiểm chứng thật).
+      // get_finding với fingerprint không tồn tại trả isError + câu này.
       if (/^no finding with fingerprint/i.test(text.trim())) {
         throw new StorefrontError(`Không tìm thấy finding (${text.trim()})`);
       }
@@ -822,8 +814,7 @@ export function createStorefrontMcp(opts: {
       // note LUÔN gửi và phải DÀI ≥ 1 ký tự: schema của tool SW khai note
       // là string bắt buộc — bỏ hẳn field → MCP error -32602 "expected
       // string, received undefined at note"; gửi "" → -32602 "expected
-      // string to have >=1 characters at note" (cả hai bắt live
-      // 2026-10-29). Panel không bắt CS gõ (Ethan chốt: comment thừa) nên
+      // string to have >=1 characters at note". Panel không bắt CS gõ nên
       // trống thì thay bằng câu mặc định ngắn dưới đây.
       const args: Rec = { fingerprint, note: (note ?? "").trim() || "Đã sửa" };
       if (operator?.trim()) args.operator = operator.trim();

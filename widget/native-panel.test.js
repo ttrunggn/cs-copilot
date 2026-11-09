@@ -3,7 +3,7 @@ import { openModalName, parseOpenParam } from "./core.js";
 
 /**
  * Khoá schema mặt native (widget/native-panel.json) theo đúng giao thức
- * Crisp Generic Widget: Ethan dán nguyên file này vào cấu hình plugin —
+ * Crisp Generic Widget: người cấu hình dán nguyên file này vào cấu hình plugin —
  * sai một field là Crisp từ chối hoặc item câm. Mọi thay đổi schema phải
  * qua test này.
  */

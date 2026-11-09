@@ -51,7 +51,7 @@ export interface GenerateResult {
   profile_source: ProfileSource;
   prompt_version: string;
   sentiment: Sentiment | null;
-  /** ĐÃ BỎ gợi ý tối ưu cho draft (Ethan chốt 2026-10-27: bỏ thẻ gợi ý khỏi luồng draft + bỏ luôn bước polish để draft nhanh hơn một lượt gọi). Giữ field luôn null cho khớp shape response; cơ chế gợi ý vẫn sống ở template xin review. */
+  /** Luồng draft KHÔNG có gợi ý tối ưu (không thẻ gợi ý, không bước polish, để draft nhanh hơn một lượt gọi). Giữ field luôn null cho khớp shape response; cơ chế gợi ý vẫn sống ở template xin review. */
   draft_suggestion: { reason: string; text: string } | null;
 }
 
@@ -201,7 +201,7 @@ export async function runGenerate(
   const variant = pickVariant(variants);
   const jiraItems = jiraForConversation(jiraRows, conv.last_human_operator_at);
   const jira = jiraPromptBlock(jiraItems);
-  // Chế độ follow-up (Ethan chốt 2026-10-26): không có tin khách chờ nhưng
+  // Chế độ follow-up: không có tin khách chờ nhưng
   // ticket có cập nhật từ Dev chưa báo khách → draft là tin chủ động báo
   // lại theo đúng ngữ cảnh đó, prompt phải đóng khung khác hẳn trả lời tin
   // mới (không bịa câu hỏi của khách). Có tin chờ thì luôn là trả lời thường.
@@ -226,12 +226,12 @@ export async function runGenerate(
     hint,
     tone,
     // Không có tin chờ thì LUÔN đóng khung follow-up (kể cả khi không có
-    // ticket cập nhật lẫn issue mở — Ethan bắt live 2026-10-27: draft từng bị
-    // chặn ở các case này; prompt follow-up tự lùi về "vẫn còn việc mở trong
+    // ticket cập nhật lẫn issue mở — không được chặn draft ở các case này;
+    // prompt follow-up tự lùi về "vẫn còn việc mở trong
     // hội thoại" khi cả hai danh sách rỗng).
     followUp: noPending ? { issueKeys: followUpKeys, openIssues: followUpIssues } : undefined,
   }), { ...(req.force ? { temperature: REWRITE_TEMPERATURE } : {}) });
-  // Gọt cơ học dấu gạch ngang dài (luật Ethan 2026-10-26) trước mọi khâu sau:
+  // Gọt cơ học dấu gạch ngang dài trước mọi khâu sau:
   // bản lưu/cache/trả về đều là bản đã sạch dấu, khớp đúng chữ CS sẽ điền.
   const draft = stripEmDashes(text.trim());
   // Draft rỗng (bị chặn an toàn, model không trả gì) thì không lưu, không cache 24h.

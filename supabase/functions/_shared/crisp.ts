@@ -1,5 +1,5 @@
-// Client REST tối thiểu cho Crisp — CHỈ phục vụ ngoại lệ ghi duy nhất Ethan
-// đã duyệt tường minh (2026-10-23): gắn/gỡ segment `storefront-watch` trên
+// Client REST tối thiểu cho Crisp — CHỈ phục vụ ngoại lệ ghi duy nhất được
+// cho phép tường minh: gắn/gỡ segment `storefront-watch` trên
 // conversation để các chat thuộc store đang có lỗi Storefront Watch tự nổi
 // lên trong inbox. Đây là ghi METADATA (không phải tin nhắn, không phải
 // note, khách không nhìn thấy) và là đường ghi Crisp DUY NHẤT của hệ thống.
@@ -9,11 +9,10 @@
 // RULE vẫn nguyên: copilot chỉ soạn draft/note để CS tự gửi trong Crisp;
 // segment này là ngoại lệ đã chốt, không phải tiền lệ để nới thêm.
 // (getConversationCustomData là thao tác ĐỌC meta thuần — không phải ghi,
-// không thuộc diện cấm trên; Ethan duyệt 2026-10-26 cho đường tự resolve
-// shopify_domain của Storefront.)
+// không thuộc diện cấm trên; dùng cho đường tự resolve shopify_domain
+// của Storefront.)
 //
-// Cơ chế theo tài liệu chính thức của Crisp (docs.crisp.chat, REST API V1 +
-// báo cáo rà soát crisp-platform-mechanics-20261023-0913):
+// Cơ chế theo tài liệu chính thức của Crisp (docs.crisp.chat, REST API V1):
 // - Base https://api.crisp.chat/v1, auth HTTP Basic BASE64(identifier:key)
 //   của PLUGIN token kèm header `X-Crisp-Tier: plugin` (quota 5.000
 //   req/ngày — job gắn segment phải tiết kiệm: chỉ gọi khi có diff).
@@ -29,7 +28,7 @@
 export const CRISP_API_BASE = "https://api.crisp.chat/v1";
 export const CRISP_TIMEOUT_MS = 10_000;
 
-/** Segment duy nhất hệ thống được phép gắn/gỡ tự động (Ethan duyệt 2026-10-23). */
+/** Segment duy nhất hệ thống được phép gắn/gỡ tự động. */
 export const STOREFRONT_WATCH_SEGMENT = "storefront-watch";
 
 export class CrispError extends Error {}
@@ -40,8 +39,8 @@ export interface CrispClient {
   /**
    * Custom data (meta.data) hiện tại của conversation trên Crisp THẬT —
    * thao tác ĐỌC thuần (không ghi gì): nguồn dự phòng để resolve
-   * shopify_domain khi ingest chưa mang custom data về DB kịp (Ethan chốt
-   * 2026-10-26: Storefront tự lấy domain, CS không nhập tay). null = Crisp
+   * shopify_domain khi ingest chưa mang custom data về DB kịp (Storefront
+   * tự lấy domain, CS không nhập tay). null = Crisp
    * không có custom data cho phiên này.
    */
   getConversationCustomData(websiteId: string, sessionId: string): Promise<Record<string, unknown> | null>;

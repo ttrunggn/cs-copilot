@@ -2,7 +2,7 @@ import type { Db } from "../_shared/db.ts";
 import { HttpError } from "../_shared/auth.ts";
 
 /**
- * Lưu lựa chọn "Lưu làm mẫu mới" từ thẻ gợi ý tối ưu (Ethan chốt 2026-10-26):
+ * Lưu lựa chọn "Lưu làm mẫu mới" từ thẻ gợi ý tối ưu:
  * CS là người quyết cuối cùng — server chỉ ghi đúng lựa chọn của CHÍNH CS
  * đang đăng nhập (operatorId từ authorize, không nhận id từ body).
  *

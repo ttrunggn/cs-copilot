@@ -36,12 +36,12 @@ Deno.test("draftPrompt: chứa luật cứng không dùng dấu gạch ngang dà
   assertStringIncludes(p, "Never use the em dash character (—)");
 });
 
-Deno.test("parsePolish: cụm bị nêu trong lý do vẫn còn nguyên trong bản gợi ý → bỏ thẻ (ca live 2026-10-26)", () => {
-  const original = "Hi there,\n\nThis is Ethan from the Transcy Customer Support team.\n\nI am here now to help you directly.\n\nThank you for your patience!";
+Deno.test("parsePolish: cụm bị nêu trong lý do vẫn còn nguyên trong bản gợi ý → bỏ thẻ", () => {
+  const original = "Hi there,\n\nThis is Quinn from the Transcy Customer Support team.\n\nI am here now to help you directly.\n\nThank you for your patience!";
   const r = parsePolish(JSON.stringify({
     needs_polish: true,
     reason: "Người bản xứ sẽ khựng ở 'am here now to help you directly' vì nghe hơi gượng gạo",
-    improved: "Hi there,\n\nThis is Ethan from the Transcy Customer Support team.\n\nI am here now to help you directly.\n\nThank you for your patience!",
+    improved: "Hi there,\n\nThis is Quinn from the Transcy Customer Support team.\n\nI am here now to help you directly.\n\nThank you for your patience!",
   }), original);
   assertEquals(r, null);
 });

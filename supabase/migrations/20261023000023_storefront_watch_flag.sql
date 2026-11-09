@@ -1,10 +1,9 @@
 -- Định danh TƯỜNG MINH cho phạm vi Storefront Watch: cột storefront_watch
--- trên workspaces. Trước đây phạm vi SW được nhận diện bằng "jira_project
--- đã set" — SAI: workspace khác (OE) cũng có jira_project riêng (OES), nên
--- cổng Storefront theo domain, job storefront_sweep và badge storefront
--- trong check áp cả cho OE, trái quyết định của Ethan (Storefront Watch
--- chỉ thuộc workspace của chính Transcy; workspace khác dù chat có
--- shopify_domain cũng không được áp).
+-- trên workspaces. Không suy phạm vi SW từ "jira_project đã set": workspace
+-- khác cũng có jira_project riêng, khi đó cổng Storefront theo domain, job
+-- storefront_sweep và badge storefront trong check sẽ áp nhầm sang workspace
+-- đó (Storefront Watch chỉ thuộc workspace của chính Transcy; workspace khác
+-- dù chat có shopify_domain cũng không được áp).
 --
 -- Cờ này là định danh DUY NHẤT của phạm vi SW (cổng domain trong
 -- enabledModules, job sweep, badge storefront_status). Mặc định false =

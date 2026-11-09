@@ -28,10 +28,9 @@ jobs:
         id: filter
         with:
           filters: |
-            # Mọi function đều phụ thuộc _shared/**: liệt kê từng file đã từng
-            # làm deploy thiếu (sentiment.ts/review.ts từng không nằm trong bộ
-            # lọc của copilot — sửa riêng hai file đó thì copilot không hề
-            # deploy lại). Đổi bất kỳ file _shared nào → deploy lại cả 4
+            # Mọi function đều phụ thuộc _shared/**: liệt kê từng file dễ sót
+            # (file mới không nằm trong bộ lọc thì sửa riêng nó sẽ không
+            # deploy lại function). Đổi bất kỳ file _shared nào → deploy lại cả 4
             # function cho chắc; thừa một lần deploy rẻ hơn thiếu một lần.
             mcp:
               - 'supabase/functions/mcp/**'

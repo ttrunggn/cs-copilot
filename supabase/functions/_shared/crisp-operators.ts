@@ -1,17 +1,16 @@
 // Client gửi email tới operator qua Crisp REST — phục vụ DUY NHẤT email
-// digest Storefront Watch (Ethan duyệt 2026-10-27: "làm đi, gửi về email
-// operator"). Đây là kênh THÔNG BÁO NỘI BỘ tới operator của workspace,
+// digest Storefront Watch. Đây là kênh THÔNG BÁO NỘI BỘ tới operator của workspace,
 // không phải tin nhắn/note cho khách — không thuộc đường ghi conversation
 // mà CRISP WRITE RULE cấm. Client segment trong _shared/crisp.ts giữ
 // nguyên vẹn, không liên quan file này; không mở rộng file này sang bất
 // kỳ loại gửi nào khác.
 //
-// API chính thức (docs.crisp.chat, REST API V1 — kiểm chứng 2026-10-27):
+// API chính thức (docs.crisp.chat, REST API V1):
 // - POST https://api.crisp.chat/v1/website/{website_id}/operators/email
 // - Tier plugin, scope yêu cầu: website:operators.
 // - Body: recipient ("all" | "owners" | "members" | "user"; user cần
 //   thêm user_id), subject, message; target {label, url} là nút bấm tuỳ
-//   chọn — digest KHÔNG dùng (Ethan chốt format email tối giản).
+//   chọn — digest KHÔNG dùng (format email giữ tối giản).
 // - Auth HTTP Basic BASE64(identifier:key) của plugin token + header
 //   X-Crisp-Tier: plugin, cùng credential với client segment.
 // Token plugin hiện có scope website:operators hay chưa chỉ biết ở lần

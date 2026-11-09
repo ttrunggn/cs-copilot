@@ -1,5 +1,5 @@
-// Template xin review: GIỌNG theo profile, LINK theo workspace (Ethan chốt
-// 2026-10-26). Template đã học của từng CS lưu trong agent_profiles kèm biến
+// Template xin review: GIỌNG theo profile, LINK theo workspace.
+// Template đã học của từng CS lưu trong agent_profiles kèm biến
 // {{review_link}}; server thay biến bằng link của workspace đang làm việc
 // (workspaces.review_link) ngay khi trả về panel — CS chuyển workspace thì
 // giữ giọng của mình nhưng link tự đổi theo nơi mới. Chưa học được template
@@ -11,7 +11,7 @@ export const REVIEW_LINK_PLACEHOLDER = "{{review_link}}";
 
 export type ReviewTemplateSource = "profile" | "default";
 
-/** Bản tối ưu gợi ý cho template của CS: text đã thay link theo workspace; reason tiếng Việt chỉ đúng đoạn yếu (cơ chế gợi ý — Ethan chốt 2026-10-26). */
+/** Bản tối ưu gợi ý cho template của CS: text đã thay link theo workspace; reason tiếng Việt chỉ đúng đoạn yếu (cơ chế gợi ý). */
 export interface TemplateSuggestion {
   text: string;
   reason: string;
@@ -80,7 +80,7 @@ export function mineReviewTemplate(contents: string[]): string | null {
  * Chọn template xin review cho CS đang trực: ưu tiên dòng profile khớp topic
  * của conversation, rồi bất kỳ dòng nào của chính CS có template. CS chưa có
  * template của mình thì dùng template profile TỐT NHẤT của team trong cùng
- * workspace (nguồn vẫn ghi "default" cho minh bạch — Ethan chốt 2026-10-27:
+ * workspace (nguồn vẫn ghi "default" cho minh bạch —
  * không để CS rơi về template mẫu trung tính trong khi team đã có mẫu thật).
  * Cả team chưa ai có mẫu đã học mới dùng template mẫu trung tính.
  */

@@ -1,8 +1,7 @@
 import type { Db, StorefrontActionLogRow } from "../_shared/db.ts";
 
 /**
- * Report thao tác Storefront Watch lên Google Sheet (Ethan chốt
- * 2026-10-30): panel ghi mỗi thao tác thành công vào bảng
+ * Report thao tác Storefront Watch lên Google Sheet: panel ghi mỗi thao tác thành công vào bảng
  * storefront_action_log (migration 033); workflow n8n "Storefront
  * Report" gọi 2 action nội bộ này (cùng cổng credential với digest):
  *

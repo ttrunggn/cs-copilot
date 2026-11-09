@@ -8,7 +8,7 @@ function row(over: Partial<StorefrontActionLogRow> = {}): StorefrontActionLogRow
     created_at: "2026-10-30T03:05:09.000Z", // 10:05:09 giờ Saigon
     website_id: "ws1",
     session_id: "session_1",
-    operator_name: "Ethan Nguyen",
+    operator_name: "Quinn Harper",
     act: "dismiss",
     shop: "shop-x.myshopify.com",
     fingerprint: "a".repeat(40),
@@ -29,7 +29,7 @@ Deno.test("report: toSheetRow — nhãn tiếng Việt, lý do dịch sang nhãn
   assertEquals(s, {
     id: 7,
     thoi_gian: "2026-10-30 10:05:09",
-    cs: "Ethan Nguyen",
+    cs: "Quinn Harper",
     thao_tac: "Dismiss",
     store: "shop-x.myshopify.com",
     loi: "Transient text",

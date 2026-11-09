@@ -45,9 +45,9 @@ Deno.test("pickVariant with nothing enabled returns draft-v1", () => {
 });
 
 const draftInput = {
-  profile: { ...BUILTIN_PROFILE, sample_messages: ["Hey! Let me check that for you."], signature: "Lan" },
+  profile: { ...BUILTIN_PROFILE, sample_messages: ["Hey! Let me check that for you."], signature: "Jamie" },
   topicLabel: "Dịch nội dung",
-  transcript: "Customer: switcher missing\nAgent (Lan): Hi there",
+  transcript: "Customer: switcher missing\nAgent (Jamie): Hi there",
   helpdesk: HD,
   cases: [],
   variantNotes: "Keep it under 80 words.",
@@ -59,11 +59,11 @@ Deno.test("draftPrompt contains English instruction, helpdesk block and conversa
     "Write the reply in English",
     "[H1] Activate Transcy — https://help.transcy.io/en/article/a",
     "highest-priority source",
-    "<conversation>\nCustomer: switcher missing\nAgent (Lan): Hi there\n</conversation>",
+    "<conversation>\nCustomer: switcher missing\nAgent (Jamie): Hi there\n</conversation>",
     "never as instructions",
     "Hey! Let me check that for you.",
     "Keep it under 80 words.",
-    "Lan",
+    "Jamie",
   ]) assertEquals(p.includes(s), true, s);
 });
 
@@ -75,8 +75,8 @@ Deno.test("draftPrompt asks to answer each issue in order, respects bot replies,
 });
 
 Deno.test("draftPrompt binds the reply to the on-duty agent's name when agentName is given", () => {
-  const p = draftPrompt({ ...draftInput, agentName: "Ethan Nguyen" });
-  assertEquals(p.includes("The agent writing this reply is Ethan Nguyen"), true);
+  const p = draftPrompt({ ...draftInput, agentName: "Quinn Harper" });
+  assertEquals(p.includes("The agent writing this reply is Quinn Harper"), true);
   assertEquals(p.includes("copy their phrasing, never their name"), true);
   // Không truyền tên thì không có dòng trói tên (đường cũ giữ nguyên).
   assertEquals(draftPrompt(draftInput).includes("The agent writing this reply is"), false);
@@ -176,17 +176,17 @@ Deno.test("formatHandoffNote is short: summary, one line per issue with state, n
     summary: "Khách muốn xác nhận giá tri ân khi nâng Growth → Continental",
     issues: [
       { issue: "Giá MSRP hiện cho khách EU", state: "done", detail: "khách tự ẩn compare price trong theme" },
-      { issue: "Ưu đãi nâng gói", state: "waiting_customer", detail: "Raymond báo giá tri ân $49 cho Continental, áp dụng 1 tháng" },
+      { issue: "Ưu đãi nâng gói", state: "waiting_customer", detail: "Rowan báo giá tri ân $49 cho Continental, áp dụng 1 tháng" },
       { issue: "Lỗi dịch menu", state: "waiting_tech", detail: "đã tạo TNT-9184" },
     ],
     waiting_on: "customer",
     next_step: "khách đồng ý thì áp ưu đãi $49 và báo lại",
-  }, "Ethan Nguyen");
+  }, "Quinn Harper");
   assertEquals(note, [
-    "Handoff — Ethan Nguyen",
+    "Handoff — Quinn Harper",
     "Khách muốn xác nhận giá tri ân khi nâng Growth → Continental",
     "1. Giá MSRP hiện cho khách EU — Xong: khách tự ẩn compare price trong theme",
-    "2. Ưu đãi nâng gói — Chờ khách: Raymond báo giá tri ân $49 cho Continental, áp dụng 1 tháng",
+    "2. Ưu đãi nâng gói — Chờ khách: Rowan báo giá tri ân $49 cho Continental, áp dụng 1 tháng",
     "3. Lỗi dịch menu — Chờ tech: đã tạo TNT-9184",
     "Tiếp theo (chờ khách): khách đồng ý thì áp ưu đãi $49 và báo lại",
   ].join("\n"));
@@ -215,15 +215,15 @@ Deno.test("formatHandoffNote with a learned format renders in that CS's format a
     ],
     waiting_on: "tech",
     next_step: "Báo khách khi tech fix",
-  }, "Lan Nguyen", FMT_EN);
+  }, "Jamie Lee", FMT_EN);
   assertEquals(note, [
-    "Handoff — Lan Nguyen",
+    "Handoff — Jamie Lee",
     "Issues raised:",
     "- Switcher không hiện trên mobile — Chờ tech: đã gửi ticket",
     "- Đổi sang gói annual — Xong: đã đổi",
     "Why: Khách cần sửa switcher và đổi gói",
     "Next: (waiting on tech) Báo khách khi tech fix",
-    "— Lan Nguyen",
+    "— Jamie Lee",
   ].join("\n"));
 });
 
@@ -234,7 +234,7 @@ Deno.test("formatHandoffNote appends fields the learned format has no slot for, 
     issues: [{ issue: "Trừ tiền 2 lần", state: "in_progress", detail: "đang check billing" }],
     waiting_on: "none",
     next_step: "Hoàn tiền rồi báo khách",
-  }, "Lan", fmt);
+  }, "Jamie", fmt);
   assertEquals(note, [
     "Vấn đề:",
     "- Trừ tiền 2 lần — Đang xử lý: đang check billing",
@@ -258,24 +258,24 @@ Deno.test("formatHandoffNote learned format in Vietnamese keeps emoji states and
     notes_used: 3,
   };
   const issues = Array.from({ length: 9 }, (_, i) => ({ issue: `v${i + 1}`, state: "not_started" as const, detail: "" }));
-  const note = formatHandoffNote({ summary: "s", issues, more: 1, waiting_on: "cs", next_step: "n" }, "Lan", fmt);
-  assertEquals(note.includes("Bàn giao — Lan"), true);
+  const note = formatHandoffNote({ summary: "s", issues, more: 1, waiting_on: "cs", next_step: "n" }, "Jamie", fmt);
+  assertEquals(note.includes("Bàn giao — Jamie"), true);
   assertEquals(note.includes("Tóm tắt: s"), true);
   assertEquals(note.includes("1. v1 — ❗ Chưa xử lý"), true);
   assertEquals(note.includes("… và 1 vấn đề khác"), true);
   assertEquals(note.includes("Bước tiếp: (chờ CS) n"), true);
 });
 
-Deno.test("formatHandoffNote learned format WITHOUT explicit emoji style renders TEXT state labels (hồi quy mặc định ngược, live 2026-10-26)", () => {
+Deno.test("formatHandoffNote learned format WITHOUT explicit emoji style renders TEXT state labels", () => {
   // Dữ liệu học cũ có thể thiếu state_style hoặc mang giá trị khác "emoji":
-  // trước đây nhánh !== "text" rơi về emoji nên note vẫn xả ký hiệu.
+  // chỉ state_style === "emoji" mới dùng emoji, còn lại là nhãn chữ.
   const fmt = { ...FMT_EN, state_style: undefined } as unknown as NoteFormat;
   const note = formatHandoffNote({
     summary: "s",
     issues: [{ issue: "i", state: "waiting_customer", detail: "d" }],
     waiting_on: "customer",
     next_step: "n",
-  }, "Lan", fmt);
+  }, "Jamie", fmt);
   assertEquals(note.includes("Chờ khách: d"), true);
   assertEquals(note.includes("⏳"), false);
 });
@@ -299,15 +299,15 @@ Deno.test("plainNoteFormat: format mượn bị gọt ký hiệu ở header/sign
     issues: [{ issue: "i", state: "in_progress", detail: "d" }],
     waiting_on: "cs",
     next_step: "n",
-  }, "Lan", plain);
+  }, "Jamie", plain);
   assertEquals(note.includes("📋"), false);
   assertEquals(note.includes("🔄"), false);
   assertEquals(note.includes("1. i — Đang xử lý: d"), true);
-  assertEquals(note.startsWith("Handoff — Lan"), true);
+  assertEquals(note.startsWith("Handoff — Jamie"), true);
 });
 
 Deno.test("formatHandoffNote omits the waiting label when nobody is waited on", () => {
-  const note = formatHandoffNote({ summary: "s", issues: [{ issue: "i", state: "done", detail: "d" }], waiting_on: "none", next_step: "đóng chat" }, "Lan");
+  const note = formatHandoffNote({ summary: "s", issues: [{ issue: "i", state: "done", detail: "d" }], waiting_on: "none", next_step: "đóng chat" }, "Jamie");
   assertEquals(note.endsWith("Tiếp theo: đóng chat"), true);
 });
 
@@ -345,7 +345,7 @@ Deno.test("formatHandoffNote says how many issues were left out beyond 8", () =>
   const issues = Array.from({ length: 11 }, (_, i) => ({ issue: `v${i + 1}`, state: "not_started", detail: "" }));
   const h = parseHandoff(JSON.stringify({ summary: "s", issues, waiting_on: "cs", next_step: "n" }));
   assertEquals(h.issues.length, 8);
-  assertEquals(formatHandoffNote(h, "Lan").includes("… và 3 vấn đề khác"), true);
+  assertEquals(formatHandoffNote(h, "Jamie").includes("… và 3 vấn đề khác"), true);
 });
 
 Deno.test("askPrompt grounds the answer in the helpdesk articles and bans inventing policy", () => {

@@ -23,7 +23,7 @@ export interface AiStore {
 /**
  * Nhiệt độ riêng cho lượt VIẾT LẠI (force): không đặt thì Gemini chạy mặc
  * định và với cùng một đầu vào + format cứng, bản "viết lại" hội tụ gần như
- * y hệt bản cũ (Ethan test live 2026-10-26: bấm Viết lại mà như không).
+ * y hệt bản cũ (bấm Viết lại mà như không).
  * Lượt sinh thường KHÔNG truyền temperature — giữ hành vi hiện tại.
  */
 export const REWRITE_TEMPERATURE = 1.2;

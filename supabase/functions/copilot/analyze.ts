@@ -28,14 +28,13 @@ export function customerMessageCount(messages: MessageRow[]): number {
 /**
  * Dấu vân tay từ tin của khách + câu TRẢ LỜI THẬT của CS (không bot, không
  * note): khách nhắn thêm thì mood tính lại, CS trả lời xong thì issues/tóm
- * tắt cũng phải tính lại — bản cũ chỉ băm tin khách nên sau khi CS đã trả
- * lời đầy đủ, panel vẫn treo issues cũ với chữ "chưa được giải quyết"
- * (Ethan báo ca live 2026-10-26). Kèm PHIÊN BẢN của lớp phân tích:
+ * tắt cũng phải tính lại — chỉ băm tin khách thì sau khi CS đã trả lời đầy
+ * đủ, panel vẫn treo issues cũ với chữ "chưa được giải quyết". Kèm PHIÊN BẢN của lớp phân tích:
  * prompt/rubric/issues-spec thay đổi thì tăng version, mọi dòng sentiment
  * đã lưu tự thành stale và được tính lại đúng một lần khi mở panel.
- * v2 (2026-10-26): issues là câu phát biểu vấn đề AI tổng hợp, không trích thô.
- * v3 (2026-10-26): băm cả tin CS trả lời; issues loại vấn đề CS đã trả lời.
- * v4 (2026-10-27): pipeline đổi — model phân tích bằng ngôn ngữ tự nhiên của
+ * v2: issues là câu phát biểu vấn đề AI tổng hợp, không trích thô.
+ * v3: băm cả tin CS trả lời; issues loại vấn đề CS đã trả lời.
+ * v4: pipeline đổi — model phân tích bằng ngôn ngữ tự nhiên của
  * khách rồi dịch kết quả sang tiếng Việt (vietnamizeSentiment), thay cho ép
  * xuất tiếng Việt ngay trong prompt phân tích.
  */

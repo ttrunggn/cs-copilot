@@ -22,7 +22,7 @@ export interface HandoffResult {
 
 /**
  * Note tiếng Việt liệt kê từng vấn đề của khách. Handler CHỈ trả text note về panel
- * (quy tắc ghi Crisp, Ethan chốt 2026-10-23): copilot không tự đăng note — panel đưa
+ * (quy tắc ghi Crisp): copilot không tự đăng note — panel đưa
  * text cho extension điền vào ô Note của Crisp, CS đọc/sửa ngay trong Crisp rồi tự
  * đăng. outputs.posted giữ null vĩnh viễn (không còn khái niệm copilot "đã đăng").
  */
@@ -41,16 +41,16 @@ export async function runHandoff(
   ]);
   // Format của CHÍNH CS thì dùng nguyên (kể cả style emoji của chính họ);
   // format MƯỢN của team (chưa có format riêng) thì qua plainNoteFormat:
-  // giữ cấu trúc, bỏ ký hiệu của người khác (Ethan chốt 2026-10-26 sau khi
-  // note mượn format vẫn xả 📋/⏳/➡️ của format học).
+  // giữ cấu trúc, bỏ ký hiệu của người khác (không xả ký hiệu của format
+  // học vào note mượn).
   const ownFormat = resolveNoteFormat(ownProfiles);
   const bestFormat = ownFormat ? null : pickBestNoteFormat(allProfiles);
   const noteFormat = ownFormat ?? (bestFormat ? plainNoteFormat(bestFormat) : null);
   const baseFp = await inputFingerprint("handoff", operatorId, raw);
   const inputFp = noteFormat ? await sha256Hex(`${baseFp}|note-format:${JSON.stringify(noteFormat)}`) : baseFp;
   // Viết lại (force): lấy bản note gần nhất cùng dấu vân tay làm "bản trước" để
-  // prompt yêu cầu diễn đạt mới hẳn — trước đây force chỉ bỏ cache, AI nhận
-  // đúng prompt cũ nên trả note gần như y hệt, CS bấm Viết lại mà như không.
+  // prompt yêu cầu diễn đạt mới hẳn — chỉ bỏ cache thì AI nhận đúng prompt
+  // cũ nên trả note gần như y hệt, CS bấm Viết lại mà như không.
   let previousNote: string | undefined;
   const hit = await deps.db.findCachedOutput({
     websiteId: req.website_id, sessionId: req.session_id, operatorId, kind: "handoff", inputFp,

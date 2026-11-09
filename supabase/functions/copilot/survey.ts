@@ -14,25 +14,24 @@ export interface SurveyResult {
  * Gửi CSAT survey vào conversation qua webhook send-survey của workflow
  * survey trên n8n (gate giữ Crisp plugin key — Edge Function không chạm key).
  * Đây là đường ghi Crisp duy nhất còn lại và là ngoại lệ có chủ đích (survey
- * không staging qua ô soạn được — Ethan đã biết, chờ chốt giữ hay bỏ).
+ * không staging qua ô soạn được).
  *
  * Chống gửi trùng PHẢI nguyên tử: claim (insert ignoreDuplicates trên PK
- * conversation) TRƯỚC khi gọi n8n. Bản cũ kiểm-trước/gửi/sau-mới-ghi khiến hai
+ * conversation) TRƯỚC khi gọi n8n. Kiểm-trước/gửi/sau-mới-ghi sẽ khiến hai
  * request đồng thời (double-click, retry, panel + MCP cùng lúc) đều thấy
- * "chưa gửi" và cùng bắn survey cho khách. Nay chỉ request claim thắng mới
+ * "chưa gửi" và cùng bắn survey cho khách. Chỉ request claim thắng mới
  * được gửi; claim thua → trả trạng thái đã gửi. Gửi thất bại (n8n trả false)
  * thì NHẢ claim để CS bấm lại được — đánh đổi đã biết: nếu n8n thật ra đã gửi
  * mà response lỗi, lần bấm lại vẫn có thể trùng; cửa sổ đó hẹp hơn nhiều so
  * với race đồng thời và không có cách phân biệt hai trường hợp từ response.
  *
- * Claim KHÔNG còn là khoá vĩnh viễn theo conversation (thay đổi 2026-10-26):
- * bản trước trả "đã gửi" mãi mãi và panel tắt nút, Ethan chốt bỏ — team CS tự
- * quyết khi nào xin lại. Claim cũ ngoài cửa sổ RESEND_GUARD_MS được nhả để
+ * Claim KHÔNG phải khoá vĩnh viễn theo conversation: team CS tự quyết khi
+ * nào xin lại. Claim cũ ngoài cửa sổ RESEND_GUARD_MS được nhả để
  * lần bấm mới claim lại và gửi thật; trong cửa sổ thì vẫn chặn như race.
  */
 /** Cửa sổ chống bấm đúp/bắn trùng đồng thời: trong khoảng này, request thứ hai
- * được coi là cùng một lần gửi. Ngoài cửa sổ, CS bấm là gửi lại thật — Ethan
- * chốt 2026-10-26: không khoá nút survey, team tự biết khi nào nên xin. */
+ * được coi là cùng một lần gửi. Ngoài cửa sổ, CS bấm là gửi lại thật — không
+ * khoá nút survey, team tự biết khi nào nên xin. */
 const RESEND_GUARD_MS = 30_000;
 
 export async function runSurvey(

@@ -62,7 +62,7 @@ Deno.test("timeAgo formats minutes, hours, days", () => {
 
 const CHECK = {
   action: "check", stale: false, workspace: "Transcy", topic: "billing", topic_label: "Billing",
-  profile_source: "topic", profile_name: "Lan Nguyen", needs_reply: true,
+  profile_source: "topic", profile_name: "Test Agent", needs_reply: true,
   unanswered: ["a", "b", "c", "d"], last_customer_at: "2026-10-16T09:58:00Z", last_human_operator_at: null, jira: [],
 };
 
@@ -76,7 +76,7 @@ Deno.test("view model shows last 3 unanswered, newest last", () => {
 Deno.test("view model meta lines", () => {
   assertEquals(toViewModel(CHECK, NOW).meta, [
     "Topic: Billing",
-    "Giọng văn: Lan Nguyen (theo topic)",
+    "Giọng văn: Test Agent (theo topic)",
     "Khách nhắn: 2 phút trước · CS trả lời: —",
   ]);
 });
@@ -85,7 +85,7 @@ Deno.test("view model when nothing pending", () => {
   const vm = toViewModel({ ...CHECK, needs_reply: false, unanswered: [], topic: null, topic_label: null, profile_source: "default" }, NOW);
   assertEquals(vm.header, "Không có tin chờ");
   assertEquals(vm.meta[0], "Topic: chưa xác định");
-  assertEquals(vm.meta[1], "Giọng văn: Lan Nguyen (mặc định workspace)");
+  assertEquals(vm.meta[1], "Giọng văn: Test Agent (mặc định workspace)");
 });
 
 Deno.test("escapes and truncates long customer messages", () => {
@@ -111,16 +111,16 @@ Deno.test("operatorIdFrom handles the shapes Crisp may return", () => {
 });
 
 Deno.test("operatorNameFrom reads the account name from the shapes Crisp may return", () => {
-  assertEquals(operatorNameFrom({ data: { operator: { user_id: "u5", first_name: "Ethan", last_name: "Nguyen" } } }), "Ethan Nguyen");
-  assertEquals(operatorNameFrom({ operator: { name: "Ethan Nguyen" } }), "Ethan Nguyen");
-  assertEquals(operatorNameFrom({ details: { first_name: "Ethan", last_name: "Nguyen" } }), "Ethan Nguyen");
-  assertEquals(operatorNameFrom({ nickname: "Ethan" }), "Ethan");
+  assertEquals(operatorNameFrom({ data: { operator: { user_id: "u5", first_name: "Test", last_name: "Agent" } } }), "Test Agent");
+  assertEquals(operatorNameFrom({ operator: { name: "Test Agent" } }), "Test Agent");
+  assertEquals(operatorNameFrom({ details: { first_name: "Test", last_name: "Agent" } }), "Test Agent");
+  assertEquals(operatorNameFrom({ nickname: "Tester" }), "Tester");
   assertEquals(operatorNameFrom({ user_id: "u1" }), "");
   assertEquals(operatorNameFrom(undefined), "");
 });
 
 Deno.test("describeShape lists field names only, never values", () => {
-  assertEquals(describeShape({ email: "secret@x", operator: { first_name: "Lan" } }), "email, operator{first_name}");
+  assertEquals(describeShape({ email: "secret@x", operator: { first_name: "Test" } }), "email, operator{first_name}");
   assertEquals(describeShape(null), "(trống)");
 });
 
@@ -280,7 +280,7 @@ Deno.test("toIssuesViewModel: ưu tiên issues (câu tóm tắt + bằng chứng
   ]);
 });
 
-Deno.test("toIssuesViewModel: signals KHÔNG thành issue và KHÔNG còn thẻ dự phòng theo topic (bỏ 2026-10-26)", () => {
+Deno.test("toIssuesViewModel: signals KHÔNG thành issue và KHÔNG có thẻ dự phòng theo topic", () => {
   const vm = toIssuesViewModel(CHECK, { signals: ["human pls", "i just want someone help"] });
   assertEquals(vm.issues, []);
 });
@@ -302,9 +302,9 @@ Deno.test("toJiraViewModel shows status, update badge with from → to, and the 
   const vm = toJiraViewModel([{
     issue_key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", summary: "Menu bug", status: "Pending Dev",
     has_update: true, status_changed: true, prev_status: "In Progress", done: false, awaiting_report: false,
-    new_comments: [{ author: "Dev Minh", role: "tech", body: "Fixed", created_at: "2026-10-16T09:00:00Z" }], recent_comments: [],
+    new_comments: [{ author: "Dev A", role: "tech", body: "Fixed", created_at: "2026-10-16T09:00:00Z" }], recent_comments: [],
   }, { issue_key: "TNT-2", url: "javascript:alert(1)", summary: null, status: null, has_update: false, status_changed: false, prev_status: null, done: false, awaiting_report: false, new_comments: [], recent_comments: [] }], NOW);
-  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", name: "Menu bug", status: "Pending Dev", done: false, hasUpdate: true, awaitingReport: false, statusLine: "Đổi trạng thái: In Progress → Pending Dev", updatedLabel: "Cập nhật 1 giờ trước", latestTech: { author: "Dev Minh", ago: "1 giờ trước", body: "Fixed" } });
+  assertEquals(vm[0], { key: "TNT-1", url: "https://firegroup.atlassian.net/browse/TNT-1", name: "Menu bug", status: "Pending Dev", done: false, hasUpdate: true, awaitingReport: false, statusLine: "Đổi trạng thái: In Progress → Pending Dev", updatedLabel: "Cập nhật 1 giờ trước", latestTech: { author: "Dev A", ago: "1 giờ trước", body: "Fixed" } });
   assertEquals(vm[1].url, null);
   assertEquals(vm[1].name, "TNT-2");
   assertEquals(vm[1].status, "Chưa đồng bộ");
@@ -403,23 +403,23 @@ Deno.test("toStorefrontViewModel: results giữ fingerprint từng item để b�
   });
 });
 
-Deno.test("toStorefrontViewModel: gom finding trùng căn nguyên (fixture amirobeauty) — 3 Region missing ở / gom 1 mục, tổng vẫn 9", () => {
+Deno.test("toStorefrontViewModel: gom finding trùng căn nguyên (fixture 9 finding) — 3 Region missing ở / gom 1 mục, tổng vẫn 9", () => {
   const F = (fp, kind, locale, page) => ({
     title: kind, meta: "", fingerprint: fp, kind, locale, page,
     severity: "critical", text: null, consoleLink: `https://sw.transcy.io/#/f/${fp}`,
   });
   const vm = toStorefrontViewModel({
-    status: "ok", store: "amirobeauty.com", scannedAt: null,
+    status: "ok", store: "demo-store.com", scannedAt: null,
     new: [
-      F("aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7", "Region missing", "ja", "/"),
-      F("5517ba1da2be48c228850f56a6741e9e30bd297b", "Region missing", "zh", "/"),
-      F("f38202faad7e0a03f6ebf8c1fd5df56501690aed", "Region missing", "es", "/"),
-      F("036a70d3e7321a4d179fe1db24d756d6b713e7ac", "Option unidentifiable", "zh", "/products/amiro-oath-makeup-lighted-mirror"),
-      F("42bf44a1456a4a6e4e970daa7a714ce1b80accf9", "Graphic lost", "es", "/products/amiro-mate-led-makeup-mirror"),
-      F("db6348cc25e10335a4ce3c178deda8737734c16d", "Graphic lost", "zh", "/products/tatis-exclusive-amiro-spectra-led-face-mask"),
-      F("3628224935126736319ae0cfdd077026a7d5bfd3", "Layout degraded", "es", "/products/dmauamiro-o2-led-vanity-mirror"),
-      F("ee16a4e2600f278dc455132edc42746dd35bcdab", "Option unidentifiable", "zh", "/products/amiro-mate-led-makeup-mirror"),
-      F("b037194bbe99fddc03116b836b6fd5e8dca46833", "Block collapsed", "zh", "/products/amiro-mate-led-makeup-mirror"),
+      F("1111111111111111111111111111111111111111", "Region missing", "ja", "/"),
+      F("2222222222222222222222222222222222222222", "Region missing", "zh", "/"),
+      F("3333333333333333333333333333333333333333", "Region missing", "es", "/"),
+      F("4444444444444444444444444444444444444444", "Option unidentifiable", "zh", "/products/product-a"),
+      F("5555555555555555555555555555555555555555", "Graphic lost", "es", "/products/product-b"),
+      F("6666666666666666666666666666666666666666", "Graphic lost", "zh", "/products/product-c"),
+      F("7777777777777777777777777777777777777777", "Layout degraded", "es", "/products/product-d"),
+      F("8888888888888888888888888888888888888888", "Option unidentifiable", "zh", "/products/product-b"),
+      F("9999999999999999999999999999999999999999", "Block collapsed", "zh", "/products/product-b"),
     ],
     acknowledged: [], inProgress: [],
   }, NOW);
@@ -436,11 +436,11 @@ Deno.test("toStorefrontViewModel: gom finding trùng căn nguyên (fixture amiro
   assertEquals(region.locales, ["ja", "zh", "es"]);
   // Mọi fingerprint + console link vẫn riêng từng entry để mở chi tiết/deep-link đúng bug.
   assertEquals(region.entries.map((e) => e.fingerprint), [
-    "aac0e074c62c1fe5906b5226eebb8f9cb1cc96b7",
-    "5517ba1da2be48c228850f56a6741e9e30bd297b",
-    "f38202faad7e0a03f6ebf8c1fd5df56501690aed",
+    "1111111111111111111111111111111111111111",
+    "2222222222222222222222222222222222222222",
+    "3333333333333333333333333333333333333333",
   ]);
-  assertEquals(region.entries[1].consoleLink, "https://sw.transcy.io/#/f/5517ba1da2be48c228850f56a6741e9e30bd297b");
+  assertEquals(region.entries[1].consoleLink, "https://sw.transcy.io/#/f/2222222222222222222222222222222222222222");
   // Hai finding cùng kind nhưng KHÁC page không bị gom lẫn.
   assertEquals(gNew.items.filter((i) => i.kind === "Graphic lost").length, 2);
 });

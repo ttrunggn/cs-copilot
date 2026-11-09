@@ -16,8 +16,8 @@ import { type LoadDeps, loadConversationFast } from "./load.ts";
 import { resolveShopDomain, shopFromCustomData } from "./storefront-actions.ts";
 
 /**
- * Deps mở rộng cho check: hai đường TỰ ĐỒNG BỘ khi mở panel (Ethan chốt
- * 2026-10-26). Thiếu từng dep thì đường tương ứng tắt êm — check không bao
+ * Deps mở rộng cho check: hai đường TỰ ĐỒNG BỘ khi mở panel. Thiếu
+ * từng dep thì đường tương ứng tắt êm — check không bao
  * giờ gãy vì đồng bộ (mirror giữ dữ liệu cũ, panel vẫn hiện).
  */
 export type CheckDeps = LoadDeps & {
@@ -40,7 +40,7 @@ export interface CheckResult {
   /**
    * Độ phủ dữ liệu học của CHÍNH CS đang trực (từ các dòng agent_profiles của
    * họ): panel hiện công khai để phân biệt "đã học từ N cuộc trò chuyện" với
-   * "chưa đủ dữ liệu" (nguyên tắc minh bạch — Ethan, 2026-10-26). null = CS
+   * "chưa đủ dữ liệu" (nguyên tắc minh bạch). null = CS
    * chưa có dòng profile nào.
    */
   profile_coverage: { conversations_used: number; learned_at: string | null } | null;
@@ -72,7 +72,7 @@ export interface CheckResult {
   /**
    * Sentiment đã lưu KHÔNG còn khớp dấu vân tay tin khách hiện tại (khách đã
    * nhắn thêm, hoặc chưa từng phân tích dù đã có tin) → panel tự gọi analyze
-   * khi mở conversation (compute-on-view, Lỗi 5 — 2026-10-26) thay vì chờ
+   * khi mở conversation (compute-on-view) thay vì chờ
    * precompute qua n8n. false khi không có tin khách dạng text (không có gì
    * để phân tích) hoặc bản lưu đang khớp.
    */
@@ -116,10 +116,9 @@ export async function runCheck(
       learned_at: profiles.map((p) => p.learned_at).filter((t): t is string => Boolean(t)).sort().at(-1) ?? null,
     }
     : null;
-  // Tự sync Jira khi mở panel — chạy NỀN từ 2026-10-26 (trước đây sync
-  // NGAY trong request: mỗi lần mở chat có ticket cũ quá 90s, panel phải
-  // chờ trọn một vòng Jira REST mới hiện — một nguyên nhân "tool load
-  // chậm" Ethan phàn nàn). Nay: mirror còn tươi thì thôi; mirror thiếu/cũ
+  // Tự sync Jira khi mở panel — chạy NỀN (sync ngay trong request thì mỗi
+  // lần mở chat có ticket cũ quá 90s, panel phải chờ trọn một vòng Jira
+  // REST mới hiện). Mirror còn tươi thì thôi; mirror thiếu/cũ
   // thì check trả NGAY dữ liệu hiện có kèm cờ jira_stale, sync chạy nền
   // (waitUntil) và widget tự nạp lại một lần sau vài giây để nhận bản mới.
   const jiraRows = jiraRows0;
@@ -145,9 +144,9 @@ export async function runCheck(
   // domain, action nạp trực tiếp quyết định) — bản chụp là dữ kiện phụ,
   // không được làm gãy check.
   // Domain chưa có trong DB thì thử lấy thẳng từ Crisp meta (resolve tự lưu
-  // lại vào DB) — ca ingest chưa mang custom data về kịp, domain có sẵn
-  // trong Crisp mà panel vẫn ở trạng thái need_shop (Ethan bắt lỗi live
-  // 2026-10-26). Chỉ thử khi workspace thuộc phạm vi SW.
+  // lại vào DB) — ingest có thể chưa mang custom data về kịp trong khi
+  // domain có sẵn trong Crisp; không có bước này panel kẹt ở need_shop.
+  // Chỉ thử khi workspace thuộc phạm vi SW.
   let shop = shopFromCustomData(conv);
   if (!shop && ws.storefront_watch) {
     shop = await resolveShopDomain(deps, req.website_id, req.session_id, conv).catch(() => "");

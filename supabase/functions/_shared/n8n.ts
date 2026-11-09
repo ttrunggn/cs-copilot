@@ -5,19 +5,17 @@ export interface N8n {
   triggerJiraSync(websiteId: string, sessionId: string): Promise<boolean>;
   /**
    * Đẩy MỘT dòng log thao tác Storefront tới webhook storefront-report của
-   * workflow "Storefront Report Live" (append Google Sheet gần như tức thì,
-   * Ethan chốt real-time 2026-10-30). Trả kết quả kèm status/lỗi để caller
-   * ghi vào trace (bản đầu nuốt hết nên lỗi production không thấy được —
-   * bài học 2026-10-30). ok=false thì dòng vẫn nằm ở storefront_action_log
+   * workflow "Storefront Report Live" (append Google Sheet gần như tức thì).
+   * Trả kết quả kèm status/lỗi để caller ghi vào trace — nuốt lỗi thì lỗi
+   * đẩy Sheet không truy được. ok=false thì dòng vẫn nằm ở storefront_action_log
    * chưa reported và workflow pull sẽ lấp lại — không mất dòng.
    */
   pushStorefrontReport(row: Record<string, unknown>): Promise<{ ok: boolean; status?: number; error?: string }>;
 }
 
-// Refresh qua n8n (Crisp API + RPC) mất ~3s trên production.
+// Refresh qua n8n (Crisp API + RPC) mất vài giây.
 // KHÔNG có method đăng note/message lên Crisp ở đây — và không được thêm:
-// CRISP WRITE RULE (Ethan chốt 2026-10-23), copilot chỉ soạn, CS tự gửi
-// trong Crisp. postNote cũ đã bị xoá hẳn cùng workflow copilot-post-note.
+// CRISP WRITE RULE: copilot chỉ soạn, CS tự gửi trong Crisp.
 export const DEFAULT_REFRESH_TIMEOUT_MS = 5000;
 
 /** n8n trả 200 body rỗng khi workflow lỗi trước node Respond, nên chỉ tin body {"ok": true}. */
@@ -92,9 +90,8 @@ export function createN8n(opts: {
       }
     },
 
-    // KHÔNG AbortSignal: gọi đúng kiểu sendSurvey (method n8n đã kiểm chứng
-    // sống trên production) — bản đầu gắn timeout 4s tự chế, một mình nó
-    // khác mọi method còn lại.
+    // KHÔNG AbortSignal: gọi đúng kiểu sendSurvey, đồng nhất với các method
+    // n8n còn lại.
     async pushStorefrontReport(row) {
       try {
         const res = await post("storefront-report", row);

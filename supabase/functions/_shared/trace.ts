@@ -29,8 +29,8 @@ export function aiTraceSink(db: Db): (e: AiTraceEvent) => Promise<void> {
 }
 
 /**
- * Mã lỗi chuẩn hoá cho mọi luồng (khung truy vết, migration 032 — Ethan chốt
- * 2026-10-29: panel gộp phải trace được cả luồng lỗi lẫn luồng vận hành thật).
+ * Mã lỗi chuẩn hoá cho mọi luồng (khung truy vết, migration 032: panel phải
+ * trace được cả luồng lỗi lẫn luồng vận hành thật).
  * Panel chỉ hiện 1 câu trạng thái cho CS; mã này + flow_id là thứ CS chụp gửi
  * để tra cứu ngược trong trace_log.
  */
@@ -87,7 +87,7 @@ export class FlowTracer {
  * Ghi một dòng truy vết (tracing) vào bảng trace_log (migration 028).
  * NGUYÊN TẮC CỨNG: tracing không bao giờ làm gãy nghiệp vụ — bảng chưa có
  * (chưa chạy migration), DB lỗi, hay bất cứ trục trặc nào đều bị nuốt tại
- * đây. Ethan chốt 2026-10-26: mọi việc đều cần truy vết được.
+ * đây. Mọi việc đều cần truy vết được.
  */
 export async function writeTrace(db: Db | undefined | null, row: TraceRow): Promise<void> {
   try {

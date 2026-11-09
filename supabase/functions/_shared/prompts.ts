@@ -66,10 +66,10 @@ export const TRANSLATE_VI_SCHEMA = {
 
 /**
  * Dịch một loạt câu ngắn (kết quả phân tích sentiment) sang tiếng Việt —
- * chiều ngược của translatePrompt. Ethan chốt 2026-10-27: model phân tích
- * bằng ngôn ngữ tự nhiên của hội thoại rồi dịch kết quả, thay vì ép model
- * vừa phân tích vừa xuất tiếng Việt (ca tiếng Ả Rập: model hoặc bê nguyên
- * tiếng khách lên panel, hoặc dịch ẩu ngay trong đầu ra phân tích).
+ * chiều ngược của translatePrompt. Model phân tích bằng ngôn ngữ tự nhiên
+ * của hội thoại rồi dịch kết quả, thay vì ép model vừa phân tích vừa xuất
+ * tiếng Việt (khi đó model dễ bê nguyên tiếng khách lên panel, hoặc dịch ẩu
+ * ngay trong đầu ra phân tích).
  */
 export function translateViPrompt(texts: string[]): string {
   return [
@@ -135,7 +135,7 @@ export function draftPrompt(i: {
   /** Tên CS đang trực — tên duy nhất được phép xuất hiện khi draft tự giới thiệu/ký tên. */
   agentName?: string | null;
   /**
-   * Chế độ follow-up chủ động (Ethan chốt 2026-10-26): không có tin khách
+   * Chế độ follow-up chủ động: không có tin khách
    * mới — khách đang chờ phía công ty báo lại, và các ticket này vừa có
    * cập nhật từ Dev chưa được báo cho khách. Draft là tin CHỦ ĐỘNG chuyển
    * tiếp cập nhật đó, không phải trả lời một câu hỏi mới.
@@ -158,7 +158,7 @@ export function draftPrompt(i: {
       "- A line labelled Bot is a reply the customer has already received. Do not call that question unanswered, repeat it, or contradict a product fact in it unless a help center article explicitly says otherwise.",
       "- For backup, storage, plan, quota, availability, or other product-policy claims: use the help center as the source of truth. If its answer is missing or conflicting, add a [[CS: …]] check instead of making a definite claim.",
       "- Output only the message text. No placeholders like [Name].",
-      // Luật cứng của Ethan (2026-10-26): câu trả lời người-với-người mà có
+      // Luật cứng: câu trả lời người-với-người mà có
       // dấu gạch ngang dài là lộ dấu vết AI. Prompt là lớp chính; lớp phụ là
       // stripEmDashes() gọt cơ học ở đầu ra (generate.ts + parsePolish).
       "- Never use the em dash character (—) anywhere in the reply. Use a period or a comma instead.",
@@ -253,7 +253,7 @@ export function countTodos(draft: string): number {
 }
 
 /**
- * Gọt dấu gạch ngang dài khỏi văn bản trả khách (luật Ethan 2026-10-26):
+ * Gọt dấu gạch ngang dài khỏi văn bản trả khách :
  * " — " và "—" đều thành ", ". Lớp phụ cơ học sau prompt — draft nào lọt
  * dấu này qua prompt vẫn bị gọt trước khi tới tay CS/khách.
  */
@@ -272,7 +272,7 @@ export const POLISH_SCHEMA = {
 } as const;
 
 /**
- * Bước kiểm tra tối ưu cho draft vừa soạn (cơ chế gợi ý — Ethan 2026-10-26):
+ * Bước kiểm tra tối ưu cho draft vừa soạn (cơ chế gợi ý):
  * draft bám giọng CS nhưng có thể còn câu lủng củng/sai ngữ pháp kiểu người
  * bản xứ đọc là khựng. Bước này KHÔNG viết lại draft — nó chỉ đề xuất một
  * bản gọn hơn kèm lý do, CS tự quyết dùng hay không ở panel.
@@ -304,10 +304,8 @@ export function parsePolish(text: string, original: string): { reason: string; t
   const reason = typeof obj.reason === "string" ? obj.reason.trim() : "";
   const improved = stripEmDashes(typeof obj.improved === "string" ? obj.improved.trim() : "");
   if (!reason || !improved || improved === stripEmDashes(original.trim())) return null;
-  // Chất lượng gợi ý (Ethan bắt live 2026-10-26): bản gợi ý bị chê "không
-  // khác gì bản gốc" — lý do nêu đích danh một cụm yếu trong ngoặc
-  // ('am here now to help you directly') nhưng bản gợi ý vẫn giữ nguyên
-  // cụm đó. Cụm đã nêu mà còn nguyên trong bản gợi ý = gợi ý không sửa
+  // Chất lượng gợi ý: lý do có thể nêu đích danh một cụm yếu trong ngoặc
+  // mà bản gợi ý vẫn giữ nguyên cụm đó. Cụm đã nêu mà còn nguyên trong bản gợi ý = gợi ý không sửa
   // đúng chỗ mình chê → bỏ thẻ, thà không gợi ý còn hơn gợi ý vô dụng.
   const flagged = [...reason.matchAll(/['"]([^'"]{8,})['"]/g)].map((m) => m[1].trim().toLowerCase()).filter((q) => q.includes(" "));
   const improvedLow = improved.toLowerCase();
@@ -469,8 +467,7 @@ const STATE_LABEL: Record<HandoffState, string> = {
  * Nhãn trạng thái KÈM ký hiệu — CHỈ dùng khi format học theo CS ghi rõ
  * state_style "emoji" (thói quen riêng của chính CS đó trong note của họ,
  * học nguyên như giọng cá nhân). Format mặc định của hệ thống không dùng:
- * Ethan chốt bỏ ký hiệu trang trí khỏi nội dung hệ thống sinh (2026-10-26,
- * sau khi note mặc định vẫn còn 📋/⏳/➡️ trên bản live).
+ * nội dung hệ thống sinh không mang ký hiệu trang trí.
  */
 const STATE_LABEL_EMOJI: Record<HandoffState, string> = {
   done: "✅ Xong",
@@ -544,7 +541,7 @@ export function formatHandoffNote(h: HandoffFields, operatorName: string, fmt?: 
  * cấu trúc giữ nguyên (thứ tự mục, nhãn, ngôn ngữ) nhưng thói quen ký hiệu
  * của NGƯỜI KHÁC không đi theo — nhãn trạng thái ép về chữ, ký hiệu dẫn đầu
  * ở header/sign_off (vd "📋 Handoff — {name}" học từ note cũ) bị gọt bỏ.
- * Luật Ethan chốt 2026-10-26: emoji trong note chỉ sống khi đó là style
+ * Luật: emoji trong note chỉ sống khi đó là style
  * của chính người soạn, ghi rõ trong format của họ.
  */
 export function plainNoteFormat(fmt: NoteFormat): NoteFormat {
@@ -571,10 +568,9 @@ const FIELD_ORDER: NoteSectionField[] = ["summary", "issues", "next_step"];
  */
 function formatHandoffNoteLearned(h: HandoffFields, operatorName: string, fmt: NoteFormat): string {
   const en = fmt.language === "en";
-  // Emoji CHỈ khi format ghi rõ state_style "emoji" — trước đây mặc định
-  // ngược (khác "text" là emoji) nên format học thiếu trường này cũng xả
-  // ký hiệu vào note (Ethan test live 2026-10-26: note vẫn còn icon robot
-  // dù bản mặc định đã bỏ). Thiếu/khác → nhãn chữ thuần.
+  // Emoji CHỈ khi format ghi rõ state_style "emoji" — mặc định ngược (khác
+  // "text" là emoji) sẽ khiến format học thiếu trường này cũng xả ký hiệu
+  // vào note. Thiếu/khác → nhãn chữ thuần.
   const stateLabel = (s: HandoffState) => (fmt.state_style === "emoji" ? STATE_LABEL_EMOJI[s] : STATE_LABEL_TEXT[s]);
   const block = (field: NoteSectionField, label: string): string[] => {
     if (field === "summary") return [label ? `${label} ${h.summary}` : h.summary];

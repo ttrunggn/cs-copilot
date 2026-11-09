@@ -13,7 +13,7 @@ import { resetSessionScopedState } from "./state.js";
 function dirtyState() {
   return {
     operatorId: "op-lan",
-    operatorName: "Lan Nguyen",
+    operatorName: "Test Agent",
     tone: "friendly",
     bridge: "ready",
     bridgeProbe: null,
@@ -89,7 +89,7 @@ Deno.test("resetSessionScopedState: quên sạch dữ liệu chat cũ — draft,
 Deno.test("resetSessionScopedState: giữ nguyên trạng thái thuộc về CS/extension, không thuộc về chat", () => {
   const s = resetSessionScopedState(dirtyState());
   assertEquals(s.operatorId, "op-lan");
-  assertEquals(s.operatorName, "Lan Nguyen");
+  assertEquals(s.operatorName, "Test Agent");
   assertEquals(s.tone, "friendly"); // lựa chọn giọng văn của CS, không phải dữ liệu khách
   assertEquals(s.bridge, "ready");
 });

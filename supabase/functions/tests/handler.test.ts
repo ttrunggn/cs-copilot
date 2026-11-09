@@ -30,14 +30,14 @@ const CONV: ConversationRow = {
 };
 const MSGS: MessageRow[] = [
   { id: 1, content_en: null, from: "user", type: "text", is_bot: false, content: "a", created_at: "2026-10-15T03:01:00+00:00", operator_name: null },
-  { id: 2, content_en: null, from: "operator", type: "text", is_bot: false, content: "b", created_at: "2026-10-15T03:02:00+00:00", operator_name: "Lan" },
+  { id: 2, content_en: null, from: "operator", type: "text", is_bot: false, content: "b", created_at: "2026-10-15T03:02:00+00:00", operator_name: "Jamie" },
   { id: 3, content_en: null, from: "user", type: "text", is_bot: false, content: "c", created_at: "2026-10-15T03:03:00+00:00", operator_name: null },
 ];
 const PROFILES: ProfileRow[] = [
-  { crisp_user_id: "op-lan", website_id: "ws1", topic: "billing", tone: "chi tiết", conversations_used: 9, learned_at: null, manual_override: null },
+  { crisp_user_id: "op-jamie", website_id: "ws1", topic: "billing", tone: "chi tiết", conversations_used: 9, learned_at: null, manual_override: null },
 ];
 
-const TOKEN = "tok-lan";
+const TOKEN = "tok-jamie";
 const TOKEN_HASH = await sha256Hex(TOKEN);
 const CRISP_TOKEN = "11111111-2222-3333-4444-555555555555";
 const WIDGET_HASH = await sha256Hex(CRISP_TOKEN);
@@ -47,14 +47,14 @@ function deps(over: Partial<Db> = {}, stale = false) {
     getWorkspace: () => Promise.resolve(WS),
     logTrace: () => Promise.resolve(),
     getWidgetTokenHash: () => Promise.resolve(WIDGET_HASH),
-    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-lan" : null),
+    getOperatorIdByTokenHash: (h) => Promise.resolve(h === TOKEN_HASH ? "op-jamie" : null),
     isOperatorMember: () => Promise.resolve(true),
     getConversation: () => Promise.resolve(CONV),
     getMessages: () => Promise.resolve(MSGS),
     saveTranslations: () => Promise.resolve(),
     getProfiles: () => Promise.resolve(PROFILES),
     getWorkspaceAllProfiles: () => Promise.resolve(PROFILES),
-    getOperator: () => Promise.resolve({ display_name: "Lan Nguyen" }),
+    getOperator: () => Promise.resolve({ display_name: "Jamie Lee" }),
     findCachedOutput: () => Promise.resolve(null),
     insertOutput: () => Promise.resolve(1),
     saveReviewTemplate: () => Promise.resolve(),
@@ -118,7 +118,7 @@ Deno.test("check returns unanswered, topic and profile", async () => {
     topic: "billing",
     topic_label: "Billing",
     profile_source: "topic",
-    profile_name: "Lan Nguyen",
+    profile_name: "Jamie Lee",
     profile_coverage: { conversations_used: 9, learned_at: null }, // từ dòng profile fake của CS này
     review_template: {
       source: "default",
@@ -205,7 +205,7 @@ Deno.test("check modules: bản chụp nói SW đang theo dõi + có lỗi mở 
   assertEquals(sfStatusOf(r), SF_STATUS());
 });
 
-Deno.test("check modules: bản chụp nói SW KHÔNG theo dõi domain → Storefront VẪN bật (bản chụp không còn quyền phủ quyết, Ethan chốt 2026-10-26)", async () => {
+Deno.test("check modules: bản chụp nói SW KHÔNG theo dõi domain → Storefront VẪN bật (bản chụp không còn quyền phủ quyết)", async () => {
   const r = await handle(REQ, TOKEN, deps({
     getWorkspace: () => Promise.resolve({ ...WS, jira_project: "TNT", storefront_watch: true }),
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
@@ -215,9 +215,8 @@ Deno.test("check modules: bản chụp nói SW KHÔNG theo dõi domain → Store
 });
 
 Deno.test("check modules: workspace OE (jira_project = OES, cờ storefront_watch TẮT) + chat có shopify_domain + có bản chụp watched → Storefront vẫn tắt và badge KHÔNG rò (storefront_status = null)", async () => {
-  // Khoá hồi quy lỗi định danh cũ: OE cũng có jira_project (OES) — trước đây
-  // điều đó đủ để mở cổng domain và lộ badge cho OE. Nay phạm vi SW chỉ do
-  // cờ storefront_watch quyết; cờ tắt thì check không trả bản chụp nào cả.
+  // Có jira_project không đủ để mở cổng domain hay lộ badge — phạm vi SW chỉ
+  // do cờ storefront_watch quyết; cờ tắt thì check không trả bản chụp nào cả.
   const r = await handle(REQ, TOKEN, deps({
     getWorkspace: () => Promise.resolve({ ...WS, jira_project: "OES" }),
     getConversation: () => Promise.resolve(CONV_WITH_SHOP),
@@ -286,13 +285,13 @@ Deno.test("malformed website_id -> 400", async () => {
 });
 
 Deno.test("widget request (no personal token) authenticates with Crisp token + operator_id", async () => {
-  const r = await handle({ ...REQ, crisp_token: CRISP_TOKEN, operator_id: "op-lan" }, "", deps());
+  const r = await handle({ ...REQ, crisp_token: CRISP_TOKEN, operator_id: "op-jamie" }, "", deps());
   assertEquals(r.status, 200);
-  assertEquals((r.body as { profile_name: string }).profile_name, "Lan Nguyen");
+  assertEquals((r.body as { profile_name: string }).profile_name, "Jamie Lee");
 });
 
 Deno.test("widget request with forged Crisp token -> 401", async () => {
-  assertEquals((await handle({ ...REQ, crisp_token: "forged", operator_id: "op-lan" }, "", deps())).status, 401);
+  assertEquals((await handle({ ...REQ, crisp_token: "forged", operator_id: "op-jamie" }, "", deps())).status, 401);
 });
 
 const RAW_JIRA_ISSUE = {

@@ -1,9 +1,8 @@
 :root {
   color-scheme: dark;
   /* Design tokens (tokens.css) — nguồn chuẩn cho panel. */
-  /* Phương án B (Ethan duyệt ở preview v6, 2026-10-26 — Lỗi 6): card sáng
-     hẳn lên khỏi nền panel + viền rõ + chữ phụ sáng hơn, hết cảnh card
-     "chìm" vào nền như bộ token cũ (#141519/#1b1d23/#2b2f38). */
+  /* Card sáng hẳn lên khỏi nền panel + viền rõ + chữ phụ sáng hơn, để card
+     không "chìm" vào nền. */
   --bg: #12151c;
   --card: #272f40;
   --card-ai: #232b3d;
@@ -18,8 +17,7 @@
   --ai: #b08cff;
   --surface-inset: #1a1f2b;
   --bubble: #2e3648;
-  /* Nút phải KHÁC hẳn màu cards (Ethan 2026-10-26: nút trùng màu cards quá
-     khó nhìn — --bubble #2e3648 so với --card #272f40 chỉ lệch một tông).
+  /* Nút phải KHÁC hẳn màu cards (nút trùng màu cards rất khó nhìn).
      --btn sáng hơn cards rõ rệt + viền riêng; nút chính chuyển sang gradient
      TÍM (đúng màu --ai đã dùng cho draft) thay cho xanh dương cùng họ với cards. */
   --btn: #3d4763;
@@ -30,15 +28,14 @@
   --csat: #e8334f;
   --highlight-bg: #f2b84b;
   --highlight-text: #2a1a00;
-  /* Dải màu theo điểm sentiment + màu nút theo ngữ cảnh (bản Support
-     Operation v9, Ethan chốt 2026-10-29): điểm ≤25 đỏ, 26–42 cam, 43–57
+  /* Dải màu theo điểm sentiment + màu nút theo ngữ cảnh : điểm ≤25 đỏ, 26–42 cam, 43–57
      mặc định, 58–74 xanh dương, 75+ xanh lá; "Khẩn: cao" đỏ. */
   --band-red: #ff8580;
   --band-orange: #ffab5e;
   --band-blue: #6db3f7;
   --band-green: #4ed07f;
-  /* Private note: vàng hổ phách pha loãng (Ethan chốt lại 2026-10-23 — vàng là
-     màu nhận diện private note như trong Crisp; chỉ bỏ khoá, không bỏ vàng). */
+  /* Private note: vàng hổ phách pha loãng — vàng là
+     màu nhận diện private note như trong Crisp). */
   --note-bg: rgba(242, 184, 75, .10);
   --note-border: rgba(242, 184, 75, .45);
   /* Tên cũ của stylesheet — alias về token để class hiện có không đổi hành vi. */
@@ -122,11 +119,11 @@ a { color: var(--link); }
 .empty-state { padding: 12px 0 4px; }
 .empty-state h2 { margin-bottom: 4px; }
 
-/* Nền nút là --bubble (xám nổi), không dùng đen tuyền --surface-inset nữa:
-   nút chìm vào nền panel rất khó nhìn (feedback của Ethan trên preview v4). */
-/* Hệ nút mềm (Ethan 2026-10-26: bản cũ "nhìn robot quá"): bo tròn lớn hơn,
+/* Nền nút là --bubble (xám nổi), không dùng đen tuyền --surface-inset:
+   nút chìm vào nền panel rất khó nhìn. */
+/* Hệ nút mềm: bo tròn lớn hơn,
    viền pha trong suốt cho dịu, đổ bóng nhẹ, hover nhấc lên thay vì đổi màu
-   gắt. Nút chính dùng gradient + bóng màu theo accent, hết cảnh phẳng lì. */
+   gắt. Nút chính dùng gradient + bóng màu theo accent. */
 button { min-height: 44px; border: 1px solid var(--btn-border); border-radius: 12px; padding: 9px 14px; background: var(--btn); color: var(--fg); font: inherit; font-weight: 700; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: background .18s ease, border-color .18s ease, transform .18s ease, filter .18s ease, box-shadow .18s ease; }
 button:hover:not(:disabled) { border-color: color-mix(in srgb, var(--btn-border) 80%, #ffffff 20%); background: color-mix(in srgb, var(--btn) 82%, #ffffff 12%); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(0, 0, 0, .30); }
 button:active:not(:disabled) { transform: translateY(0); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
@@ -137,11 +134,11 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 @keyframes spin { to { transform: rotate(360deg); } }
 .button-primary { border-color: transparent; background: linear-gradient(180deg, #8b5cf6, #6d28d9); color: #fff; box-shadow: 0 4px 14px rgba(124, 58, 237, .38); }
 .button-primary:hover:not(:disabled) { border-color: transparent; background: linear-gradient(180deg, #8b5cf6, #6d28d9); filter: brightness(1.1); box-shadow: 0 6px 18px rgba(124, 58, 237, .46); }
-/* Nền ĐẶC như nút thường: bản pha 78% trong suốt trước đây chìm vào nền card,
-   nhìn như chưa đổi màu (Ethan test live 2026-10-26 trên nút "Soạn lại"). */
+/* Nền ĐẶC như nút thường: nền trong suốt sẽ chìm vào nền card,
+   nhìn như chưa đổi màu. */
 .button-secondary { background: var(--btn); }
 .button-link { min-height: auto; padding: 5px 1px; border: 0; background: transparent; color: var(--link); text-decoration: underline; text-underline-offset: 3px; }
-/* Nút màu theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông màu —
+/* Nút màu theo ngữ cảnh: nền nhuốm + viền + chữ đậm cùng tông màu —
    Draft/CSAT xanh dương, Private note hổ phách, Hỏi KB ngọc, Review tím;
    ghost là bản nhạt cho thao tác phụ (Sync Jira xanh, Gỡ Jira đỏ). */
 .act-blue { border-color: #2f6db3; background: rgba(47, 109, 179, .18); color: var(--band-blue); }
@@ -171,7 +168,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .ask-answer { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ask-notfound .warn p { margin-top: 4px; font-weight: 400; }
 .csat-panel { display: grid; gap: 10px; padding: 14px 0 0; border-top: 1px solid var(--line); }
-/* Gửi CSAT = xanh dương theo ngữ cảnh (v9): nền nhuốm + viền + chữ đậm cùng tông. */
+/* Gửi CSAT = xanh dương theo ngữ cảnh: nền nhuốm + viền + chữ đậm cùng tông. */
 .csat-button { border-color: #2f6db3; background: rgba(47, 109, 179, .18); color: var(--band-blue); box-shadow: 0 4px 14px rgba(47, 109, 179, .22); }
 .csat-button:hover:not(:disabled) { border-color: #2f6db3; background: rgba(47, 109, 179, .28); filter: brightness(1.09); }
 .csat-button:disabled { opacity: .5; }
@@ -184,7 +181,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .chip { border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--text); }
 .chip b { font-weight: 700; }
 
-/* Thẻ tâm trạng: màu theo DẢI ĐIỂM (v9) — nhãn mood, số điểm và thanh điểm
+/* Thẻ tâm trạng: màu theo DẢI ĐIỂM — nhãn mood, số điểm và thanh điểm
    cùng một màu dải; urgency cao thì hộp cảnh báo chuyển đỏ. */
 .mood-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .mood-label { font-size: 20px; font-weight: 700; }
@@ -221,7 +218,7 @@ button:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visi
 .suggestion-label { font-size: 12px; }
 .suggestion-toggle { align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; }
 
-/* Thẻ gợi ý tối ưu (preview v8): viền hổ phách như vùng chú ý nhẹ, không lấn draft */
+/* Thẻ gợi ý tối ưu: viền hổ phách như vùng chú ý nhẹ, không lấn draft */
 .sugg-card { border: 1px solid var(--warn-border); background: var(--warn-bg); border-radius: 10px; padding: 10px 12px; margin-top: 10px; display: grid; gap: 7px; }
 .sugg-card.done { border-color: var(--line); background: var(--card); }
 .sugg-head { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--warn); }
@@ -261,7 +258,7 @@ button.sf-explain { padding: 2px 8px; font-size: 12px; }
 .sf-badge { margin-left: auto; }
 .explain-text { white-space: pre-wrap; font-size: 13px; }
 
-/* Màu nhận diện từng module (preview v4): vệt trái + nền pha loãng cùng tông,
+/* Màu nhận diện từng module: vệt trái + nền pha loãng cùng tông,
    đủ để phân biệt khi lướt nhanh mà không đậm. */
 .mod-sent { border-left: 3px solid var(--ai); background: rgba(176, 140, 255, .05); }
 .mod-issues { border-left: 3px solid #ff9e6b; background: rgba(255, 158, 107, .06); }
@@ -271,7 +268,7 @@ button.sf-explain { padding: 2px 8px; font-size: 12px; }
 .mod-jira .jtitle { color: var(--link); }
 .mod-jira .jira { border: 0; background: transparent; padding: 6px 0; }
 
-/* Module Vấn đề của khách (cấu trúc Ethan chốt 2026-10-23): dòng tiêu đề nhỏ
+/* Module Vấn đề của khách: dòng tiêu đề nhỏ
    trên cùng, mỗi issue một card riêng có nhãn ISSUE n cùng tông cam đào. */
 .issues-module { display: grid; gap: 9px; }
 .issues-head { display: flex; align-items: baseline; gap: 6px; padding: 0 2px; }
@@ -316,14 +313,12 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .compose-card .draft-actions { grid-template-columns: auto 1fr; }
 .draft-actions.single { grid-template-columns: 1fr; }
 
-/* Hàng lệnh + popup (panel gọn v4): mỗi lệnh một sắc nhạt riêng để nổi khỏi nền */
+/* Hàng lệnh + popup (panel gọn): mỗi lệnh một sắc nhạt riêng để nổi khỏi nền */
 .cmds { display: flex; gap: 8px; flex-wrap: wrap; }
 .cmd { --tint: var(--btn); border: 1px solid var(--border); background: var(--tint); border-radius: 999px; padding: 9px 15px; font-weight: 600; font-size: 13px; min-height: 42px; }
 .cmd b { color: var(--ai); font-weight: 700; }
-/* Chip dạng pill: giữ sắc riêng của từng hành động để phân biệt. Độ đậm đã
-   đổi hai lần theo Ethan: 2026-10-26 dịu lại (bản gắt nhìn "robot"), rồi
-   2026-10-27 tăng lại độ sáng + tương phản vì bản dịu nổi chưa đủ trên nền tối:
-   nền nhuốm .68 và chữ sáng thêm một nấc; viền giữ nguyên màu đặc. */
+/* Chip dạng pill: giữ sắc riêng của từng hành động để phân biệt. Độ sáng +
+   tương phản đủ để nổi trên nền tối: nền nhuốm .68 và chữ sáng thêm một nấc; viền giữ nguyên màu đặc. */
 .cmd { font-weight: 700; }
 .cmd-draft { --tint: rgba(47, 109, 179, .55); border-color: #2f6db3; color: #d7e9ff; }
 .cmd-note { --tint: rgba(217, 169, 44, .68); border-color: #d9a92c; color: #fff0b8; }
@@ -354,7 +349,7 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .review-editor { display: grid; gap: 8px; }
 .review-text { min-height: 110px; }
 
-/* Thẻ tiến trình từng bước (theo simulator Ethan duyệt): bước đang chạy quay
+/* Thẻ tiến trình từng bước: bước đang chạy quay
    spinner, bước xong hiện ✓, đồng hồ đếm giây thật — thay thẻ loading chung. */
 .prog { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-ai); }
 .prog-head { display: flex; align-items: center; gap: 10px; }
@@ -391,9 +386,8 @@ mark.todo { padding: 0 4px; border-radius: 4px; background: var(--highlight-bg);
 .unlink-button { color: var(--band-red); font-size: 13px; min-height: 32px; }
 .unlink-confirm { display: inline-flex; align-items: center; gap: 8px; }
 
-/* Private note màu VÀNG mặc định (Ethan chốt lại 2026-10-23, thắng chỉ đạo
-   "bỏ sơn vàng" ban sáng): vàng hổ phách pha loãng theo token --note-*, khớp
-   màu nhận diện private note của Crisp. Biểu tượng khoá vẫn bỏ như đã chốt. */
+/* Private note màu VÀNG mặc định: vàng hổ phách pha loãng theo token --note-*,
+   khớp màu nhận diện private note của Crisp. Không có biểu tượng khoá. */
 .handoff-card { display: grid; gap: 10px; padding: 14px; border: 1.5px solid var(--note-border); border-radius: 14px; background: var(--note-bg); }
 .note-text { line-height: 1.6; overflow-wrap: anywhere; white-space: pre-wrap; }
 .handoff-card .button-link { color: var(--warn); }
@@ -494,25 +488,22 @@ button.sf-row { cursor: pointer; }
 .sf-line .sf-links { margin-left: auto; flex: none; display: flex; gap: 6px; align-items: center; }
 .sf-line .sf-links .sf-bug-link { margin-left: 0; }
 .sf-page-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-/* Hàng 3 link của finding (Default page / Issue page / Console — Ethan 2026-10-29): xếp DỌC thành một cột bên phải dòng, cùng cỡ chữ, canh giữa cho thẳng cột. Gap + padding nới ra để dễ bấm (Ethan bắt live 2026-10-29: nút gần nhau quá, khó click). */
+/* Hàng 3 link của finding (Default page / Issue page / Console): xếp DỌC thành một cột bên phải dòng, cùng cỡ chữ, canh giữa cho thẳng cột. Gap + padding nới ra để dễ bấm. */
 .sf-line .sf-links { flex-direction: column; align-items: stretch; gap: 8px; }
 .sf-line .sf-links .sf-bug-link { font-size: 11.5px; font-weight: 600; white-space: nowrap; text-align: center; padding: 7px 10px; }
 /* Đầu thẻ Storefront cho rớt dòng: ở khung Crisp hẹp (~260px) nút Mở
-   Storefront Watch từng bị đẩy khỏi khung vì .row không wrap (Ethan bắt
-   live 2026-10-27, CS phải kéo rộng panel mới thấy nút). */
+   Storefront Watch không bị đẩy khỏi khung (.row mặc định không wrap). */
 .sf-head { flex-wrap: wrap; }
-/* Danh sách lỗi hiện FULL như cũ (Ethan đổi ý sau test live 2026-10-27:
-   cuộn trong thẻ nhỏ quá bất tiện — để panel tự cuộn theo trang). */
+/* Danh sách lỗi hiện FULL, không cuộn trong thẻ nhỏ — để panel tự cuộn theo trang. */
 .sf-rows { display: grid; gap: 4px; }
-/* Hai tab Đang mở / Đã đóng ở đầu thân thẻ Storefront (v9, 2026-10-29). */
+/* Hai tab Đang mở / Đã đóng ở đầu thân thẻ Storefront. */
 .sf-tabs { display: flex; gap: 8px; }
 .sf-tab { flex: 1; min-height: 38px; padding: 6px 10px; border-radius: 999px; border: 1.5px solid var(--border); background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 700; box-shadow: none; }
 .sf-tab.on { color: var(--error); border-color: var(--error-border); background: rgba(255, 138, 128, .08); }
 .sf-clickable { cursor: pointer; }
 .pill-sf.sf-closed { border-color: var(--success); color: var(--success); }
-/* Menu thao tác dưới dòng finding. Màu theo ngữ cảnh ở bản Support
-   Operation v9 (Ethan chốt 2026-10-29, thay bộ vàng/xanh lá/đen của đợt
-   2026-10-27): Take case xanh dương đặc · Fix trung tính · Dismiss đỏ
+/* Menu thao tác dưới dòng finding. Màu theo ngữ cảnh:
+   Take case xanh dương đặc · Fix trung tính · Dismiss đỏ
    ghost. 3 nút CHIA ĐỀU bề ngang, nằm dưới dòng finding. */
 .sf-menu { margin: 2px 0 6px; }
 .sf-actions { display: flex; flex-wrap: wrap; gap: 6px; }

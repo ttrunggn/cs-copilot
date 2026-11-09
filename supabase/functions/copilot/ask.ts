@@ -28,7 +28,7 @@ const ASK_HYBRID_K = 8;
 /**
  * Bản tiếng Anh của câu hỏi để truy hồi SONG SONG bản gốc: kho tài liệu là
  * tiếng Anh nên câu hỏi tiếng Việt gần như mù cả vector lẫn từ khoá nếu không
- * dịch (ca Ethan thử live 2026-10-27: "khách muốn chặn bản dịch"). Theo đúng
+ * dịch. Theo đúng
  * mẫu của hệ thống: tin khách cũng được dịch sang content_en để truy hồi.
  * Lỗi dịch → null, truy hồi chạy bằng bản gốc như cũ.
  */
@@ -66,10 +66,10 @@ function qualifies(c: HelpdeskChunk): boolean {
 }
 
 /**
- * Truy hồi helpdesk cho câu hỏi của CS bằng HYBRID SEARCH (migration 030,
- * Ethan chốt 2026-10-27): RPC gộp hạng vector (pgvector) + full-text
- * (tsvector có stemming) bằng RRF ngay trong DB — thay kiến trúc hai tầng
- * vector/ILIKE cũ (ILIKE không stemming, không hạng, chỉ chạy khi vector
+ * Truy hồi helpdesk cho câu hỏi của CS bằng HYBRID SEARCH (migration 030):
+ * RPC gộp hạng vector (pgvector) + full-text
+ * (tsvector có stemming) bằng RRF ngay trong DB — không dùng hai tầng
+ * vector/ILIKE (ILIKE không stemming, không hạng, chỉ chạy khi vector
  * trượt hẳn). Câu hỏi không phải tiếng Anh thì chạy hybrid cho CẢ bản gốc
  * lẫn bản dịch tiếng Anh rồi gộp theo điểm RRF. AI trả lời vẫn là chốt
  * chặn cuối: bài không trả lời được câu hỏi thì answered=false → not found.
