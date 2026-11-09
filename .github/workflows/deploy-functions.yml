@@ -56,7 +56,7 @@ jobs:
 
   deploy-copilot:
     needs: [changes, test]
-    if: needs.changes.outputs.copilot == 'true'
+    if: needs.changes.outputs.copilot == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -65,11 +65,11 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: latest
-      - run: supabase functions deploy copilot --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+      - run: supabase functions deploy copilot --no-verify-jwt --use-api --yes --project-ref "$PROJECT_REF"
 
   deploy-embed-helpdesk:
     needs: [changes, test]
-    if: needs.changes.outputs.embed_helpdesk == 'true'
+    if: needs.changes.outputs.embed_helpdesk == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -78,11 +78,11 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: latest
-      - run: supabase functions deploy embed-helpdesk --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+      - run: supabase functions deploy embed-helpdesk --no-verify-jwt --use-api --yes --project-ref "$PROJECT_REF"
 
   deploy-jira-sync:
     needs: [changes, test]
-    if: needs.changes.outputs.jira_sync == 'true'
+    if: needs.changes.outputs.jira_sync == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -91,11 +91,11 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: latest
-      - run: supabase functions deploy jira-sync --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+      - run: supabase functions deploy jira-sync --no-verify-jwt --use-api --yes --project-ref "$PROJECT_REF"
 
   deploy-mcp:
     needs: [changes, test]
-    if: needs.changes.outputs.mcp == 'true'
+    if: needs.changes.outputs.mcp == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -104,4 +104,4 @@ jobs:
       - uses: supabase/setup-cli@v3
         with:
           version: latest
-      - run: supabase functions deploy mcp --no-verify-jwt --use-api --project-ref "$PROJECT_REF"
+      - run: supabase functions deploy mcp --no-verify-jwt --use-api --yes --project-ref "$PROJECT_REF"
